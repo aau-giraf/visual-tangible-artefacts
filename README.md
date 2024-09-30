@@ -1,5 +1,11 @@
 # Visual tangible artefacts
 # Contributing to Visual tangible artefacts
+## Feature Contributions
+### Feature Contributions
+- **Issue Creation and Branching:**
+  1. When adding new features, **create an issue** on GitHub to track the feature or bug fix.
+  2. Create a new **branch** from the issue and use that branch for development.
+  3. Once development is complete, submit a **pull request** for review.
 ## Naming Conventions
 ### Types
 - **Classes, Enums, Typedefs, and Type Parameters**: Use `PascalCase/UpperCamelCase`.
