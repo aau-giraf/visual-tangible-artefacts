@@ -2,6 +2,7 @@
 
 - [Contributing to Visual tangible artefacts](#contributing-to-visual-tangible-artefacts)
   - [Feature Contributions](#feature-contributions)
+    - [Branching](#feature-contributions)
   - [App Naming Conventions (Dart)](#app-naming-conventions-dart)
     - [Types](#types)
     - [Extensions](#extensions)
