@@ -135,8 +135,10 @@ For other formatting guidlines refer to [dart.dev styling guidlines](https://dar
   ```
 
 ### Acronyms
-- **Acronyms**: Capitalize acronyms that are two letters or fewer. For longer acronyms, use `PascalCase`.
+- **Acronyms**: Capitalize acronyms. For longer acronyms, use `PascalCase`.
   ```csharp
+  class VTA { ... }
+  Class VTAGiraff { ... }
   class IOHandler { ... }
   class HttpRequest { ... }
   ```
