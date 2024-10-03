@@ -21,4 +21,4 @@ jobs:
       - name: Build
         run: dotnet build --no-restore Backend/VTA.API
       - name: Test
-        run: dotnet test --no-build --verbosity normal VTA.BackendTests
+        run: dotnet test --no-build --verbosity normal Backend/VTA.Tests
