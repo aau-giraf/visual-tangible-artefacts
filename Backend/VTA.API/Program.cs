@@ -23,3 +23,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Don't touch! Integration tests virker ikke hvis Program klassen ikke er deklareret som partial, 
+// fordi VTA.Tests projektet prøver at bruge Microsoft.AspNetCore.Mvc.Testing.Program istedet for 
+// VTA.API Program klassen.  
+public partial class Program { }
