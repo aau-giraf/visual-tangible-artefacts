@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backend", "Backend", "{01AA31A4-C68C-4E21-B4D5-2183E5FA1700}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VTA.API", "Backend\VTA.API\VTA.API.csproj", "{39DE7D8F-124C-44FF-8CCC-5D3E74775776}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VTA.Tests", "Backend\VTA.Tests\VTA.Tests.csproj", "{115C374A-F7C5-4E23-B0A1-5E4BB4A48895}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{39DE7D8F-124C-44FF-8CCC-5D3E74775776}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39DE7D8F-124C-44FF-8CCC-5D3E74775776}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39DE7D8F-124C-44FF-8CCC-5D3E74775776}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39DE7D8F-124C-44FF-8CCC-5D3E74775776}.Release|Any CPU.Build.0 = Release|Any CPU
+		{115C374A-F7C5-4E23-B0A1-5E4BB4A48895}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{115C374A-F7C5-4E23-B0A1-5E4BB4A48895}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{115C374A-F7C5-4E23-B0A1-5E4BB4A48895}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{115C374A-F7C5-4E23-B0A1-5E4BB4A48895}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{39DE7D8F-124C-44FF-8CCC-5D3E74775776} = {01AA31A4-C68C-4E21-B4D5-2183E5FA1700}
+		{115C374A-F7C5-4E23-B0A1-5E4BB4A48895} = {01AA31A4-C68C-4E21-B4D5-2183E5FA1700}
+	EndGlobalSection
+EndGlobal
