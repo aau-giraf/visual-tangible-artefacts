@@ -17,7 +17,7 @@ namespace VTA.Tests.IntegrationTests
         {
             var client = _factory.CreateClient();
 
-            var response = await client.GetAsync("/");
+            var response = await client.GetAsync("/swagger/index.html");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
