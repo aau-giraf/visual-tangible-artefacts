@@ -33,7 +33,7 @@
   1. When adding new features, **create an issue** on GitHub to track the feature or bug fix.
   2. Create a new **branch** from the issue and use that branch for development.
   3. Once development is complete, submit a **pull request** and pull it to main*.
-  4. If unsure about code validity, assign a code reviewer.
+  4. If unsure about code validity, assign a **code reviewer**.
      
      *It might be easier for you to pull main, into the feature branch, testing it, and then pulling feature to main
      
