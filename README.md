@@ -14,7 +14,7 @@
     - [Formatting](#formatting-your-dart-code)
     - [Document Your Dart Code](#formatting-your-dart-code)
   - [API Naming Conventions (C#)](#api-naming-conventions-c)
-    - [Types](#types-csharp)
+    - [Types CSharp](#types-csharp)
     - [Methods, Properties, Events](#methods-properties-events)
     - [Variables, Parameters](#variables-parameters)
     - [Constants](#constants)
@@ -79,7 +79,7 @@ Use ``dart format`` to format your code
 For other formatting guidlines refer to [dart.dev styling guidlines](https://dart.dev/effective-dart/style)
 # [DOCUMENT YOUR CODE!](https://dart.dev/effective-dart/documentation)
 ## API Naming Conventions (C#)
-### Types
+### Types CSharp
 - **Classes, Enums, and Structs**: Use `PascalCase`.
   ```csharp
   class MyClass { ... }
