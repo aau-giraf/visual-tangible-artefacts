@@ -3,6 +3,7 @@
 - [Contributing to Visual tangible artefacts](#contributing-to-visual-tangible-artefacts)
   - [Feature Contributions](#feature-contributions)
     - [Branching](#feature-contributions)
+- [Naming Conventions](#naming-conventions)
   - [App Naming Conventions (Dart)](#app-naming-conventions-dart)
     - [Types](#types)
     - [Extensions](#extensions)
@@ -39,14 +40,7 @@
      
      ![Branching strategy](https://github.com/aau-giraf/Visual-tangible-artefacts/blob/main/resources/Branching.png)
      
-### App Naming Conventions (Dart)
-
-#### Types csharp
-- **Classes, Enums, Typedefs, and Type Parameters**: Use `PascalCase/UpperCamelCase`.
-  ```dart
-  class SliderMenu { ... }
-  typedef Predicate<T> = bool Function(T value);
-
+### Naming Conventions
 ## App Naming Conventions (Dart)
 ### Types
 - **Classes, Enums, Typedefs, and Type Parameters**: Use `PascalCase/UpperCamelCase`.
