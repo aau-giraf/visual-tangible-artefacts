@@ -3,6 +3,7 @@
 - [Contributing to Visual tangible artefacts](#contributing-to-visual-tangible-artefacts)
   - [Feature Contributions](#feature-contributions)
     - [Branching](#feature-contributions)
+    - [Database Approach](#db-first-approach)
 - [Naming Conventions](#naming-conventions)
   - [App Naming Conventions (Dart)](#app-naming-conventions-dart)
     - [Types](#types)
