@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact_board.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 
 class ArtifactBoardScreen extends StatelessWidget {
   const ArtifactBoardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Get the height of the screen
-    double screenHeight = MediaQuery.of(context).size.height;
-    double screenWidth = MediaQuery.of(context).size.width;
-
     // Define the height of the bottom bar (if any)
 
     double padding = 40.0; // Padding around the ArtifactBoard
@@ -28,10 +26,21 @@ class ArtifactBoardScreen extends StatelessWidget {
             Padding(
               padding: EdgeInsets.all(padding),
               child: Center(
-                child: ArtifactBoard(
-                  // Set height to the calculated available height
-                  height: screenHeight,
-                  width: screenWidth, // Full width with padding
+                child: TalkingMat(
+                  artifacts: [
+                    Artifact(
+                      height: 50,
+                      width: 50,
+                      position: const Offset(500, 500),
+                      content: SvgPicture.asset('assets/icons/sillyface.svg'),
+                    ),
+                    Artifact(
+                      height: 50,
+                      width: 50,
+                      position: const Offset(500, 500),
+                      content: SvgPicture.asset('assets/icons/sillyface.svg'),
+                    )
+                  ], // Full width with padding
                 ),
               ),
             ),
