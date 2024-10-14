@@ -10,7 +10,9 @@ class ArtifactBoardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Define the height of the bottom bar (if any)
 
-    double padding = 40.0; // Padding around the ArtifactBoard
+    double padding = 40; // Padding around the ArtifactBoard
+    final GlobalKey<TalkingMatState> talkingmatKey =
+        GlobalKey<TalkingMatState>();
 
     return Scaffold(
       body: Container(
@@ -27,22 +29,31 @@ class ArtifactBoardScreen extends StatelessWidget {
               padding: EdgeInsets.all(padding),
               child: Center(
                 child: TalkingMat(
+                  key: talkingmatKey,
                   artifacts: [
                     Artifact(
-                      height: 50,
-                      width: 50,
                       position: const Offset(500, 500),
                       content: SvgPicture.asset('assets/icons/sillyface.svg'),
                     ),
                     Artifact(
-                      height: 50,
-                      width: 50,
                       position: const Offset(500, 500),
                       content: SvgPicture.asset('assets/icons/sillyface.svg'),
                     )
                   ], // Full width with padding
                 ),
               ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Create a new artifact and add it
+                Artifact newArtifact = Artifact(
+                  content: SvgPicture.asset('assets/icons/sillyface.svg'),
+                  position: const Offset(100, 100),
+                );
+                // Call the addArtifact method directly
+                talkingmatKey.currentState?.addArtifact(newArtifact);
+              },
+              child: const Text('Add Artifact'),
             ),
             // Add more widgets here as needed
           ],
