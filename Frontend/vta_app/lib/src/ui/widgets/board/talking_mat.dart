@@ -86,11 +86,8 @@ class TalkingMatState extends State<TalkingMat> {
       onTapDown: (details) {
         isGestureInsideMat = true;
       },
-      onTapUp: (details) {
-        isGestureInsideMat = true;
-      },
       onTapCancel: () {
-        isGestureInsideMat = true;
+        isGestureInsideMat = false;
       },
       child: Container(
         height: widget.height,
@@ -110,7 +107,12 @@ class TalkingMatState extends State<TalkingMat> {
                 data: artifact,
                 feedback: Transform.scale(
                   scale: 1.2,
-                  child: artifact.content,
+                  child: PhysicalModel(
+                    color: Colors.black,
+                    elevation: 20.0,
+                    shape: BoxShape.circle,
+                    child: artifact.content,
+                  ),
                 ),
                 childWhenDragging: Container(),
                 child: Container(key: artifact.key, child: artifact.content),
