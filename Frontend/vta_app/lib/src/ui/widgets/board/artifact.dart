@@ -1,77 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact_board.dart';
 
-class DraggableArtifact extends StatefulWidget {
-  final Offset position;
-  final Artifact? child;
-  final ArtifactBoard? target;
+class Artifact {
+  final Widget content;
+  Offset position;
+  final GlobalKey key; // GlobalKey for accessing the widget's context
+  final double height; // Height of the artifact
+  final double width; // Width of the artifact
+  Size? _renderedSize; // Private property to store the rendered size
 
-  const DraggableArtifact({
-    super.key,
-    this.position = const Offset(0, 0),
-    this.child,
-    this.target,
-  });
+  Artifact({
+    required this.content,
+    required this.position,
+    required this.height,
+    required this.width,
+  }) : key = GlobalKey(); // Initialize the GlobalKey
 
-  @override
-  State<DraggableArtifact> createState() => _DraggableArtifactState();
-}
+  // Getter for rendered size
+  Size? get renderedSize => _renderedSize;
 
-class _DraggableArtifactState extends State<DraggableArtifact> {
-  late Offset position;
-
-  @override
-  void initState() {
-    super.initState();
-    position = widget.position;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _control();
-  }
-
-  Widget _control() {
-    return Positioned(
-      left: position.dx,
-      top: position.dy,
-      child: Draggable<Offset>(
-        feedback: widget.child ?? Container(),
-        childWhenDragging: Container(),
-        onDragEnd: (details) {
-          final newPosition = Offset(
-            details.offset.dx - (widget.child?.width ?? 0) / 2,
-            details.offset.dy - (widget.child?.height ?? 0) / 2,
-          );
-          if (widget.target!.isWithinBoard(newPosition)) {
-            setState(() {
-              position = newPosition;
-            });
-          }
-        },
-        child: widget.child ?? Container(),
-      ),
-    );
-  }
-}
-
-class Artifact extends StatelessWidget {
-  final double? height;
-  final double? width;
-  final Widget? icon;
-
-  const Artifact({
-    super.key,
-    this.height,
-    this.width,
-    this.icon,
-  });
-
-  @override
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      child: icon,
-    );
+  // Method to update the rendered size (can be called internally)
+  set renderedSize(Size? size) {
+    _renderedSize = size;
   }
 }
