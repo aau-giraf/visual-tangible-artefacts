@@ -36,7 +36,7 @@ class ArtifactBoardScreen extends StatelessWidget {
                       content: SvgPicture.asset('assets/icons/sillyface.svg'),
                     ),
                     Artifact(
-                      position: const Offset(500, 500),
+                      position: const Offset(500, 250),
                       content: SvgPicture.asset('assets/icons/sillyface.svg'),
                     )
                   ], // Full width with padding
