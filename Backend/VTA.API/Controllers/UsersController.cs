@@ -1,0 +1,243 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using VTA.API.DbContexts;
+using VTA.API.DTOs;
+using VTA.API.Models;
+using VTA.API.Utilities;
+
+namespace VTA.API.Controllers
+{
+    [Route("api/UsersController")]
+    [ApiController]
+    public class UsersController : ControllerBase
+    {
+        private readonly UserContext _context;
+
+        public UsersController(UserContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Users
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
+        // GET: api/Users/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<User>> GetUser(string id)
+        {
+            var user = await _context.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            return user;
+        }
+
+        // GET: api/Categories
+        [HttpGet("{id}/categories")]
+        public async Task<ActionResult<IEnumerable<Category>>> GetCategories(string id)
+        {
+            return await _context.Categories.ToListAsync();
+        }
+
+        // GET: api/Categories/5
+        [HttpGet("{id}/categories/{categoryId}")]
+        public async Task<ActionResult<Category>> GetCategory(string id, string categoryId)
+        {
+            var category = await _context.Categories.FindAsync(categoryId);
+
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            return category;
+        }
+
+        // PUT: api/Users/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutUser(string id, User user)
+        {
+            if (id != user.Id)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(user).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!UserExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // POST: api/Users
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<User>> PostUser(User user)
+        {
+            _context.Users.Add(user);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (UserExists(user.Id))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+        }
+
+        // POST: api/Artefacts
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost("{id}/artefact")]
+        public async Task<ActionResult<Artefact>> PostArtefact(string id, ArtefactPostDTO artefactDTO)
+        {
+            artefactDTO.ArtefactId = Guid.NewGuid().ToString();
+            string? imageUrl = ImageUtilities.AddImage(artefactDTO.Image, artefactDTO.ArtefactId);
+            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactDTO, imageUrl);
+
+            _context.Artefacts.Add(artefact);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (ArtefactExists(artefact.ArtefactId))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return CreatedAtAction("GetArtefact", new { id = artefact.ArtefactId }, artefact);
+        }
+
+        // POST: api/Categories
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost("{id}/categories")]
+        public async Task<ActionResult<Category>> PostCategory(string id, Category category)
+        {
+            _context.Categories.Add(category);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (CategoryExists(category.CategoryId))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return CreatedAtAction("GetCategory", new { id = category.CategoryId }, category);
+        }
+
+        // DELETE: api/Users/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // DELETE: api/Artefacts/5
+        [HttpDelete("{id}/artefact/{artefactId}")]
+        public async Task<IActionResult> DeleteArtefact(string id, string artefactId)
+        {
+            var artefact = await _context.Artefacts.FindAsync(artefactId);
+            if (artefact == null)
+            {
+                return NotFound();
+            }
+
+            _context.Artefacts.Remove(artefact);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // DELETE: api/Categories/5
+        [HttpDelete("{id}/categories/{categoryId}")]
+        public async Task<IActionResult> DeleteCategory(string id, string categoryId)
+        {
+            var category = await _context.Categories.FindAsync(categoryId);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool UserExists(string id)
+        {
+            return _context.Users.Any(e => e.Id == id);
+        }
+
+        private bool ArtefactExists(string id)
+        {
+            return _context.Artefacts.Any(e => e.ArtefactId == id);
+        }
+
+        private bool CategoryExists(string id)
+        {
+            return _context.Categories.Any(e => e.CategoryId == id);
+        }
+    }
+}
