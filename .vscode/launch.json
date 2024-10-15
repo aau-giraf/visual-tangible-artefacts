@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "vta_app",
+            "cwd": "Frontend\\vta_app",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "vta_app (profile mode)",
+            "cwd": "Frontend\\vta_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "vta_app (release mode)",
+            "cwd": "Frontend\\vta_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
