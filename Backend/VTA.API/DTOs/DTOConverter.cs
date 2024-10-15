@@ -28,5 +28,36 @@ public static class DTOConverter
         };
     }
 
+    public static CategoryGetDTO MapCategoryToCategoryGetDTO(Category category)
+    {
+        return new CategoryGetDTO
+        {
+            CategoryId = category.CategoryId,
+            CategoryIndex = category.CategoryIndex,
+            Name = category.Name
+        };
+    }
+
+    public static Category MapCategoryGetDTOToCategory(CategoryGetDTO category)
+    {
+        return new Category
+        {
+            CategoryId = category.CategoryId,
+            CategoryIndex = category.CategoryIndex,
+            Name = category.Name
+        };
+    }
+
+    public static UserGetDTO MapUserToUserGetDTO(User user)
+    {
+        return new UserGetDTO
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Password = user.Password,
+            GuardianKey = user.GuardianKey,
+            Username = user.Username
+        };
+    }
 
 }

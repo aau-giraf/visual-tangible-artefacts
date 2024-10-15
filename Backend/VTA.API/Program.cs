@@ -1,10 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
-using VTA.API.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 
 builder.WrapDbContext<ArtefactContext>();
