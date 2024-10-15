@@ -8,8 +8,6 @@ class ArtifactBoardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Define the height of the bottom bar (if any)
-
     double padding = 40; // Padding around the ArtifactBoard
     final GlobalKey<TalkingMatState> talkingmatKey =
         GlobalKey<TalkingMatState>();
@@ -26,7 +24,8 @@ class ArtifactBoardScreen extends StatelessWidget {
           children: [
             // Center the ArtifactBoard with appropriate padding
             Padding(
-              padding: EdgeInsets.all(padding),
+              padding: EdgeInsets.only(
+                  top: padding, left: padding, right: padding, bottom: 0),
               child: Center(
                 child: TalkingMat(
                   key: talkingmatKey,
@@ -38,7 +37,7 @@ class ArtifactBoardScreen extends StatelessWidget {
                     Artifact(
                       position: const Offset(500, 250),
                       content: SvgPicture.asset('assets/icons/sillyface.svg'),
-                    )
+                    ),
                   ], // Full width with padding
                 ),
               ),
@@ -48,17 +47,31 @@ class ArtifactBoardScreen extends StatelessWidget {
                 // Create a new artifact and add it
                 Artifact newArtifact = Artifact(
                   content: SvgPicture.asset('assets/icons/sillyface.svg'),
-                  position: const Offset(100, 100),
+                  position: const Offset(299, 200),
                 );
                 // Call the addArtifact method directly
                 talkingmatKey.currentState?.addArtifact(newArtifact);
               },
               child: const Text('Add Artifact'),
             ),
-            // Add more widgets here as needed
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+          height: 100, // Set the height of the placeholder
+          color: Colors.grey[300], // Set a background color for the placeholder
+          alignment: Alignment.center,
+          child: const Stack(alignment: Alignment.center, children: [
+            Placeholder(),
+            Text(
+              'Categories Bar Placeholder',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ])),
     );
   }
 }
