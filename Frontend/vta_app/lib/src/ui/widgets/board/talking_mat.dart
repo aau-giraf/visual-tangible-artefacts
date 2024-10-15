@@ -83,10 +83,10 @@ class TalkingMatState extends State<TalkingMat> {
   Widget build(BuildContext context) {
     _loadMatSize();
     return GestureDetector(
-      onTapDown: (details) {
+      onLongPressDown: (details) {
         isGestureInsideMat = true;
       },
-      onTapCancel: () {
+      onLongPressCancel: () {
         isGestureInsideMat = false;
       },
       child: Container(
