@@ -9,6 +9,7 @@ void main() async {
   // Flutter Widgets.
   final settingsController = SettingsController(SettingsService());
 
+  print("This is IxD branch");
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
   await settingsController.loadSettings();
@@ -18,3 +19,5 @@ void main() async {
   // SettingsView.
   runApp(MyApp(settingsController: settingsController));
 }
+
+//Jeg elsker tissemand
