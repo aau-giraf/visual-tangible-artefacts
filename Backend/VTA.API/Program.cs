@@ -1,8 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using VTA.API.DbContexts;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
+
+builder.WrapDbContext<ArtefactContext>();
+builder.WrapDbContext<CategoryContext>();
+builder.WrapDbContext<UserContext>();
+
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
