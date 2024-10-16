@@ -27,14 +27,20 @@ namespace VTA.API.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
         {
-            return await _context.Users.ToListAsync();
+            List<User> users = await _context.Users.ToListAsync();
+            List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
+            foreach (User user in users)
+            {
+                userGetDTOs.Add(DTOConverter.MapUserToUserGetDTO(user));
+            }
+            return userGetDTOs;
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(string id)
+        public async Task<ActionResult<UserGetDTO>> GetUser(string id)
         {
             var user = await _context.Users.FindAsync(id);
 
@@ -43,19 +49,27 @@ namespace VTA.API.Controllers
                 return NotFound();
             }
 
-            return user;
+            UserGetDTO userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+
+            return userGetDTO;
         }
 
         // GET: api/Categories
         [HttpGet("{id}/categories")]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategories(string id)
+        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string id)
         {
-            return await _context.Categories.ToListAsync();
+            List<Category> categories = await _context.Categories.ToListAsync();
+            List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
+            foreach (Category category in categories)
+            {
+                categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category));
+            }
+            return categoryGetDTOs;
         }
 
         // GET: api/Categories/5
         [HttpGet("{id}/categories/{categoryId}")]
-        public async Task<ActionResult<Category>> GetCategory(string id, string categoryId)
+        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string id, string categoryId)
         {
             var category = await _context.Categories.FindAsync(categoryId);
 
@@ -64,7 +78,9 @@ namespace VTA.API.Controllers
                 return NotFound();
             }
 
-            return category;
+            CategoryGetDTO categoryGetDTO = DTOConverter.MapCategoryToCategoryGetDTO(category);
+
+            return categoryGetDTO;
         }
 
         // PUT: api/Users/5
@@ -101,8 +117,10 @@ namespace VTA.API.Controllers
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        public async Task<ActionResult<User>> PostUser(UserPostDTO userPostDTO)
         {
+            userPostDTO.Id = Guid.NewGuid().ToString();
+            User user = DTOConverter.MapUserPostDTOToUser(userPostDTO);
             _context.Users.Add(user);
             try
             {
@@ -155,8 +173,10 @@ namespace VTA.API.Controllers
         // POST: api/Categories
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost("{id}/categories")]
-        public async Task<ActionResult<Category>> PostCategory(string id, Category category)
+        public async Task<ActionResult<Category>> PostCategory(string id, CategoryPostDTO categoryPostDTO)
         {
+            categoryPostDTO.CategoryId = Guid.NewGuid().ToString();
+            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO);
             _context.Categories.Add(category);
             try
             {
