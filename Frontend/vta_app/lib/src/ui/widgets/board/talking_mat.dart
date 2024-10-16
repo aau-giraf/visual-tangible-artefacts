@@ -36,6 +36,10 @@ class TalkingMatState extends State<TalkingMat> {
     });
   }
 
+  void removeArtifact(GlobalKey artifactKey) {
+    artifacts.removeWhere((artifact) => artifact.key == artifactKey);
+  }
+
   void _updateArtifactPosition(Artifact artifact, Offset offset) {
     // Retrieve the stored size for the artifact
     Size? size = artifact.renderedSize;
@@ -83,11 +87,13 @@ class TalkingMatState extends State<TalkingMat> {
   Widget build(BuildContext context) {
     _loadMatSize();
     return GestureDetector(
-      onTapDown: (details) {
+      onLongPressDown: (details) {
         isGestureInsideMat = true;
+        print("long press init");
       },
-      onTapCancel: () {
+      onLongPressCancel: () {
         isGestureInsideMat = false;
+        print("long press cancelled");
       },
       child: Container(
         height: widget.height,
@@ -96,8 +102,8 @@ class TalkingMatState extends State<TalkingMat> {
           color: widget.backgroundColor ?? Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Stack(
-          children: artifacts.map((artifact) {
+        child: Stack(children: [
+          ...artifacts.map((artifact) {
             // Call the function to get the size of the artifact once
             _loadArtifactSize(artifact);
             return Positioned(
@@ -125,8 +131,45 @@ class TalkingMatState extends State<TalkingMat> {
                 },
               ),
             );
-          }).toList(),
-        ),
+          }),
+          Align(
+            alignment:
+                Alignment.lerp(Alignment.bottomCenter, Alignment.center, 0.1) ??
+                    Alignment.bottomCenter,
+            child: DragTarget<Artifact>(
+              builder: (context, data, rejectedData) {
+                return Container(
+                  width: 50,
+                  height: 50,
+                  decoration: const ShapeDecoration(
+                    color: Color(0xFFF0F2D9),
+                    shape: OvalBorder(),
+                    shadows: [
+                      BoxShadow(
+                        color: Color(0x3F000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 4),
+                        spreadRadius: 0,
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                          image: DecorationImage(
+                              image: AssetImage('assets/icons/trash_bin.png'),
+                              fit: BoxFit.scaleDown)),
+                    ),
+                  ),
+                );
+              },
+              onAcceptWithDetails: (details) {
+                var artifactKey = details.data.key;
+                removeArtifact(artifactKey);
+              },
+            ),
+          ),
+        ]),
       ),
     );
   }
