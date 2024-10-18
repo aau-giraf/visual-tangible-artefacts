@@ -1,0 +1,46 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches:
+      - main  # Trigger the deployment only on push to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build the project
+        run: dotnet build --configuration Release
+
+      - name: Publish the WebAPI
+        run: dotnet publish --configuration Release --output ./output
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Copy files to server using SCP
+        env:
+          UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
+          UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
+        run: |
+          sshpass -p "$UNIVERSITY_PASSWORD" scp -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+
+      - name: Restart the service using SSH
+        env:
+          UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
+          UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
+        run: |
+          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+

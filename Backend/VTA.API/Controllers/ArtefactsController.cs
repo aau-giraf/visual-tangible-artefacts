@@ -11,7 +11,7 @@ using VTA.API.DTOs;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/ArtefactsController")]
+    [Route("api/ArtefactsController123")]
     [ApiController]
     public class ArtefactsController : ControllerBase
     {
