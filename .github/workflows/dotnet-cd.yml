@@ -1,35 +1,50 @@
-name: Test SSH Connection
+name: Continuous Deployment
 
 on:
   push:
     branches:
-      - main  # Trigger the deployment only on push to main
-
+      - main  
 jobs:
-  test-ssh:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build the project
+        run: dotnet build --configuration Release
+
+      - name: Publish the WebAPI
+        run: dotnet publish --configuration Release --output ./output
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
       - name: Install cloudflared
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
-
-      - name: Set up SSH deploy key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-      - name: Test SSH connection with passphrase
+      - name: Copy files to server using SCP
         env:
-          DEPLOY_PASSPHRASE: ${{ secrets.DEPLOY_PASSPHRASE }}
+          UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
+          UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
         run: |
-          sshpass -p "$DEPLOY_PASSPHRASE" ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "pwd"
+          sshpass -p "$UNIVERSITY_PASSWORD" scp -o StrictHostKeyChecking=no -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+
+      - name: Restart the service using SSH
+        env:
+          UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
+          UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
+        run: |
+          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
 
