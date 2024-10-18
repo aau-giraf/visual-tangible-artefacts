@@ -18,13 +18,18 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
       - name: Set up SSH deploy key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Test SSH connection
+      - name: Test SSH connection with passphrase
+        env:
+          DEPLOY_PASSPHRASE: ${{ secrets.DEPLOY_PASSPHRASE }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "pwd"
+          sshpass -p "$DEPLOY_PASSPHRASE" ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "pwd"
 
