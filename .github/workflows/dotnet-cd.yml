@@ -35,7 +35,7 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Disable host key checking for SCP
+      - name: Copy files to server using SCP
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
@@ -47,5 +47,5 @@ jobs:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
         run: |
-          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "echo $UNIVERSITY_PASSWORD | sudo -S systemctl restart vtaapi.service"
 
