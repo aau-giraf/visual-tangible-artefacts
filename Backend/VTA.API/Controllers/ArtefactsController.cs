@@ -11,7 +11,7 @@ using VTA.API.DTOs;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/ArtefactsController123")]
+    [Route("api/ArtefactsController")]
     [ApiController]
     public class ArtefactsController : ControllerBase
     {
@@ -20,6 +20,14 @@ namespace VTA.API.Controllers
         public ArtefactsController(ArtefactContext context)
         {
             _context = context;
+        }
+
+        // TEST DEPLOYMENT ENDPOINT
+        // GET: api/ArtefactsController/TestDeployment
+        [HttpGet("TestDeployment")]
+        public ActionResult<string> TestDeployment()
+        {
+            return "Deployment Successful!";
         }
 
         // GET: api/Artefacts
