@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'linear_board_button.dart'; // Import the LinearBoardButton widget
 
 class LinearBoard extends StatelessWidget {
-  const LinearBoard({Key? key}) : super(key: key);
+  const LinearBoard({super.key});
 
-  static const IconData cropLandscapeRounded = IconData(0xf685, fontFamily: 'MaterialIcons');
+  static const IconData cropLandscapeRounded =
+      IconData(0xf685, fontFamily: 'MaterialIcons');
 
   @override
   Widget build(BuildContext context) {

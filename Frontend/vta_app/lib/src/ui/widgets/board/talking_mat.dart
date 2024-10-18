@@ -39,6 +39,12 @@ class TalkingMatState extends State<TalkingMat> {
     artifacts.removeWhere((artifact) => artifact.key == artifactKey);
   }
 
+  void removeAllArtifacts() {
+    setState(() {
+      artifacts.clear();
+    });
+  }
+
   void _updateArtifactPosition(Artifact artifact, Offset offset) {
     // Retrieve the stored size for the artifact
     Size? size = artifact.renderedSize;
@@ -125,47 +131,53 @@ class TalkingMatState extends State<TalkingMat> {
                 alignment: Alignment.lerp(
                         Alignment.bottomCenter, Alignment.center, 0.1) ??
                     Alignment.bottomCenter,
-                child: DragTarget<Artifact>(
-                  builder: (context, data, rejectedData) {
-                    return Stack(children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: const ShapeDecoration(
-                          color: Color(0xFFF0F2D9),
-                          shape: OvalBorder(),
-                          shadows: [
-                            BoxShadow(
-                              color: Color(0x3F000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 4),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                        child: Center(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage('assets/icons/trash_bin.png'),
-                                fit: BoxFit.scaleDown,
+                child: GestureDetector(
+                  onTap: () {
+                    removeAllArtifacts();
+                  },
+                  child: DragTarget<Artifact>(
+                    builder: (context, data, rejectedData) {
+                      return Stack(children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: const ShapeDecoration(
+                            color: Color(0xFFF0F2D9),
+                            shape: OvalBorder(),
+                            shadows: [
+                              BoxShadow(
+                                color: Color(0x3F000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 4),
+                                spreadRadius: 0,
+                              )
+                            ],
+                          ),
+                          child: Center(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                image: DecorationImage(
+                                  image:
+                                      AssetImage('assets/icons/trash_bin.png'),
+                                  fit: BoxFit.scaleDown,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ]);
-                  },
-                  onAcceptWithDetails: (details) {
-                    var artifactKey = details.data.key;
-                    removeArtifact(artifactKey);
-                  },
-                  onWillAccept: (data) {
-                    setState(() {
-                      // Set hovering state
-                    });
-                    return true;
-                  },
+                      ]);
+                    },
+                    onAcceptWithDetails: (details) {
+                      var artifactKey = details.data.key;
+                      removeArtifact(artifactKey);
+                    },
+                    onWillAcceptWithDetails: (details) {
+                      setState(() {
+                        // Set hovering state
+                      });
+                      return true;
+                    },
+                  ),
                 ),
               ),
             ],
