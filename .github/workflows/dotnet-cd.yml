@@ -30,6 +30,11 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
+      - name: Install cloudflared
+        run: |
+          wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
+
       - name: Copy files to server using SCP
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
