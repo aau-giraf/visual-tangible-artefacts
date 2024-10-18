@@ -35,17 +35,17 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Copy files to server using SCP
+      - name: Disable host key checking for SCP
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
         run: |
-          sshpass -p "$UNIVERSITY_PASSWORD" scp -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+          sshpass -p "$UNIVERSITY_PASSWORD" scp -o StrictHostKeyChecking=no -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
         run: |
-          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
 
