@@ -22,14 +22,6 @@ namespace VTA.API.Controllers
             _context = context;
         }
 
-        // TEST DEPLOYMENT ENDPOINT
-        // GET: api/ArtefactsController/TestDeployment
-        [HttpGet("TestDeployment")]
-        public ActionResult<string> TestDeployment()
-        {
-            return "Deployment Successful!";
-        }
-
         // GET: api/Artefacts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
