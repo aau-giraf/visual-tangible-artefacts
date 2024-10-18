@@ -1,14 +1,16 @@
-name: Continuous Deployment
+name: Continuous Integration and Deployment
 
 on:
   push:
     branches:
-      - main  
+      - main  # Only run on main branch
+
 jobs:
-  deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # CI PART - Run tests
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -23,18 +25,26 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
+      - name: Run unit tests
+        run: dotnet test --no-build --verbosity normal
+
+      # CD PART - Only runs if tests succeed
       - name: Publish the WebAPI
+        if: success()  # Only run if the previous steps (tests) succeeded
         run: dotnet publish --configuration Release --output ./output
 
       - name: Install sshpass
+        if: success()  # Only run if the tests succeeded
         run: sudo apt-get install -y sshpass
 
       - name: Install cloudflared
+        if: success()  # Only run if the tests succeeded
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
       - name: Copy files to server using SCP
+        if: success()  # Only run if the tests succeeded
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
@@ -42,6 +52,7 @@ jobs:
           sshpass -p "$UNIVERSITY_PASSWORD" scp -o StrictHostKeyChecking=no -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
+        if: success()  # Only run if the tests succeeded
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}

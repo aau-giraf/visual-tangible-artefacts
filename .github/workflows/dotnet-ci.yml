@@ -2,23 +2,28 @@ name: Continuous Integration
 
 on:
   push:
-    branches: ["main", "dev-main"]
-  pull_request:
-    branches: ["main", "dev-main"]
+    branches:
+      - dev-main  # Only run on dev-main branch
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: '8.0.x'
+
       - name: Restore dependencies
-        run: dotnet restore Backend/VTA.API
-      - name: Build
-        run: dotnet build --no-restore Backend/VTA.API
-      - name: Test
-        run: dotnet test Backend/VTA.Tests
+        run: dotnet restore
+
+      - name: Build the project
+        run: dotnet build --configuration Release
+
+      - name: Run unit tests
+        run: dotnet test --no-build --verbosity normal
+
