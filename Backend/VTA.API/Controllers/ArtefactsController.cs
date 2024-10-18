@@ -37,7 +37,7 @@ namespace VTA.API.Controllers
 
         // GET: api/Artefacts/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Artefact>> GetArtefact(string id)
+        public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string id)
         {
             var artefact = await _context.Artefacts.FindAsync(id);
 
@@ -46,7 +46,9 @@ namespace VTA.API.Controllers
                 return NotFound();
             }
 
-            return artefact;
+            ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
+
+            return artefactGetDTO;
         }
 
         // PUT: api/Artefacts/5

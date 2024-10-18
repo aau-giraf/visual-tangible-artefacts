@@ -38,12 +38,13 @@ public static class DTOConverter
         };
     }
 
-    public static Category MapCategoryGetDTOToCategory(CategoryGetDTO category)
+    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category)
     {
         return new Category
         {
             CategoryId = category.CategoryId,
             CategoryIndex = category.CategoryIndex,
+            UserId = category.UserId,
             Name = category.Name
         };
     }
@@ -51,6 +52,18 @@ public static class DTOConverter
     public static UserGetDTO MapUserToUserGetDTO(User user)
     {
         return new UserGetDTO
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Password = user.Password,
+            GuardianKey = user.GuardianKey,
+            Username = user.Username
+        };
+    }
+
+    public static User MapUserPostDTOToUser(UserPostDTO user)
+    {
+        return new User
         {
             Id = user.Id,
             Name = user.Name,
