@@ -47,11 +47,19 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Add VPS to known_hosts
+      - name: Add VPS to known_hosts with retries and debugging
         run: |
+          set -x
           mkdir -p ~/.ssh
-          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts
+          # Retry ssh-keyscan up to 3 times if it fails
+          for i in {1..3}; do
+            ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts && break
+            echo "Retry $i: ssh-keyscan failed. Retrying..."
+            sleep 5
+          done
           chmod 600 ~/.ssh/known_hosts
+          echo "Contents of known_hosts:"
+          cat ~/.ssh/known_hosts
           ls -la ~/.ssh/known_hosts  # Verify the known_hosts file
 
       - name: Verify SSH key in use
