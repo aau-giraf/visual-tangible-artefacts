@@ -47,3 +47,4 @@ jobs:
       - name: Restart the service using SSH
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" automation_user@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+
