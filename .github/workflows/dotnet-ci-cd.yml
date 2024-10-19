@@ -3,14 +3,13 @@ name: Continuous Integration and Deployment
 on:
   push:
     branches:
-      - main  # Only run on main branch
+      - main  
 
 jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # CI PART - Run tests
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -28,26 +27,25 @@ jobs:
       - name: Run unit tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
-      # CD PART - Only runs if tests succeed
       - name: Publish the WebAPI
-        if: success()  # Only run if the previous steps (tests) succeeded
+        if: success()  
         run: dotnet publish --configuration Release --output ./output
 
       - name: Install sshpass
-        if: success()  # Only run if the tests succeeded
+        if: success()  
         run: sudo apt-get install -y sshpass
 
       - name: Install cloudflared
-        if: success()  # Only run if the tests succeeded
+        if: success()  
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
       
       - name: Testing GitHub secret security
-        echo ${{secrets.UNIVERSITY_EMAIL}} | sed 's/./& /g'
-      
+        run: echo "${{secrets.UNIVERSITY_EMAIL}}" | sed 's/./& /g'
+ 
       - name: Copy files to server using SCP
-        if: success()  # Only run if the tests succeeded
+        if: success()  
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
@@ -55,7 +53,7 @@ jobs:
           sshpass -p "$UNIVERSITY_PASSWORD" scp -o StrictHostKeyChecking=no -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
-        if: success()  # Only run if the tests succeeded
+        if: success()  
         env:
           UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
           UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
