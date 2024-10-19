@@ -31,15 +31,14 @@ jobs:
         if: success()  
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Set up SSH key with debugging
+      - name: Set up SSH key
         run: |
           set -x
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts
           ls -l ~/.ssh  # Check that the SSH key file exists and has correct permissions
-          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts || echo "SSH keyscan failed."
-          cat ~/.ssh/id_ed25519  # Output the contents of the private key (for debug purposes; remove later)
 
       - name: Install cloudflared
         if: success()  
@@ -47,31 +46,16 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Add VPS to known_hosts with retries and debugging
-        run: |
-          set -x
-          mkdir -p ~/.ssh
-          # Retry ssh-keyscan up to 3 times if it fails
-          for i in {1..3}; do
-            ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts && break
-            echo "Retry $i: ssh-keyscan failed. Retrying..."
-            sleep 5
-          done
-          chmod 600 ~/.ssh/known_hosts
-          echo "Contents of known_hosts:"
-          cat ~/.ssh/known_hosts
-          ls -la ~/.ssh/known_hosts  # Verify the known_hosts file
-
       - name: Verify SSH key in use
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "echo SSH key authentication successful"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@ssh_gayraf.mrlarsen.xyz "echo SSH key authentication successful"
 
       - name: Copy files to server using SCP
         if: success()
         run: |
-          scp -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+          scp -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* fa43lz@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
         if: success()
         run: |
-          ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+          ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
