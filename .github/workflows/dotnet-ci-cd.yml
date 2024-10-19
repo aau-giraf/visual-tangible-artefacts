@@ -47,8 +47,16 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ls -la ~/.ssh/known_hosts  # Verify the known_hosts file
+
       - name: Verify SSH key in use
-        run: ssh -i ~/.ssh/id_ed25519 -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "echo SSH key authentication successful"
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "echo SSH key authentication successful"
 
       - name: Copy files to server using SCP
         if: success()
@@ -59,4 +67,3 @@ jobs:
         if: success()
         run: |
           ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
-
