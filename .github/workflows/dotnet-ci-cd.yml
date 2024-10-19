@@ -31,14 +31,8 @@ jobs:
         if: success()  
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Set up SSH key
-        run: |
-          set -x
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ls -l ~/.ssh  # Check that the SSH key file exists and has correct permissions
-          echo "Skipping ssh-keyscan as it failed"
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
 
       - name: Install cloudflared
         if: success()  
@@ -46,16 +40,10 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Verify SSH key in use (Skipping known_hosts check)
+      - name: Copy files to server using SCP with automation_user
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@ssh_gayraf.mrlarsen.xyz "echo SSH key authentication successful"
-
-      - name: Copy files to server using SCP
-        if: success()
-        run: |
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* fa43lz@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* automation_user@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
-        if: success()
         run: |
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" automation_user@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
