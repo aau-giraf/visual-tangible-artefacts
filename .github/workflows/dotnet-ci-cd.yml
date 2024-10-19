@@ -31,13 +31,15 @@ jobs:
         if: success()  
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Set up SSH key
-        if: success()
+      - name: Set up SSH key with debugging
         run: |
+          set -x
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts
+          ls -l ~/.ssh  # Check that the SSH key file exists and has correct permissions
+          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts || echo "SSH keyscan failed."
+          cat ~/.ssh/id_ed25519  # Output the contents of the private key (for debug purposes; remove later)
 
       - name: Install cloudflared
         if: success()  
