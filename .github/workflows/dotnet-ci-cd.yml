@@ -47,6 +47,9 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
+      - name: Verify SSH key in use
+        run: ssh -i ~/.ssh/id_ed25519 -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "echo SSH key authentication successful"
+
       - name: Copy files to server using SCP
         if: success()
         run: |
