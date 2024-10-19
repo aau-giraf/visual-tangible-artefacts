@@ -31,32 +31,27 @@ jobs:
         if: success()  
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Install sshpass
-        if: success()  
-        run: sudo apt-get install -y sshpass
+      - name: Set up SSH key
+        if: success()
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan ssh_gayraf.mrlarsen.xyz >> ~/.ssh/known_hosts
 
       - name: Install cloudflared
         if: success()  
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
-      
-      - name: Testing GitHub secret security
-        run: echo "${{secrets.UNIVERSITY_EMAIL}}" | sed 's/./& /g'
- 
+
       - name: Copy files to server using SCP
-        if: success()  
-        env:
-          UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
-          UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
+        if: success()
         run: |
-          sshpass -p "$UNIVERSITY_PASSWORD" scp -o StrictHostKeyChecking=no -r -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" ./output/* $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+          scp -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
-        if: success()  
-        env:
-          UNIVERSITY_EMAIL: ${{ secrets.UNIVERSITY_EMAIL }}
-          UNIVERSITY_PASSWORD: ${{ secrets.UNIVERSITY_PASSWORD }}
+        if: success()
         run: |
-          sshpass -p "$UNIVERSITY_PASSWORD" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" $UNIVERSITY_EMAIL@ssh_gayraf.mrlarsen.xyz "echo $UNIVERSITY_PASSWORD | sudo -S systemctl restart vtaapi.service"
+          ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" fa43lz@student.aau.dk@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
 
