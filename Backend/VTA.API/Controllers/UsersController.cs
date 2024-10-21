@@ -58,7 +58,7 @@ namespace VTA.API.Controllers
         [HttpGet("{id}/categories")]
         public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string id)
         {
-            List<Category> categories = await _context.Categories.ToListAsync();
+            List<Category> categories = await _context.Categories.Where(c => c.UserId == id).ToListAsync();
             List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
             foreach (Category category in categories)
             {
@@ -71,7 +71,8 @@ namespace VTA.API.Controllers
         [HttpGet("{id}/categories/{categoryId}")]
         public async Task<ActionResult<CategoryGetDTO>> GetCategory(string id, string categoryId)
         {
-            var category = await _context.Categories.FindAsync(categoryId);
+            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).Where(c => c.UserId == id).ToListAsync();
+            var category = categories.First();
 
             if (category == null)
             {
@@ -144,11 +145,12 @@ namespace VTA.API.Controllers
         // POST: api/Artefacts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost("{id}/artefact")]
-        public async Task<ActionResult<Artefact>> PostArtefact(string id, ArtefactPostDTO artefactDTO)
+        public async Task<ActionResult<Artefact>> PostArtefact(string id, ArtefactPostDTO artefactPostDTO)
         {
-            artefactDTO.ArtefactId = Guid.NewGuid().ToString();
-            string? imageUrl = ImageUtilities.AddImage(artefactDTO.Image, artefactDTO.ArtefactId);
-            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactDTO, imageUrl);
+            artefactPostDTO.ArtefactId = Guid.NewGuid().ToString();
+            artefactPostDTO.UserId = id;
+            string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactPostDTO.ArtefactId);
+            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, imageUrl);
 
             _context.Artefacts.Add(artefact);
             try
@@ -176,6 +178,7 @@ namespace VTA.API.Controllers
         public async Task<ActionResult<Category>> PostCategory(string id, CategoryPostDTO categoryPostDTO)
         {
             categoryPostDTO.CategoryId = Guid.NewGuid().ToString();
+            categoryPostDTO.UserId = id;
             Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO);
             _context.Categories.Add(category);
             try
