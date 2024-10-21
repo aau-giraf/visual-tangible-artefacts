@@ -8,7 +8,7 @@ class ArtifactBoardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double padding = 40; // Padding around the ArtifactBoard
+    double padding = 20; // Padding around the ArtifactBoard
     final GlobalKey<TalkingMatState> talkingmatKey =
         GlobalKey<TalkingMatState>();
 
@@ -25,7 +25,7 @@ class ArtifactBoardScreen extends StatelessWidget {
             // Center the ArtifactBoard with appropriate padding
             Padding(
               padding: EdgeInsets.only(
-                  top: padding, left: padding, right: padding, bottom: 0),
+                  top: 5, left: padding, right: padding, bottom: 0),
               child: Center(
                 child: TalkingMat(
                   key: talkingmatKey,

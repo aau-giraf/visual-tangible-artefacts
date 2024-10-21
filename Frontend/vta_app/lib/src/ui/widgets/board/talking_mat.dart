@@ -19,15 +19,35 @@ class TalkingMat extends StatefulWidget {
   createState() => TalkingMatState();
 }
 
-class TalkingMatState extends State<TalkingMat> {
+class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late List<Artifact> artifacts;
-  Size? renderedMatSize;
   bool isGestureInsideMat = false;
+  late AnimationController _animationController;
+  late Animation<Offset> _offsetAnimation;
+  bool _showDeleteHover = false;
 
   @override
   void initState() {
     super.initState();
     artifacts = widget.artifacts ?? [];
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(-2.5, 0),
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void addArtifact(Artifact artifact) {
@@ -40,6 +60,12 @@ class TalkingMatState extends State<TalkingMat> {
     artifacts.removeWhere((artifact) => artifact.key == artifactKey);
   }
 
+  void removeAllArtifacts() {
+    setState(() {
+      artifacts.clear();
+    });
+  }
+
   void _updateArtifactPosition(Artifact artifact, Offset offset) {
     // Retrieve the stored size for the artifact
     Size? size = artifact.renderedSize;
@@ -48,7 +74,7 @@ class TalkingMatState extends State<TalkingMat> {
       // Offset the position by half of the width and height to center it on the drag end
       setState(() {
         artifact.position =
-            Offset(offset.dx - size.width / 2, offset.dy - size.height / 2);
+            Offset(offset.dx - size.width / 4, offset.dy - size.height / 4);
       });
     }
   }
@@ -67,110 +93,147 @@ class TalkingMatState extends State<TalkingMat> {
     });
   }
 
-  void _loadMatSize() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        renderedMatSize = renderBox.size;
-      }
-    });
-  }
+  bool _isInsideMat(Offset globalOffset) {
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return false;
 
-  bool _isInsideMat(Offset localOffset) {
-    return localOffset.dx >= 0 &&
-        localOffset.dx <= (renderedMatSize?.width ?? 0) &&
-        localOffset.dy >= 0 &&
-        localOffset.dy <= (renderedMatSize?.height ?? 0);
+    // Get the global position of the top-left corner of the TalkingMat
+    final Offset matTopLeftGlobal = renderBox.localToGlobal(Offset.zero);
+
+    // Check if the artifact is inside the mat by comparing global coordinates
+    return globalOffset.dx - matTopLeftGlobal.dx >= 0 &&
+        globalOffset.dx + matTopLeftGlobal.dx <= renderBox.size.width &&
+        globalOffset.dy - matTopLeftGlobal.dy >= 0 &&
+        globalOffset.dy + matTopLeftGlobal.dy <= renderBox.size.height;
   }
 
   @override
   Widget build(BuildContext context) {
-    _loadMatSize();
-    return GestureDetector(
-      onLongPressDown: (details) {
-        isGestureInsideMat = true;
-        print("long press init");
-      },
-      onLongPressCancel: () {
-        isGestureInsideMat = false;
-        print("long press cancelled");
-      },
-      child: Container(
-        height: widget.height,
-        width: widget.width,
-        decoration: BoxDecoration(
-          color: widget.backgroundColor ?? Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Stack(children: [
-          ...artifacts.map((artifact) {
-            // Call the function to get the size of the artifact once
-            _loadArtifactSize(artifact);
-            return Positioned(
-              left: artifact.position.dx,
-              top: artifact.position.dy,
-              child: Draggable<Artifact>(
-                data: artifact,
-                feedback: Transform.scale(
-                  scale: 1.2,
-                  child: PhysicalModel(
-                    color: Colors.black,
-                    elevation: 20.0,
-                    shape: BoxShape.circle,
-                    child: artifact.content,
-                  ),
-                ),
-                childWhenDragging: Container(),
-                child: Container(key: artifact.key, child: artifact.content),
-                onDragEnd: (details) {
-                  var localOffset = (context.findRenderObject() as RenderBox)
-                      .globalToLocal(details.offset);
-                  if (isGestureInsideMat) {
-                    _updateArtifactPosition(artifact, details.offset);
-                  }
-                },
-              ),
-            );
-          }),
-          Align(
-            alignment:
-                Alignment.lerp(Alignment.bottomCenter, Alignment.center, 0.1) ??
-                    Alignment.bottomCenter,
-            child: DragTarget<Artifact>(
-              builder: (context, data, rejectedData) {
-                return Container(
-                  width: 50,
-                  height: 50,
-                  decoration: const ShapeDecoration(
-                    color: Color(0xFFF0F2D9),
-                    shape: OvalBorder(),
-                    shadows: [
-                      BoxShadow(
-                        color: Color(0x3F000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 4),
-                        spreadRadius: 0,
-                      )
-                    ],
-                  ),
-                  child: Center(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                          image: DecorationImage(
-                              image: AssetImage('assets/icons/trash_bin.png'),
-                              fit: BoxFit.scaleDown)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: widget.height ?? constraints.maxHeight,
+          width: widget.width ?? constraints.maxWidth,
+          decoration: BoxDecoration(
+            color: widget.backgroundColor ?? Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Stack(
+            children: [
+              ...artifacts.map((artifact) {
+                _loadArtifactSize(
+                    artifact); // Ensure the artifact size is captured
+                return Positioned(
+                  left: artifact.position.dx,
+                  top: artifact.position.dy,
+                  child: Draggable<Artifact>(
+                    data: artifact,
+                    feedback: Transform.scale(
+                      scale: 1.2,
+                      child: PhysicalModel(
+                        color: Colors.black,
+                        elevation: 20.0,
+                        shape: BoxShape.circle,
+                        child: artifact.content,
+                      ),
                     ),
+                    childWhenDragging: Container(),
+                    child:
+                        Container(key: artifact.key, child: artifact.content),
+                    onDragEnd: (details) {
+                      if (_isInsideMat(details.offset)) {
+                        _updateArtifactPosition(artifact, details.offset);
+                      }
+                    },
                   ),
                 );
-              },
-              onAcceptWithDetails: (details) {
-                var artifactKey = details.data.key;
-                removeArtifact(artifactKey);
-              },
+              }),
+              Align(
+                alignment: Alignment.lerp(
+                        Alignment.bottomCenter, Alignment.center, 0.1) ??
+                    Alignment.bottomCenter,
+                child: Stack(alignment: Alignment.center, children: [
+                  SlideTransition(
+                      position: _offsetAnimation,
+                      child: _showDeleteHover
+                          ? buildTrashCan(
+                              height: 30,
+                              width: 30,
+                              color: const Color.fromARGB(255, 235, 32, 18))
+                          : null),
+                  GestureDetector(
+                    onTap: () {
+                      removeAllArtifacts();
+                    },
+                    child: DragTarget<Artifact>(
+                      builder: (context, data, rejectedData) {
+                        return buildTrashCan(height: 50, width: 50);
+                      },
+                      onAcceptWithDetails: (details) {
+                        var artifactKey = details.data.key;
+                        removeArtifact(artifactKey);
+                      },
+                      onWillAcceptWithDetails: (details) {
+                        setState(() {
+                          _showDeleteHover = true;
+                        });
+                        _animationController.forward();
+                        return true;
+                      },
+                      onLeave: (details) {
+                        _animationController.reverse();
+                        // Listen for the animation status
+                        _animationController.addStatusListener((status) {
+                          if (status == AnimationStatus.dismissed) {
+                            // Wait until animation is fully reversed
+                            setState(() {
+                              _showDeleteHover = false;
+                            });
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ]),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Stack buildTrashCan(
+      {double width = 50,
+      double height = 50,
+      Color color = const Color(0xFFF0F2D9)}) {
+    return Stack(children: [
+      Container(
+        width: width,
+        height: width,
+        decoration: ShapeDecoration(
+          color: color,
+          shape: const OvalBorder(),
+          shadows: const [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+              spreadRadius: 0,
+            )
+          ],
+        ),
+        child: Center(
+          child: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/icons/trash_bin.png'),
+                fit: BoxFit.scaleDown,
+              ),
             ),
           ),
-        ]),
+        ),
       ),
-    );
+    ]);
   }
 }
