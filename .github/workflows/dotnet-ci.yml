@@ -3,7 +3,7 @@ name: Continuous Integration
 on:
   push:
     branches:
-      - dev-main  # Only run on dev-main branch
+      - dev-main # Only run on dev-main branch
 
 jobs:
   test:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -25,5 +25,4 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Run unit tests
-        run: dotnet test --no-build --verbosity normal
-
+        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
