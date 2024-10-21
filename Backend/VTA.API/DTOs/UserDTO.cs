@@ -5,11 +5,9 @@ namespace VTA.API.DTOs;
 
 public partial class UserPostDTO
 {
-    public string Id { get; set; } = null!;
+    public required string? Name { get; set; }
 
-    public string? Name { get; set; }
-
-    public string Password { get; set; } = null!;
+    public required string Password { get; set; }
 
     public string GuardianKey { get; set; } = null!;
 

@@ -5,15 +5,15 @@ namespace VTA.API.Models;
 
 public partial class Artefact
 {
-    public string ArtefactId { get; set; } = null!;
+    public required string ArtefactId { get; set; }
 
-    public ushort ArtefactIndex { get; set; }
+    public required ushort ArtefactIndex { get; set; }
 
-    public string UserId { get; set; } = null!;
+    public required string UserId { get; set; }
 
     public string? CategoryId { get; set; }
 
-    public string? ImagePath { get; set; }
+    public string? ImagePath { get; set; } = null!;
 
     public virtual Category? Category { get; set; }
 

@@ -120,8 +120,10 @@ namespace VTA.API.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(UserPostDTO userPostDTO)
         {
-            userPostDTO.Id = Guid.NewGuid().ToString();
-            User user = DTOConverter.MapUserPostDTOToUser(userPostDTO);
+            User user = DTOConverter.MapUserPostDTOToUser(userPostDTO, Guid.NewGuid().ToString());
+
+            //user.Id = Guid.NewGuid().ToString();
+            
             _context.Users.Add(user);
             try
             {
@@ -147,10 +149,9 @@ namespace VTA.API.Controllers
         [HttpPost("{id}/artefact")]
         public async Task<ActionResult<Artefact>> PostArtefact(string id, ArtefactPostDTO artefactPostDTO)
         {
-            artefactPostDTO.ArtefactId = Guid.NewGuid().ToString();
-            artefactPostDTO.UserId = id;
-            string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactPostDTO.ArtefactId);
-            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, imageUrl);
+            string artefactId = Guid.NewGuid().ToString();
+            string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);
+            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
 
             _context.Artefacts.Add(artefact);
             try
@@ -177,9 +178,10 @@ namespace VTA.API.Controllers
         [HttpPost("{id}/categories")]
         public async Task<ActionResult<Category>> PostCategory(string id, CategoryPostDTO categoryPostDTO)
         {
-            categoryPostDTO.CategoryId = Guid.NewGuid().ToString();
             categoryPostDTO.UserId = id;
-            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO);
+
+            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
+            
             _context.Categories.Add(category);
             try
             {

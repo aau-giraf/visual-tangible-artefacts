@@ -5,11 +5,11 @@ namespace VTA.API.Models;
 
 public partial class Category
 {
-    public string CategoryId { get; set; } = null!;
+    public required string CategoryId { get; set; }
 
     public byte? CategoryIndex { get; set; }
 
-    public string UserId { get; set; } = null!;
+    public required string UserId { get; set; } = null!;
 
     public string? Name { get; set; }
 

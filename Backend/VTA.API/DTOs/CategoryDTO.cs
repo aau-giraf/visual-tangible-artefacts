@@ -5,11 +5,9 @@ namespace VTA.API.DTOs;
 
 public partial class CategoryPostDTO
 {
-    public string CategoryId { get; set; } = null!;
-
     public byte? CategoryIndex { get; set; }
 
-    public string UserId { get; set; } = null!;
+    public required string UserId { get; set; }
 
     public string? Name { get; set; }
 }
