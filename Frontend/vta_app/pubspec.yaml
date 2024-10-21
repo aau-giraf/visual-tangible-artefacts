@@ -10,11 +10,13 @@ environment:
   sdk: ^3.5.3
 
 dependencies:
+  audioplayers: ^1.0.1
   flutter_svg: ^0.22.0
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+    
 
 dev_dependencies:
   flutter_test:
@@ -32,4 +34,4 @@ flutter:
     # Add assets from the images directory to the application.
     - assets/images/
     - assets/icons/
-    - assets/Switch modes.png
+    - assets/sound/
