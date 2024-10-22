@@ -16,8 +16,7 @@ jobs:
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_DATE=$(date +%Y-%m-%d)
-
-          # Post a comment with the start date to the issue
+          
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
