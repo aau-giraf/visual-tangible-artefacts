@@ -12,35 +12,14 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
 
-      - name: Create a Milestone for Today (Start Date)
+      - name: Add Start Date as a Comment
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_DATE=$(date +%Y-%m-%d)
 
+          # Post a comment with the start date to the issue
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/milestones \
-            -d '{"title": "Start Date - '${ISSUE_DATE}'", "due_on": "'${ISSUE_DATE}'T00:00:00Z"}'
-
-      - name: Assign Milestone to Issue
-        run: |
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          MILESTONE_TITLE="Start Date - $(date +%Y-%m-%d)"
-
-          MILESTONE_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/aau-giraf/visual-tangible-artefacts/milestones | \
-            jq -r --arg title "$MILESTONE_TITLE" '.[] | select(.title==$title) | .number')
-
-          if [ -z "$MILESTONE_ID" ]; then
-            echo "Milestone not found: $MILESTONE_TITLE"
-            exit 1
-          fi
-
-          curl -X PATCH \
-            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/aau-giraf/visual-tangible-artefacts/issues/${ISSUE_NUMBER} \
-            -d '{"milestone": '${MILESTONE_ID}'}'
-
+            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/comments \
+            -d '{"body": "Start date: '${ISSUE_DATE}'"}'
