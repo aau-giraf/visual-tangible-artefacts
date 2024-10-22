@@ -15,7 +15,7 @@ jobs:
           ISSUE_DATE=$(date +%Y-%m-%d)
 
           PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"  # Your project ID
-          # Field ID for Start Date
+
           START_DATE_FIELD_ID="PVTF_lADOAtc8ts4Ao6I3zggaK1Y"
 
           ISSUE_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
@@ -44,7 +44,6 @@ jobs:
 
           ITEM_ID=$(echo "$ADD_ITEM_RESPONSE" | jq -r '.data.addProjectV2ItemById.item.id')
 
-          # If ITEM_ID is null, exit with an error
           if [ "$ITEM_ID" == "null" ]; then
             echo "Failed to add issue to the project."
             exit 1
@@ -56,7 +55,7 @@ jobs:
               projectId: "${PROJECT_ID}",
               itemId: "${ITEM_ID}",
               fieldId: "${START_DATE_FIELD_ID}",
-              value: { text: "${ISSUE_DATE}" }
+              value: { date: "${ISSUE_DATE}" }
             }) {
               projectV2Item {
                 id
