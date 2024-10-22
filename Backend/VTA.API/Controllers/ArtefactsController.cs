@@ -12,7 +12,7 @@ using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/Users/Artefacts")]
+    [Route("api/{userID}/Users/Artefacts")]
     [ApiController]
     public class ArtefactsController : ControllerBase
     {
@@ -25,9 +25,9 @@ namespace VTA.API.Controllers
 
         // GET: api/Artefacts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
+        public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts(string userID)
         {
-            List<Artefact> artefacts = await _context.Artefacts.ToListAsync();
+            List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userID).ToListAsync();
             List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
             foreach (Artefact artefact in artefacts)
             {
