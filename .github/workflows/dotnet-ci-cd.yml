@@ -1,0 +1,50 @@
+name: Continuous Integration and Deployment
+
+on:
+  push:
+    branches:
+      - main  
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build the project
+        run: dotnet build --configuration Release
+
+      - name: Run unit tests
+        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
+
+      - name: Publish the WebAPI
+        if: success()  
+        run: dotnet publish --configuration Release --output ./output
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Install cloudflared
+        if: success()  
+        run: |
+          wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
+
+      - name: Copy files to server using SCP with automation_user
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* automation_user@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+
+      - name: Restart the service using SSH
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" automation_user@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
+
