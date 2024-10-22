@@ -30,11 +30,17 @@ jobs:
 
           MILESTONE_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/milestones | \
-            jq -r '.[] | select(.title=="'${MILESTONE_TITLE}'") | .number')
+            https://api.github.com/repos/aau-giraf/visual-tangible-artefacts/milestones | \
+            jq -r --arg title "$MILESTONE_TITLE" '.[] | select(.title==$title) | .number')
+
+          if [ -z "$MILESTONE_ID" ]; then
+            echo "Milestone not found: $MILESTONE_TITLE"
+            exit 1
+          fi
 
           curl -X PATCH \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER} \
+            https://api.github.com/repos/aau-giraf/visual-tangible-artefacts/issues/${ISSUE_NUMBER} \
             -d '{"milestone": '${MILESTONE_ID}'}'
+
