@@ -21,6 +21,4 @@ public partial class CategoryGetDTO
     public string? Name { get; set; }
 
     public virtual ICollection<Models.Artefact> Artefacts { get; set; } = new List<Models.Artefact>();
-
-    public virtual Models.User User { get; set; } = null!;
 }
