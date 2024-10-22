@@ -117,6 +117,14 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             color: widget.backgroundColor ?? Colors.white,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                spreadRadius: 2,
+                blurRadius: 2,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Stack(
             children: [
@@ -172,6 +180,16 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                       onAcceptWithDetails: (details) {
                         var artifactKey = details.data.key;
                         removeArtifact(artifactKey);
+                        _animationController.reverse();
+                        // Listen for the animation status
+                        _animationController.addStatusListener((status) {
+                          if (status == AnimationStatus.dismissed) {
+                            // Wait until animation is fully reversed
+                            setState(() {
+                              _showDeleteHover = false;
+                            });
+                          }
+                        });
                       },
                       onWillAcceptWithDetails: (details) {
                         setState(() {

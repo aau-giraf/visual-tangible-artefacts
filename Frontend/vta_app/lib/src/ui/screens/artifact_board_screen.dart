@@ -4,6 +4,7 @@ import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/linear_board.dart';
+import '../widgets/board/quickchat.dart';
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({super.key});
@@ -13,7 +14,7 @@ class ArtifactBoardScreen extends StatefulWidget {
 }
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
-  bool _showDirectional = true;
+  bool _showDirectional = false;
 
   @override
   Widget build(BuildContext context) {
@@ -52,22 +53,27 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
               },
               child: const Text('Add Artifact'),
             ),
-            RelationalBoardButton(
-              onPressed: () {
-                setState(() {
-                  _showDirectional = !_showDirectional;
-                });
-              },
-              icon: _showDirectional
-                  ? const Icon(
-                      IconData(0xf685, fontFamily: 'MaterialIcons'),
-                      size: 24.0,
-                    )
-                  : const Icon(
-                      IconData(0xf601, fontFamily: 'MaterialIcons'),
-                      size: 24.0,
-                    ),
+            Positioned(
+              top: 30,
+              left: 30,
+              child: RelationalBoardButton(
+                onPressed: () {
+                  setState(() {
+                    _showDirectional = !_showDirectional;
+                  });
+                },
+                icon: _showDirectional
+                    ? const Icon(
+                        IconData(0xf685, fontFamily: 'MaterialIcons'),
+                        size: 24.0,
+                      )
+                    : const Icon(
+                        IconData(0xf601, fontFamily: 'MaterialIcons'),
+                        size: 24.0,
+                      ),
+              ),
             ),
+            const QuickChatButton(),
           ],
         ),
       ),
