@@ -5,6 +5,8 @@ import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
+import '../widgets/categories/categories_widget.dart';
+import '../widgets/categories/category.dart';
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({super.key});
@@ -29,69 +31,59 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Stack(
+        child: Column(
           children: [
-            // Center the ArtifactBoard with appropriate padding
-            Padding(
-              padding: EdgeInsets.only(
-                  top: 5, left: padding, right: padding, bottom: 0),
-              child: Center(
-                child: _showDirectional
-                    ? const LinearBoard()
-                    : createTalkingMat(talkingmatKey),
-              ),
+            Stack(
+              children: [
+                // Center the ArtifactBoard with appropriate padding
+                Padding(
+                  padding: EdgeInsets.only(
+                      top: 5, left: padding, right: padding, bottom: 0),
+                  child: Center(
+                    child: _showDirectional
+                        ? const LinearBoard()
+                        : createTalkingMat(talkingmatKey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Create a new artifact and add it
+                    Artifact newArtifact = Artifact(
+                      content: SvgPicture.asset('assets/icons/sillyface.svg'),
+                      position: const Offset(299, 200),
+                    );
+                    // Call the addArtifact method directly
+                    talkingmatKey.currentState?.addArtifact(newArtifact);
+                  },
+                  child: const Text('Add Artifact'),
+                ),
+                Positioned(
+                  top: 30,
+                  left: 30,
+                  child: RelationalBoardButton(
+                    onPressed: () {
+                      setState(() {
+                        _showDirectional = !_showDirectional;
+                      });
+                    },
+                    icon: _showDirectional
+                        ? const Icon(
+                            IconData(0xf685, fontFamily: 'MaterialIcons'),
+                            size: 24.0,
+                          )
+                        : const Icon(
+                            IconData(0xf601, fontFamily: 'MaterialIcons'),
+                            size: 24.0,
+                          ),
+                  ),
+                ),
+                const QuickChatButton(),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                // Create a new artifact and add it
-                Artifact newArtifact = Artifact(
-                  content: SvgPicture.asset('assets/icons/sillyface.svg'),
-                  position: const Offset(299, 200),
-                );
-                // Call the addArtifact method directly
-                talkingmatKey.currentState?.addArtifact(newArtifact);
-              },
-              child: const Text('Add Artifact'),
-            ),
-            Positioned(
-              top: 30,
-              left: 30,
-              child: RelationalBoardButton(
-                onPressed: () {
-                  setState(() {
-                    _showDirectional = !_showDirectional;
-                  });
-                },
-                icon: _showDirectional
-                    ? const Icon(
-                        IconData(0xf685, fontFamily: 'MaterialIcons'),
-                        size: 24.0,
-                      )
-                    : const Icon(
-                        IconData(0xf601, fontFamily: 'MaterialIcons'),
-                        size: 24.0,
-                      ),
-              ),
-            ),
-            const QuickChatButton(),
+            // INSERT BAR HERE ADAM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-          height: 100, // Set the height of the placeholder
-          color: Colors.grey[300], // Set a background color for the placeholder
-          alignment: Alignment.center,
-          child: const Stack(alignment: Alignment.center, children: [
-            Placeholder(),
-            Text(
-              'Categories Bar Placeholder',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-          ])),
     );
   }
 
