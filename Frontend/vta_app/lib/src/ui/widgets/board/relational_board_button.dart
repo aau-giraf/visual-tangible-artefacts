@@ -6,17 +6,22 @@ void main() {
 }
 
 class RelationalBoardButton extends StatelessWidget {
-  const RelationalBoardButton({super.key});
+  final VoidCallback? onPressed;
+  final Icon? icon;
+
+  const RelationalBoardButton({super.key, this.onPressed, this.icon});
 
   static const IconData calendarViewWeekRounded =
       IconData(0xf601, fontFamily: 'MaterialIcons');
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(useMaterial3: true),
-      debugShowCheckedModeBanner: false,
-      home: const RelationalBoardHome(),
+    return FloatingActionButton(
+      onPressed: onPressed ?? () {},
+      foregroundColor: Colors.black,
+      backgroundColor: Colors.white,
+      shape: const CircleBorder(),
+      child: icon,
     );
   }
 }

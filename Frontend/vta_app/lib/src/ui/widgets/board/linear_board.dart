@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'linear_board_button.dart'; // Import the LinearBoardButton widget
+import 'package:flutter/material.dart'; // Import the LinearBoardButton widget
 
 class LinearBoard extends StatelessWidget {
   const LinearBoard({super.key});
@@ -9,16 +8,11 @@ class LinearBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Linear Board'),
-        automaticallyImplyLeading: false, // Remove the back arrow
-      ),
-      body: Center( // Background box container
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9, // Adjust width as needed
-          height: MediaQuery.of(context).size.height * 0.6, // Adjust height as needed
-          decoration: BoxDecoration(
+    return Center(
+      // Background box container
+      child: Container(
+        // Adjust height as needed
+        decoration: BoxDecoration(
             color: const Color.fromARGB(255, 255, 255, 255),
             borderRadius: BorderRadius.circular(10.0),
             boxShadow: [
@@ -28,25 +22,19 @@ class LinearBoard extends StatelessWidget {
                 blurRadius: 2,
                 offset: const Offset(0, 4),
               )
-            ]
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildBox(context, 'Box 1'),
-              _buildVerticalDivider(context),
-              _buildBox(context, 'Box 2'),
-              _buildVerticalDivider(context),
-              _buildBox(context, 'Box 3'),
-              _buildVerticalDivider(context),
-              _buildBox(context, 'Box 4'),
-            ],
-          ),
+            ]),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildBox(context, 'Box 1'),
+            _buildVerticalDivider(context),
+            _buildBox(context, 'Box 2'),
+            _buildVerticalDivider(context),
+            _buildBox(context, 'Box 3'),
+            _buildVerticalDivider(context),
+            _buildBox(context, 'Box 4'),
+          ],
         ),
-      ),
-      floatingActionButton: Align(
-        alignment: const Alignment(-0.9, -0.8), // Adjust the alignment as needed
-        child: const LinearBoardButton(), // Use the LinearBoardButton widget
       ),
     );
   }
@@ -101,7 +89,7 @@ class LinearBoard extends StatelessWidget {
     );
   }
 
-   void _showCategories(BuildContext context, String title) {
+  void _showCategories(BuildContext context, String title) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
