@@ -22,11 +22,39 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER} | jq -r '.node_id')
 
-          GRAPHQL_MUTATION=$(cat <<EOF
+          GRAPHQL_MUTATION_ADD_ITEM=$(cat <<EOF
+          mutation {
+            addProjectV2ItemById(input: {
+              projectId: "${PROJECT_ID}",
+              contentId: "${ISSUE_ID}"
+            }) {
+              item {
+                id
+              }
+            }
+          }
+          EOF
+          )
+
+          ADD_ITEM_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg query "$GRAPHQL_MUTATION_ADD_ITEM" '{"query": $query}')" \
+            https://api.github.com/graphql)
+
+          ITEM_ID=$(echo "$ADD_ITEM_RESPONSE" | jq -r '.data.addProjectV2ItemById.item.id')
+
+          # If ITEM_ID is null, exit with an error
+          if [ "$ITEM_ID" == "null" ]; then
+            echo "Failed to add issue to the project."
+            exit 1
+          fi
+
+          GRAPHQL_MUTATION_UPDATE_START_DATE=$(cat <<EOF
           mutation {
             updateProjectV2ItemFieldValue(input: {
               projectId: "${PROJECT_ID}",
-              itemId: "${ISSUE_ID}",
+              itemId: "${ITEM_ID}",
               fieldId: "${START_DATE_FIELD_ID}",
               value: { text: "${ISSUE_DATE}" }
             }) {
@@ -38,15 +66,10 @@ jobs:
           EOF
           )
 
-          JSON_PAYLOAD=$(jq -n --arg query "$GRAPHQL_MUTATION" '{"query": $query}')
-
-          echo "JSON Payload:"
-          echo "$JSON_PAYLOAD"
-
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD" \
+            -d "$(jq -n --arg query "$GRAPHQL_MUTATION_UPDATE_START_DATE" '{"query": $query}')" \
             https://api.github.com/graphql)
 
           echo "Response from GitHub API:"
