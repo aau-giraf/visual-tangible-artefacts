@@ -12,7 +12,7 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
 
-      - name: Set Start Date as a Label
+      - name: Create a Milestone for Today (Start Date)
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_DATE=$(date +%Y-%m-%d)
@@ -20,16 +20,21 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/labels \
-            -d '{"labels": ["start-date:'${ISSUE_DATE}'"]}'
+            https://api.github.com/repos/${{ github.repository }}/milestones \
+            -d '{"title": "Start Date - '${ISSUE_DATE}'", "due_on": "'${ISSUE_DATE}'T00:00:00Z"}'
 
-      - name: Add Start Date as a Comment
+      - name: Assign Milestone to Issue
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number }}
-          ISSUE_DATE=$(date +%Y-%m-%d)
+          MILESTONE_TITLE="Start Date - $(date +%Y-%m-%d)"
 
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+          MILESTONE_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/comments \
-            -d '{"body": "Start date: '${ISSUE_DATE}'"}'
+            https://api.github.com/repos/${{ github.repository }}/milestones | \
+            jq -r '.[] | select(.title=="'${MILESTONE_TITLE}'") | .number')
+
+          curl -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER} \
+            -d '{"milestone": '${MILESTONE_ID}'}'
