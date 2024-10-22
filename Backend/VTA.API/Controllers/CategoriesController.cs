@@ -11,7 +11,7 @@ using VTA.API.DTOs;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/Users/Categories")]
+    [Route("api/{userID}/Users/Categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
@@ -24,9 +24,9 @@ namespace VTA.API.Controllers
 
         // GET: api/Categories
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string userID)
         {
-            List<Category> categories = await _context.Categories.Where(c => c.UserId == "2e77ec62-497d-4784-8cc6-da087d87efbc").ToListAsync();
+            List<Category> categories = await _context.Categories.Where(c => c.UserId == userID).ToListAsync();
             List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
             foreach (Category category in categories)
             {
@@ -37,7 +37,7 @@ namespace VTA.API.Controllers
 
         // GET: api/Categories/5
         [HttpGet("{categoryId}")]
-        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId)
+        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string userID, string categoryId)
         {
             var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).ToListAsync();
             var category = categories.First();
@@ -55,7 +55,7 @@ namespace VTA.API.Controllers
         // PUT: api/Categories/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{categoryId}")]
-        public async Task<IActionResult> PutCategory(string categoryId, Category category)
+        public async Task<IActionResult> PutCategory(string userID, string categoryId, Category category)
         {
             if (categoryId != category.CategoryId)
             {
@@ -86,7 +86,7 @@ namespace VTA.API.Controllers
         // POST: api/Categories
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Category>> PostCategory(CategoryPostDTO categoryPostDTO)
+        public async Task<ActionResult<Category>> PostCategory(string userID, CategoryPostDTO categoryPostDTO)
         {
             Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
 
@@ -113,7 +113,7 @@ namespace VTA.API.Controllers
 
         // DELETE: api/Categories/5
         [HttpDelete("{categoryId}")]
-        public async Task<IActionResult> DeleteCategory(string id, string categoryId)
+        public async Task<IActionResult> DeleteCategory(string userID, string categoryId)
         {
             var category = await _context.Categories.FindAsync(categoryId);
             if (category == null)
