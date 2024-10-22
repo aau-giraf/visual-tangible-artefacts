@@ -9,16 +9,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v2
-
-      - name: Add Start Date as a Comment
+      - name: Set Start Date in Issue Metadata
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_DATE=$(date +%Y-%m-%d)
-          
+
+          PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"
+          # Field ID for Start Date
+          START_DATE_FIELD_ID="PVTF_lADOAtc8ts4Ao6I3zggaK1Y"
+
+          ISSUE_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER} | jq -r '.node_id')
+
+          GRAPHQL_MUTATION='
+          mutation {
+            updateProjectV2ItemFieldValue(input: {
+              projectId: "'${PROJECT_ID}'",
+              itemId: "'${ISSUE_ID}'",
+              fieldId: "'${START_DATE_FIELD_ID}'",
+              value: { text: "'${ISSUE_DATE}'" }
+            }) {
+              projectV2Item {
+                id
+              }
+            }
+          }'
+
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/comments \
-            -d '{"body": "Start date: '${ISSUE_DATE}'"}'
+            -H "Content-Type: application/json" \
+            -d '{"query": "'"$GRAPHQL_MUTATION"'"}' \
+            https://api.github.com/graphql
