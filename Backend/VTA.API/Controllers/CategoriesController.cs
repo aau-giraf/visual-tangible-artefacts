@@ -7,10 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.Models;
+using VTA.API.DTOs;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/CategoriesController")]
+    [Route("api/Users/Categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
@@ -21,12 +22,42 @@ namespace VTA.API.Controllers
             _context = context;
         }
 
+        // GET: api/Categories
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories()
+        {
+            List<Category> categories = await _context.Categories.Where(c => c.UserId == "2e77ec62-497d-4784-8cc6-da087d87efbc").ToListAsync();
+            List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
+            foreach (Category category in categories)
+            {
+                categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category));
+            }
+            return categoryGetDTOs;
+        }
+
+        // GET: api/Categories/5
+        [HttpGet("{categoryId}")]
+        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId)
+        {
+            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).ToListAsync();
+            var category = categories.First();
+
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            CategoryGetDTO categoryGetDTO = DTOConverter.MapCategoryToCategoryGetDTO(category);
+
+            return categoryGetDTO;
+        }
+
         // PUT: api/Categories/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCategory(string id, Category category)
+        [HttpPut("{categoryId}")]
+        public async Task<IActionResult> PutCategory(string categoryId, Category category)
         {
-            if (id != category.CategoryId)
+            if (categoryId != category.CategoryId)
             {
                 return BadRequest();
             }
@@ -39,7 +70,7 @@ namespace VTA.API.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!CategoryExists(id))
+                if (!CategoryExists(categoryId))
                 {
                     return NotFound();
                 }
@@ -52,11 +83,39 @@ namespace VTA.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Categories/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCategory(string id)
+        // POST: api/Categories
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<Category>> PostCategory(CategoryPostDTO categoryPostDTO)
         {
-            var category = await _context.Categories.FindAsync(id);
+            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
+
+            _context.Categories.Add(category);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                if (CategoryExists(category.CategoryId))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return CreatedAtAction("GetCategory", new { categoryId = category.CategoryId }, category);
+        }
+
+        // DELETE: api/Categories/5
+        [HttpDelete("{categoryId}")]
+        public async Task<IActionResult> DeleteCategory(string id, string categoryId)
+        {
+            var category = await _context.Categories.FindAsync(categoryId);
             if (category == null)
             {
                 return NotFound();
