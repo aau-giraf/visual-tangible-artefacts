@@ -14,7 +14,7 @@ jobs:
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_DATE=$(date +%Y-%m-%d)
 
-          PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"
+          PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"  # Your project ID
           # Field ID for Start Date
           START_DATE_FIELD_ID="PVTF_lADOAtc8ts4Ao6I3zggaK1Y"
 
@@ -22,22 +22,39 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER} | jq -r '.node_id')
 
-          GRAPHQL_MUTATION='
+          GRAPHQL_MUTATION=$(cat <<EOF
           mutation {
             updateProjectV2ItemFieldValue(input: {
-              projectId: "'${PROJECT_ID}'",
-              itemId: "'${ISSUE_ID}'",
-              fieldId: "'${START_DATE_FIELD_ID}'",
-              value: { text: "'${ISSUE_DATE}'" }
+              projectId: "${PROJECT_ID}",
+              itemId: "${ISSUE_ID}",
+              fieldId: "${START_DATE_FIELD_ID}",
+              value: { text: "${ISSUE_DATE}" }
             }) {
               projectV2Item {
                 id
               }
             }
-          }'
+          }
+          EOF
+          )
 
-          curl -X POST \
+          JSON_PAYLOAD=$(jq -n --arg query "$GRAPHQL_MUTATION" '{"query": $query}')
+
+          echo "JSON Payload:"
+          echo "$JSON_PAYLOAD"
+
+          RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"query": "'"$GRAPHQL_MUTATION"'"}' \
-            https://api.github.com/graphql
+            -d "$JSON_PAYLOAD" \
+            https://api.github.com/graphql)
+
+          echo "Response from GitHub API:"
+          echo "$RESPONSE"
+
+          if echo "$RESPONSE" | grep -q '"errors"'; then
+            echo "GraphQL mutation failed."
+            exit 1
+          else
+            echo "Start Date updated successfully."
+          fi
