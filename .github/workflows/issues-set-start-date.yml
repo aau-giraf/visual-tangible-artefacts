@@ -14,7 +14,7 @@ jobs:
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_DATE=$(date +%Y-%m-%d)
 
-          PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"  # Your project ID
+          PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"
 
           START_DATE_FIELD_ID="PVTF_lADOAtc8ts4Ao6I3zggaK1Y"
 
