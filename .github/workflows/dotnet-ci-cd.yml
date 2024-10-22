@@ -31,8 +31,9 @@ jobs:
         if: success()  
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
+      - name: Install sshpass and rsync
+        run: |
+          sudo apt-get install -y sshpass rsync
 
       - name: Install cloudflared
         if: success()  
@@ -40,11 +41,10 @@ jobs:
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Copy files to server using SCP with automation_user
+      - name: Copy files to server using rsync (excluding appsettings.json)
         run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" -r ./output/* automation_user@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz\"" ./output/ automation_user@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz" automation_user@ssh_gayraf.mrlarsen.xyz "sudo systemctl restart vtaapi.service"
-
