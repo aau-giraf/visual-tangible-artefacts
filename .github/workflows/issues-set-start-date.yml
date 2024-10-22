@@ -9,20 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set Start Date for Issue
-        env:
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set Start Date as a Label
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number }}
-          ISSUE_DATE=${{ github.event.issue.created_at }}
-
-          START_DATE=$(echo $ISSUE_DATE | cut -d'T' -f1)
-
-          PROJECT_ID=<your-project-id>
-          START_DATE_FIELD_ID=<your-start-date-field-id>
+          ISSUE_DATE=$(date +%Y-%m-%d)
 
           curl -X POST \
-            -H "Authorization: Bearer $GIT_TOKEN" \
+            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/projects/columns/cards/${ISSUE_NUMBER} \
-            -d '{"field_id": "'${START_DATE_FIELD_ID}'", "value": "'${START_DATE}'"}'
+            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/labels \
+            -d '{"labels": ["start-date:'${ISSUE_DATE}'"]}'
+
+      - name: Add Start Date as a Comment
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          ISSUE_DATE=$(date +%Y-%m-%d)
+
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/comments \
+            -d '{"body": "Start date: '${ISSUE_DATE}'"}'
