@@ -55,7 +55,6 @@ public static class DTOConverter
         {
             Id = user.Id,
             Name = user.Name,
-            Password = user.Password,
             GuardianKey = user.GuardianKey,
             Username = user.Username
         };

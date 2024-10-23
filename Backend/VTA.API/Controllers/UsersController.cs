@@ -1,15 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
+using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
@@ -19,12 +18,50 @@ namespace VTA.API.Controllers
     {
         private readonly UserContext _context;
 
-        public UsersController(UserContext context)
+        private readonly SecretsSingleton _secretsSingleton;
+
+        private readonly IConfiguration _config;
+
+        public UsersController(UserContext context, SecretsSingleton secretSingleton, IConfiguration config)
         {
             _context = context;
+            _secretsSingleton = secretSingleton;
+            _config = config;
+        }
+
+        [Route("Login")]
+        [HttpPost]
+        public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
+        {
+            if (userLoginForm == null)
+            {
+                return BadRequest();
+            }
+
+            User user = await _context.Users.FirstOrDefaultAsync(
+                u => u.Username == userLoginForm.Username
+                && u.Password == userLoginForm.Password);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+            userGetDTO.Categories = user.Categories.Select(c => DTOConverter.MapCategoryToCategoryGetDTO(c)).ToList();
+            for (int i = 0; i < userGetDTO.Categories.Count; i++)
+            {
+                userGetDTO.Categories.ElementAt(i).Artefacts = user.Categories.ElementAt(i).Artefacts
+                    .Select(a => DTOConverter.MapArtefactToArtefactGetDTO(a, Request.Scheme, Request.Host.Value)).ToList();
+            }
+            var token = GenerateJwt(user.Id, user.Name);
+            return new UserLoginResponseDTO
+            {
+                User = userGetDTO,
+                Token = token
+            };
         }
 
         // GET: api/Users
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
         {
@@ -38,6 +75,7 @@ namespace VTA.API.Controllers
         }
 
         // GET: api/Users/5
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<UserGetDTO>> GetUser(string id)
         {
@@ -130,6 +168,27 @@ namespace VTA.API.Controllers
         private bool UserExists(string id)
         {
             return _context.Users.Any(e => e.Id == id);
+        }
+
+        private string GenerateJwt(string userId, string name)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var claims = new[]
+            {
+                new Claim("id", userId),
+                new Claim("name", name),
+                //new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            };
+            var token = new JwtSecurityToken(
+            issuer: _config.GetSection("Secret")["ValidIssuer"],
+            audience: _config.GetSection("Secret")["ValidAudience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
