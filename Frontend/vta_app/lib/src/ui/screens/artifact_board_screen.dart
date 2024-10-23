@@ -17,10 +17,57 @@ class ArtifactBoardScreen extends StatefulWidget {
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   bool _showDirectional = false;
+  List<Category> categories = [
+    Category(
+        id: "Category 1",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 2",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 3",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 4",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 5",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 6",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 7",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+    Category(
+        id: "Category 8",
+        imageLink:
+            "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  ];
+  List<String> imageMatrix = [
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+    "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  ];
 
   @override
   Widget build(BuildContext context) {
     double padding = 20; // Padding around the ArtifactBoard
+    double screenHeight = MediaQuery.of(context).size.height;
+    double categoriesWidgetHeight = 100; // Height of the bottom navigation bar
+
     final GlobalKey<TalkingMatState> talkingmatKey =
         GlobalKey<TalkingMatState>();
     return Scaffold(
@@ -33,53 +80,68 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
         ),
         child: Column(
           children: [
-            Stack(
-              children: [
-                // Center the ArtifactBoard with appropriate padding
-                Padding(
-                  padding: EdgeInsets.only(
-                      top: 5, left: padding, right: padding, bottom: 0),
-                  child: Center(
-                    child: _showDirectional
-                        ? const LinearBoard()
-                        : createTalkingMat(talkingmatKey),
+            Container(
+              height: screenHeight - categoriesWidgetHeight,
+              child: Stack(
+                children: [
+                  // Center the ArtifactBoard with appropriate padding
+                  Padding(
+                    padding: EdgeInsets.only(
+                        top: 5, left: padding, right: padding, bottom: 0),
+                    child: Center(
+                      child: _showDirectional
+                          ? const LinearBoard()
+                          : createTalkingMat(talkingmatKey),
+                    ),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // Create a new artifact and add it
-                    Artifact newArtifact = Artifact(
-                      content: SvgPicture.asset('assets/icons/sillyface.svg'),
-                      position: const Offset(299, 200),
-                    );
-                    // Call the addArtifact method directly
-                    talkingmatKey.currentState?.addArtifact(newArtifact);
-                  },
-                  child: const Text('Add Artifact'),
-                ),
-                Positioned(
-                  top: 30,
-                  left: 30,
-                  child: RelationalBoardButton(
+                  ElevatedButton(
                     onPressed: () {
-                      setState(() {
-                        _showDirectional = !_showDirectional;
-                      });
+                      // Create a new artifact and add it
+                      Artifact newArtifact = Artifact(
+                        content: SvgPicture.asset('assets/icons/sillyface.svg'),
+                        position: const Offset(299, 200),
+                      );
+                      // Call the addArtifact method directly
+                      talkingmatKey.currentState?.addArtifact(newArtifact);
                     },
-                    icon: _showDirectional
-                        ? const Icon(
-                            IconData(0xf685, fontFamily: 'MaterialIcons'),
-                            size: 24.0,
-                          )
-                        : const Icon(
-                            IconData(0xf601, fontFamily: 'MaterialIcons'),
-                            size: 24.0,
-                          ),
+                    child: const Text('Add Artifact'),
                   ),
-                ),
-                const QuickChatButton(),
-              ],
+                  Positioned(
+                    top: 30,
+                    left: 30,
+                    child: RelationalBoardButton(
+                      onPressed: () {
+                        setState(() {
+                          _showDirectional = !_showDirectional;
+                        });
+                      },
+                      icon: _showDirectional
+                          ? const Icon(
+                              IconData(0xf685, fontFamily: 'MaterialIcons'),
+                              size: 24.0,
+                            )
+                          : const Icon(
+                              IconData(0xf601, fontFamily: 'MaterialIcons'),
+                              size: 24.0,
+                            ),
+                    ),
+                  ),
+                  const QuickChatButton(),
+                ],
+              ),
             ),
+            Padding(
+                  padding: EdgeInsets.only(
+                      left: padding, right: padding),
+                  child: Container(
+                      height: categoriesWidgetHeight,
+                      child: CategoriesWidget(
+                        categories: categories,
+                        imageMatrix: imageMatrix,
+                        widgetHeight: categoriesWidgetHeight,
+                        isMatrixVisible: (bool isVisible) {
+                        },
+                      )))
             // INSERT BAR HERE ADAM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           ],
         ),
