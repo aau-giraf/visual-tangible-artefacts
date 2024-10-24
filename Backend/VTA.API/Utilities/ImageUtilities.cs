@@ -21,4 +21,35 @@ public static class ImageUtilities
         }
         return null;
     }
+    public static bool? DeleteImage(string imgName)
+    {
+        string? file = FindFile(imgName);
+
+        if (file == null) { return null; }
+
+        string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, file);
+        File.Delete(path);
+
+        return true;
+    }
+
+    private static string? FindFile(string fileName)
+    {
+        string? file = "";
+        try
+        {
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir);
+            var tempfile = Directory.EnumerateFiles(path)
+                        .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(fileName, StringComparison.OrdinalIgnoreCase));
+
+            file = tempfile?.Replace(path, "").Remove(0, 1);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+
+        // Return the file if found, or null if no match
+        return file != null ? file : null;
+    }
 }
