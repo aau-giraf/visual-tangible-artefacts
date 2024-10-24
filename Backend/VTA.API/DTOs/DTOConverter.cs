@@ -16,11 +16,11 @@ public static class DTOConverter
         };
     }
 
-    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string? imageUrl)
+    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl)
     {
         return new Artefact
         {
-            ArtefactId = artefact.ArtefactId,
+            ArtefactId = id,
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
@@ -38,11 +38,11 @@ public static class DTOConverter
         };
     }
 
-    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category)
+    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id)
     {
         return new Category
         {
-            CategoryId = category.CategoryId,
+            CategoryId = id,
             CategoryIndex = category.CategoryIndex,
             UserId = category.UserId,
             Name = category.Name
@@ -55,17 +55,16 @@ public static class DTOConverter
         {
             Id = user.Id,
             Name = user.Name,
-            Password = user.Password,
             GuardianKey = user.GuardianKey,
             Username = user.Username
         };
     }
 
-    public static User MapUserPostDTOToUser(UserPostDTO user)
+    public static User MapUserPostDTOToUser(UserPostDTO user, string id)
     {
         return new User
         {
-            Id = user.Id,
+            Id = id,
             Name = user.Name,
             Password = user.Password,
             GuardianKey = user.GuardianKey,

@@ -5,6 +5,7 @@ namespace VTA.Tests.IntegrationTests
 {
     public class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
     {
+        // Inshallah we remove this one day
         private readonly WebApplicationFactory<Program> _factory;
 
         public ProgramTests(WebApplicationFactory<Program> factory)

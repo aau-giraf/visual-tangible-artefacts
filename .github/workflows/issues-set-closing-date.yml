@@ -1,0 +1,82 @@
+name: Auto Set Closing Date for Issues
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  set-end-date:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set Closing Date in Issue Metadata
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          CLOSE_DATE=$(date +%Y-%m-%d)
+
+          PROJECT_ID="PVT_kwDOAtc8ts4Ao6I3"  # Your project ID
+          # Field ID for End Date (Date Field)
+          END_DATE_FIELD_ID="PVTF_lADOAtc8ts4Ao6I3zggaK34"
+
+          ISSUE_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER} | jq -r '.node_id')
+
+          GRAPHQL_MUTATION_ADD_ITEM=$(cat <<EOF
+          mutation {
+            addProjectV2ItemById(input: {
+              projectId: "${PROJECT_ID}",
+              contentId: "${ISSUE_ID}"
+            }) {
+              item {
+                id
+              }
+            }
+          }
+          EOF
+          )
+
+          ADD_ITEM_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg query "$GRAPHQL_MUTATION_ADD_ITEM" '{"query": $query}')" \
+            https://api.github.com/graphql)
+
+          ITEM_ID=$(echo "$ADD_ITEM_RESPONSE" | jq -r '.data.addProjectV2ItemById.item.id')
+
+          if [ "$ITEM_ID" == "null" ]; then
+            echo "Failed to add issue to the project."
+            exit 1
+          fi
+
+          GRAPHQL_MUTATION_UPDATE_END_DATE=$(cat <<EOF
+          mutation {
+            updateProjectV2ItemFieldValue(input: {
+              projectId: "${PROJECT_ID}",
+              itemId: "${ITEM_ID}",
+              fieldId: "${END_DATE_FIELD_ID}",
+              value: { date: "${CLOSE_DATE}" }
+            }) {
+              projectV2Item {
+                id
+              }
+            }
+          }
+          EOF
+          )
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GIT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg query "$GRAPHQL_MUTATION_UPDATE_END_DATE" '{"query": $query}')" \
+            https://api.github.com/graphql)
+
+          echo "Response from GitHub API:"
+          echo "$RESPONSE"
+
+          if echo "$RESPONSE" | grep -q '"errors"'; then
+            echo "GraphQL mutation failed."
+            exit 1
+          else
+            echo "End Date updated successfully."
+          fi

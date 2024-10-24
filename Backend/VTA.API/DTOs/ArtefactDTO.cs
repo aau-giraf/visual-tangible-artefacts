@@ -5,11 +5,9 @@ namespace VTA.API.DTOs;
 
 public partial class ArtefactPostDTO
 {
-    public string ArtefactId { get; set; } = null!;
-
     public ushort ArtefactIndex { get; set; }
 
-    public string UserId { get; set; } = null!;
+    public required string UserId { get; set; }
 
     public string? CategoryId { get; set; }
 

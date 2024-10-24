@@ -8,10 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.Models;
 using VTA.API.DTOs;
+using VTA.API.Utilities;
+using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/ArtefactsController")]
+    [Route("api/{userID}/Users/Artefacts")]
     [ApiController]
     public class ArtefactsController : ControllerBase
     {
@@ -24,9 +26,9 @@ namespace VTA.API.Controllers
 
         // GET: api/Artefacts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
+        public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts(string userID)
         {
-            List<Artefact> artefacts = await _context.Artefacts.ToListAsync();
+            List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userID).ToListAsync();
             List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
             foreach (Artefact artefact in artefacts)
             {
@@ -36,10 +38,13 @@ namespace VTA.API.Controllers
         }
 
         // GET: api/Artefacts/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string id)
+        [HttpGet("{artefactId}")]
+        public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string userId, string artefactId)
         {
-            var artefact = await _context.Artefacts.FindAsync(id);
+            // var artefact = await _context.Artefacts.FindAsync(artefactId);
+
+            var artefacts = await _context.Artefacts.Where(a => a.ArtefactId == artefactId).Where(a => a.UserId == userId).ToListAsync();
+            var artefact = artefacts.First();
 
             if (artefact == null)
             {
@@ -53,10 +58,10 @@ namespace VTA.API.Controllers
 
         // PUT: api/Artefacts/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutArtefact(string id, Artefact artefact)
+        [HttpPut("{artefactId}")]
+        public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
         {
-            if (id != artefact.ArtefactId)
+            if (artefactId != artefact.ArtefactId)
             {
                 return BadRequest();
             }
@@ -69,7 +74,7 @@ namespace VTA.API.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ArtefactExists(id))
+                if (!ArtefactExists(artefactId))
                 {
                     return NotFound();
                 }
@@ -82,11 +87,41 @@ namespace VTA.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Artefacts/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteArtefact(string id)
+        // POST: api/Artefacts
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<Artefact>> PostArtefact(string userId, ArtefactPostDTO artefactPostDTO)
         {
-            var artefact = await _context.Artefacts.FindAsync(id);
+            string artefactId = Guid.NewGuid().ToString();
+            string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);
+            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
+            artefact.UserId = userId;
+
+            _context.Artefacts.Add(artefact);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (ArtefactExists(artefact.ArtefactId))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return CreatedAtAction("GetArtefact", new { userId = artefact.UserId, artefactId = artefact.ArtefactId }, artefact);
+        }
+
+        // DELETE: api/Artefacts/5
+        [HttpDelete("{artefactId}")]
+        public async Task<IActionResult> DeleteArtefact(string artefactId)
+        {
+            var artefact = await _context.Artefacts.FindAsync(artefactId);
             if (artefact == null)
             {
                 return NotFound();

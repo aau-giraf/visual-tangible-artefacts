@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
@@ -14,18 +12,56 @@ using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/UsersController")]
+    [Route("api/Users")]
     [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly UserContext _context;
 
-        public UsersController(UserContext context)
+        private readonly SecretsProvider _secretsSingleton;
+
+        private readonly IConfiguration _config;
+
+        public UsersController(UserContext context, SecretsProvider secretSingleton, IConfiguration config)
         {
             _context = context;
+            _secretsSingleton = secretSingleton;
+            _config = config;
+        }
+
+        [Route("Login")]
+        [HttpPost]
+        public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
+        {
+            if (userLoginForm == null)
+            {
+                return BadRequest();
+            }
+
+            User user = await _context.Users.FirstOrDefaultAsync(
+                u => u.Username == userLoginForm.Username
+                && u.Password == userLoginForm.Password);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+            userGetDTO.Categories = user.Categories.Select(c => DTOConverter.MapCategoryToCategoryGetDTO(c)).ToList();
+            for (int i = 0; i < userGetDTO.Categories.Count; i++)
+            {
+                userGetDTO.Categories.ElementAt(i).Artefacts = user.Categories.ElementAt(i).Artefacts
+                    .Select(a => DTOConverter.MapArtefactToArtefactGetDTO(a, Request.Scheme, Request.Host.Value)).ToList();
+            }
+            var token = GenerateJwt(user.Id, user.Name);
+            return new UserLoginResponseDTO
+            {
+                User = userGetDTO,
+                Token = token
+            };
         }
 
         // GET: api/Users
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
         {
@@ -39,6 +75,7 @@ namespace VTA.API.Controllers
         }
 
         // GET: api/Users/5
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<UserGetDTO>> GetUser(string id)
         {
@@ -52,35 +89,6 @@ namespace VTA.API.Controllers
             UserGetDTO userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
 
             return userGetDTO;
-        }
-
-        // GET: api/Categories
-        [HttpGet("{id}/categories")]
-        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string id)
-        {
-            List<Category> categories = await _context.Categories.ToListAsync();
-            List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-            foreach (Category category in categories)
-            {
-                categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category));
-            }
-            return categoryGetDTOs;
-        }
-
-        // GET: api/Categories/5
-        [HttpGet("{id}/categories/{categoryId}")]
-        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string id, string categoryId)
-        {
-            var category = await _context.Categories.FindAsync(categoryId);
-
-            if (category == null)
-            {
-                return NotFound();
-            }
-
-            CategoryGetDTO categoryGetDTO = DTOConverter.MapCategoryToCategoryGetDTO(category);
-
-            return categoryGetDTO;
         }
 
         // PUT: api/Users/5
@@ -119,8 +127,8 @@ namespace VTA.API.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(UserPostDTO userPostDTO)
         {
-            userPostDTO.Id = Guid.NewGuid().ToString();
-            User user = DTOConverter.MapUserPostDTOToUser(userPostDTO);
+            User user = DTOConverter.MapUserPostDTOToUser(userPostDTO, Guid.NewGuid().ToString());
+
             _context.Users.Add(user);
             try
             {
@@ -141,62 +149,6 @@ namespace VTA.API.Controllers
             return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
 
-        // POST: api/Artefacts
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost("{id}/artefact")]
-        public async Task<ActionResult<Artefact>> PostArtefact(string id, ArtefactPostDTO artefactDTO)
-        {
-            artefactDTO.ArtefactId = Guid.NewGuid().ToString();
-            string? imageUrl = ImageUtilities.AddImage(artefactDTO.Image, artefactDTO.ArtefactId);
-            Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactDTO, imageUrl);
-
-            _context.Artefacts.Add(artefact);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (ArtefactExists(artefact.ArtefactId))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return CreatedAtAction("GetArtefact", new { id = artefact.ArtefactId }, artefact);
-        }
-
-        // POST: api/Categories
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost("{id}/categories")]
-        public async Task<ActionResult<Category>> PostCategory(string id, CategoryPostDTO categoryPostDTO)
-        {
-            categoryPostDTO.CategoryId = Guid.NewGuid().ToString();
-            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO);
-            _context.Categories.Add(category);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (CategoryExists(category.CategoryId))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return CreatedAtAction("GetCategory", new { id = category.CategoryId }, category);
-        }
-
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
@@ -213,51 +165,30 @@ namespace VTA.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Artefacts/5
-        [HttpDelete("{id}/artefact/{artefactId}")]
-        public async Task<IActionResult> DeleteArtefact(string id, string artefactId)
-        {
-            var artefact = await _context.Artefacts.FindAsync(artefactId);
-            if (artefact == null)
-            {
-                return NotFound();
-            }
-
-            _context.Artefacts.Remove(artefact);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        // DELETE: api/Categories/5
-        [HttpDelete("{id}/categories/{categoryId}")]
-        public async Task<IActionResult> DeleteCategory(string id, string categoryId)
-        {
-            var category = await _context.Categories.FindAsync(categoryId);
-            if (category == null)
-            {
-                return NotFound();
-            }
-
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
         private bool UserExists(string id)
         {
             return _context.Users.Any(e => e.Id == id);
         }
 
-        private bool ArtefactExists(string id)
+        private string GenerateJwt(string userId, string name)
         {
-            return _context.Artefacts.Any(e => e.ArtefactId == id);
-        }
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var claims = new[]
+            {
+                new Claim("id", userId),
+                new Claim("name", name),
+                //new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            };
+            var token = new JwtSecurityToken(
+            issuer: _config.GetSection("Secret")["ValidIssuer"],
+            audience: _config.GetSection("Secret")["ValidAudience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: creds);
 
-        private bool CategoryExists(string id)
-        {
-            return _context.Categories.Any(e => e.CategoryId == id);
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
