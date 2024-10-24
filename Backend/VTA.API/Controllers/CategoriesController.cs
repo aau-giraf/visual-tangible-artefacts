@@ -8,10 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.Models;
 using VTA.API.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace VTA.API.Controllers
-{
-    [Route("api/{userID}/Users/Categories")]
+{        
+    [Authorize]
+    [Route("api/{userId}/Users/Categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
@@ -26,6 +28,15 @@ namespace VTA.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string userId)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            //var userJWT = await _context.Users.FirstOrDefaultAsync(u => u.Id == Id);
+
+            if (/*userJWT == null || */Id != userId)
+            {
+                return Forbid();
+            }
+
             List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).ToListAsync();
             List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
             foreach (Category category in categories)
@@ -39,7 +50,14 @@ namespace VTA.API.Controllers
         [HttpGet("{categoryId}")]
         public async Task<ActionResult<CategoryGetDTO>> GetCategory(string userId, string categoryId)
         {
-            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).Where(c => c.UserId == userId).ToListAsync();
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
+
+            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).ToListAsync();
             var category = categories.First();
 
             if (category == null)
@@ -55,8 +73,14 @@ namespace VTA.API.Controllers
         // PUT: api/Categories/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{categoryId}")]
-        public async Task<IActionResult> PutCategory(string userID, string categoryId, Category category)
+        public async Task<IActionResult> PutCategory(string userId, string categoryId, Category category)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
             if (categoryId != category.CategoryId)
             {
                 return BadRequest();
@@ -88,6 +112,12 @@ namespace VTA.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Category>> PostCategory(string userId, CategoryPostDTO categoryPostDTO)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
             Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
             category.UserId = userId;
 
@@ -116,6 +146,12 @@ namespace VTA.API.Controllers
         [HttpDelete("{categoryId}")]
         public async Task<IActionResult> DeleteCategory(string userId, string categoryId)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
             var category = await _context.Categories.FindAsync(categoryId);
             if (category == null)
             {
