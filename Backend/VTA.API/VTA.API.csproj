@@ -28,4 +28,11 @@
     <Folder Include="VTA.API\" />
   </ItemGroup>
 
+  <ItemGroup>
+  <Content Include="Assets***">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+  </Content>
+</ItemGroup>
+
 </Project>
