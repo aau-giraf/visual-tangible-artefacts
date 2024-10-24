@@ -16,35 +16,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      final response = await http.post(
-        Uri.parse('https://gayraf.mrlarsen.xyz/api/Users/Login'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'username': _usernameController.text,
-          'password': _passwordController.text,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = jsonDecode(response.body);
-        String token = responseBody[
-            'token']; // Adjust this based on the actual response structure
-
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt_token', token);
-
-        // Navigate to user page
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),
+      try {
+        print('Form validated');
+        final response = await http.post(
+          Uri.parse('https://gayraf.mrlarsen.xyz/api/Users/Login'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, String>{
+            'username': _usernameController.text,
+            'password': _passwordController.text,
+          }),
         );
-      } else {
-        // Handle login failure
+
+        print('HTTP request sent');
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> responseBody = jsonDecode(response.body);
+          String token = responseBody[
+              'token']; // Adjust this based on the actual response structure
+
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('jwt_token', token);
+
+          // Navigate to user page
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),
+          );
+        } else {
+          // Handle login failure
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed')),
+          );
+        }
+      } catch (e) {
+        print('Error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed')),
+          SnackBar(content: Text('An error occurred: $e')),
         );
       }
+    } else {
+      print('Form validation failed');
     }
   }
 
