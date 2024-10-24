@@ -29,7 +29,7 @@
   </ItemGroup>
 
     <ItemGroup>
-  <Content Include="Assets">
+  <Content Include="Assets\**\*">
   <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
   <PrivateAssets>all</PrivateAssets>
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
