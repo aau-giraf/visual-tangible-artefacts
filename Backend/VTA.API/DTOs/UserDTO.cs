@@ -30,7 +30,7 @@ public partial class UserGetDTO
 
 }
 
-class UserSignupDTO
+public class UserSignupDTO
 {
     required public string Username { get; set; }
     required public string Password { get; set; }
