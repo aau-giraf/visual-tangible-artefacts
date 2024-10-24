@@ -8,7 +8,6 @@ using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
-using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {

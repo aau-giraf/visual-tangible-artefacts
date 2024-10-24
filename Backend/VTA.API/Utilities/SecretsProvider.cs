@@ -3,20 +3,21 @@
     using System;
     using System.Collections.Concurrent;
 
-    public class SecretsSingleton
+    public class SecretsProvider
+
     {
         // Lazy initialization for singleton instance
-        private static readonly Lazy<SecretsSingleton> _instance = new Lazy<SecretsSingleton>(() => new SecretsSingleton());
+        private static readonly Lazy<SecretsProvider> _instance = new Lazy<SecretsProvider>(() => new SecretsProvider());
 
         // Private constructor to prevent instantiation from outside
-        private SecretsSingleton()
+        private SecretsProvider()
         {
             // Initialize the dictionary in the constructor
             Secrets = new ConcurrentDictionary<string, string?>();
         }
 
         // Public property to access the singleton instance
-        public static SecretsSingleton Instance => _instance.Value;
+        public static SecretsProvider Instance => _instance.Value;
 
         // Use ConcurrentDictionary for thread safety
         public ConcurrentDictionary<string, string?> Secrets { get; }

@@ -19,7 +19,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton(provider =>
     {
 
-        var secretsSingleton = SecretsSingleton.Instance;
+        var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;
     }
