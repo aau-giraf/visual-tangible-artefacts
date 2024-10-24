@@ -24,9 +24,9 @@ namespace VTA.API.Controllers
 
         // GET: api/Categories
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string userID)
+        public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(string userId)
         {
-            List<Category> categories = await _context.Categories.Where(c => c.UserId == userID).ToListAsync();
+            List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).ToListAsync();
             List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
             foreach (Category category in categories)
             {
@@ -37,9 +37,9 @@ namespace VTA.API.Controllers
 
         // GET: api/Categories/5
         [HttpGet("{categoryId}")]
-        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string userID, string categoryId)
+        public async Task<ActionResult<CategoryGetDTO>> GetCategory(string userId, string categoryId)
         {
-            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).ToListAsync();
+            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).Where(c => c.UserId == userId).ToListAsync();
             var category = categories.First();
 
             if (category == null)
@@ -86,9 +86,10 @@ namespace VTA.API.Controllers
         // POST: api/Categories
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Category>> PostCategory(string userID, CategoryPostDTO categoryPostDTO)
+        public async Task<ActionResult<Category>> PostCategory(string userId, CategoryPostDTO categoryPostDTO)
         {
             Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
+            category.UserId = userId;
 
             _context.Categories.Add(category);
             try
@@ -108,12 +109,12 @@ namespace VTA.API.Controllers
                 }
             }
 
-            return CreatedAtAction("GetCategory", new { categoryId = category.CategoryId }, category);
+            return CreatedAtAction("GetCategory", new { userID = category.UserId, categoryId = category.CategoryId }, category);
         }
 
         // DELETE: api/Categories/5
         [HttpDelete("{categoryId}")]
-        public async Task<IActionResult> DeleteCategory(string userID, string categoryId)
+        public async Task<IActionResult> DeleteCategory(string userId, string categoryId)
         {
             var category = await _context.Categories.FindAsync(categoryId);
             if (category == null)

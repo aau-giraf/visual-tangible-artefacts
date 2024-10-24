@@ -9,6 +9,7 @@ using VTA.API.DbContexts;
 using VTA.API.Models;
 using VTA.API.DTOs;
 using VTA.API.Utilities;
+using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace VTA.API.Controllers
 {
@@ -38,9 +39,12 @@ namespace VTA.API.Controllers
 
         // GET: api/Artefacts/5
         [HttpGet("{artefactId}")]
-        public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
+        public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string userId, string artefactId)
         {
-            var artefact = await _context.Artefacts.FindAsync(artefactId);
+            // var artefact = await _context.Artefacts.FindAsync(artefactId);
+
+            var artefacts = await _context.Artefacts.Where(a => a.ArtefactId == artefactId).Where(a => a.UserId == userId).ToListAsync();
+            var artefact = artefacts.First();
 
             if (artefact == null)
             {
@@ -86,11 +90,12 @@ namespace VTA.API.Controllers
         // POST: api/Artefacts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Artefact>> PostArtefact(ArtefactPostDTO artefactPostDTO)
+        public async Task<ActionResult<Artefact>> PostArtefact(string userId, ArtefactPostDTO artefactPostDTO)
         {
             string artefactId = Guid.NewGuid().ToString();
             string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);
             Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
+            artefact.UserId = userId;
 
             _context.Artefacts.Add(artefact);
             try
@@ -109,7 +114,7 @@ namespace VTA.API.Controllers
                 }
             }
 
-            return CreatedAtAction("GetArtefact", new { artefactId = artefact.ArtefactId }, artefact);
+            return CreatedAtAction("GetArtefact", new { userId = artefact.UserId, artefactId = artefact.ArtefactId }, artefact);
         }
 
         // DELETE: api/Artefacts/5
