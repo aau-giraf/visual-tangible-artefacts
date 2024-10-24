@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using VTA.API.DbContexts;
@@ -47,6 +48,14 @@ builder.Services.AddAuthentication(options =>
     });
 
 builder.Services.AddAuthorization();
+
+// Check if Assets directory exists
+// Create Assets directory if it does not exist
+var assetsDir = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
+if (!Directory.Exists(assetsDir))
+{
+    Directory.CreateDirectory(assetsDir);
+}
 
 var app = builder.Build();
 
