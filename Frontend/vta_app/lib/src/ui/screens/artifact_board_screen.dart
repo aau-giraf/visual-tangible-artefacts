@@ -80,7 +80,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   Widget build(BuildContext context) {
     double padding = 10; // Padding around the ArtifactBoard
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 100; // Height of the bottom navigation bar
     double categoriesWidgetHeight = 120; // Height of the bottom navigation bar
 
     final GlobalKey<TalkingMatState> talkingmatKey =
