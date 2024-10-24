@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -37,8 +36,8 @@ namespace VTA.API.Controllers
             {
                 return BadRequest();
             }
-
-            User user = await _context.Users.FirstOrDefaultAsync(
+            User user = await _context.Users.Include(u => u.Categories).ThenInclude(c => c.Artefacts).
+                FirstOrDefaultAsync(
                 u => u.Username == userLoginForm.Username
                 && u.Password == userLoginForm.Password);
             if (user == null)
@@ -75,7 +74,6 @@ namespace VTA.API.Controllers
         }
 
         // GET: api/Users/5
-        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<UserGetDTO>> GetUser(string id)
         {
