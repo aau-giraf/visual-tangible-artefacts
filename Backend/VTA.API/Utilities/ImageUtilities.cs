@@ -2,7 +2,7 @@ namespace VTA.API.Utilities;
 
 public static class ImageUtilities
 {
-    private static string _APIEndpoint = "/api/Assets";
+    private static string _APIEndpoint = "/api/Assets/";
     private static string _Dir = "Assets";
 
     public static string? AddImage(IFormFile? image, string artefactId)
