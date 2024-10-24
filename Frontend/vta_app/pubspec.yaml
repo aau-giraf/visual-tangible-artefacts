@@ -12,11 +12,14 @@ environment:
 dependencies:
   audioplayers: ^6.1.0
   flutter_svg: ^2.0.10+1
+  jwt_decoder: ^2.0.1
+  shared_preferences: ^2.3.2
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
   global_configuration: ^2.0.0
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
