@@ -3,7 +3,7 @@ name: Continuous Integration and Deployment
 on:
   push:
     branches:
-      - main  
+      - main
 
 jobs:
   test-and-deploy:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -28,7 +28,7 @@ jobs:
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
       - name: Publish the WebAPI
-        if: success()  
+        if: success()
         run: dotnet publish --configuration Release --output ./output
 
       - name: Install sshpass and rsync
@@ -36,14 +36,14 @@ jobs:
           sudo apt-get install -y sshpass rsync
 
       - name: Install cloudflared
-        if: success()  
+        if: success()
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
 
-      - name: Copy files to server using rsync (excluding appsettings.json)
+      - name: Copy files to server using rsync (excluding appsettings.json and Assets folder)
         run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz\"" ./output/ automation_user@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' --exclude 'VTA.API/Assets' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ssh_gayraf.mrlarsen.xyz\"" ./output/ automation_user@ssh_gayraf.mrlarsen.xyz:/var/www/VTA.API/
 
       - name: Restart the service using SSH
         run: |
