@@ -66,7 +66,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   Widget build(BuildContext context) {
     double padding = 20; // Padding around the ArtifactBoard
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 100; // Height of the bottom navigation bar
+    double categoriesWidgetHeight = 120; // Height of the bottom navigation bar
 
     final GlobalKey<TalkingMatState> talkingmatKey =
         GlobalKey<TalkingMatState>();
@@ -80,7 +80,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
         ),
         child: Column(
           children: [
-            Container(
+            SizedBox(
               height: screenHeight - categoriesWidgetHeight,
               child: Stack(
                 children: [
@@ -131,18 +131,15 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
               ),
             ),
             Padding(
-                  padding: EdgeInsets.only(
-                      left: padding, right: padding),
-                  child: Container(
-                      height: categoriesWidgetHeight,
-                      child: CategoriesWidget(
-                        categories: categories,
-                        imageMatrix: imageMatrix,
-                        widgetHeight: categoriesWidgetHeight,
-                        isMatrixVisible: (bool isVisible) {
-                        },
-                      )))
-            // INSERT BAR HERE ADAM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                padding: EdgeInsets.only(left: padding, right: padding),
+                child: SizedBox(
+                    height: categoriesWidgetHeight,
+                    child: CategoriesWidget(
+                      categories: categories,
+                      imageMatrix: imageMatrix,
+                      widgetHeight: categoriesWidgetHeight,
+                      isMatrixVisible: (bool isVisible) {},
+                    )))
           ],
         ),
       ),

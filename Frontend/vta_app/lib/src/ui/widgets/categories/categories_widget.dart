@@ -76,19 +76,25 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                   });
                 },
                 child: Container(
+                    height: widget.widgetHeight * 0.5,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       // border: Border.all(color: Colors.white, width: 10),
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    child: Row(
-                      children: [
-                        Text(item.id),
-                        const SizedBox(width: 5),
-                        if (item.imageLink != null)
-                          Image.network(item.imageLink!,
-                              fit: BoxFit.contain, width: 70),
-                      ],
+                    child: 
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          Text(item.id),
+                          const SizedBox(width: 5),
+                          if (item.imageLink != null)
+                            Image.network(item.imageLink!,
+                                fit: BoxFit.contain,
+                                width: 70),
+                        ],
+                      ),
                     )),
               );
             },
