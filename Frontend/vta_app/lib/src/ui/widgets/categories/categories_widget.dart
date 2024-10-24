@@ -76,26 +76,37 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                   });
                 },
                 child: Container(
-                    height: widget.widgetHeight * 0.5,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      // border: Border.all(color: Colors.white, width: 10),
-                      borderRadius: BorderRadius.circular(5),
+                  height: widget.widgetHeight * 0.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text(item.id),
+                        const SizedBox(width: 5),
+                        if (item.imageLink != null)
+                          Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black, width: 1),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(5),
+                              child: Image.network(
+                                item.imageLink!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    child: 
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Text(item.id),
-                          const SizedBox(width: 5),
-                          if (item.imageLink != null)
-                            Image.network(item.imageLink!,
-                                fit: BoxFit.contain,
-                                width: 70),
-                        ],
-                      ),
-                    )),
+                  ),
+                ),
               );
             },
             separatorBuilder: (context, index) => const SizedBox(width: 10),

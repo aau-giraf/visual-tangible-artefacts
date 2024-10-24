@@ -64,7 +64,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double padding = 20; // Padding around the ArtifactBoard
+    double padding = 10; // Padding around the ArtifactBoard
     double screenHeight = MediaQuery.of(context).size.height;
     double categoriesWidgetHeight = 120; // Height of the bottom navigation bar
 
@@ -87,7 +87,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                   // Center the ArtifactBoard with appropriate padding
                   Padding(
                     padding: EdgeInsets.only(
-                        top: 5, left: padding, right: padding, bottom: 0),
+                        top: padding, left: padding, right: padding, bottom: 0),
                     child: Center(
                       child: _showDirectional
                           ? const LinearBoard()
