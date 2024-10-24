@@ -17,6 +17,9 @@ class ArtifactBoardScreen extends StatefulWidget {
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   bool _showDirectional = false;
+  late TalkingMat talkingMat;
+  late GlobalKey<TalkingMatState> talkingMatKey;
+  late LinearBoard linearBoard;
   List<Category> categories = [
     Category(
         id: "Category 1",
@@ -63,13 +66,21 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    talkingMatKey = GlobalKey<TalkingMatState>();
+    talkingMat = TalkingMat(
+      key: talkingMatKey,
+      artifacts: [],
+    );
+    linearBoard = LinearBoard();
+  }
+
+  @override
   Widget build(BuildContext context) {
     double padding = 20; // Padding around the ArtifactBoard
     double screenHeight = MediaQuery.of(context).size.height;
     double categoriesWidgetHeight = 100; // Height of the bottom navigation bar
-
-    final GlobalKey<TalkingMatState> talkingmatKey =
-        GlobalKey<TalkingMatState>();
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -89,9 +100,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                     padding: EdgeInsets.only(
                         top: 5, left: padding, right: padding, bottom: 0),
                     child: Center(
-                      child: _showDirectional
-                          ? const LinearBoard()
-                          : createTalkingMat(talkingmatKey),
+                      child: _showDirectional ? linearBoard : talkingMat,
                     ),
                   ),
                   ElevatedButton(
@@ -102,7 +111,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                         position: const Offset(299, 200),
                       );
                       // Call the addArtifact method directly
-                      talkingmatKey.currentState?.addArtifact(newArtifact);
+                      talkingMatKey.currentState?.addArtifact(newArtifact);
                     },
                     child: const Text('Add Artifact'),
                   ),
@@ -131,37 +140,19 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
               ),
             ),
             Padding(
-                  padding: EdgeInsets.only(
-                      left: padding, right: padding),
-                  child: Container(
-                      height: categoriesWidgetHeight,
-                      child: CategoriesWidget(
-                        categories: categories,
-                        imageMatrix: imageMatrix,
-                        widgetHeight: categoriesWidgetHeight,
-                        isMatrixVisible: (bool isVisible) {
-                        },
-                      )))
+                padding: EdgeInsets.only(left: padding, right: padding),
+                child: Container(
+                    height: categoriesWidgetHeight,
+                    child: CategoriesWidget(
+                      categories: categories,
+                      imageMatrix: imageMatrix,
+                      widgetHeight: categoriesWidgetHeight,
+                      isMatrixVisible: (bool isVisible) {},
+                    )))
             // INSERT BAR HERE ADAM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           ],
         ),
       ),
-    );
-  }
-
-  TalkingMat createTalkingMat(GlobalKey<TalkingMatState> talkingmatKey) {
-    return TalkingMat(
-      key: talkingmatKey,
-      artifacts: [
-        Artifact(
-          position: const Offset(500, 500),
-          content: SvgPicture.asset('assets/icons/sillyface.svg'),
-        ),
-        Artifact(
-          position: const Offset(500, 250),
-          content: SvgPicture.asset('assets/icons/sillyface.svg'),
-        ),
-      ], // Full width with padding
     );
   }
 }

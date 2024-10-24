@@ -16,7 +16,6 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-    
 
 dev_dependencies:
   flutter_test:
@@ -35,4 +34,3 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/sound/
-
