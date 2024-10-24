@@ -11,7 +11,7 @@ public partial class ArtefactPostDTO
 
     public string? CategoryId { get; set; }
 
-    public IFormFile? Image { get; set; }
+    public required IFormFile Image { get; set; }
 }
 
 public partial class ArtefactGetDTO
