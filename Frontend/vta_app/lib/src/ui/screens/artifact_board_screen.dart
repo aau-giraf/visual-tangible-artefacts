@@ -78,9 +78,13 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double padding = 20; // Padding around the ArtifactBoard
+    double padding = 10; // Padding around the ArtifactBoard
     double screenHeight = MediaQuery.of(context).size.height;
     double categoriesWidgetHeight = 100; // Height of the bottom navigation bar
+    double categoriesWidgetHeight = 120; // Height of the bottom navigation bar
+
+    final GlobalKey<TalkingMatState> talkingmatKey =
+        GlobalKey<TalkingMatState>();
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -91,14 +95,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
         ),
         child: Column(
           children: [
-            Container(
+            SizedBox(
               height: screenHeight - categoriesWidgetHeight,
               child: Stack(
                 children: [
                   // Center the ArtifactBoard with appropriate padding
                   Padding(
                     padding: EdgeInsets.only(
-                        top: 5, left: padding, right: padding, bottom: 0),
+                        top: padding, left: padding, right: padding, bottom: 0),
                     child: Center(
                       child: _showDirectional ? linearBoard : talkingMat,
                     ),
@@ -141,7 +145,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
             ),
             Padding(
                 padding: EdgeInsets.only(left: padding, right: padding),
-                child: Container(
+                child: SizedBox(
                     height: categoriesWidgetHeight,
                     child: CategoriesWidget(
                       categories: categories,
@@ -149,7 +153,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       widgetHeight: categoriesWidgetHeight,
                       isMatrixVisible: (bool isVisible) {},
                     )))
-            // INSERT BAR HERE ADAM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           ],
         ),
       ),
