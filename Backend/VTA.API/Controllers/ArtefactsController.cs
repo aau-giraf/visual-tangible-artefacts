@@ -9,11 +9,10 @@ using VTA.API.DbContexts;
 using VTA.API.Models;
 using VTA.API.DTOs;
 using VTA.API.Utilities;
-using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/{userID}/Users/Artefacts")]
+    [Route("api/Users/{userId}/Artefacts")]
     [ApiController]
     public class ArtefactsController : ControllerBase
     {
@@ -26,9 +25,9 @@ namespace VTA.API.Controllers
 
         // GET: api/Artefacts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts(string userID)
+        public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts(string userId)
         {
-            List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userID).ToListAsync();
+            List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
             List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
             foreach (Artefact artefact in artefacts)
             {
@@ -90,7 +89,7 @@ namespace VTA.API.Controllers
         // POST: api/Artefacts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Artefact>> PostArtefact(string userId, ArtefactPostDTO artefactPostDTO)
+        public async Task<ActionResult<Artefact>> PostArtefact(string userId, [FromForm] ArtefactPostDTO artefactPostDTO)
         {
             string artefactId = Guid.NewGuid().ToString();
             string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);

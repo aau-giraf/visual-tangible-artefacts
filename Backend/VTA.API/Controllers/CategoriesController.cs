@@ -11,7 +11,7 @@ using VTA.API.DTOs;
 
 namespace VTA.API.Controllers
 {
-    [Route("api/{userID}/Users/Categories")]
+    [Route("api/Users/{userId}/Categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
@@ -109,7 +109,7 @@ namespace VTA.API.Controllers
                 }
             }
 
-            return CreatedAtAction("GetCategory", new { userID = category.UserId, categoryId = category.CategoryId }, category);
+            return CreatedAtAction("GetCategory", new { userId = category.UserId, categoryId = category.CategoryId }, category);
         }
 
         // DELETE: api/Categories/5
