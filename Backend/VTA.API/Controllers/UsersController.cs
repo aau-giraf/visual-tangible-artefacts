@@ -8,6 +8,7 @@ using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
+using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
@@ -17,11 +18,11 @@ namespace VTA.API.Controllers
     {
         private readonly UserContext _context;
 
-        private readonly SecretsSingleton _secretsSingleton;
+        private readonly SecretsProvider _secretsSingleton;
 
         private readonly IConfiguration _config;
 
-        public UsersController(UserContext context, SecretsSingleton secretSingleton, IConfiguration config)
+        public UsersController(UserContext context, SecretsProvider secretSingleton, IConfiguration config)
         {
             _context = context;
             _secretsSingleton = secretSingleton;
