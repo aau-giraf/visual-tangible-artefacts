@@ -21,7 +21,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   global_configuration: ^2.0.0
-  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

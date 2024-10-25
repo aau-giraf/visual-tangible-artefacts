@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/models/category.dart';
-import 'package:vta_app/src/models/login_form.dart';
-import 'package:vta_app/src/models/login_response.dart';
-import 'package:vta_app/src/models/user.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
-import 'package:global_configuration/global_configuration.dart';
 
 void main() async {
   // Set up the SettingsController, which will glue user settings to multiple
@@ -26,4 +20,3 @@ void main() async {
   // SettingsView.
   runApp(MyApp(settingsController: settingsController));
 }
-//Jeg elsker tissemand

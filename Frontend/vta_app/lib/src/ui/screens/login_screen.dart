@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'package:vta_app/src/models/login_form.dart';
+import 'package:vta_app/src/models/login_response.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 import 'artifact_board_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -13,31 +17,28 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ApiProvider apiProvider =
+      ApiProvider(baseUrl: 'https://localhost:7180/api');
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       try {
         print('Form validated');
-        final response = await http.post(
-          Uri.parse('https://gayraf.mrlarsen.xyz/api/Users/Login'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-          body: jsonEncode(<String, String>{
-            'username': _usernameController.text,
-            'password': _passwordController.text,
-          }),
-        );
+        var loginForm = LoginForm(
+            username: _usernameController.text,
+            password: _passwordController.text);
+
+        final response = await apiProvider.postAsJson('/Users/Login',
+            body: loginForm.toJson());
 
         print('HTTP request sent');
-        print('Response status: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        print('Response status: ${response?.statusCode}');
+        print('Response body: ${response?.body}');
 
-        if (response.statusCode == 200) {
-          final Map<String, dynamic> responseBody = jsonDecode(response.body);
-          String token = responseBody[
-              'token']; // Adjust this based on the actual response structure
-
+        if (response != null && response.statusCode == 200) {
+          var loginResponse =
+              LoginResponse.fromJson(json.decode(response.body));
+          String token = loginResponse.token ?? "";
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('jwt_token', token);
 
