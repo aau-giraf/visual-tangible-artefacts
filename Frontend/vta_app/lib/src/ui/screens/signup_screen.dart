@@ -1,40 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vta_app/src/models/login_form.dart';
-import 'package:vta_app/src/models/login_response.dart';
+import 'package:vta_app/src/models/signup_form.dart';
+import 'package:vta_app/src/models/signup_response.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 import 'artifact_board_screen.dart';
-import 'signup_screen.dart';
+import 'login_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupPage extends StatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  _SignupPageState createState() => _SignupPageState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupPageState extends State<SignupPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final ApiProvider apiProvider =
       ApiProvider(baseUrl: 'https://api.giraf.live/api');
 
-  Future<void> _login() async {
+  Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
       try {
-        var loginForm = LoginForm(
+        var signupForm = SignupForm(
             username: _usernameController.text,
             password: _passwordController.text);
 
-        final response = await apiProvider.postAsJson('/Users/Login',
-            body: loginForm.toJson());
+        final response = await apiProvider.postAsJson('/Users/Signup',
+            body: signupForm.toJson());
 
         if (response != null && response.statusCode == 200) {
-          var loginResponse =
-              LoginResponse.fromJson(json.decode(response.body));
-          String token = loginResponse.token ?? "";
+          var signupResponse =
+              SignupResponse.fromJson(json.decode(response.body));
+          String token = signupResponse.token ?? "";
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('jwt_token', token);
 
@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed')),
+            SnackBar(content: Text('Signup failed')),
           );
         }
       } catch (e) {
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Login',
+                      'Signup',
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
@@ -137,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: _login,
+                      onPressed: _signup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade400,
                         shape: RoundedRectangleBorder(
@@ -149,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: Text(
-                        'Fortsæt',
+                        'Opret',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -158,11 +158,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         // Navigate to user page
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (context) => SignupPage()),
+                          MaterialPageRoute(
+                              builder: (context) => LoginScreen()),
                         );
                       },
                       child: Text(
-                        'Opret bruger',
+                        'Tilbage til login',
                         style: TextStyle(color: Colors.blue),
                       ),
                     ),
