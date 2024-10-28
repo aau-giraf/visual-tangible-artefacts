@@ -30,12 +30,14 @@ namespace VTA.API.Controllers
         {
             var userId = User.FindFirst("id")?.Value;
 
-            List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).ToListAsync();
+            List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
             List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
             foreach (Category category in categories)
             {
                 categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category));
             }
+
+
             return categoryGetDTOs;
         }
 

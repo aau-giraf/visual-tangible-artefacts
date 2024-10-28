@@ -34,7 +34,8 @@ public static class DTOConverter
         {
             CategoryId = category.CategoryId,
             CategoryIndex = category.CategoryIndex,
-            Name = category.Name
+            Name = category.Name,
+            Artefacts = (ICollection<ArtefactGetDTO>)category.Artefacts
         };
     }
 
