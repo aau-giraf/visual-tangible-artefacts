@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/categories/category.dart';
+import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
-  final List<String> imageMatrix;
   final double widgetHeight;
   final Function(bool isMatrixVisible) isMatrixVisible;
+  final GlobalKey<TalkingMatState> talkingMatKey;
 
-  const CategoriesWidget(
-      {super.key,
-      required this.categories,
-      required this.imageMatrix,
-      required this.widgetHeight,
-      required this.isMatrixVisible});
+  const CategoriesWidget({
+    super.key,
+    required this.categories,
+    required this.widgetHeight,
+    required this.isMatrixVisible,
+    required this.talkingMatKey,
+  });
 
   @override
   State<StatefulWidget> createState() => _CategoriesWidgetState();
@@ -24,93 +26,104 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-        width: double.infinity,
-        height: widget.widgetHeight,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.horizontal(
-              left: Radius.circular(10), right: Radius.circular(10)),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: widget.categories.length,
-            itemBuilder: (context, index) {
-              final item = widget.categories[index];
-              return TextButton(
-                onPressed: () {
-                  setState(() {
-                    showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        builder: (BuildContext context) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: FractionallySizedBox(
-                              // margin: const EdgeInsets.all(10),
-                              heightFactor: 0.8,
-                              child: GridView.builder(
-                                padding: const EdgeInsets.all(10),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                ),
-                                itemCount: widget.imageMatrix.length,
-                                itemBuilder: (context, index) {
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.network(
-                                        widget.imageMatrix[index],
-                                        fit: BoxFit.cover),
-                                  );
-                                },
-                              ),
-                            ),
-                          );
-                        });
-                    widget.isMatrixVisible(!_isMatrixVisible);
-                    _isMatrixVisible = !_isMatrixVisible;
-                  });
-                },
-                child: Container(
-                  height: widget.widgetHeight * 0.5,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text(item.id),
-                        const SizedBox(width: 5),
-                        if (item.imageLink != null)
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.black, width: 1),
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(5),
-                              child: Image.network(
-                                item.imageLink!,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.horizontal(
+          left: Radius.circular(10),
+          right: Radius.circular(10),
+        ),
+        child: _buildCategoryList(),
+      ),
+    );
+  }
+
+  Widget _buildCategoryList() {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: widget.categories.length,
+      itemBuilder: _buildCategoryItem,
+      separatorBuilder: (context, index) => const SizedBox(width: 10),
+    );
+  }
+
+  Widget _buildCategoryItem(BuildContext context, int index) {
+    final item = widget.categories[index];
+    return TextButton(
+      onPressed: () => _showCategoryModal(context, widget.categories[index]),
+      child: _buildCategoryContainer(item),
+    );
+  }
+
+  Widget _buildCategoryContainer(Category item) {
+    return Container(
+      height: widget.widgetHeight,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            Text(item.name!),
+            const SizedBox(width: 5),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCategoryModal(BuildContext context, Category category) {
+    setState(() {
+      showModalBottomSheet(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.9,
+        ),
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (BuildContext context) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: FractionallySizedBox(
+              heightFactor: 0.8,
+              child: _buildImageGrid(category),
+            ),
+          );
+        },
+      );
+      widget.isMatrixVisible(!_isMatrixVisible);
+      _isMatrixVisible = !_isMatrixVisible;
+    });
+  }
+
+  Widget _buildImageGrid(Category category) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(10),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 8,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: category.artifacts!.length,
+      itemBuilder: (context, index) =>
+          _buildImageGridItem(context, index, category),
+    );
+  }
+
+  Widget _buildImageGridItem(
+      BuildContext context, int index, Category category) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: TextButton(
+          onPressed: () => {
+                widget.talkingMatKey.currentState?.addArtifact(
+                  category.artifacts![index],
                 ),
-              );
-            },
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
-          ),
-        ));
+                Navigator.pop(context),
+              },
+          child: category.artifacts![index].content),
+    );
   }
 }
