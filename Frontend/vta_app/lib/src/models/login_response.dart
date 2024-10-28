@@ -1,13 +1,11 @@
 import 'package:vta_app/src/models/user.dart';
 
 class LoginResponse {
-  User? user;
   String? token;
 
-  LoginResponse({this.user, this.token});
+  LoginResponse({this.token});
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    return LoginResponse(
-        user: User.fromJson(json['user']), token: json['token'] as String);
+    return LoginResponse(token: json['token'] as String);
   }
 }

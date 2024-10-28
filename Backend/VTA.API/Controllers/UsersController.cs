@@ -37,7 +37,7 @@ namespace VTA.API.Controllers
             {
                 return BadRequest();
             }
-            User user = await _context.Users.Include(u => u.Categories).ThenInclude(c => c.Artefacts).
+            User? user = await _context.Users.
                 FirstOrDefaultAsync(
                 u => u.Username == userLoginForm.Username
                 && u.Password == userLoginForm.Password);
@@ -45,20 +45,10 @@ namespace VTA.API.Controllers
             {
                 return NotFound();
             }
-            var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
-
-            userGetDTO.Categories = user.Categories.Select(c => DTOConverter.MapCategoryToCategoryGetDTO(c)).ToList();
-
-            for (int i = 0; i < userGetDTO.Categories.Count; i++)
-            {
-                userGetDTO.Categories.ElementAt(i).Artefacts = user.Categories.ElementAt(i).Artefacts
-                    .Select(a => DTOConverter.MapArtefactToArtefactGetDTO(a, Request.Scheme, Request.Host.Value)).ToList();
-            }
 
             var token = GenerateJwt(user.Id, user.Name);
             return new UserLoginResponseDTO
             {
-                User = userGetDTO,
                 Token = token
             };
         }
@@ -72,7 +62,7 @@ namespace VTA.API.Controllers
                 return BadRequest();
             }
 
-            User user =  DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
+            User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
 
             while (UserExists(user.Id))
             {
@@ -105,7 +95,6 @@ namespace VTA.API.Controllers
             var token = GenerateJwt(user.Id, user.Name);
             return new UserLoginResponseDTO
             {
-                User = userGetDTO,
                 Token = token
             };
         }

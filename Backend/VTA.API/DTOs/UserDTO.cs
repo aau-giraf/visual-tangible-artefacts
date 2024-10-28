@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using VTA.API.Models;
-
-namespace VTA.API.DTOs;
+﻿namespace VTA.API.DTOs;
 
 public partial class UserPostDTO
 {
@@ -45,10 +41,7 @@ public class UserLoginDTO
 
 public class UserLoginResponseDTO
 {
-    public UserGetDTO User { get; set; } = null!;
-
     public string Token { get; set; } = null!;
-
 }
 
 
