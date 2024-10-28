@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -48,12 +48,63 @@ namespace VTA.API.Controllers
                 return NotFound();
             }
             var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+
             userGetDTO.Categories = user.Categories.Select(c => DTOConverter.MapCategoryToCategoryGetDTO(c)).ToList();
+
             for (int i = 0; i < userGetDTO.Categories.Count; i++)
             {
                 userGetDTO.Categories.ElementAt(i).Artefacts = user.Categories.ElementAt(i).Artefacts
                     .Select(a => DTOConverter.MapArtefactToArtefactGetDTO(a, Request.Scheme, Request.Host.Value)).ToList();
             }
+
+            var token = GenerateJwt(user.Id, user.Name);
+            return new UserLoginResponseDTO
+            {
+                User = userGetDTO,
+                Token = token
+            };
+        }
+
+        [AllowAnonymous]
+        [Route("SignUp")]
+        [HttpPost]
+        public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
+        {
+            if (userSignUp == null)
+            {
+                return BadRequest();
+            }
+
+            User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
+
+            while (UserExists(user.Id))
+            {
+                user.Id = Guid.NewGuid().ToString();
+            }
+
+            _context.Users.Add(user);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (UserExists(user.Id))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return await AutoSignIn(user);
+        }
+
+        private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
+        {
+            var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
             var token = GenerateJwt(user.Id, user.Name);
             return new UserLoginResponseDTO
             {
@@ -122,32 +173,16 @@ namespace VTA.API.Controllers
             return NoContent();
         }
 
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<User>> PostUser(UserPostDTO userPostDTO)
-        {
-            User user = DTOConverter.MapUserPostDTOToUser(userPostDTO, Guid.NewGuid().ToString());
-
-            _context.Users.Add(user);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (UserExists(user.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
+        // private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
+        // {
+        //     var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+        //     var token = GenerateJwt(user.Id, user.Name);
+        //     return new UserLoginResponseDTO
+        //     {
+        //         User = userGetDTO,
+        //         Token = token
+        //     };
+        // }
 
         // DELETE: api/Users/5
         [HttpDelete("{id}")]

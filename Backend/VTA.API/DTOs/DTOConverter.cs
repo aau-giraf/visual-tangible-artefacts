@@ -60,6 +60,16 @@ public static class DTOConverter
         };
     }
 
+    public static User MapUserSignUpDTOToUser(UserSignupDTO dto, string id)
+    {
+        return new User
+        {
+            Id = id,
+            Name = dto.Name,
+            Password = dto.Password,
+            Username = dto.Username
+        };
+    }
     public static User MapUserPostDTOToUser(UserPostDTO user, string id)
     {
         return new User

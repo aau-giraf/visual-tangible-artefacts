@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:global_configuration/global_configuration.dart';
-import 'package:vta_app/src/models/user.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
@@ -81,9 +78,10 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double padding = 10; // Padding around the ArtifactBoard
+    double padding = 10;
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 120; // Height of the bottom navigation bar
+    double categoriesWidgetHeight = 120;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -93,65 +91,70 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min, // Take minimum space needed
+          mainAxisAlignment:
+              MainAxisAlignment.start, // Align items to the start
           children: [
-            SizedBox(
-              height: screenHeight - categoriesWidgetHeight,
-              child: Stack(
-                children: [
-                  // Center the ArtifactBoard with appropriate padding
-                  Padding(
-                    padding: EdgeInsets.only(
-                        top: padding, left: padding, right: padding, bottom: 0),
-                    child: Center(
-                      child: _showDirectional ? linearBoard : talkingMat,
+            SafeArea(
+              bottom: false, // Don't add safe area padding at bottom
+              child: Container(
+                height: screenHeight -
+                    categoriesWidgetHeight -
+                    MediaQuery.of(context).padding.top,
+                padding: EdgeInsets.symmetric(horizontal: padding),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: padding),
+                      child: Center(
+                        child: _showDirectional ? linearBoard : talkingMat,
+                      ),
                     ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Create a new artifact and add it
-                      Artifact newArtifact = Artifact(
-                        content: SvgPicture.asset('assets/icons/sillyface.svg'),
-                        position: const Offset(299, 200),
-                      );
-                      // Call the addArtifact method directly
-                      talkingMatKey.currentState?.addArtifact(newArtifact);
-                    },
-                    child: const Text('Add Artifact'),
-                  ),
-                  Positioned(
-                    top: 30,
-                    left: 30,
-                    child: RelationalBoardButton(
+                    ElevatedButton(
                       onPressed: () {
-                        setState(() {
-                          _showDirectional = !_showDirectional;
-                        });
+                        Artifact newArtifact = Artifact(
+                          content:
+                              SvgPicture.asset('assets/icons/sillyface.svg'),
+                          position: const Offset(299, 200),
+                        );
+                        talkingMatKey.currentState?.addArtifact(newArtifact);
                       },
-                      icon: _showDirectional
-                          ? const Icon(
-                              IconData(0xf685, fontFamily: 'MaterialIcons'),
-                              size: 24.0,
-                            )
-                          : const Icon(
-                              IconData(0xf601, fontFamily: 'MaterialIcons'),
-                              size: 24.0,
-                            ),
+                      child: const Text('Add Artifact'),
                     ),
-                  ),
-                  const QuickChatButton(),
-                ],
+                    Positioned(
+                      top: 30,
+                      left: 30,
+                      child: RelationalBoardButton(
+                        onPressed: () {
+                          setState(() {
+                            _showDirectional = !_showDirectional;
+                          });
+                        },
+                        icon: _showDirectional
+                            ? const Icon(
+                                IconData(0xf685, fontFamily: 'MaterialIcons'),
+                                size: 24.0,
+                              )
+                            : const Icon(
+                                IconData(0xf601, fontFamily: 'MaterialIcons'),
+                                size: 24.0,
+                              ),
+                      ),
+                    ),
+                    const QuickChatButton(),
+                  ],
+                ),
               ),
             ),
-            Padding(
-                padding: EdgeInsets.only(left: padding, right: padding),
-                child: SizedBox(
-                    height: categoriesWidgetHeight,
-                    child: CategoriesWidget(
-                      categories: categories,
-                      imageMatrix: imageMatrix,
-                      widgetHeight: categoriesWidgetHeight,
-                      isMatrixVisible: (bool isVisible) {},
-                    )))
+            SizedBox(
+              height: categoriesWidgetHeight,
+              child: CategoriesWidget(
+                categories: categories,
+                imageMatrix: imageMatrix,
+                widgetHeight: categoriesWidgetHeight,
+                isMatrixVisible: (bool isVisible) {},
+              ),
+            ),
           ],
         ),
       ),
