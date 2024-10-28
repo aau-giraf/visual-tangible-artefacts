@@ -30,12 +30,13 @@ namespace VTA.API.Controllers
         {
             var userId = User.FindFirst("id")?.Value;
 
-            List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).ToListAsync();
+            List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
             List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
             foreach (Category category in categories)
             {
-                categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category));
+                categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
             }
+
             return categoryGetDTOs;
         }
 
@@ -45,7 +46,7 @@ namespace VTA.API.Controllers
         {
             var userId = User.FindFirst("id")?.Value;
 
-            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).Where(c => c.UserId == userId).ToListAsync();
+            var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
             var category = categories.First();
 
             if (category == null)
@@ -53,7 +54,7 @@ namespace VTA.API.Controllers
                 return NotFound();
             }
 
-            CategoryGetDTO categoryGetDTO = DTOConverter.MapCategoryToCategoryGetDTO(category);
+            CategoryGetDTO categoryGetDTO = DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString());
 
             return categoryGetDTO;
         }
