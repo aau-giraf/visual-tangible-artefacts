@@ -9,6 +9,8 @@ using VTA.API.DbContexts;
 using VTA.API.Models;
 using VTA.API.DTOs;
 using VTA.API.Utilities;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Authorization;
 
 namespace VTA.API.Controllers
 {
@@ -27,6 +29,12 @@ namespace VTA.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts(string userId)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
             List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
             List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
             foreach (Artefact artefact in artefacts)
@@ -40,6 +48,12 @@ namespace VTA.API.Controllers
         [HttpGet("{artefactId}")]
         public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string userId, string artefactId)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
             // var artefact = await _context.Artefacts.FindAsync(artefactId);
 
             var artefacts = await _context.Artefacts.Where(a => a.ArtefactId == artefactId).Where(a => a.UserId == userId).ToListAsync();
@@ -58,8 +72,14 @@ namespace VTA.API.Controllers
         // PUT: api/Artefacts/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{artefactId}")]
-        public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
+        public async Task<IActionResult> PutArtefact(string userId, string artefactId, Artefact artefact)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
             if (artefactId != artefact.ArtefactId)
             {
                 return BadRequest();
@@ -91,6 +111,13 @@ namespace VTA.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Artefact>> PostArtefact(string userId, [FromForm] ArtefactPostDTO artefactPostDTO)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
+
             string artefactId = Guid.NewGuid().ToString();
             string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);
             Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
@@ -118,8 +145,15 @@ namespace VTA.API.Controllers
 
         // DELETE: api/Artefacts/5
         [HttpDelete("{artefactId}")]
-        public async Task<IActionResult> DeleteArtefact(string artefactId)
+        public async Task<IActionResult> DeleteArtefact(string userId, string artefactId)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != userId)
+            {
+                return Forbid();
+            }
+
             var artefact = await _context.Artefacts.FindAsync(artefactId);
             if (artefact == null)
             {
