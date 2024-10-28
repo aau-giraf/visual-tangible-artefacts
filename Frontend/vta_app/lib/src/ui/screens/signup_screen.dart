@@ -28,7 +28,7 @@ class _SignupPageState extends State<SignupPage> {
             username: _usernameController.text,
             password: _passwordController.text);
 
-        final response = await apiProvider.postAsJson('/Users/Signup',
+        final response = await apiProvider.postAsJson('/Users/SignUp',
             body: signupForm.toJson());
 
         if (response != null && response.statusCode == 200) {
