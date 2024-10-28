@@ -28,14 +28,19 @@ public static class DTOConverter
         };
     }
 
-    public static CategoryGetDTO MapCategoryToCategoryGetDTO(Category category)
+    public static CategoryGetDTO MapCategoryToCategoryGetDTO(Category category, string scheme, string host)
     {
+        ICollection<ArtefactGetDTO> artefacts = new List<ArtefactGetDTO>();
+        foreach (Artefact artefact in category.Artefacts)
+        {
+            artefacts.Add(MapArtefactToArtefactGetDTO(artefact, scheme, host));
+        }
         return new CategoryGetDTO
         {
             CategoryId = category.CategoryId,
             CategoryIndex = category.CategoryIndex,
             Name = category.Name,
-            Artefacts = (ICollection<ArtefactGetDTO>)category.Artefacts
+            Artefacts = artefacts
         };
     }
 
