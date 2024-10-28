@@ -8,7 +8,7 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 
 abstract class ApiDataRepository {
-  ApiProvider apiProvider = ApiProvider(baseUrl: "https://localhost:7180/api");
+  ApiProvider apiProvider = ApiProvider(baseUrl: "https://localhost:7180/api/");
 
   Future<bool> handleResponse(http.Response? response) async {
     if (response == null) {
@@ -64,7 +64,7 @@ class ArtifactRepository extends ApiDataRepository {
   Future<List<Category>?> fetchCategories(String token) async {
     try {
       Map<String, String> headers = {
-        "Bearer": token,
+        "Authorization": 'Bearer $token',
       };
       var response =
           await apiProvider.fetchAsJson('Users/Categories', headers: headers);
