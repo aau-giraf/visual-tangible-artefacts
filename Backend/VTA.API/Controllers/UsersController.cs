@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -74,7 +75,6 @@ namespace VTA.API.Controllers
             return userGetDTOs;
         }
 
-<<<<<<< HEAD
         // GET: api/Users/5
         [HttpGet("{id}")]
         public async Task<ActionResult<UserGetDTO>> GetUser(string id)
