@@ -173,17 +173,6 @@ namespace VTA.API.Controllers
             return NoContent();
         }
 
-        // private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
-        // {
-        //     var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
-        //     var token = GenerateJwt(user.Id, user.Name);
-        //     return new UserLoginResponseDTO
-        //     {
-        //         User = userGetDTO,
-        //         Token = token
-        //     };
-        // }
-
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
