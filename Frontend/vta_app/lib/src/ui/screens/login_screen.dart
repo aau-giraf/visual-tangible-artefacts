@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/models/login_form.dart';
 import 'package:vta_app/src/models/login_response.dart';
+import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 import 'artifact_board_screen.dart';
@@ -24,20 +26,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       try {
-        var loginForm = LoginForm(
-            username: _usernameController.text,
-            password: _passwordController.text);
-
-        final response = await apiProvider.postAsJson('/Users/Login',
-            body: loginForm.toJson());
-
-        if (response != null && response.statusCode == 200) {
-          var loginResponse =
-              LoginResponse.fromJson(json.decode(response.body));
-          String token = loginResponse.token ?? "";
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('jwt_token', token);
-
+        var username = _usernameController.text;
+        var password = _passwordController.text;
+        var authState = Provider.of<AuthState>(context, listen: false);
+        await authState.login(username, password);
+        if (authState.token != null) {
           // Navigate to user page
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),

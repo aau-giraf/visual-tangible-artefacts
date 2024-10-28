@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:vta_app/src/functions/loading_page.dart';
+import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import '../ui/screens/login_screen.dart';
 import '../ui/screens/artifact_board_screen.dart';
+import 'package:provider/provider.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -17,13 +20,19 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> _checkAuth() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('jwt_token');
-
-    if (token != null && !JwtDecoder.isExpired(token)) {
+    final authState = Provider.of<AuthState>(context, listen: false);
+    final artifactState = Provider.of<ArtifactState>(context, listen: false);
+    if (await authState.loadTokenFromCache()) {
       // Token is valid, navigate to user page
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),
+        MaterialPageRoute(
+          builder: (context) => LoadingPage(
+            awaitCallbacks: [
+              () async => artifactState.loadCategories(authState.token!),
+            ],
+            child: ArtifactBoardScreen(),
+          ),
+        ),
       );
     } else {
       // Token is invalid or not present, navigate to login page
