@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -44,25 +45,31 @@ builder.Services.AddAuthentication(options =>
                     ValidAudience = builder.Configuration.GetSection("Secret")["ValidAudience"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Secret")["SecretKey"])),
                     ClockSkew = TimeSpan.Zero
-        };
-    });
-
-builder.Services.AddAuthorization();
-
-builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Version = "v1",
-                Title = "Visual Tangible Artefacts API",
-                Description = "An ASP.NET Core API for interfacing with the database",
+                };
             });
 
-            options.EnableAnnotations();
-            // https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
-        });
+builder.Services.AddAuthorization();
+// Check if Assets directory exists
+// Create Assets directory if it does not exist
+var assetsDir = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
+if (!Directory.Exists(assetsDir))
+{
+    Directory.CreateDirectory(assetsDir);
+}
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "Visual Tangible Artefacts API",
+        Description = "An ASP.NET Core API for interfacing with the database",
+    });
+
+    options.EnableAnnotations();
+    // https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
+});
 
 var app = builder.Build();
 
