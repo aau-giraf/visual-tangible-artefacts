@@ -11,9 +11,8 @@ using VTA.API.DTOs;
 using Microsoft.AspNetCore.Authorization;
 
 namespace VTA.API.Controllers
-{        
-    [Authorize]
-    [Route("api/{userId}/Users/Categories")]
+{
+    [Route("api/Users/{userId}/Categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
@@ -139,7 +138,7 @@ namespace VTA.API.Controllers
                 }
             }
 
-            return CreatedAtAction("GetCategory", new { userID = category.UserId, categoryId = category.CategoryId }, category);
+            return CreatedAtAction("GetCategory", new { userId = category.UserId, categoryId = category.CategoryId }, category);
         }
 
         // DELETE: api/Categories/5

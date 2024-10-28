@@ -2,7 +2,7 @@ name: vta_app
 description: "A new Flutter project."
 
 # Prevent accidental publishing to pub.dev.
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -10,16 +10,19 @@ environment:
   sdk: ^3.5.3
 
 dependencies:
+  audioplayers: ^6.1.0
+  flutter_svg: ^2.0.10+1
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  global_configuration: ^2.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^4.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
@@ -30,3 +33,5 @@ flutter:
   assets:
     # Add assets from the images directory to the application.
     - assets/images/
+    - assets/icons/
+    - assets/sound/

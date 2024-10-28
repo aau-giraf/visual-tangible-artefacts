@@ -14,8 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace VTA.API.Controllers
 {
-    [Authorize]
-    [Route("api/{userId}/Users/Artefacts")]
+    [Route("api/Users/{userId}/Artefacts")]
     [ApiController]
     public class ArtefactsController : ControllerBase
     {
@@ -110,7 +109,7 @@ namespace VTA.API.Controllers
         // POST: api/Artefacts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Artefact>> PostArtefact(string userId, ArtefactPostDTO artefactPostDTO)
+        public async Task<ActionResult<Artefact>> PostArtefact(string userId, [FromForm] ArtefactPostDTO artefactPostDTO)
         {
             var Id = User.FindFirst("id")?.Value;
 
