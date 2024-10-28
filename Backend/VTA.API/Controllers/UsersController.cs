@@ -11,6 +11,7 @@ using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
+    [Authorize]
     [Route("api/Users")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -28,6 +29,7 @@ namespace VTA.API.Controllers
             _config = config;
         }
 
+        [AllowAnonymous]
         [Route("Login")]
         [HttpPost]
         public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
@@ -60,7 +62,6 @@ namespace VTA.API.Controllers
         }
 
         // GET: api/Users
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
         {
@@ -73,6 +74,7 @@ namespace VTA.API.Controllers
             return userGetDTOs;
         }
 
+<<<<<<< HEAD
         // GET: api/Users/5
         [HttpGet("{id}")]
         public async Task<ActionResult<UserGetDTO>> GetUser(string id)
@@ -151,6 +153,12 @@ namespace VTA.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
+            var Id = User.FindFirst("id")?.Value;
+
+            if (Id != id)
+            {
+                return Forbid();
+            }
             var user = await _context.Users.FindAsync(id);
             if (user == null)
             {
@@ -176,7 +184,7 @@ namespace VTA.API.Controllers
             {
                 new Claim("id", userId),
                 new Claim("name", name),
-                //new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
             var token = new JwtSecurityToken(
