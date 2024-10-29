@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/functions/auth.dart';
-import 'package:vta_app/src/functions/loading_page.dart';
-import 'package:vta_app/src/models/login_form.dart';
-import 'package:vta_app/src/models/login_response.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'dart:convert';
-import 'artifact_board_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
