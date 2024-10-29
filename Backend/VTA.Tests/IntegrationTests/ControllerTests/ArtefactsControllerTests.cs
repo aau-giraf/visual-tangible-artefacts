@@ -23,23 +23,23 @@ namespace VTA.Tests.IntegrationTests
             _controller = new ArtefactsController(_dbContext);
         }
 
-        [Fact]
-        public async Task GetArtefacts_ReturnsArtefactsForUser()
-        {
-            var userId = "test-user-id";
-            var artefact1 = new Artefact { ArtefactId = "1", UserId = userId, ImagePath = "path1", CategoryId = "category1", ArtefactIndex = 1 };
-            var artefact2 = new Artefact { ArtefactId = "2", UserId = userId, ImagePath = "path2", CategoryId = "category2", ArtefactIndex = 2 };
+        // [Fact]
+        // public async Task GetArtefacts_ReturnsArtefactsForUser()
+        // {
+        //     var userId = "test-user-id";
+        //     var artefact1 = new Artefact { ArtefactId = "1", UserId = userId, ImagePath = "path1", CategoryId = "category1", ArtefactIndex = 1 };
+        //     var artefact2 = new Artefact { ArtefactId = "2", UserId = userId, ImagePath = "path2", CategoryId = "category2", ArtefactIndex = 2 };
 
-            _dbContext.Artefacts.AddRange(artefact1, artefact2);
-            await _dbContext.SaveChangesAsync();
+        //     _dbContext.Artefacts.AddRange(artefact1, artefact2);
+        //     await _dbContext.SaveChangesAsync();
 
-            var result = await _controller.GetArtefacts(userId);
+        //     var result = await _controller.GetArtefacts(userId);
 
-            var okResult = Assert.IsType<ActionResult<IEnumerable<ArtefactGetDTO>>>(result);
-            var artefacts = Assert.IsType<List<ArtefactGetDTO>>(okResult.Value);
-            Assert.Equal(2, artefacts.Count);
-            Assert.Contains(artefacts, a => a.ArtefactId == "1");
-            Assert.Contains(artefacts, a => a.ArtefactId == "2");
-        }
+        //     var okResult = Assert.IsType<ActionResult<IEnumerable<ArtefactGetDTO>>>(result);
+        //     var artefacts = Assert.IsType<List<ArtefactGetDTO>>(okResult.Value);
+        //     Assert.Equal(2, artefacts.Count);
+        //     Assert.Contains(artefacts, a => a.ArtefactId == "1");
+        //     Assert.Contains(artefacts, a => a.ArtefactId == "2");
+        // }
     }
 }

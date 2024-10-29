@@ -8,20 +8,24 @@ namespace VTA.Tests.TestHelpers.Database
     {
         public static string DumpDatabaseSchema()
         {
-            var username = Environment.GetEnvironmentVariable("DB_USER") ?? throw new ArgumentNullException("DB_USER environment variable not set.");
-            var password = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new ArgumentNullException("DB_PASSWORD environment variable not set.");
+            var sshServer = Environment.GetEnvironmentVariable("SSH_DOMAIN") ?? throw new ArgumentNullException("SSH_DOMAIN environment variable not set.");
+            var sshUser = Environment.GetEnvironmentVariable("SSH_USER") ?? throw new ArgumentNullException("SSH_USER environment variable not set.");
+            var sshPassword = Environment.GetEnvironmentVariable("SSH_PASSWORD") ?? throw new ArgumentNullException("SSH_PASSWORD environment variable not set.");
+
+            var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? throw new ArgumentNullException("DB_USER environment variable not set.");
+            var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new ArgumentNullException("DB_PASSWORD environment variable not set.");
             var databaseName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new ArgumentNullException("DB_NAME environment variable not set.");
-            var server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
-            var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
+            var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
+            var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
 
             var schemaFilePath = Path.GetTempFileName();
 
-            var process = new Process
+            var sshTunnelProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "mysqldump",
-                    Arguments = $"--host={server} --port={port} --user={username} --password={password} --no-data {databaseName}",
+                    FileName = "sshpass",
+                    Arguments = $"-p '{sshPassword}' ssh -L 13306:{dbServer}:{dbPort} {sshUser}@{sshServer}",
                     RedirectStandardOutput = true,
                     RedirectStandardInput = true,
                     UseShellExecute = false,
@@ -29,11 +33,32 @@ namespace VTA.Tests.TestHelpers.Database
                 }
             };
 
-            using (var writer = new StreamWriter(schemaFilePath))
+            sshTunnelProcess.Start();
+
+            try
             {
-                process.Start();
-                writer.Write(process.StandardOutput.ReadToEnd());
-                process.WaitForExit();
+                var mysqldumpProcess = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "mysqldump",
+                        Arguments = $"--host=localhost --port=13306 --user={dbUser} --password='{dbPassword}' --no-data {databaseName}",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    }
+                };
+
+                using (var writer = new StreamWriter(schemaFilePath))
+                {
+                    mysqldumpProcess.Start();
+                    writer.Write(mysqldumpProcess.StandardOutput.ReadToEnd());
+                    mysqldumpProcess.WaitForExit();
+                }
+            }
+            finally
+            {
+                sshTunnelProcess.Kill();
             }
 
             return schemaFilePath;
