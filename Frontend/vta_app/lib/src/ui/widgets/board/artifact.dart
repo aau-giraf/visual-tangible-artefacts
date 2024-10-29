@@ -17,9 +17,13 @@ class BoardArtefact {
   factory BoardArtefact.fromArtefact(Artefact artefact,
       {Map<String, String>? headers}) {
     return BoardArtefact(
-        content: FadeInImage(
-          image: NetworkImage(artefact.imageUrl ?? "", headers: headers),
-          placeholder: AssetImage('assets/images/flutter_logo.png'),
+        content: SizedBox(
+          width: 200,
+          height: 200,
+          child: FadeInImage(
+            image: NetworkImage(artefact.imageUrl ?? "", headers: headers),
+            placeholder: AssetImage('assets/images/flutter_logo.png'),
+          ),
         ),
         baseArtefact: artefact);
   }

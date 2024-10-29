@@ -138,10 +138,17 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     data: artifact,
                     feedback: Transform.scale(
                       scale: 1.2,
-                      child: PhysicalModel(
-                        color: Colors.black,
-                        elevation: 20.0,
-                        shape: BoxShape.circle,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: artifact.content,
                       ),
                     ),

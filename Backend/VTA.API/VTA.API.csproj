@@ -25,10 +25,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.9.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="VTA.API\" />
-  </ItemGroup>
-
     <ItemGroup>
   <Content Include="Assets\**\*">
   <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -37,5 +33,12 @@
     <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
   </Content>
 </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="VTA.API\**" />
+      <Content Remove="VTA.API\**" />
+      <EmbeddedResource Remove="VTA.API\**" />
+      <None Remove="VTA.API\**" />
+    </ItemGroup>
 
 </Project>
