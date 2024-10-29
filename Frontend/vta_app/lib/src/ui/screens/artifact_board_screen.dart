@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:global_configuration/global_configuration.dart';
 import 'package:provider/provider.dart';
-import 'package:vta_app/src/models/artefact.dart';
-import 'package:vta_app/src/models/category.dart';
-import 'package:vta_app/src/models/user.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';

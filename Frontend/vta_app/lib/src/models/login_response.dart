@@ -1,5 +1,3 @@
-import 'package:vta_app/src/models/user.dart';
-
 class LoginResponse {
   String? token;
 

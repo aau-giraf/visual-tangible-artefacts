@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:vta_app/src/functions/loading_page.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import '../ui/screens/login_screen.dart';
