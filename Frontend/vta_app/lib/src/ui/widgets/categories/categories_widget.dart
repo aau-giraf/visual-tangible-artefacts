@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vta_app/src/models/artefact.dart';
 import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 
 class CategoriesWidget extends StatefulWidget {
@@ -106,7 +110,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: category.artifacts!.length,
+      itemCount: category.artefacts!.length,
       itemBuilder: (context, index) =>
           _buildImageGridItem(context, index, category),
     );
@@ -114,16 +118,24 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildImageGridItem(
       BuildContext context, int index, Category category) {
+    var authState = Provider.of<AuthState>(context);
+    var headers = <String, String>{
+      'Authorization': 'Bearer ${authState.token}'
+    };
+    var boardArtefacts = category.artefacts!
+        .map((artefact) =>
+            BoardArtefact.fromArtefact(artefact, headers: headers))
+        .toList();
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: TextButton(
           onPressed: () => {
-                widget.talkingMatKey.currentState?.addArtifact(
-                  category.artifacts![index],
-                ),
+                widget.talkingMatKey.currentState
+                    ?.addArtifact(boardArtefacts[index]),
                 Navigator.pop(context),
               },
-          child: category.artifacts![index].content),
+          child: boardArtefacts[index].content),
     );
   }
 }
