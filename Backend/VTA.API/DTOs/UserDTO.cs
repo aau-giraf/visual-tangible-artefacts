@@ -42,6 +42,7 @@ public class UserLoginDTO
 public class UserLoginResponseDTO
 {
     public string Token { get; set; } = null!;
+    public string userId { get; set; }
 }
 
 
