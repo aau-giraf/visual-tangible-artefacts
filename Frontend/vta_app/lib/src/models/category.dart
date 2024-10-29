@@ -22,7 +22,11 @@ class Category implements JsonSerializable {
 
   @override
   Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
+    return <String, dynamic>{
+      'categoryId': categoryId,
+      'categoryIndex': categoryIndex,
+      'name': name,
+      'artefacts': artefacts?.map((artefact) => artefact.toJson()).toList()
+    };
   }
 }

@@ -24,7 +24,12 @@ class Artefact implements JsonSerializable {
 
   @override
   Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
+    return <String, dynamic>{
+      'artefactId': artefactId,
+      'artefactIndex': artefactIndex,
+      'userId': userId,
+      'categoryId': categoryId,
+      'imageUrl': imageUrl
+    };
   }
 }

@@ -44,4 +44,15 @@ class ArtifactState with ChangeNotifier {
     }
     return false;
   }
+
+  Future<bool> addCategory(Category category, {required String token}) async {
+    var newCategory =
+        await ArtifactRepository().addCategory(category, token: token);
+    if (newCategory != null) {
+      _categories?.add(newCategory);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
 }

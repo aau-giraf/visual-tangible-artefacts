@@ -10,7 +10,7 @@ import 'dart:convert';
 abstract class ApiDataRepository {
   ApiProvider apiProvider = ApiProvider(baseUrl: "https://localhost:7180/api/");
 
-  Future<bool> handleResponse(http.Response? response) async {
+  bool responseOk(http.Response? response) {
     if (response == null) {
       throw Exception('No response from server.');
     }
@@ -35,7 +35,7 @@ class AuthRepository extends ApiDataRepository {
 
       final response =
           await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
-      if (await handleResponse(response)) {
+      if (responseOk(response)) {
         var loginResponse = LoginResponse.fromJson(json.decode(response!.body));
         if (loginResponse.token != null) {
           String token = loginResponse.token!;
@@ -68,7 +68,7 @@ class ArtifactRepository extends ApiDataRepository {
       };
       var response =
           await apiProvider.fetchAsJson('Users/Categories', headers: headers);
-      if (await handleResponse(response)) {
+      if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body) as List;
         var categories = jsonResponse
             .map((jsonCategory) =>
@@ -80,6 +80,23 @@ class ArtifactRepository extends ApiDataRepository {
       }
     } catch (e) {
       debugPrint("An error occured while fetching categories: $e");
+      return null;
+    }
+  }
+
+  Future<Category?> addCategory(Category category,
+      {required String token}) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+      var response = await apiProvider.postAsJson('Users/Categories',
+          headers: headers, body: category.toJson());
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body);
+        return Category.fromJson(jsonResponse);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("An error occured while posting category: $e");
       return null;
     }
   }
