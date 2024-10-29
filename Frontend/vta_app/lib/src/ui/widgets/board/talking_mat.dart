@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'artifact.dart';
 
 class TalkingMat extends StatefulWidget {
-  final List<Artifact>? artifacts;
+  final List<BoardArtefact>? artifacts;
   final double? width;
   final double? height;
   final Color? backgroundColor;
@@ -20,7 +20,7 @@ class TalkingMat extends StatefulWidget {
 }
 
 class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
-  late List<Artifact> artifacts;
+  late List<BoardArtefact> artifacts;
   bool isGestureInsideMat = false;
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
@@ -50,7 +50,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void addArtifact(Artifact artifact) {
+  void addArtifact(BoardArtefact artifact) {
     setState(() {
       artifacts.add(artifact);
     });
@@ -66,7 +66,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     });
   }
 
-  void _updateArtifactPosition(Artifact artifact, Offset offset) {
+  void _updateArtifactPosition(BoardArtefact artifact, Offset offset) {
     // Retrieve the stored size for the artifact
     Size? size = artifact.renderedSize;
 
@@ -79,7 +79,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
   }
 
-  void _loadArtifactSize(Artifact artifact) {
+  void _loadArtifactSize(BoardArtefact artifact) {
     // Access the size of the artifact's content after it has been rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final RenderBox? renderBox =
@@ -132,9 +132,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                 _loadArtifactSize(
                     artifact); // Ensure the artifact size is captured
                 return Positioned(
-                  left: artifact.position.dx,
-                  top: artifact.position.dy,
-                  child: Draggable<Artifact>(
+                  left: artifact.position?.dx,
+                  top: artifact.position?.dy,
+                  child: Draggable<BoardArtefact>(
                     data: artifact,
                     feedback: Transform.scale(
                       scale: 1.2,
@@ -173,7 +173,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     onTap: () {
                       removeAllArtifacts();
                     },
-                    child: DragTarget<Artifact>(
+                    child: DragTarget<BoardArtefact>(
                       builder: (context, data, rejectedData) {
                         return buildTrashCan(height: 50, width: 50);
                       },

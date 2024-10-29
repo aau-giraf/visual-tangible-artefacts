@@ -26,25 +26,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   late TalkingMat talkingMat;
   late GlobalKey<TalkingMatState> talkingMatKey;
   late LinearBoard linearBoard;
-  List<Category> categories = List.generate(
-      10,
-      (int index) => Category(
-            categoryId: index.toString(),
-            categoryIndex: index,
-            name: "Category $index",
-            // artifacts: List.generate(10, (int index) => Artefact(
-            //                     artefactId: index.toString(),
-            //                     imageUrl: "https://random.imagecdn.app/500/150",
-            //                     // imageUrl: "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-            //                     // position: const Offset(299, 200),
-            //                   ),
-            artifacts: List.generate(
-                10,
-                (int index) => Artifact(
-                      content: SvgPicture.asset('assets/icons/sillyface.svg'),
-                      position: const Offset(299, 200),
-                    )),
-          ));
 
   @override
   void initState() {
@@ -102,7 +83,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        Artifact newArtifact = Artifact(
+                        BoardArtefact newArtifact = BoardArtefact(
                           content:
                               SvgPicture.asset('assets/icons/sillyface.svg'),
                           position: const Offset(299, 200),

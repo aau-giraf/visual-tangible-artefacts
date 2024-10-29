@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/functions/loading_page.dart';
 import 'package:vta_app/src/models/login_form.dart';
 import 'package:vta_app/src/models/login_response.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
@@ -29,11 +30,18 @@ class _LoginScreenState extends State<LoginScreen> {
         var username = _usernameController.text;
         var password = _passwordController.text;
         var authState = Provider.of<AuthState>(context, listen: false);
+        var artifactState = Provider.of<ArtifactState>(context, listen: false);
         await authState.login(username, password);
         if (authState.token != null) {
           // Navigate to user page
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),
+            MaterialPageRoute(
+                builder: (context) => LoadingPage(
+                      awaitCallbacks: [
+                        () => artifactState.loadCategories(authState.token!)
+                      ],
+                      child: ArtifactBoardScreen(),
+                    )),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

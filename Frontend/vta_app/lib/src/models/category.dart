@@ -1,24 +1,23 @@
 import 'package:vta_app/src/models/artefact.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
 class Category implements JsonSerializable {
   String? categoryId;
   int? categoryIndex;
   String? name;
-  List<Artifact>? artifacts;
+  List<Artefact>? artefacts;
 
-  Category({this.categoryId, this.categoryIndex, this.name, this.artifacts});
+  Category({this.categoryId, this.categoryIndex, this.name, this.artefacts});
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
         categoryId: json['categoryId'] as String,
         categoryIndex: json['categoryIndex'] as int,
-        name: json['name'] as String);
-        // artifacts: (json['artefacts'] as List<dynamic>?)
-        //     ?.map((artifact) =>
-        //         Artifact.fromJson(artifact as Map<String, dynamic>))
-        //     .toList());
+        name: json['name'] as String,
+        artefacts: (json['artefacts'] as List<dynamic>?)
+            ?.map((artefact) =>
+                Artefact.fromJson(artefact as Map<String, dynamic>))
+            .toList());
   }
 
   @override

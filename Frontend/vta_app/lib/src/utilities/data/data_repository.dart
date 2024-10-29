@@ -33,8 +33,8 @@ class AuthRepository extends ApiDataRepository {
     try {
       var loginForm = LoginForm(username: username, password: password);
 
-      final response = await apiProvider.postAsJson('/Users/Login',
-          body: loginForm.toJson());
+      final response =
+          await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
       if (await handleResponse(response)) {
         var loginResponse = LoginResponse.fromJson(json.decode(response!.body));
         if (loginResponse.token != null) {
@@ -69,11 +69,12 @@ class ArtifactRepository extends ApiDataRepository {
       var response =
           await apiProvider.fetchAsJson('Users/Categories', headers: headers);
       if (await handleResponse(response)) {
-        var jsonResponse = json.decode(response!.body);
-        return jsonResponse
+        var jsonResponse = json.decode(response!.body) as List;
+        var categories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
             .toList();
+        return categories;
       } else {
         return null;
       }
