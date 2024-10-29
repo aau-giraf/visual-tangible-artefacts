@@ -10,7 +10,6 @@ environment:
   sdk: ^3.5.3
 
 dependencies:
-  audioplayers: ^6.1.0
   flutter_svg: ^2.0.10+1
   jwt_decoder: ^2.0.1
   shared_preferences: ^2.3.2
