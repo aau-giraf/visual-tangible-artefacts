@@ -15,7 +15,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Clear SharedPreferences, for testing
-  await clearSharedPreferences();
+  //await clearSharedPreferences();
 
   // Set up the SettingsController, which will glue user settings to multiple
   // Flutter Widgets.
