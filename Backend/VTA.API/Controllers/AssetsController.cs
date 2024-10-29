@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.Models;
@@ -12,6 +13,7 @@ using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
+    [Authorize]
     [Route("api/Assets")]
     [ApiController]
     public class AssetsController : ControllerBase
