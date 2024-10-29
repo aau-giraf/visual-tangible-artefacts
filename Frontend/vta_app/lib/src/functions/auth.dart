@@ -20,7 +20,8 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _checkAuth() async {
     final authState = Provider.of<AuthState>(context, listen: false);
     final artifactState = Provider.of<ArtifactState>(context, listen: false);
-    if (await authState.loadTokenFromCache()) {
+    if (await authState.loadTokenFromCache() &&
+        await authState.loadUserIdFromCache()) {
       // Token is valid, navigate to user page
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

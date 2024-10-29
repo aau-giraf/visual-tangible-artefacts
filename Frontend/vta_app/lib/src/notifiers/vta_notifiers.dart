@@ -29,6 +29,16 @@ class AuthState with ChangeNotifier {
     }
   }
 
+  Future<bool> loadUserIdFromCache() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('userId');
+    if (_userId != null) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   void logout() {
     _token = null;
     notifyListeners();
