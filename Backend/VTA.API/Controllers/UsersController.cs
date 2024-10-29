@@ -49,9 +49,11 @@ namespace VTA.API.Controllers
             }
 
             var token = GenerateJwt(user.Id, user.Name);
+            UserGetDTO userDTO = DTOConverter.MapUserToUserGetDTO(user);
             return new UserLoginResponseDTO
             {
-                Token = token
+                Token = token,
+                userId = userDTO.Id
             };
         }
 
@@ -98,7 +100,8 @@ namespace VTA.API.Controllers
             var token = GenerateJwt(user.Id, user.Name);
             return new UserLoginResponseDTO
             {
-                Token = token
+                Token = token,
+                userId = user.Id
             };
         }
 
