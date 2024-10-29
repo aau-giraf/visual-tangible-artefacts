@@ -22,6 +22,9 @@ class ApiProvider {
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
     try {
+      headers?.addEntries([
+        MapEntry('Content-Type', 'application/json'),
+      ]);
       return await http.post(
         uri,
         headers: headers ?? {'Content-Type': 'application/json'},

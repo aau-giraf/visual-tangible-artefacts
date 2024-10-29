@@ -17,6 +17,8 @@ abstract class ApiDataRepository {
     switch (response.statusCode) {
       case 200:
         return true;
+      case 201:
+        return true;
       case 401:
         throw Exception('Invalid username or password.');
 
@@ -29,7 +31,7 @@ abstract class ApiDataRepository {
 }
 
 class AuthRepository extends ApiDataRepository {
-  Future<String?> login(String username, String password) async {
+  Future<LoginResponse?> login(String username, String password) async {
     try {
       var loginForm = LoginForm(username: username, password: password);
 
@@ -38,10 +40,10 @@ class AuthRepository extends ApiDataRepository {
       if (responseOk(response)) {
         var loginResponse = LoginResponse.fromJson(json.decode(response!.body));
         if (loginResponse.token != null) {
-          String token = loginResponse.token!;
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('jwt_token', token);
-          return token;
+          await prefs.setString('jwt_token', loginResponse.token!);
+          await prefs.setString('userId', loginResponse.userId!);
+          return loginResponse;
         } else {
           throw Exception('Login response received, but token is null.');
         }
@@ -88,10 +90,12 @@ class ArtifactRepository extends ApiDataRepository {
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
+      var jsonlol = category.toJson();
       var response = await apiProvider.postAsJson('Users/Categories',
           headers: headers, body: category.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
+        var newcategory = Category.fromJson(jsonResponse);
         return Category.fromJson(jsonResponse);
       }
       return null;

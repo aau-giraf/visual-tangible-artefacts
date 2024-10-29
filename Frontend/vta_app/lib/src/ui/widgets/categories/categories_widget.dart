@@ -178,6 +178,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        TextEditingController categoryNameController = TextEditingController();
         return Dialog(
           child: Container(
             width: 741,
@@ -213,7 +214,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                   SizedBox(height: 20),
                   SizedBox(
                     width: 741 / 2,
-                    child: TextField(
+                    child: TextFormField(
+                      controller: categoryNameController,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
@@ -245,7 +247,18 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                         style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFFBADFB5)),
                         onPressed: () {
-                          // Close the dialog
+                          var artifactState = Provider.of<ArtifactState>(
+                              context,
+                              listen: false);
+                          var authState =
+                              Provider.of<AuthState>(context, listen: false);
+                          var newCategory = Category(
+                              name: categoryNameController.text,
+                              userId: authState.userId,
+                              categoryIndex: 0);
+                          artifactState.addCategory(newCategory,
+                              token: authState.token!);
+                          Navigator.of(context).pop();
                         },
                         child: Text(
                           'Tilføj',

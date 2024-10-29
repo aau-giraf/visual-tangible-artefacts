@@ -6,11 +6,15 @@ import 'package:vta_app/src/utilities/data/data_repository.dart';
 
 class AuthState with ChangeNotifier {
   String? _token;
+  String? _userId;
 
   String? get token => _token;
+  String? get userId => _userId;
 
   Future<String?> login(String username, String password) async {
-    _token = await AuthRepository().login(username, password);
+    var loginResponse = await AuthRepository().login(username, password);
+    _token = loginResponse?.token;
+    _userId = loginResponse?.userId;
     notifyListeners();
     return token;
   }
