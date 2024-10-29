@@ -3,7 +3,7 @@ name: Continuous Integration
 on:
   push:
     branches:
-      - dev-main # Only run on dev-main branch
+      - dev-main
 
 jobs:
   test:
@@ -26,4 +26,3 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
-
