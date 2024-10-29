@@ -42,7 +42,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   Widget build(BuildContext context) {
     double padding = 10;
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 120;
+    double categoriesWidgetHeight = 60;
     double dividerHeight = 20;
 
     var categories = context.watch<ArtifactState>().categories;
