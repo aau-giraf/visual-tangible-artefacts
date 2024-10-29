@@ -398,6 +398,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 Backend/VTA.API/appsettings.json
+Frontend/vta_app/lib/appsettings.json
 Frontend/vta_app/linux/flutter/generated_plugin_registrant.cc
 Frontend/vta_app/linux/flutter/generated_plugin_registrant.h
 Frontend/vta_app/linux/flutter/generated_plugins.cmake

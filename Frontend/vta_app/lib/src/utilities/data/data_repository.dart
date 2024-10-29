@@ -8,7 +8,7 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 
 abstract class ApiDataRepository {
-  ApiProvider apiProvider = ApiProvider(baseUrl: "https://localhost:7180/api/");
+  ApiProvider apiProvider = ApiProvider(baseUrl: "https://api.giraf.live/api/");
 
   bool responseOk(http.Response? response) {
     if (response == null) {
