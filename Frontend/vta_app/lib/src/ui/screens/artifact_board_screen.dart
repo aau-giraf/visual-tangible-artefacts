@@ -30,12 +30,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
             categoryId: index.toString(),
             categoryIndex: index,
             name: "Category $index",
-            // artifacts: List.generate(10, (int index) => Artefact(
-            //                     artefactId: index.toString(),
-            //                     imageUrl: "https://random.imagecdn.app/500/150",
-            //                     // imageUrl: "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-            //                     // position: const Offset(299, 200),
-            //                   ),
             artifacts: List.generate(
                 10,
                 (int index) => Artifact(
@@ -59,7 +53,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   Widget build(BuildContext context) {
     double padding = 10;
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 120;
+    double categoriesWidgetHeight = 60;
     double dividerHeight = 20;
 
     return Scaffold(
