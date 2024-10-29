@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/functions/loading_page.dart';
 import 'package:vta_app/src/models/login_form.dart';
 import 'package:vta_app/src/models/login_response.dart';
@@ -21,8 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final ApiProvider apiProvider =
-      ApiProvider(baseUrl: 'https://api.giraf.live/api');
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -35,14 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (authState.token != null) {
           // Navigate to user page
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-                builder: (context) => LoadingPage(
-                      awaitCallbacks: [
-                        () => artifactState.loadCategories(authState.token!)
-                      ],
-                      child: ArtifactBoardScreen(),
-                    )),
-          );
+              MaterialPageRoute(builder: (context) => AuthPage()));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Login failed')),
