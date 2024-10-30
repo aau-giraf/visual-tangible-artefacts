@@ -45,6 +45,10 @@ jobs:
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' --exclude 'VTA.API/Assets' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ssh.giraf.live\"" ./output/ automation_user@ssh.giraf.live:/var/www/VTA.API/
 
+      - name: Set permissions for the Assets folder
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh.giraf.live" automation_user@ssh.giraf.live "sudo chmod 777 /var/www/VTA.API/Assets"
+
       - name: Restart the service using SSH
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh.giraf.live" automation_user@ssh.giraf.live "sudo systemctl restart vtaapi.service"
