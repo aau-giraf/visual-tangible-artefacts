@@ -8,6 +8,8 @@ using VTA.API.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// test comment
+
 // Add services to the container.
 builder.Services.AddControllers();
 
