@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using VTA.API.Models;
-
-namespace VTA.API.DTOs;
+﻿namespace VTA.API.DTOs;
 
 public partial class UserPostDTO
 {
@@ -30,7 +26,7 @@ public partial class UserGetDTO
 
 }
 
-class UserSignupDTO
+public class UserSignupDTO
 {
     required public string Username { get; set; }
     required public string Password { get; set; }
@@ -45,10 +41,8 @@ public class UserLoginDTO
 
 public class UserLoginResponseDTO
 {
-    public UserGetDTO User { get; set; } = null!;
-
     public string Token { get; set; } = null!;
-
+    public string userId { get; set; }
 }
 
 
