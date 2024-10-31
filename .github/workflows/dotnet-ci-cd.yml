@@ -19,7 +19,9 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
-      - name: Run unit tests
+      - name: Run tests
+        env:
+          ConnectionStrings__TestConnection: ${{ secrets.DB_CONNECTION_TEST }}
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
       - name: Publish the WebAPI
