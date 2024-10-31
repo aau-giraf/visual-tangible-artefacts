@@ -25,3 +25,7 @@ jobs:
       - name: Publish the WebAPI
         if: success()
         run: dotnet publish --configuration Release --output ./output
+
+      - name: Copy to deployment directory
+        if: success()
+        run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
