@@ -73,7 +73,8 @@ public static class DTOConverter
             Id = id,
             Name = dto.Name,
             Password = dto.Password,
-            Username = dto.Username
+            Username = dto.Username,
+            GuardianKey = dto.GuardianKey
         };
     }
     public static User MapUserPostDTOToUser(UserPostDTO user, string id)
