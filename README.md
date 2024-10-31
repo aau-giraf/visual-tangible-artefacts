@@ -39,7 +39,7 @@
      
      *It might be easier for you to pull main, into the feature branch, testing it, and then pulling feature to main
      
-     ![Branching strategy](https://github.com/aau-giraf/Visual-tangible-artefacts/blob/main/resources/Branching.png)
+     ![Branching strategy](https://github.com/aau-giraf/visual-tangible-artefacts/blob/dev-main/Resources/Branching.png)
 ### Database Approach
 
 #### DB-First Approach
