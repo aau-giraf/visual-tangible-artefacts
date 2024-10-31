@@ -14,7 +14,8 @@ namespace VTA.Tests.TestHelpers
         {
             builder.ConfigureAppConfiguration((context, config) =>
             {
-                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                config.AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true, reloadOnChange: true)
+                      .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                       .AddEnvironmentVariables();
             });
 
