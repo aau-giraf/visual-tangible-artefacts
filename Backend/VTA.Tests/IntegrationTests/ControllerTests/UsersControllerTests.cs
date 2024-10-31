@@ -1,29 +1,34 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Xunit;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
+using Xunit;
 
 namespace VTA.Tests.IntegrationTests
 {
     public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Program>>
     {
         private readonly HttpClient _client;
+        private readonly TestUserHelper _testUserHelper;
+        private readonly string _secretKey;
 
         public UsersControllerTests(CustomApplicationFactory<Program> factory)
         {
             _client = factory.CreateClient();
+            _testUserHelper = new TestUserHelper(_client);
+            _secretKey = factory.Configuration["Secret:SecretKey"];
         }
 
-        // TODO: Needs to be changed when signup dto is done, so we can create a user and delete it right after instead of using a hardcoded user
-
         [Fact]
-        public async Task Login_ReturnsUserWithToken()
+        public async Task Login_ReturnsValidJwtTokenWithCorrectUserId()
         {
+            await _testUserHelper.CreateTestUserAsync();
             var loginDto = new UserLoginDTO
             {
-                Username = "vtatester123",
+                Username = "testuser",
                 Password = "123"
             };
 
@@ -33,20 +38,43 @@ namespace VTA.Tests.IntegrationTests
             var loginResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
             Assert.NotNull(loginResponse);
             Assert.NotEmpty(loginResponse.Token);
-            Assert.Equal("596d853e-6bfc-4aa6-9c6b-59a283151805", loginResponse.userId);
+
+            await ValidateJwtTokenMatchesUser(loginResponse.Token, loginDto.Username);
+
+            await _testUserHelper.DeleteTestUserAsync();
         }
 
-        // [Fact]
-        // public async Task GetUser_ReturnsUserDetails()
-        // {
-        //     var userId = "4ecf214f-cb04-47ba-bbcf-c0a36009097b";
+        private async Task ValidateJwtTokenMatchesUser(string token, string expectedUsername)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_secretKey);
 
-        //     var response = await _client.GetAsync($"/api/Users/{userId}");
-        //     response.EnsureSuccessStatusCode();
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidIssuer = "api.vta.com",
+                ValidateAudience = true,
+                ValidAudience = "user.vta.com",
+                ValidateLifetime = false
+            };
 
-        //     var user = await response.Content.ReadFromJsonAsync<UserGetDTO>();
-        //     Assert.NotNull(user);
-        //     Assert.Equal(userId, user.Id);
-        // }
+            tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+            var jwtToken = (JwtSecurityToken)validatedToken;
+            var userId = jwtToken.Claims.First(x => x.Type == "id").Value;
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/{userId}");
+            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var userResponse = await _client.SendAsync(requestMessage);
+            userResponse.EnsureSuccessStatusCode();
+            var user = await userResponse.Content.ReadFromJsonAsync<UserGetDTO>();
+
+            Assert.Equal(expectedUsername, user?.Username);
+
+            Assert.NotNull(jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Jti));
+            Assert.NotNull(jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Iat));
+        }
     }
 }
