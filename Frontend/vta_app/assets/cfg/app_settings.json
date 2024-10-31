@@ -1,8 +1,0 @@
-{
-  "ApiSettings": {
-    "BaseUrl": {
-      "Local": "https://localhost:7180/api",
-      "Remote": ""
-    }
-  }
-}
