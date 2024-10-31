@@ -7,7 +7,7 @@ on:
 
 jobs:
   test-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -30,21 +30,3 @@ jobs:
       - name: Publish the WebAPI
         if: success()
         run: dotnet publish --configuration Release --output ./output
-
-      - name: Install sshpass and rsync
-        run: |
-          sudo apt-get install -y sshpass rsync
-
-      - name: Install cloudflared
-        if: success()
-        run: |
-          wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
-
-      - name: Copy files to server using rsync (excluding appsettings.json and Assets folder)
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' --exclude 'VTA.API/Assets' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ssh.giraf.live\"" ./output/ automation_user@ssh.giraf.live:/var/www/VTA.API/
-
-      - name: Restart the service using SSH
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh.giraf.live" automation_user@ssh.giraf.live "sudo systemctl restart vtaapi.service"
