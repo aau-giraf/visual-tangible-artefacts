@@ -23,7 +23,7 @@ namespace VTA.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Login_ReturnsValidJwtTokenWithCorrectUserId()
+        public async Task Login_ReturnsValidJwtWithCorrectUserId()
         {
             await _testUserHelper.CreateTestUserAsync();
             var loginDto = new UserLoginDTO
@@ -39,12 +39,12 @@ namespace VTA.Tests.IntegrationTests
             Assert.NotNull(loginResponse);
             Assert.NotEmpty(loginResponse.Token);
 
-            await ValidateJwtTokenMatchesUser(loginResponse.Token, loginDto.Username);
+            await ValidateJwtMatchesUser(loginResponse.Token, loginDto.Username);
 
             await _testUserHelper.DeleteTestUserAsync();
         }
 
-        private async Task ValidateJwtTokenMatchesUser(string token, string expectedUsername)
+        private async Task ValidateJwtMatchesUser(string token, string expectedUsername)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_secretKey);
