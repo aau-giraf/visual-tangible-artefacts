@@ -10,6 +10,8 @@ namespace VTA.Tests.TestHelpers
 {
     public class CustomApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
     {
+        public IConfiguration Configuration { get; private set; }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureAppConfiguration((context, config) =>
@@ -17,6 +19,8 @@ namespace VTA.Tests.TestHelpers
                 config.AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true, reloadOnChange: true)
                       .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                       .AddEnvironmentVariables();
+
+                Configuration = config.Build();
             });
 
             builder.ConfigureServices(services =>
@@ -27,9 +31,8 @@ namespace VTA.Tests.TestHelpers
                     services.Remove(descriptor);
                 }
 
-                var configuration = services.BuildServiceProvider().GetRequiredService<IConfiguration>();
-                var connectionString = configuration.GetConnectionString("TestConnection") ??
-                                       configuration.GetConnectionString("DefaultConnection");
+                var connectionString = Configuration.GetConnectionString("TestConnection") ??
+                                       Configuration.GetConnectionString("DefaultConnection");
 
                 services.AddDbContext<UserContext>(options =>
                 {
