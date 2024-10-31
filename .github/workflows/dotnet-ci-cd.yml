@@ -3,32 +3,15 @@ name: Continuous Integration and Deployment
 on:
   push:
     branches:
-      - main
+      - dev-main
 
 jobs:
   test-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Set environment variables for database connection
-        env:
-          DB_SERVER: ${{ secrets.DB_SERVER }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          SSH_DOMAIN: ${{ secrets.SSH_DOMAIN }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
-        run: echo "Database environment variables set."
 
       - name: Restore dependencies
         run: dotnet restore
@@ -43,24 +26,9 @@ jobs:
         if: success()
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Install sshpass and rsync
-        run: |
-          sudo apt-get install -y sshpass rsync
-
-      - name: Install cloudflared
+      - name: Copy to deployment directory
         if: success()
-        run: |
-          wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
-
-      - name: Copy files to server using rsync (excluding appsettings.json and Assets folder)
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' --exclude 'VTA.API/Assets' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ${{ secrets.SSH_DOMAIN }}\"" ./output/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_DOMAIN }}:/var/www/VTA.API/
-
-      - name: Set permissions for the Assets folder
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ${{secrets.SSH_DOMAIN}}" ${{secrets.SSH_USER}}@${{secrets.SSH_DOMAIN}} "sudo chmod 777 /var/www/VTA.API/Assets"
-
+        run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
+        
       - name: Restart the service using SSH
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.SSH_DOMAIN }}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_DOMAIN }} "sudo systemctl restart vtaapi.service"
+        run: sudo systemctl restart vtaapi.service
