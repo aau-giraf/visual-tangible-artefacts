@@ -29,6 +29,9 @@ jobs:
       - name: Copy to deployment directory
         if: success()
         run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
+
+      - name: Set permissions for the assets folder
+        run: sudo chmod 777 /var/www/VTA.API/Assets
         
       - name: Restart the service using SSH
         run: sudo systemctl restart vtaapi.service
