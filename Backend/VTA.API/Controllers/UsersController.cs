@@ -195,7 +195,7 @@ namespace VTA.API.Controllers
         private string GenerateJwt(string userId, string name)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var claims = new[]
             {
                 new Claim("id", userId),
