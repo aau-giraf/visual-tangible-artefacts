@@ -5,6 +5,7 @@ import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
+import 'package:global_configuration/global_configuration.dart';
 
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -13,7 +14,6 @@ Future<void> clearSharedPreferences() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   // Clear SharedPreferences, for testing
   //await clearSharedPreferences();
 
@@ -26,7 +26,7 @@ void main() async {
   await settingsController.loadSettings();
 
   // Load global configuration from assets/cfg/app_settings.json
-  // await GlobalConfiguration().loadFromAsset("app_settings");
+  await GlobalConfiguration().loadFromAsset("app_settings");
 
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the

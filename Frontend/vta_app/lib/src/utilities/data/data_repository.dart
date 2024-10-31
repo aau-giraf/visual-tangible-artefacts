@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/models/category.dart';
@@ -8,7 +9,12 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 
 abstract class ApiDataRepository {
-  ApiProvider apiProvider = ApiProvider(baseUrl: "https://api.giraf.live/api/");
+  var apiSettings = GlobalConfiguration().appConfig['ApiSettings'];
+  late ApiProvider apiProvider;
+
+  ApiDataRepository() {
+    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
+  }
 
   bool responseOk(http.Response? response) {
     if (response == null) {

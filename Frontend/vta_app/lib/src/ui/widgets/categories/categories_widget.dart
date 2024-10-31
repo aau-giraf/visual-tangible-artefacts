@@ -1,9 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/models/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
+import 'package:cross_file/cross_file.dart';
 
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
@@ -178,158 +185,271 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        TextEditingController categoryNameController = TextEditingController();
-        return Dialog(
-          child: Container(
-            width: 741,
-            height: 470,
-            decoration: BoxDecoration(
-              color: Color(0xFFF5F2E7),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x3F000000),
-                  blurRadius: 4,
-                  offset: Offset(4, 4),
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 18.0),
-                    child: Text(
-                      'Tilføj kategori',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 32,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  SizedBox(
-                    width: 741 / 2,
-                    child: TextFormField(
-                      controller: categoryNameController,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                        hintText: 'Kategori navn',
-                        hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildButton('Tag nyt billede',
-                            'assets/images/camera_icon_filled.png'),
-                        _buildButton('Upload', 'assets/images/folder_icon.png'),
-                        _buildButton('Lav med AI', 'assets/images/ai_file.png'),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Column(
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFBADFB5)),
-                        onPressed: () {
-                          var artifactState = Provider.of<ArtifactState>(
-                              context,
-                              listen: false);
-                          var authState =
-                              Provider.of<AuthState>(context, listen: false);
-                          var newCategory = Category(
-                              name: categoryNameController.text,
-                              userId: authState.userId,
-                              categoryIndex: 0);
-                          artifactState.addCategory(newCategory,
-                              token: authState.token!);
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          'Tilføj',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // Close the dialog
-                        },
-                        child: Text('Close'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        return AddCategoryPopup();
       },
     );
   }
+}
 
-  Widget _buildButton(String label, String imageUrl) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 188,
-          height: 185,
+class AddCategoryPopup extends StatefulWidget {
+  const AddCategoryPopup({super.key});
+
+  @override
+  State<AddCategoryPopup> createState() => _AddCategoryPopupState();
+}
+
+class _AddCategoryPopupState extends State<AddCategoryPopup> {
+  Uint8List? imageBytes;
+  void setGeneratedImage(String bytes) {
+    final decodedBytes = base64Decode(bytes);
+    setState(() {
+      imageBytes = decodedBytes;
+    });
+  }
+
+  @override
+  Dialog build(BuildContext context) {
+    var screenSize = MediaQuery.of(context).size;
+    var minHeight = screenSize.height * 0.7;
+    var minWidth = screenSize.width * 0.5;
+    var formKey = GlobalKey<FormState>();
+    TextEditingController categoryNameController = TextEditingController();
+    final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight, minWidth: minWidth),
+        child: Container(
+          height: minHeight,
+          width: minWidth,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(0xFFF5F2E7),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
                 color: Color(0x3F000000),
                 blurRadius: 4,
                 offset: Offset(4, 4),
+                spreadRadius: 5,
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 105,
-                height: 105,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(imageUrl),
-                    fit: BoxFit.fill,
+          child: Navigator(
+            key: navigatorKey,
+            onGenerateRoute: (RouteSettings settings) {
+              Widget page;
+              switch (settings.name) {
+                case '/ai':
+                  page = Padding(
+                      padding: EdgeInsets.all(20),
+                      child: AIPage(onImageProcessed: setGeneratedImage));
+                  break;
+                default:
+                  page = Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: _buildAddCategoryForm(minWidth, formKey,
+                        categoryNameController, navigatorKey, context),
+                  );
+              }
+              return PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => page,
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(-1.0, 0.0); // Start from the left
+                  const end = Offset.zero; // End at the current position
+                  const curve = Curves.easeInOut;
+
+                  var tween = Tween(begin: begin, end: end)
+                      .chain(CurveTween(curve: curve));
+                  var offsetAnimation = animation.drive(tween);
+                  return SlideTransition(
+                      position: offsetAnimation, child: child);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddCategoryForm(
+      double minWidth,
+      GlobalKey<FormState> formKey,
+      TextEditingController categoryNameController,
+      GlobalKey<NavigatorState> navigatorKey,
+      BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 18.0),
+          child: Text(
+            'Tilføj kategori',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 32,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+        SizedBox(height: 20),
+        SizedBox(
+          width: minWidth * 0.5,
+          child: Form(
+            key: formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Et navn er påkrævet';
+                    }
+                    return null;
+                  },
+                  controller: categoryNameController,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    hintText: 'Kategori navn',
+                    hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
                   ),
                 ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 24,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
+                SizedBox(height: 20),
+                imageBytes != null
+                    ? Image.memory(
+                        imageBytes!,
+                        width: 200,
+                        height: 200,
+                      )
+                    : Image.asset(
+                        'assets/images/no_image.png',
+                        width: 200,
+                        height: 200,
+                      ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 20),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildButton(
+                  'Tag nyt billede', 'assets/images/camera_icon_filled.png'),
+              SizedBox(width: 20),
+              _buildButton('Upload', 'assets/images/folder_icon.png',
+                  onClick: () async {
+                var result = await FilePicker.platform.pickFiles(
+                    type: FileType.image, allowMultiple: false, withData: true);
+                if (result != null) {
+                  setState(() {
+                    imageBytes = result.files.single.bytes;
+                  });
+                }
+              }),
+              SizedBox(width: 20),
+              _buildButton('Lav med AI', 'assets/images/ai_file.png',
+                  onClick: () {
+                navigatorKey.currentState?.pushNamed('/ai');
+              }),
             ],
           ),
         ),
+        SizedBox(height: 20),
+        Column(
+          children: [
+            ElevatedButton(
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Color(0xFFBADFB5)),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  categoryNameController.dispose();
+                  var artifactState =
+                      Provider.of<ArtifactState>(context, listen: false);
+                  var authState =
+                      Provider.of<AuthState>(context, listen: false);
+                  var newCategory = Category(
+                      name: categoryNameController.text,
+                      userId: authState.userId,
+                      categoryIndex: 0);
+                  artifactState.addCategory(newCategory,
+                      token: authState.token!);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text(
+                'Tilføj',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Close'),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildButton(String label, String imageUrl,
+      {void Function()? onClick}) {
+    return GestureDetector(
+      onTap: onClick,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x3F000000),
+                  blurRadius: 4,
+                  offset: Offset(4, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(imageUrl),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
