@@ -3,7 +3,7 @@ name: Continuous Integration and Deployment
 on:
   push:
     branches:
-      - main
+      - main-dev
 
 jobs:
   test-and-deploy:
