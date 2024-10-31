@@ -33,7 +33,7 @@ namespace VTA.Tests.IntegrationTests
             var loginResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
             Assert.NotNull(loginResponse);
             Assert.NotEmpty(loginResponse.Token);
-            Assert.Equal("4ecf214f-cb04-47ba-bbcf-c0a36009097b", loginResponse.userId);
+            Assert.Equal("596d853e-6bfc-4aa6-9c6b-59a283151805", loginResponse.userId);
         }
 
         // [Fact]
