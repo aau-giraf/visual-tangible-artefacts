@@ -19,14 +19,5 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
-      - name: Start SSH Tunnel for Database Access
-        env:
-          SSH_DOMAIN: ${{ secrets.SSH_DOMAIN }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "${SSH_PASSWORD}" ssh -f -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname $SSH_DOMAIN" \
-            -L 13306:localhost:3306 $SSH_USER@$SSH_DOMAIN -N
-
       - name: Run unit tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
