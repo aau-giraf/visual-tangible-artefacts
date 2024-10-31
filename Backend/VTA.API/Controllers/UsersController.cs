@@ -8,9 +8,7 @@ using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
-using BCrypt.Net;
 using VTA.API.Utilities;
-using Microsoft.OpenApi.Models;
 
 namespace VTA.API.Controllers
 {
@@ -43,22 +41,19 @@ namespace VTA.API.Controllers
             }
             User? user = await _context.Users.
                 FirstOrDefaultAsync(
-                u => u.Username == userLoginForm.Username);
+                u => u.Username == userLoginForm.Username
+                && u.Password == userLoginForm.Password);
             if (user == null)
             {
                 return NotFound();
             }
 
-            if(!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
-            {
-                return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
-            }
-
             var token = GenerateJwt(user.Id, user.Name);
+            UserGetDTO userDTO = DTOConverter.MapUserToUserGetDTO(user);
             return new UserLoginResponseDTO
             {
                 Token = token,
-                userId = user.Id
+                userId = userDTO.Id
             };
         }
 
@@ -78,8 +73,6 @@ namespace VTA.API.Controllers
             {
                 user.Id = Guid.NewGuid().ToString();
             }
-
-            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
             _context.Users.Add(user);
             try
@@ -202,7 +195,7 @@ namespace VTA.API.Controllers
         private string GenerateJwt(string userId, string name)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);//secure enough for this projec
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var claims = new[]
             {
                 new Claim("id", userId),
