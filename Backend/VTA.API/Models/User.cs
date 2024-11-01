@@ -11,7 +11,7 @@ public partial class User
 
     public required string Password { get; set; }
 
-    public string GuardianKey { get; set; } = null!;
+    public string? GuardianKey { get; set; }
 
     public string Username { get; set; } = null!;
 
