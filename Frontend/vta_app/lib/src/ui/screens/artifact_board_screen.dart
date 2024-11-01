@@ -9,7 +9,6 @@ import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
-import '../widgets/categories/category.dart'; // Ensure this import is consistent across files
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({super.key});

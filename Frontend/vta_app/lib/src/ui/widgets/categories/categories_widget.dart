@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/models/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:cross_file/cross_file.dart';
+import 'package:vta_app/src/utilities/services/camera_service.dart';
 
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
@@ -292,7 +294,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
             ),
           ),
         ),
-        SizedBox(height: 20),
+        SizedBox(height: 10),
         SizedBox(
           width: minWidth * 0.5,
           child: Form(
@@ -334,13 +336,14 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
             ),
           ),
         ),
-        SizedBox(height: 20),
+        SizedBox(height: 10),
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildButton(
-                  'Tag nyt billede', 'assets/images/camera_icon_filled.png'),
+                  'Tag nyt billede', 'assets/images/camera_icon_filled.png',
+                  onClick: () => _onTakePictureButtonPressed()),
               SizedBox(width: 20),
               _buildButton('Upload', 'assets/images/folder_icon.png',
                   onClick: () async {
@@ -400,6 +403,31 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
         ),
       ],
     );
+  }
+
+  void _onTakePictureButtonPressed() {
+    {
+      if (CameraManager().cameras.isEmpty) {
+        var snackMessage = 'No cameras available';
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          snackMessage = 'Camera not supported on desktop';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(snackMessage)),
+        );
+      } else {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => TakePictureScreen(
+                  camera: CameraManager().cameras.first,
+                  onImageChosen: (bytes) {
+                    setState(() {
+                      imageBytes = imageBytes;
+                    });
+                    Navigator.of(context).pushReplacementNamed("/");
+                  },
+                )));
+      }
+    }
   }
 
   Widget _buildButton(String label, String imageUrl,

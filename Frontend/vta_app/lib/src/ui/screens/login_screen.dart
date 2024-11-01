@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
         var username = _usernameController.text;
         var password = _passwordController.text;
         var authState = Provider.of<AuthState>(context, listen: false);
-        var artifactState = Provider.of<ArtifactState>(context, listen: false);
+        Provider.of<ArtifactState>(context, listen: false);
         await authState.login(username, password);
         if (authState.token != null) {
           // Navigate to user page

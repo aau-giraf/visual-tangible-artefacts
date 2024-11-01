@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
@@ -21,6 +23,10 @@ void main() async {
   // Flutter Widgets.
   final settingsController = SettingsController(SettingsService());
 
+  // Initialize the CameraManager
+  if (Platform.isAndroid || Platform.isIOS) {
+    CameraManager().initialize();
+  }
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
   await settingsController.loadSettings();
