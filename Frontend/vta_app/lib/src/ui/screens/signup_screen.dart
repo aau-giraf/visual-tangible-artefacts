@@ -17,6 +17,7 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final ApiProvider apiProvider =
       ApiProvider(baseUrl: 'https://api.giraf.live/api');
@@ -26,10 +27,15 @@ class _SignupPageState extends State<SignupPage> {
       try {
         var signupForm = SignupForm(
             username: _usernameController.text,
-            password: _passwordController.text);
+            password: _passwordController.text,
+            name: _nameController.text);
+
+        print(signupForm.toJson());
 
         final response = await apiProvider.postAsJson('/Users/SignUp',
             body: signupForm.toJson());
+
+        print(response?.body);
 
         if (response != null && response.statusCode == 200) {
           var signupResponse =
@@ -98,7 +104,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     SizedBox(height: 32),
                     TextFormField(
-                      controller: _usernameController,
+                      controller: _nameController,
                       decoration: InputDecoration(
                         labelText: 'Navn',
                         filled: true,
@@ -111,6 +117,25 @@ class _SignupPageState extends State<SignupPage> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Indtast venligst dit navn';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                        labelText: 'Brugernavn',
+                        filled: true,
+                        fillColor: Colors.grey.shade200,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Indtast venligst dit brugernavn';
                         }
                         return null;
                       },
