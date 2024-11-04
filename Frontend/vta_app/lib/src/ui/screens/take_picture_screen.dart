@@ -54,41 +54,44 @@ class TakePictureScreenState extends State<TakePictureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          // If the Future is complete, display the preview.
-          return Stack(
-            children: [
-              CameraPreview(_controller), // Display the camera preview
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    pictureBytes = await _takePicture();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DisplayPictureScreen(
-                          imageBytes: pictureBytes!,
-                          onImageChosen: widget.onImageChosen,
+    return Scaffold(
+      appBar: AppBar(),
+      body: FutureBuilder(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            // If the Future is complete, display the preview.
+            return Stack(
+              children: [
+                CameraPreview(_controller), // Display the camera preview
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      pictureBytes = await _takePicture();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DisplayPictureScreen(
+                            imageBytes: pictureBytes!,
+                            onImageChosen: widget.onImageChosen,
+                          ),
                         ),
-                      ),
-                    );
-                  }, // Call _takePicture when pressed
-                  child: const Text('Take Picture'),
+                      );
+                    }, // Call _takePicture when pressed
+                    child: const Text('Take Picture'),
+                  ),
                 ),
-              ),
-            ],
-          );
-        } else {
-          // Otherwise, display a loading indicator.
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
+              ],
+            );
+          } else {
+            // Otherwise, display a loading indicator.
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
     );
   }
 }
@@ -107,18 +110,32 @@ class DisplayPictureScreen extends StatelessWidget {
       appBar: AppBar(),
       body: Column(
         children: [
-          Center(
-            child: Image.memory(imageBytes), // Display the captured image
+          Expanded(
+            flex: 5,
+            child: Center(
+              child: Image.memory(imageBytes), // Display the captured image
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => onImageChosen?.call(imageBytes),
-            child: const Text('Brug billede'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Return to the camera screen
-            },
-            child: const Text('Tag igen'),
+          Expanded(
+            flex: 1,
+            child: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    onImageChosen?.call(imageBytes);
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Brug billede'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Return to the camera screen
+                  },
+                  child: const Text('Tag igen'),
+                ),
+              ],
+            ),
           ),
         ],
       ),

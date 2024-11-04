@@ -187,21 +187,23 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AddCategoryPopup();
+        return CategoryPopup();
       },
     );
   }
 }
 
-class AddCategoryPopup extends StatefulWidget {
-  const AddCategoryPopup({super.key});
+class CategoryPopup extends StatefulWidget {
+  const CategoryPopup({super.key});
 
   @override
-  State<AddCategoryPopup> createState() => _AddCategoryPopupState();
+  State<CategoryPopup> createState() => _CategoryPopupState();
 }
 
-class _AddCategoryPopupState extends State<AddCategoryPopup> {
+class _CategoryPopupState extends State<CategoryPopup> {
   Uint8List? imageBytes;
+  var formKey = GlobalKey<FormState>();
+  TextEditingController categoryNameController = TextEditingController();
   void setGeneratedImage(String bytes) {
     final decodedBytes = base64Decode(bytes);
     setState(() {
@@ -210,13 +212,12 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
   }
 
   @override
-  Dialog build(BuildContext context) {
+  Widget build(BuildContext context) {
     var screenSize = MediaQuery.of(context).size;
     var minHeight = screenSize.height * 0.7;
     var minWidth = screenSize.width * 0.5;
-    var formKey = GlobalKey<FormState>();
-    TextEditingController categoryNameController = TextEditingController();
     final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
     return Dialog(
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: minHeight, minWidth: minWidth),
@@ -320,6 +321,13 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
                     hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
                   ),
                 ),
+                FormField(
+                  validator: (value) =>
+                      imageBytes == null ? 'Et billede er påkrævet' : null,
+                  builder: (FormFieldState state) {
+                    return Container();
+                  },
+                ),
                 SizedBox(height: 20),
                 imageBytes != null
                     ? Image.memory(
@@ -421,9 +429,8 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
                   camera: CameraManager().cameras.first,
                   onImageChosen: (bytes) {
                     setState(() {
-                      imageBytes = imageBytes;
+                      imageBytes = bytes;
                     });
-                    Navigator.of(context).pushReplacementNamed("/");
                   },
                 )));
       }
