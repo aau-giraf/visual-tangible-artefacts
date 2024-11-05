@@ -196,7 +196,6 @@ namespace VTA.API.Controllers
             var claims = new[]
             {
                 new Claim("id", userId),
-                new Claim("name", name),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
