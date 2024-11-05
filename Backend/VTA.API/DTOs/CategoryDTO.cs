@@ -10,6 +10,8 @@ public partial class CategoryPostDTO
     public required string UserId { get; set; }
 
     public string? Name { get; set; }
+    public required IFormFile Image { get; set; }
+
 }
 
 public partial class CategoryGetDTO
@@ -19,6 +21,7 @@ public partial class CategoryGetDTO
     public byte? CategoryIndex { get; set; }
 
     public string? Name { get; set; }
+    public string? ImageUrl { get; set; }
 
     public virtual ICollection<ArtefactGetDTO> Artefacts { get; set; } = new List<ArtefactGetDTO>();
 }

@@ -9,6 +9,7 @@ using VTA.API.DbContexts;
 using VTA.API.Models;
 using VTA.API.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using VTA.API.Utilities;
 
 namespace VTA.API.Controllers
 {
@@ -107,7 +108,12 @@ namespace VTA.API.Controllers
             {
                 return Forbid();
             }
-            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
+            
+
+            string id = Guid.NewGuid().ToString();
+            string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id);
+
+            Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
             _context.Categories.Add(category);
             try
