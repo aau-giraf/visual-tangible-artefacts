@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace VTA.API.DTOs;
+﻿namespace VTA.API.DTOs;
 
 public partial class CategoryPostDTO
 {
@@ -11,7 +8,6 @@ public partial class CategoryPostDTO
 
     public string? Name { get; set; }
     public required IFormFile Image { get; set; }
-
 }
 
 public partial class CategoryGetDTO

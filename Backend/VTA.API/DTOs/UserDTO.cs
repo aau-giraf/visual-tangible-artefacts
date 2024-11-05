@@ -31,6 +31,7 @@ public class UserSignupDTO
     required public string Username { get; set; }
     required public string Password { get; set; }
     required public string Name { get; set; }
+    public string? GuardianKey { get; set; }
 }
 
 public class UserLoginDTO
@@ -42,6 +43,7 @@ public class UserLoginDTO
 public class UserLoginResponseDTO
 {
     public string Token { get; set; } = null!;
+    public string userId { get; set; }
 }
 
 

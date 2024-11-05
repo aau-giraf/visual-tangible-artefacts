@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+
 using VTA.API.Models;
 
 namespace VTA.API.DbContexts;

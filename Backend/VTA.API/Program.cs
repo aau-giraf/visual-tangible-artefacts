@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -7,6 +6,8 @@ using VTA.API.DbContexts;
 using VTA.API.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// test comment
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -91,5 +92,6 @@ app.Run();
 
 // Don't touch! Integration tests virker ikke hvis Program klassen ikke er deklareret som partial, 
 // fordi VTA.Tests projektet prøver at bruge Microsoft.AspNetCore.Mvc.Testing.Program istedet for 
-// VTA.API Program klassen.  
+// VTA.API Program klassen. 
+// https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0#basic-tests-with-the-default-webapplicationfactory 
 public partial class Program { }

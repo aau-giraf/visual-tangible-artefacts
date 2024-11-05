@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace VTA.API.Models;
+﻿namespace VTA.API.Models;
 
 public class Category
 {
@@ -12,6 +9,9 @@ public class Category
     public required string UserId { get; set; } = null!;
 
     public string? Name { get; set; }
+    public string? ImagePath { get; set; }
+
+    public DateTime? ModifiedDate { get; set; }
 
     public string? ImagePath { get; set; }
 

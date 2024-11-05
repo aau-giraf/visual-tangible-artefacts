@@ -43,7 +43,6 @@ public static class DTOConverter
             Name = category.Name,
             Artefacts = artefacts,
             ImageUrl = scheme + "://" + host + category.ImagePath
-
         };
     }
 
@@ -58,7 +57,6 @@ public static class DTOConverter
             ImagePath = imageUrl
         };
     }
-
     public static UserGetDTO MapUserToUserGetDTO(User user)
     {
         return new UserGetDTO
@@ -77,7 +75,8 @@ public static class DTOConverter
             Id = id,
             Name = dto.Name,
             Password = dto.Password,
-            Username = dto.Username
+            Username = dto.Username,
+            GuardianKey = dto.GuardianKey
         };
     }
     public static User MapUserPostDTOToUser(UserPostDTO user, string id)

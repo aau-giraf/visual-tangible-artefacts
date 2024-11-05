@@ -7,16 +7,11 @@ on:
 
 jobs:
   test-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "8.0.x"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -24,27 +19,19 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
-      - name: Run unit tests
+      - name: Run tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
       - name: Publish the WebAPI
         if: success()
         run: dotnet publish --configuration Release --output ./output
 
-      - name: Install sshpass and rsync
-        run: |
-          sudo apt-get install -y sshpass rsync
-
-      - name: Install cloudflared
+      - name: Copy to deployment directory
         if: success()
-        run: |
-          wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
+        run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
 
-      - name: Copy files to server using rsync (excluding appsettings.json and Assets folder)
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz --exclude 'appsettings.json' --exclude 'VTA.API/Assets' -e "ssh -o StrictHostKeyChecking=no -o ProxyCommand=\"cloudflared access ssh --hostname ssh.giraf.live\"" ./output/ automation_user@ssh.giraf.live:/var/www/VTA.API/
-
+      - name: Set permissions for the assets folder
+        run: sudo chmod 777 /var/www/VTA.API/Assets
+        
       - name: Restart the service using SSH
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o ProxyCommand="cloudflared access ssh --hostname ssh.giraf.live" automation_user@ssh.giraf.live "sudo systemctl restart vtaapi.service"
+        run: sudo systemctl restart vtaapi.service

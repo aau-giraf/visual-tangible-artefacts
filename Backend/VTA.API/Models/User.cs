@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace VTA.API.Models;
+﻿namespace VTA.API.Models;
 
 public class User
 {
@@ -11,7 +8,7 @@ public class User
 
     public required string Password { get; set; }
 
-    public string GuardianKey { get; set; } = null!;
+    public string? GuardianKey { get; set; }
 
     public string Username { get; set; } = null!;
 
