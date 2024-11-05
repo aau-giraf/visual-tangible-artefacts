@@ -10,212 +10,211 @@ using VTA.API.DTOs;
 using VTA.API.Models;
 using VTA.API.Utilities;
 
-namespace VTA.API.Controllers
+namespace VTA.API.Controllers;
+
+[Authorize]
+[Route("api/Users")]
+[ApiController]
+public class UsersController : ControllerBase
 {
-    [Authorize]
-    [Route("api/Users")]
-    [ApiController]
-    public class UsersController : ControllerBase
+    private readonly UserContext _context;
+
+    private readonly SecretsProvider _secretsSingleton;
+
+    private readonly IConfiguration _config;
+
+    public UsersController(UserContext context, SecretsProvider secretSingleton, IConfiguration config)
     {
-        private readonly UserContext _context;
+        _context = context;
+        _secretsSingleton = secretSingleton;
+        _config = config;
+    }
 
-        private readonly SecretsProvider _secretsSingleton;
-
-        private readonly IConfiguration _config;
-
-        public UsersController(UserContext context, SecretsProvider secretSingleton, IConfiguration config)
+    [AllowAnonymous]
+    [Route("Login")]
+    [HttpPost]
+    public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
+    {
+        if (userLoginForm == null)
         {
-            _context = context;
-            _secretsSingleton = secretSingleton;
-            _config = config;
+            return BadRequest();
+        }
+        User? user = await _context.Users.
+            FirstOrDefaultAsync(
+            u => u.Username == userLoginForm.Username);
+        if (user == null)
+        {
+            return NotFound();
         }
 
-        [AllowAnonymous]
-        [Route("Login")]
-        [HttpPost]
-        public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
+        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
         {
-            if (userLoginForm == null)
-            {
-                return BadRequest();
-            }
-            User? user = await _context.Users.
-                FirstOrDefaultAsync(
-                u => u.Username == userLoginForm.Username);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
-            {
-                return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
-            }
-
-            var token = GenerateJwt(user.Id, user.Name);
-            return new UserLoginResponseDTO
-            {
-                Token = token,
-                userId = user.Id
-            };
+            return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
         }
 
-        [AllowAnonymous]
-        [Route("SignUp")]
-        [HttpPost]
-        public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
+        var token = GenerateJwt(user.Id, user.Name);
+        return new UserLoginResponseDTO
         {
-            if (userSignUp == null)
-            {
-                return BadRequest();
-            }
+            Token = token,
+            userId = user.Id
+        };
+    }
 
-            User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
-
-            while (UserExists(user.Id))
-            {
-                user.Id = Guid.NewGuid().ToString();
-            }
-
-            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
-            _context.Users.Add(user);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (UserExists(user.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return await AutoSignIn(user);
+    [AllowAnonymous]
+    [Route("SignUp")]
+    [HttpPost]
+    public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
+    {
+        if (userSignUp == null)
+        {
+            return BadRequest();
         }
 
-        private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
+        User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
+
+        while (UserExists(user.Id))
         {
-            var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
-            var token = GenerateJwt(user.Id, user.Name);
-            return new UserLoginResponseDTO
-            {
-                Token = token,
-                userId = user.Id
-            };
+            user.Id = Guid.NewGuid().ToString();
         }
 
-        // GET: api/Users
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
+        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+
+        _context.Users.Add(user);
+        try
         {
-            List<User> users = await _context.Users.ToListAsync();
-            List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
-            foreach (User user in users)
-            {
-                userGetDTOs.Add(DTOConverter.MapUserToUserGetDTO(user));
-            }
-            return userGetDTOs;
-        }
-
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<UserGetDTO>> GetUser(string id)
-        {
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            UserGetDTO userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
-
-            return userGetDTO;
-        }
-
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(string id, User user)
-        {
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(string id)
-        {
-            var Id = User.FindFirst("id")?.Value;
-
-            if (Id != id)
-            {
-                return Forbid();
-            }
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
             await _context.SaveChangesAsync();
-
-            return NoContent();
         }
-
-        private bool UserExists(string id)
+        catch (DbUpdateException)
         {
-            return _context.Users.Any(e => e.Id == id);
-        }
-
-        private string GenerateJwt(string userId, string name)
-        {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);//secure enough for this projec
-            var claims = new[]
+            if (UserExists(user.Id))
             {
-                new Claim("id", userId),
-                new Claim("name", name),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-            };
-            var token = new JwtSecurityToken(
-            issuer: _config.GetSection("Secret")["ValidIssuer"],
-            audience: _config.GetSection("Secret")["ValidAudience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
-            signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+                return Conflict();
+            }
+            else
+            {
+                throw;
+            }
         }
+
+        return await AutoSignIn(user);
+    }
+
+    private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
+    {
+        var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+        var token = GenerateJwt(user.Id, user.Name);
+        return new UserLoginResponseDTO
+        {
+            Token = token,
+            userId = user.Id
+        };
+    }
+
+    // GET: api/Users
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
+    {
+        List<User> users = await _context.Users.ToListAsync();
+        List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
+        foreach (User user in users)
+        {
+            userGetDTOs.Add(DTOConverter.MapUserToUserGetDTO(user));
+        }
+        return userGetDTOs;
+    }
+
+    // GET: api/Users/5
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserGetDTO>> GetUser(string id)
+    {
+        var user = await _context.Users.FindAsync(id);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        UserGetDTO userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
+
+        return userGetDTO;
+    }
+
+    // PUT: api/Users/5
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutUser(string id, User user)
+    {
+        if (id != user.Id)
+        {
+            return BadRequest();
+        }
+
+        _context.Entry(user).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!UserExists(id))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
+    }
+
+    // DELETE: api/Users/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        var Id = User.FindFirst("id")?.Value;
+
+        if (Id != id)
+        {
+            return Forbid();
+        }
+        var user = await _context.Users.FindAsync(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    private bool UserExists(string id)
+    {
+        return _context.Users.Any(e => e.Id == id);
+    }
+
+    private string GenerateJwt(string userId, string name)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);//secure enough for this projec
+        var claims = new[]
+        {
+            new Claim("id", userId),
+            new Claim("name", name),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+        };
+        var token = new JwtSecurityToken(
+        issuer: _config.GetSection("Secret")["ValidIssuer"],
+        audience: _config.GetSection("Secret")["ValidAudience"],
+        claims: claims,
+        expires: DateTime.UtcNow.AddDays(1),
+        signingCredentials: creds);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

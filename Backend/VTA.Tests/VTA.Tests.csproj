@@ -30,9 +30,4 @@
     <ProjectReference Include="..\VTA.API\VTA.API.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="IntegrationTests/" />
-    <Folder Include="IntegrationTests/ControllerTests/" />
-  </ItemGroup>
-
 </Project>
