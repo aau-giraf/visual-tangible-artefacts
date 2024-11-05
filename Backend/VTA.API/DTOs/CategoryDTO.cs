@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace VTA.API.DTOs;
+﻿namespace VTA.API.DTOs;
 
 public partial class CategoryPostDTO
 {

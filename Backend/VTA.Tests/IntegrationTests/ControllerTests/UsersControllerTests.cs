@@ -1,13 +1,11 @@
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
-using Xunit;
 
-namespace VTA.Tests.IntegrationTests
+namespace VTA.Tests.IntegrationTests.ControllerTests
 {
     public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Program>>
     {

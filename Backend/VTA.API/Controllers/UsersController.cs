@@ -8,9 +8,7 @@ using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
-using BCrypt.Net;
 using VTA.API.Utilities;
-using Microsoft.OpenApi.Models;
 
 namespace VTA.API.Controllers
 {
@@ -49,7 +47,7 @@ namespace VTA.API.Controllers
                 return NotFound();
             }
 
-            if(!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
+            if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
             {
                 return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
             }

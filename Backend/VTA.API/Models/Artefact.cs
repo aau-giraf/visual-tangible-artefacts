@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace VTA.API.Models;
+﻿namespace VTA.API.Models;
 
 public partial class Artefact
 {

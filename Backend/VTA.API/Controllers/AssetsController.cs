@@ -1,15 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
-using VTA.API.Models;
-using VTA.API.DTOs;
-using VTA.API.Utilities;
+using Microsoft.AspNetCore.Mvc;
 
 namespace VTA.API.Controllers
 {
