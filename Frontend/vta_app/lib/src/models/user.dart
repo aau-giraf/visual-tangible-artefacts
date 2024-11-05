@@ -19,7 +19,7 @@ class User implements JsonSerializable {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: json['name'] as String?,
       guardianKey: json['guardianKey'] as String,
       username: json['username'] as String,
       categories: (json['categories'] as List<dynamic>?)

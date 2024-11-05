@@ -6,11 +6,15 @@ import 'package:vta_app/src/utilities/data/data_repository.dart';
 
 class AuthState with ChangeNotifier {
   String? _token;
+  String? _userId;
 
   String? get token => _token;
+  String? get userId => _userId;
 
   Future<String?> login(String username, String password) async {
-    _token = await AuthRepository().login(username, password);
+    var loginResponse = await AuthRepository().login(username, password);
+    _token = loginResponse?.token;
+    _userId = loginResponse?.userId;
     notifyListeners();
     return token;
   }
@@ -19,6 +23,16 @@ class AuthState with ChangeNotifier {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('jwt_token');
     if (_token != null && !JwtDecoder.isExpired(_token!)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<bool> loadUserIdFromCache() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('userId');
+    if (_userId != null) {
       return true;
     } else {
       return false;
@@ -39,6 +53,17 @@ class ArtifactState with ChangeNotifier {
   Future<bool> loadCategories(String token) async {
     _categories = await ArtifactRepository().fetchCategories(token);
     if (_categories != null) {
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> addCategory(Category category, {required String token}) async {
+    var newCategory =
+        await ArtifactRepository().addCategory(category, token: token);
+    if (newCategory != null) {
+      _categories?.add(newCategory);
       notifyListeners();
       return true;
     }

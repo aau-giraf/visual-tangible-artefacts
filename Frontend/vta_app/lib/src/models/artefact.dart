@@ -15,16 +15,21 @@ class Artefact implements JsonSerializable {
       this.userId});
   factory Artefact.fromJson(Map<String, dynamic> json) {
     return Artefact(
-        artefactId: json['artefactId'] as String,
-        artefactIndex: json['artefactIndex'] as int,
-        userId: json['userId'] as String,
-        categoryId: json['categoryId'],
-        imageUrl: json['imageUrl']);
+        artefactId: json['artefactId'] as String?,
+        artefactIndex: json['artefactIndex'] as int?,
+        userId: json['userId'] as String?,
+        categoryId: json['categoryId'] as String?,
+        imageUrl: json['imageUrl'] as String?);
   }
 
   @override
   Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
+    return <String, dynamic>{
+      'artefactId': artefactId,
+      'artefactIndex': artefactIndex,
+      'userId': userId,
+      'categoryId': categoryId,
+      'imageUrl': imageUrl
+    };
   }
 }

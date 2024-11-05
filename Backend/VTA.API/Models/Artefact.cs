@@ -1,6 +1,6 @@
 ﻿namespace VTA.API.Models;
 
-public partial class Artefact
+public class Artefact
 {
     public required string ArtefactId { get; set; }
 
