@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:vta_app/src/models/artefact.dart';
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
@@ -45,7 +46,7 @@ class Category implements JsonSerializable {
       'name': name,
       'artefacts': artefacts?.map((artefact) => artefact.toJson()).toList(),
       'imageUrl': imageUrl,
-      'image': image?.toList(),
+      'image': image,
     };
   }
 }

@@ -48,7 +48,7 @@ class AuthRepository extends ApiDataRepository {
         if (loginResponse.token != null) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('jwt_token', loginResponse.token!);
-          await prefs.setString('userId', loginResponse.userId!);
+          await prefs.setString('userId', loginResponse.userId ?? '');
           return loginResponse;
         } else {
           throw Exception('Login response received, but token is null.');
@@ -96,7 +96,7 @@ class ArtifactRepository extends ApiDataRepository {
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var response = await apiProvider.postAsJson('Users/Categories',
+      var response = await apiProvider.postAsMultiPart('Users/Categories',
           headers: headers, body: category.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);

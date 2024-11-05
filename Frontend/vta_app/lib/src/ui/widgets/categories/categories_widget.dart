@@ -212,6 +212,12 @@ class _CategoryPopupState extends State<CategoryPopup> {
   }
 
   @override
+  void dispose() {
+    categoryNameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     var screenSize = MediaQuery.of(context).size;
     var minHeight = screenSize.height * 0.7;
@@ -379,7 +385,6 @@ class _CategoryPopupState extends State<CategoryPopup> {
                   ElevatedButton.styleFrom(backgroundColor: Color(0xFFBADFB5)),
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  categoryNameController.dispose();
                   var artifactState =
                       Provider.of<ArtifactState>(context, listen: false);
                   var authState =
