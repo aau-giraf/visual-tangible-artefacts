@@ -13,7 +13,7 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
+    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Local']);
   }
 
   bool responseOk(http.Response? response) {
@@ -96,7 +96,6 @@ class ArtifactRepository extends ApiDataRepository {
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var jsonlol = category.toJson();
       var response = await apiProvider.postAsJson('Users/Categories',
           headers: headers, body: category.toJson());
       if (responseOk(response)) {

@@ -387,7 +387,8 @@ class _CategoryPopupState extends State<CategoryPopup> {
                   var newCategory = Category(
                       name: categoryNameController.text,
                       userId: authState.userId,
-                      categoryIndex: 0);
+                      categoryIndex: 0,
+                      image: imageBytes);
                   artifactState.addCategory(newCategory,
                       token: authState.token!);
                   Navigator.of(context).pop();
