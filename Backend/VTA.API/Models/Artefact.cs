@@ -11,6 +11,7 @@ public partial class Artefact
     public string? CategoryId { get; set; }
 
     public string? ImagePath { get; set; } = null!;
+    public DateTime? ModifiedDate { get; set; }
 
     public virtual Category? Category { get; set; }
 

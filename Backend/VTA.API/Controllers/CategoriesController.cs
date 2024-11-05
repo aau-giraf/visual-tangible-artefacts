@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
+using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
 
@@ -94,7 +95,7 @@ public class CategoriesController : ControllerBase
     // POST: api/Categories
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Category>> PostCategory(CategoryPostDTO categoryPostDTO)
+    public async Task<ActionResult<Category>> PostCategory([FromForm]CategoryPostDTO categoryPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
 
@@ -102,7 +103,11 @@ public class CategoriesController : ControllerBase
         {
             return Forbid();
         }
-        Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, Guid.NewGuid().ToString());
+
+        string id = Guid.NewGuid().ToString();
+        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id);
+
+        Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
         _context.Categories.Add(category);
         try
