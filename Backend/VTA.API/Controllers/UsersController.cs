@@ -193,24 +193,6 @@ public class UsersController : ControllerBase
         var user = await _context.Users.FindAsync(id);
         if (user == null)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var claims = new[]
-            {
-                new Claim("id", userId),
-                new Claim("name", name),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-            };
-            var token = new JwtSecurityToken(
-            issuer: _config.GetSection("Secret")["ValidIssuer"],
-            audience: _config.GetSection("Secret")["ValidAudience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
-            signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-            
             return NotFound();
         }
 
