@@ -8,6 +8,6 @@ class SignupResponse {
 
   factory SignupResponse.fromJson(Map<String, dynamic> json) {
     return SignupResponse(
-        user: User.fromJson(json['user']), token: json['token'] as String);
+        user: User.fromJson(json['user']), token: json['token'] as String?);
   }
 }

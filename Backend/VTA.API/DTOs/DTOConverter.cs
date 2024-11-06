@@ -1,3 +1,4 @@
+using System.Drawing;
 using VTA.API.Models;
 
 namespace VTA.API.DTOs;
@@ -40,21 +41,22 @@ public static class DTOConverter
             CategoryId = category.CategoryId,
             CategoryIndex = category.CategoryIndex,
             Name = category.Name,
-            Artefacts = artefacts
+            Artefacts = artefacts,
+            ImageUrl = scheme + "://" + host + category.ImagePath
         };
     }
 
-    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id)
+    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string imageUrl)
     {
         return new Category
         {
             CategoryId = id,
             CategoryIndex = category.CategoryIndex,
             UserId = category.UserId,
-            Name = category.Name
+            Name = category.Name,
+            ImagePath = imageUrl
         };
     }
-
     public static UserGetDTO MapUserToUserGetDTO(User user)
     {
         return new UserGetDTO

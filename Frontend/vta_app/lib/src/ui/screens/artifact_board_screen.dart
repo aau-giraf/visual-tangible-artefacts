@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:global_configuration/global_configuration.dart';
 import 'package:provider/provider.dart';
-import 'package:vta_app/src/models/artefact.dart';
-import 'package:vta_app/src/models/category.dart';
-import 'package:vta_app/src/models/user.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
-import '../widgets/categories/categories_widget.dart';
+import '../widgets/categories/categories_widget.dart'
+    as categories_widget; // Aliased import
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({super.key});
@@ -26,6 +22,52 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   late TalkingMat talkingMat;
   late GlobalKey<TalkingMatState> talkingMatKey;
   late LinearBoard linearBoard;
+
+  // List<categories_widget.Category> categories = [
+  //   categories_widget.Category(
+  //       id: "Category 1",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 2",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 3",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 4",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 5",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 6",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 7",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  //   categories_widget.Category(
+  //       id: "Category 8",
+  //       imageLink:
+  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
+  // ];
+
+  // List<String> imageMatrix = [
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
+  // ];
 
   @override
   void initState() {
@@ -125,7 +167,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                 padding: EdgeInsets.only(left: padding, right: padding),
                 child: SizedBox(
                     height: categoriesWidgetHeight,
-                    child: CategoriesWidget(
+                    child: categories_widget.CategoriesWidget(
+                      // Use the aliased widget here
                       categories: categories,
                       widgetHeight: categoriesWidgetHeight,
                       talkingMatKey: talkingMatKey,

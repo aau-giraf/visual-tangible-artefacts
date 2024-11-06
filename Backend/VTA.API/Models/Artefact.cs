@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace VTA.API.Models;
 
-namespace VTA.API.Models;
-
-public partial class Artefact
+public class Artefact
 {
     public required string ArtefactId { get; set; }
 
@@ -14,6 +11,7 @@ public partial class Artefact
     public string? CategoryId { get; set; }
 
     public string? ImagePath { get; set; } = null!;
+    public DateTime? ModifiedDate { get; set; }
 
     public virtual Category? Category { get; set; }
 

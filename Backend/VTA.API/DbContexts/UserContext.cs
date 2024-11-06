@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
+using System;
+using System.Collections.Generic;
+
 using VTA.API.Models;
 
 namespace VTA.API.DbContexts;
@@ -49,6 +50,9 @@ public partial class UserContext : DbContext
             entity.Property(e => e.ImagePath)
                 .HasMaxLength(255)
                 .HasColumnName("imagePath");
+            entity.Property(e => e.ModifiedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("modifiedDate");
             entity.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("userID");
@@ -75,6 +79,12 @@ public partial class UserContext : DbContext
                 .HasMaxLength(36)
                 .HasColumnName("categoryId");
             entity.Property(e => e.CategoryIndex).HasColumnName("categoryIndex");
+            entity.Property(e => e.ImagePath)
+                .HasMaxLength(255)
+                .HasColumnName("imagePath");
+            entity.Property(e => e.ModifiedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("modifiedDate");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vta_app/src/ui/screens/error_screen.dart';
 
 class LoadingPage extends StatelessWidget {
   final List<Future<bool> Function()> awaitCallbacks;
@@ -15,7 +16,9 @@ class LoadingPage extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          return Center(child: Text("Failed to load data: $snapshot.error"));
+          return ErrorScreen(
+              errorMessage: 'An error occured while loading page',
+              onRetryChild: this);
         } else {
           return child; // Navigate to ArtifactBoardPage when data is loaded
         }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:vta_app/src/functions/loading_page.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import '../ui/screens/login_screen.dart';
@@ -22,7 +20,8 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _checkAuth() async {
     final authState = Provider.of<AuthState>(context, listen: false);
     final artifactState = Provider.of<ArtifactState>(context, listen: false);
-    if (await authState.loadTokenFromCache()) {
+    if (await authState.loadTokenFromCache() &&
+        await authState.loadUserIdFromCache()) {
       // Token is valid, navigate to user page
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
