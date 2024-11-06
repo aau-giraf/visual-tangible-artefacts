@@ -21,6 +21,19 @@ public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task Login_ReturnsNotFoundWithInvalidUser()
+    {
+        var loginDto = new UserLoginDTO
+        {
+            Username = "dnfiuewfiuewf",
+            Password = "fwoenfew"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/Users/Login", loginDto);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Login_ReturnsValidJwtWithCorrectUserId()
     {
         await _testUserHelper.CreateTestUserAsync();
@@ -29,29 +42,6 @@ public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Progr
             Username = "testuser",
             Password = "123"
         };
-
-        [Fact]
-        public async Task Login_ReturnsNotFoundWithInvalidUser()
-        {
-            var loginDto = new UserLoginDTO
-            {
-                Username = "dnfiuewfiuewf",
-                Password = "fwoenfew"
-            };
-
-            var response = await _client.PostAsJsonAsync("/api/Users/Login", loginDto);
-            Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
-        }
-
-        [Fact]
-        public async Task Login_ReturnsValidJwtWithCorrectUserId()
-        {
-            await _testUserHelper.CreateTestUserAsync();
-            var loginDto = new UserLoginDTO
-            {
-                Username = "testuser",
-                Password = "123"
-            };
 
         var response = await _client.PostAsJsonAsync("/api/Users/Login", loginDto);
         response.EnsureSuccessStatusCode();
