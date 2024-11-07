@@ -95,7 +95,7 @@ public class CategoriesController : ControllerBase
     // POST: api/Categories
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Category>> PostCategory([FromForm]CategoryPostDTO categoryPostDTO)
+    public async Task<ActionResult<CategoryGetDTO>> PostCategory([FromForm] CategoryPostDTO categoryPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
 
@@ -103,6 +103,7 @@ public class CategoriesController : ControllerBase
         {
             return Forbid();
         }
+
 
         string id = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id);
@@ -126,8 +127,11 @@ public class CategoriesController : ControllerBase
                 throw;
             }
         }
+        var cat = await _context.Categories.FindAsync(id);
 
-        return CreatedAtAction("GetCategory", new { categoryId = category.CategoryId }, category);
+        CategoryGetDTO returnCat = DTOConverter.MapCategoryToCategoryGetDTO(cat, Request.Scheme, Request.Host.ToString());
+
+        return Ok(returnCat);
     }
 
     // DELETE: api/Categories/5

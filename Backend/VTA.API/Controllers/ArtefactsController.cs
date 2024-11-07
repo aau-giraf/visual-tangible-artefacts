@@ -130,7 +130,6 @@ public class ArtefactsController : ControllerBase
         ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
 
         return Ok(artefactGetDTO);
-        return CreatedAtAction("GetArtefact", new { artefactId = artefact.ArtefactId }, artefact);
     }
 
     // DELETE: api/Artefacts/5
