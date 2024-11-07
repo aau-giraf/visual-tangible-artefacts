@@ -13,6 +13,7 @@ public static class DTOConverter
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
+            Name = artefact.Name,
             ImageUrl = scheme + "://" + host + artefact.ImagePath
         };
     }
@@ -25,6 +26,7 @@ public static class DTOConverter
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
+            Name = artefact.Name,
             ImagePath = imageUrl
         };
     }
