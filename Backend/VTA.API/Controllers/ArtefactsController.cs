@@ -125,6 +125,11 @@ public class ArtefactsController : ControllerBase
             }
         }
 
+        var artefacts = await _context.Artefacts.FindAsync(artefactId)
+
+        ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
+
+        return Ok(artefactGetDTO);
         return CreatedAtAction("GetArtefact", new { artefactId = artefact.ArtefactId }, artefact);
     }
 

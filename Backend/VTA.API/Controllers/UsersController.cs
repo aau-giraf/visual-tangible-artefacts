@@ -71,7 +71,7 @@ public class UsersController : ControllerBase
     }
 
     [AllowAnonymous]
-    [Route("SignUps")]
+    [Route("SignUp")]
     [HttpPost]
     public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
     {
