@@ -138,7 +138,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<UserGetDTO>> GetUser(string? id)
     {
         var userId = User.FindFirst("id")?.Value;
-        if (id != null && userId != id)
+        if (id == null && userId != id)
         {
             return Forbid();
         }
