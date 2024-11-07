@@ -47,10 +47,10 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        //if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
-        //{
-        //    return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
-        //}
+        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
+        {
+            return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
+        }
 
         var token = GenerateJwt(user.Id, user.Name);
         return new UserLoginResponseDTO
