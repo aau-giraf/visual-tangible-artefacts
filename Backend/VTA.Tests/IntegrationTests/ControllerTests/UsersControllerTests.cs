@@ -77,7 +77,7 @@ public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Progr
         var jwtToken = (JwtSecurityToken)validatedToken;
         var userId = jwtToken.Claims.First(x => x.Type == "id").Value;
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/{userId}");
+        var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/api/Users");
         requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         var userResponse = await _client.SendAsync(requestMessage);
