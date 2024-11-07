@@ -34,6 +34,13 @@ class CategoriesWidget extends StatefulWidget {
 
 class _CategoriesWidgetState extends State<CategoriesWidget> {
   bool _isMatrixVisible = false;
+  late List<Category> categories;
+
+  @override
+  void initState() {
+    super.initState();
+    categories = widget.categories;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +58,9 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   Widget _buildCategoryList() {
     return ListView.separated(
       scrollDirection: Axis.horizontal,
-      itemCount: widget.categories.length + 1, //+1 room for add button
+      itemCount: categories.length + 1, //+1 room for add button
       itemBuilder: (context, index) {
-        if (index == widget.categories.length) {
+        if (index == categories.length) {
           return _buildAddCategoryButton();
         }
         return _buildCategoryItem(context, index);
@@ -94,9 +101,9 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildCategoryItem(BuildContext context, int index) {
-    final item = widget.categories[index];
+    final item = categories[index];
     return TextButton(
-      onPressed: () => _showCategoryModal(context, widget.categories[index]),
+      onPressed: () => _showCategoryModal(context, categories[index]),
       child: _buildCategoryContainer(item),
     );
   }
@@ -227,7 +234,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: false,
-          onSubmit: (name, bytes) {
+          onSubmit: (name, bytes) async {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -235,7 +242,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 categoryId: category.categoryId,
                 userId: authState.userId,
                 image: bytes);
-            artifactState.addArtifact(newArtifact, token: authState.token!);
+            await artifactState.addArtifact(newArtifact,
+                token: authState.token!);
           },
           title: "Tilføj Artifact",
         );

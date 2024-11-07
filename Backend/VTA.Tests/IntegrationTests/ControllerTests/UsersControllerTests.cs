@@ -82,7 +82,9 @@ public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Progr
 
         var userResponse = await _client.SendAsync(requestMessage);
         userResponse.EnsureSuccessStatusCode();
+
         var user = await userResponse.Content.ReadFromJsonAsync<UserGetDTO>(_jsonSerializerOptions);
+
 
         Assert.Equal(expectedUsername, user?.Username);
 
