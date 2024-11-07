@@ -135,8 +135,7 @@ class UserRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response =
-          await apiProvider.fetchAsJson('Users/User', headers: headers);
+      var response = await apiProvider.fetchAsJson('Users', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
         var user = User.fromJson(jsonResponse);
