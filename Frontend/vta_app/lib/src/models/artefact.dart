@@ -24,7 +24,7 @@ class Artefact implements JsonSerializable {
         artefactIndex: json['artefactIndex'] as int?,
         userId: json['userId'] as String?,
         categoryId: json['categoryId'] as String?,
-        imageUrl: json['imagePath'] as String?,
+        imageUrl: json['imageUrl'] as String?,
         image: json['image'] != null
             ? Uint8List.fromList(json['image'].cast<int>())
             : null);
@@ -37,7 +37,7 @@ class Artefact implements JsonSerializable {
       'artefactIndex': artefactIndex,
       'userId': userId,
       'categoryId': categoryId,
-      'imagePath': imageUrl,
+      'imageUrl': imageUrl,
       'image': image,
     };
   }
