@@ -20,8 +20,7 @@ public class TestUserHelper
         {
             Username = "testuser",
             Password = "123",
-            Name = "Test User",
-            GuardianKey = "123"
+            Name = "Test User"
         };
 
         var response = await _client.PostAsJsonAsync("/api/Users/SignUp", signupDto);
