@@ -9,7 +9,7 @@ public static class ImageUtilities
     {
         if (image != null && image.Length > 0)
         {
-            string fileName = artefactId + Path.GetExtension(image.FileName);
+            string fileName = artefactId + (Path.GetExtension(image.FileName));
             string imageFolder = Path.Combine(Directory.GetCurrentDirectory(), _Dir);
             string filePath = Path.Combine(imageFolder, fileName);
 
@@ -51,5 +51,63 @@ public static class ImageUtilities
 
         // Return the file if found, or null if no match
         return file != null ? file : null;
+    }
+
+    private static string? GetFileType(IFormFile file)
+    {
+        if (file == null)
+        {
+            throw new ArgumentNullException(nameof(file));
+        }
+
+        // Read the first few bytes of the file to identify the type
+        using (var reader = new BinaryReader(file.OpenReadStream()))
+        {
+            // Read the first 4 bytes of the file
+            byte[] fileSignature = reader.ReadBytes(4);
+
+            // Check for common image file signatures
+            if (fileSignature.Length >= 4)
+            {
+                // PNG file signature (89 50 4E 47)
+                if (fileSignature[0] == 0x89 && fileSignature[1] == 0x50 &&
+                    fileSignature[2] == 0x4E && fileSignature[3] == 0x47)
+                {
+                    return "png";
+                }
+                // JPEG file signature (FF D8 FF E0 or FF D8 FF E1)
+                else if (fileSignature[0] == 0xFF && fileSignature[1] == 0xD8 &&
+                         (fileSignature[2] == 0xFF && (fileSignature[3] == 0xE0 || fileSignature[3] == 0xE1)))
+                {
+                    return "jpeg";
+                }
+                // GIF file signature (47 49 46 38)
+                else if (fileSignature[0] == 0x47 && fileSignature[1] == 0x49 &&
+                         fileSignature[2] == 0x46 && fileSignature[3] == 0x38)
+                {
+                    return "gif";
+                }
+                // BMP file signature (42 4D)
+                else if (fileSignature[0] == 0x42 && fileSignature[1] == 0x4D)
+                {
+                    return "bmp";
+                }
+                // TIFF file signature (49 20 49 or 4D 4D 00 2A)
+                else if ((fileSignature[0] == 0x49 && fileSignature[1] == 0x49) ||
+                         (fileSignature[0] == 0x4D && fileSignature[1] == 0x4D))
+                {
+                    return "tiff";
+                }
+                // PDF file signature (25 50 44 46)
+                else if (fileSignature[0] == 0x25 && fileSignature[1] == 0x50 &&
+                         fileSignature[2] == 0x44 && fileSignature[3] == 0x46)
+                {
+                    return "pdf";
+                }
+            }
+
+            // If signature is not recognized
+            return null;
+        }
     }
 }

@@ -134,11 +134,15 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/Users/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<UserGetDTO>> GetUser(string id)
+    [HttpGet("User/{id?}")]
+    public async Task<ActionResult<UserGetDTO>> GetUser(string? id)
     {
-        var user = await _context.Users.FindAsync(id);
-
+        var userId = User.FindFirst("id")?.Value;
+        if (id != null && userId != id)
+        {
+            return Forbid();
+        }
+        var user = await _context.Users.FindAsync(id ?? userId);
         if (user == null)
         {
             return NotFound();

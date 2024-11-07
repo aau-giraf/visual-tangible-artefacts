@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/models/artefact.dart';
 import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/models/user.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 
 class AuthState with ChangeNotifier {
@@ -64,6 +66,34 @@ class ArtifactState with ChangeNotifier {
         await ArtifactRepository().addCategory(category, token: token);
     if (newCategory != null) {
       _categories?.add(newCategory);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> addArtifact(Artefact artifact, {required String token}) async {
+    var newArtifact =
+        await ArtifactRepository().addArtifact(artifact, token: token);
+    if (newArtifact != null) {
+      _categories
+          ?.firstWhere(
+              (category) => category.categoryId == newArtifact.categoryId)
+          .artefacts
+          ?.add(newArtifact);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+}
+
+class UserState with ChangeNotifier {
+  User? _user;
+  User? get user => _user;
+  Future<bool> loadUser(String token) async {
+    _user = await UserRepository().fetchUser(token);
+    if (_user != null) {
       notifyListeners();
       return true;
     }

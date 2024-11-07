@@ -40,5 +40,6 @@ void main() async {
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => AuthState()),
     ChangeNotifierProvider(create: (context) => ArtifactState()),
+    ChangeNotifierProvider(create: (context) => UserState()),
   ], child: MyApp(settingsController: settingsController)));
 }

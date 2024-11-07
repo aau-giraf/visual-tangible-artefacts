@@ -4,7 +4,7 @@ import 'package:vta_app/src/models/artefact.dart';
 class BoardArtefact {
   final Widget content;
   Offset? position;
-  final GlobalKey key; // GlobalKey for accessing the widget's context
+  final GlobalKey key;
   Size? renderedSize;
   Artefact? baseArtefact;
 
@@ -21,6 +21,9 @@ class BoardArtefact {
           width: 200,
           height: 200,
           child: FadeInImage(
+            imageErrorBuilder: (context, error, stackTrace) {
+              return Image.asset('assets/images/flutter_logo.png');
+            },
             image: NetworkImage(artefact.imageUrl ?? "", headers: headers),
             placeholder: AssetImage('assets/images/flutter_logo.png'),
           ),
