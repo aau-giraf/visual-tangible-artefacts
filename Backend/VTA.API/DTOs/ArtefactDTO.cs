@@ -7,7 +7,7 @@ public partial class ArtefactPostDTO
     public required string UserId { get; set; }
 
     public string? CategoryId { get; set; }
-
+    public string? Name {get; set; }
     public required IFormFile Image { get; set; }
 }
 
@@ -20,6 +20,7 @@ public partial class ArtefactGetDTO
     public string UserId { get; set; } = null!;
 
     public string? CategoryId { get; set; }
+    public string? Name {get; set; }
 
     public string? ImageUrl { get; set; }
 }

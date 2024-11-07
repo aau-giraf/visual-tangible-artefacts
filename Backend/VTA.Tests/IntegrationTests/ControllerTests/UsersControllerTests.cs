@@ -2,6 +2,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
 
@@ -13,6 +14,7 @@ public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Progr
     private readonly TestUserHelper _testUserHelper;
     private readonly string _secretKey;
 
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true };
     public UsersControllerTests(CustomApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
@@ -80,7 +82,9 @@ public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Progr
 
         var userResponse = await _client.SendAsync(requestMessage);
         userResponse.EnsureSuccessStatusCode();
-        var user = await userResponse.Content.ReadFromJsonAsync<UserGetDTO>();
+
+        var user = await userResponse.Content.ReadFromJsonAsync<UserGetDTO>(_jsonSerializerOptions);
+
 
         Assert.Equal(expectedUsername, user?.Username);
 
