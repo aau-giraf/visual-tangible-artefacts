@@ -24,26 +24,25 @@ namespace VTA.Tests.TestHelpers
             var appSettingsPath = "/var/www/VTA.API/appsettings.json";
             var localAppSettingsPath = "appsettings.json";
 
-            // Log for CI/CD output
             Console.WriteLine("Checking if appsettings.json files are accessible...");
 
-            if (File.Exists(appSettingsPath))
+            void OutputAppSettingsContent(string path)
             {
-                Console.WriteLine($"Found appsettings.json at {appSettingsPath}");
-            }
-            else
-            {
-                Console.WriteLine($"Could NOT find appsettings.json at {appSettingsPath}");
+                if (File.Exists(path))
+                {
+                    Console.WriteLine($"Found appsettings.json at {path}");
+                    Console.WriteLine("Contents of appsettings.json:");
+                    var jsonContent = File.ReadAllText(path);
+                    Console.WriteLine(jsonContent);
+                }
+                else
+                {
+                    Console.WriteLine($"Could NOT find appsettings.json at {path}");
+                }
             }
 
-            if (File.Exists(localAppSettingsPath))
-            {
-                Console.WriteLine($"Found appsettings.json at {localAppSettingsPath}");
-            }
-            else
-            {
-                Console.WriteLine($"Could NOT find appsettings.json at {localAppSettingsPath}");
-            }
+            OutputAppSettingsContent(appSettingsPath);
+            OutputAppSettingsContent(localAppSettingsPath);
 
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
