@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -30,7 +31,14 @@ namespace VTA.Tests.TestHelpers
             var connectionString = config.GetValue<string>("ConnectionStrings:TestConnection")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
 
-            var jwtSecret = config["JWTSettings:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+            var jwtSecretJson = Environment.GetEnvironmentVariable("JWT_SECRET");
+
+            if (string.IsNullOrEmpty(jwtSecretJson))
+            {
+                throw new ArgumentNullException("JWT_SECRET environment variable is required for testing.");
+            }
+
+            var jwtSecretConfig = JsonSerializer.Deserialize<JwtSecretConfig>(jwtSecretJson);
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
             var database = builder.Database;
@@ -82,6 +90,13 @@ namespace VTA.Tests.TestHelpers
                     .AddJsonFile("appsettings.json", optional: true)
                     .AddEnvironmentVariables();
             });
+        }
+
+        private class JwtSecretConfig
+        {
+            public string SecretKey { get; set; }
+            public string ValidIssuer { get; set; }
+            public string ValidAudience { get; set; }
         }
     }
 }
