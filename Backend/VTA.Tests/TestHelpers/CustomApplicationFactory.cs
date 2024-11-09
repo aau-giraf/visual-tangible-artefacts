@@ -21,29 +21,6 @@ namespace VTA.Tests.TestHelpers
         public CustomApplicationFactory()
         {
 
-            var appSettingsPath = "/var/www/VTA.API/appsettings.json";
-            var localAppSettingsPath = "appsettings.json";
-
-            Console.WriteLine("Checking if appsettings.json files are accessible...");
-
-            void OutputAppSettingsContent(string path)
-            {
-                if (File.Exists(path))
-                {
-                    Console.WriteLine($"Found appsettings.json at {path}");
-                    Console.WriteLine("Contents of appsettings.json:");
-                    var jsonContent = File.ReadAllText(path);
-                    Console.WriteLine(jsonContent);
-                }
-                else
-                {
-                    Console.WriteLine($"Could NOT find appsettings.json at {path}");
-                }
-            }
-
-            OutputAppSettingsContent(appSettingsPath);
-            OutputAppSettingsContent(localAppSettingsPath);
-
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
