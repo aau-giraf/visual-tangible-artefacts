@@ -51,6 +51,10 @@ namespace VTA.Tests.TestHelpers
                 .AddJsonFile("appsettings.json", optional: true)
                 .Build();
 
+            var testConnectionString = config.GetConnectionString("TestConnection");
+            Console.WriteLine($"TestConnectionString: {(string.IsNullOrEmpty(testConnectionString) ? "Not Found" : "Loaded Successfully")}");
+
+
             var connectionString = config.GetConnectionString("TestConnection");
             var builder = new MySqlConnectionStringBuilder(connectionString);
             var database = builder.Database;
