@@ -31,14 +31,17 @@ namespace VTA.Tests.TestHelpers
             var connectionString = config.GetValue<string>("ConnectionStrings:TestConnection")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
 
-            var jwtSecretJson = Environment.GetEnvironmentVariable("JWT_SECRET");
-
-            if (string.IsNullOrEmpty(jwtSecretJson))
+            var jwtSecretSection = config.GetSection("Secret").Get<JwtSecretConfig>();
+            if (jwtSecretSection == null || string.IsNullOrEmpty(jwtSecretSection.SecretKey))
             {
-                throw new ArgumentNullException("JWT_SECRET environment variable is required for testing.");
-            }
+                var jwtSecretJson = Environment.GetEnvironmentVariable("JWT_SECRET");
+                if (string.IsNullOrEmpty(jwtSecretJson))
+                {
+                    throw new ArgumentNullException("JWT_SECRET environment variable is required for testing.");
+                }
 
-            var jwtSecretConfig = JsonSerializer.Deserialize<JwtSecretConfig>(jwtSecretJson);
+                jwtSecretSection = JsonSerializer.Deserialize<JwtSecretConfig>(jwtSecretJson);
+            }
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
             var database = builder.Database;
