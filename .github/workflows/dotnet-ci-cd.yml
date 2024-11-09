@@ -13,6 +13,8 @@ on:
 jobs:
   test-and-deploy:
     runs-on: self-hosted
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: true
 
     steps:
       - name: Checkout code
