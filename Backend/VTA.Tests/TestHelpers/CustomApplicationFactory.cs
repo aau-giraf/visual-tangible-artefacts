@@ -37,8 +37,9 @@ namespace VTA.Tests.TestHelpers
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
-                .WithExposedPort(3306)
+                .WithPortBinding(3307, 3306)
                 .Build();
+
         }
 
         public async Task InitializeAsync()
