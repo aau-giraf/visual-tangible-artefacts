@@ -26,6 +26,9 @@ namespace VTA.Tests.TestHelpers
                 .AddJsonFile("appsettings.json", optional: true)
                 .Build();
 
+            Console.WriteLine("Configuration Debug - TestConnection String: " + config.GetConnectionString("TestConnection"));
+            Console.WriteLine("Current Directory: " + Directory.GetCurrentDirectory());
+
             var connectionString = config.GetConnectionString("TestConnection");
             var builder = new MySqlConnectionStringBuilder(connectionString);
             var database = builder.Database;
