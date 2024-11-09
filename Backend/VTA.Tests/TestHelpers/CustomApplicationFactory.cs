@@ -80,6 +80,9 @@ namespace VTA.Tests.TestHelpers
 
             using var context = new UserContext(options);
             await context.Database.EnsureCreatedAsync();
+
+            Console.WriteLine("Database schema created. Press Enter to continue...");
+            Console.ReadLine();
         }
 
         public async Task DisposeAsync()
