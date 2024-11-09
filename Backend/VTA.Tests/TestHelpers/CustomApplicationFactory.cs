@@ -42,7 +42,8 @@ namespace VTA.Tests.TestHelpers
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
-                .WithPortBinding(3307, 3306)
+                .WithCommand("mysqld --port=3308")
+                .WithPortBinding(3309, 3308)
                 .Build();
         }
 
