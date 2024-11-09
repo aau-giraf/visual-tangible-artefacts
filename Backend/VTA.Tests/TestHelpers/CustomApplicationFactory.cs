@@ -20,14 +20,36 @@ namespace VTA.Tests.TestHelpers
 
         public CustomApplicationFactory()
         {
+
+            var appSettingsPath = "/var/www/VTA.API/appsettings.json";
+            var localAppSettingsPath = "appsettings.json";
+
+            // Log for CI/CD output
+            Console.WriteLine("Checking if appsettings.json files are accessible...");
+
+            if (File.Exists(appSettingsPath))
+            {
+                Console.WriteLine($"Found appsettings.json at {appSettingsPath}");
+            }
+            else
+            {
+                Console.WriteLine($"Could NOT find appsettings.json at {appSettingsPath}");
+            }
+
+            if (File.Exists(localAppSettingsPath))
+            {
+                Console.WriteLine($"Found appsettings.json at {localAppSettingsPath}");
+            }
+            else
+            {
+                Console.WriteLine($"Could NOT find appsettings.json at {localAppSettingsPath}");
+            }
+
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
                 .AddJsonFile("appsettings.json", optional: true)
                 .Build();
-
-            Console.WriteLine("Configuration Debug - TestConnection String: " + config.GetConnectionString("TestConnection"));
-            Console.WriteLine("Current Directory: " + Directory.GetCurrentDirectory());
 
             var connectionString = config.GetConnectionString("TestConnection");
             var builder = new MySqlConnectionStringBuilder(connectionString);
@@ -42,7 +64,6 @@ namespace VTA.Tests.TestHelpers
                 .WithPassword(password)
                 .WithPortBinding(3307, 3306)
                 .Build();
-
         }
 
         public async Task InitializeAsync()
