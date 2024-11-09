@@ -81,8 +81,9 @@ namespace VTA.Tests.TestHelpers
             using var context = new UserContext(options);
             await context.Database.EnsureCreatedAsync();
 
-            Console.WriteLine("Database schema created. Press Enter to continue...");
-            Console.ReadLine();
+            int pauseDuration = 60000;
+            Console.WriteLine($"Database schema created. Pausing for {pauseDuration / 1000} seconds to allow inspection...");
+            await Task.Delay(pauseDuration);
         }
 
         public async Task DisposeAsync()
