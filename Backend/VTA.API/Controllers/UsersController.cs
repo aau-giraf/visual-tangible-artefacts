@@ -214,8 +214,8 @@ public class UsersController : ControllerBase
         var secretKey = _config.GetValue<string>("Secret:SecretKey")
                         ?? Environment.GetEnvironmentVariable("JWT_SECRET")
                         ?? throw new InvalidOperationException("A JWT secret is required for token generation.");
-        var validIssuer = _config.GetValue<string>("Secret:ValidIssuer") ?? "api.vta.com";
-        var validAudience = _config.GetValue<string>("Secret:ValidAudience") ?? "user.vta.com";
+        var validIssuer = "api.vta.com";
+        var validAudience = "user.vta.com";
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); // secure enough for this project

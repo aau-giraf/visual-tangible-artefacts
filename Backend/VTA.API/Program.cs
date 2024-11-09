@@ -35,8 +35,12 @@ var config = new ConfigurationBuilder()
     .Build();
 
 var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
-                   ?? config["Secret:SecretKey"]
-                   ?? "fallback-secret-key";
+                   ?? config["Secret:SecretKey"];
+
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+    throw new ArgumentNullException("JWT_SECRET_KEY environment variable or SecretKey in appsettings.json is required.");
+}
 
 var jwtIssuer = "api.vta.com";
 var jwtAudience = "user.vta.com";
