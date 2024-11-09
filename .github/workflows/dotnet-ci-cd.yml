@@ -33,6 +33,11 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
+      - name: Check Docker accessibility
+        run: |
+          docker ps
+          docker run --rm hello-world
+
       - name: Run tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
