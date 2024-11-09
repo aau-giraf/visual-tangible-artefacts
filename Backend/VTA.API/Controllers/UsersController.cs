@@ -138,7 +138,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<UserGetDTO>> GetUser()
     {
         var userId = User.FindFirst("id")?.Value;
-        
+
         User user = await _context.Users.FindAsync(userId);
 
         if (user == null)
@@ -211,21 +211,30 @@ public class UsersController : ControllerBase
 
     private string GenerateJwt(string userId, string name)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);//secure enough for this projec
+        var secretKey = _config.GetValue<string>("Secret:SecretKey")
+                        ?? Environment.GetEnvironmentVariable("JWT_SECRET")
+                        ?? throw new InvalidOperationException("A JWT secret is required for token generation.");
+        var validIssuer = _config.GetValue<string>("Secret:ValidIssuer") ?? "api.vta.com";
+        var validAudience = _config.GetValue<string>("Secret:ValidAudience") ?? "user.vta.com";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); // secure enough for this project
+
         var claims = new[]
         {
-            new Claim("id", userId),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-        };
+        new Claim("id", userId),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+    };
+
         var token = new JwtSecurityToken(
-        issuer: _config.GetSection("Secret")["ValidIssuer"],
-        audience: _config.GetSection("Secret")["ValidAudience"],
-        claims: claims,
-        expires: DateTime.UtcNow.AddDays(1),
-        signingCredentials: creds);
+            issuer: validIssuer,
+            audience: validAudience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
 }
