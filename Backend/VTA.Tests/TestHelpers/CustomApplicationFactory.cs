@@ -1,42 +1,74 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MySql.Data.MySqlClient;
+using Testcontainers.MySql;
 using VTA.API.DbContexts;
+using Xunit;
 
-namespace VTA.Tests.TestHelpers;
-
-public class CustomApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
+namespace VTA.Tests.TestHelpers
 {
-    public IConfiguration Configuration { get; private set; }
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    public class CustomApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
-        builder.ConfigureAppConfiguration((context, config) =>
-        {
-            config.AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true, reloadOnChange: true)
-                  .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                  .AddEnvironmentVariables();
+        private readonly MySqlContainer _mySqlContainer;
 
-            Configuration = config.Build();
-        });
-
-        builder.ConfigureServices(services =>
+        public CustomApplicationFactory()
         {
-            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<UserContext>));
-            if (descriptor != null)
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
+                .AddJsonFile("appsettings.json", optional: true)
+                .Build();
+
+            var connectionString = config.GetConnectionString("TestConnection");
+            var builder = new MySqlConnectionStringBuilder(connectionString);
+            var database = builder.Database;
+            var username = builder.UserID;
+            var password = builder.Password;
+
+            _mySqlContainer = new MySqlBuilder()
+                .WithImage("mysql:8.0")
+                .WithDatabase(database)
+                .WithUsername(username)
+                .WithPassword(password)
+                .WithExposedPort(3306)
+                .Build();
+        }
+
+        public async Task InitializeAsync()
+        {
+            await _mySqlContainer.StartAsync();
+
+            var options = new DbContextOptionsBuilder<UserContext>()
+                .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
+                .Options;
+
+            using var context = new UserContext(options);
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        public async Task DisposeAsync()
+        {
+            await _mySqlContainer.DisposeAsync();
+        }
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.ConfigureServices(services =>
             {
+                var descriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(DbContextOptions<UserContext>));
                 services.Remove(descriptor);
-            }
 
-            var connectionString = Configuration.GetConnectionString("TestConnection") ??
-                                   Configuration.GetConnectionString("DefaultConnection");
-
-            services.AddDbContext<UserContext>(options =>
-            {
-                options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
+                services.AddDbContext<UserContext>(options =>
+                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
             });
-        });
+        }
     }
 }

@@ -3,9 +3,11 @@ name: Continuous Integration and Deployment
 on:
   pull_request:
     branches:
+      - dev-main
       - main
   push:
     branches:
+      - dev-main
       - main
 
 jobs:
@@ -15,6 +17,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install Docker
+        run: |
+          if ! command -v docker &> /dev/null; then
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sh get-docker.sh
+            sudo usermod -aG docker $USER
+            newgrp docker
+          fi
+
+      - name: Ensure Docker is running
+        run: sudo systemctl start docker
 
       - name: Restore dependencies
         run: dotnet restore
@@ -26,15 +40,17 @@ jobs:
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
       - name: Publish the WebAPI
-        if: success()
+        if: github.ref == 'refs/heads/main' && success()
         run: dotnet publish --configuration Release --output ./output
 
       - name: Copy to deployment directory
-        if: success()
+        if: github.ref == 'refs/heads/main' && success()
         run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
 
       - name: Set permissions for the assets folder
+        if: github.ref == 'refs/heads/main' && success()
         run: sudo chmod 777 /var/www/VTA.API/Assets
-        
+
       - name: Restart the service using SSH
+        if: github.ref == 'refs/heads/main' && success()
         run: sudo systemctl restart vtaapi.service

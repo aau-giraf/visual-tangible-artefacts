@@ -90,7 +90,7 @@ app.MapControllers();
 
 app.Run();
 
-// Don't touch! Integration tests virker ikke hvis Program klassen ikke er deklareret som partial, 
+// Don't touch! Integration tests virker ikke hvis Program klassen ikke er erklæret som public, 
 // fordi VTA.Tests projektet prøver at bruge Microsoft.AspNetCore.Mvc.Testing.Program istedet for 
 // VTA.API Program klassen. 
 // https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0#basic-tests-with-the-default-webapplicationfactory 
