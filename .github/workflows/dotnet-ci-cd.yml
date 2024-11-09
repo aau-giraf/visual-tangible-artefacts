@@ -21,8 +21,9 @@ jobs:
       - name: Install Docker
         run: |
           if ! command -v docker &> /dev/null; then
+            echo "$USER: ALL=(ALL) NOPASSWD: /usr/bin/apt-get" | sudo tee /etc/sudoers.d/$USER
             curl -fsSL https://get.docker.com -o get-docker.sh
-            sh get-docker.sh
+            sudo -S sh get-docker.sh
             sudo usermod -aG docker $USER
             newgrp docker
           fi
