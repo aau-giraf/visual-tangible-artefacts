@@ -41,7 +41,7 @@ namespace VTA.Tests.TestHelpers
 
             if (string.IsNullOrEmpty(jwtSecretConfig.SecretKey))
             {
-                throw new ArgumentNullException("JWT_SECRET environment variable or SecretKey in appsettings.json is required.");
+                throw new ArgumentNullException("A JWT secret is required for token generation.");
             }
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
