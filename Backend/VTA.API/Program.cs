@@ -28,6 +28,16 @@ builder.Services.AddSingleton(provider =>
     }
 );
 
+var config = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .Build();
+
+var jwtSecretKey = config["Secret:SecretKey"] ?? "fallback-secret-key";
+var jwtIssuer = config["Secret:ValidIssuer"] ?? "fallback.issuer";
+var jwtAudience = config["Secret:ValidAudience"] ?? "fallback.audience";
+
 builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -42,9 +52,9 @@ builder.Services.AddAuthentication(options =>
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration.GetSection("Secret")["ValidIssuer"],
-                    ValidAudience = builder.Configuration.GetSection("Secret")["ValidAudience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Secret")["SecretKey"])),
+                    ValidIssuer = jwtIssuer,
+                    ValidAudience = jwtAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
                     ClockSkew = TimeSpan.Zero
                 };
             });
