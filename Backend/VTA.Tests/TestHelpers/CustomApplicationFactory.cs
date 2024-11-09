@@ -20,18 +20,18 @@ namespace VTA.Tests.TestHelpers
 
         public CustomApplicationFactory()
         {
-
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
                 .AddJsonFile("appsettings.json", optional: true)
+                .AddEnvironmentVariables()
                 .Build();
 
-            var testConnectionString = config.GetConnectionString("TestConnection");
-            Console.WriteLine($"TestConnectionString: {(string.IsNullOrEmpty(testConnectionString) ? "Not Found" : "Loaded Successfully")}");
+            var connectionString = config.GetValue<string>("ConnectionStrings:TestConnection")
+                                   ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
 
+            var jwtSecret = config["JWTSettings:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
 
-            var connectionString = config.GetConnectionString("TestConnection");
             var builder = new MySqlConnectionStringBuilder(connectionString);
             var database = builder.Database;
             var username = builder.UserID;
@@ -56,10 +56,6 @@ namespace VTA.Tests.TestHelpers
 
             using var context = new UserContext(options);
             await context.Database.EnsureCreatedAsync();
-
-            // int pauseDuration = 60000;
-            // Console.WriteLine($"Database schema created. Pausing for {pauseDuration / 1000} seconds to allow inspection...");
-            // await Task.Delay(pauseDuration);
         }
 
         public async Task DisposeAsync()
@@ -77,6 +73,14 @@ namespace VTA.Tests.TestHelpers
 
                 services.AddDbContext<UserContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
+            });
+
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                config
+                    .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
+                    .AddJsonFile("appsettings.json", optional: true)
+                    .AddEnvironmentVariables();
             });
         }
     }

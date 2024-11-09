@@ -13,8 +13,11 @@ on:
 jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
-    # env:
-    #   TESTCONTAINERS_RYUK_DISABLED: true
+
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: true
+      TEST_CONNECTION_STRING: ${{ secrets.TEST_CONNECTION_STRING }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - name: Checkout code
@@ -41,6 +44,7 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
+      # Deployment steps only for main branch with self-hosted runner
       - name: Publish the WebAPI
         if: github.ref == 'refs/heads/main' && success()
         run: dotnet publish --configuration Release --output ./output
