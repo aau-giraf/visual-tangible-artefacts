@@ -18,9 +18,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker host for Testcontainers
-        run: echo "DOCKER_HOST=unix:///var/run/docker.sock" >> $GITHUB_ENV
-
       - name: Check Docker Status
         run: |
           if ! systemctl is-active --quiet docker; then
