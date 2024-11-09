@@ -211,9 +211,11 @@ public class UsersController : ControllerBase
 
     private string GenerateJwt(string userId, string name)
     {
-        var secretKey = _secretsSingleton.Secrets["SecretKey"] ?? "fallback-secret-key";
-        var validIssuer = _config.GetSection("Secret")["ValidIssuer"] ?? "fallback.issuer";
-        var validAudience = _config.GetSection("Secret")["ValidAudience"] ?? "fallback.audience";
+        var secretKey = _config.GetValue<string>("Secret:SecretKey")
+                        ?? Environment.GetEnvironmentVariable("JWT_SECRET")
+                        ?? throw new InvalidOperationException("A JWT secret is required for token generation.");
+        var validIssuer = _config.GetValue<string>("Secret:ValidIssuer") ?? "api.vta.com";
+        var validAudience = _config.GetValue<string>("Secret:ValidAudience") ?? "user.vta.com";
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); // secure enough for this project
@@ -234,4 +236,5 @@ public class UsersController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
 }
