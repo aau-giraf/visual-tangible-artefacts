@@ -34,7 +34,7 @@ var config = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")
                    ?? config["Secret:SecretKey"];
 
 if (string.IsNullOrEmpty(jwtSecretKey))
