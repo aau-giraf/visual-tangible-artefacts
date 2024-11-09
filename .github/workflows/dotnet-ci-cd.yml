@@ -11,11 +11,10 @@ on:
       - main
 
 jobs:
-  test-and-deploy:
+  ci:
     runs-on: ubuntu-latest
 
     env:
-      TESTCONTAINERS_RYUK_DISABLED: true
       TEST_CONNECTION_STRING: ${{ secrets.TEST_CONNECTION_STRING }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
@@ -23,14 +22,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Check Docker Status
-        run: |
-          if ! systemctl is-active --quiet docker; then
-            echo "Docker is not running. Starting Docker..."
-            sudo systemctl start docker
-          else
-            echo "Docker is already running."
-          fi
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build the project
+        run: dotnet build --configuration Release
+
+      - name: Run tests
+        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
+
+  cd:
+    runs-on: self-hosted
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Restore dependencies
         run: dotnet restore
@@ -38,25 +46,14 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
-      - name: Verify Docker Access
-        run: sudo docker ps
-
-      - name: Run tests
-        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
-
-      # Deployment steps only for main branch with self-hosted runner
       - name: Publish the WebAPI
-        if: github.ref == 'refs/heads/main' && success()
         run: dotnet publish --configuration Release --output ./output
 
       - name: Copy to deployment directory
-        if: github.ref == 'refs/heads/main' && success()
         run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
 
       - name: Set permissions for the assets folder
-        if: github.ref == 'refs/heads/main' && success()
         run: sudo chmod 777 /var/www/VTA.API/Assets
 
       - name: Restart the service
-        if: github.ref == 'refs/heads/main' && success()
         run: sudo systemctl restart vtaapi.service

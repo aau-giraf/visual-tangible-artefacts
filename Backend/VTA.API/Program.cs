@@ -34,9 +34,12 @@ var config = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var jwtSecretKey = config["Secret:SecretKey"] ?? "fallback-secret-key";
-var jwtIssuer = config["Secret:ValidIssuer"] ?? "fallback.issuer";
-var jwtAudience = config["Secret:ValidAudience"] ?? "fallback.audience";
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+                   ?? config["Secret:SecretKey"]
+                   ?? "fallback-secret-key";
+
+var jwtIssuer = "api.vta.com";
+var jwtAudience = "user.vta.com";
 
 builder.Services.AddAuthentication(options =>
         {
