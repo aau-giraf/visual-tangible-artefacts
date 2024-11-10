@@ -1,36 +1,44 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
-using Xunit;
 
 namespace VTA.Tests.IntegrationTests.ControllerTests
 {
     public class UsersControllerTests : IClassFixture<CustomApplicationFactory>
     {
         private readonly HttpClient _client;
+        private readonly Utilities _utilities;
 
         public UsersControllerTests(CustomApplicationFactory factory)
         {
             _client = factory.CreateClient();
+            _utilities = new Utilities(_client);
         }
 
         [Fact]
         public async Task TestUserSignUp()
         {
-            var userDto = new UserSignupDTO
-            {
-                Username = "testuser",
-                Password = "testpassword",
-                Name = "Test User"
-            };
-
-            var response = await _client.PostAsJsonAsync("/api/Users/SignUp", userDto);
-
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var result = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
+            var result = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
             Assert.NotNull(result?.Token);
+        }
+
+        [Fact]
+        public async Task TestUserLogin()
+        {
+            await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            var result = await _utilities.LoginUserAsync("testuser", "testpassword");
+            Assert.NotNull(result?.Token);
+        }
+
+        [Fact]
+        public async Task TestUserDeletion()
+        {
+            var signUpResult = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            Assert.NotNull(signUpResult?.Token);
+
+            var loginResult = await _utilities.LoginUserAsync("testuser", "testpassword");
+            Assert.NotNull(loginResult?.Token);
+
+            await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            await Assert.ThrowsAsync<HttpRequestException>(async () => await _utilities.LoginUserAsync("testuser", "testpassword"));
         }
     }
 }
