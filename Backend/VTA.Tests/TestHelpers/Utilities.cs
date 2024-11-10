@@ -19,7 +19,7 @@ namespace VTA.Tests.TestHelpers
             _client = client;
         }
 
-        public async Task<UserLoginResponseDTO?> SignUpUserAsync(string username, string password, string name)
+        public async Task<(HttpStatusCode StatusCode, UserLoginResponseDTO? Data)> SignUpUserAsync(string username, string password, string name)
         {
             var userDto = new UserSignupDTO
             {
@@ -29,11 +29,11 @@ namespace VTA.Tests.TestHelpers
             };
 
             var response = await _client.PostAsJsonAsync("/api/Users/SignUp", userDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
+            var data = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>() : null;
+            return (response.StatusCode, data);
         }
 
-        public async Task<UserLoginResponseDTO?> LoginUserAsync(string username, string password)
+        public async Task<(HttpStatusCode StatusCode, UserLoginResponseDTO? Data)> LoginUserAsync(string username, string password)
         {
             var userDto = new UserLoginDTO
             {
@@ -42,17 +42,17 @@ namespace VTA.Tests.TestHelpers
             };
 
             var response = await _client.PostAsJsonAsync("/api/Users/Login", userDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
+            var data = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>() : null;
+            return (response.StatusCode, data);
         }
 
-        public async Task DeleteUserAsync(string userId, string token)
+        public async Task<HttpStatusCode> DeleteUserAsync(string userId, string token)
         {
             var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/{userId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await _client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            return response.StatusCode;
         }
     }
 }

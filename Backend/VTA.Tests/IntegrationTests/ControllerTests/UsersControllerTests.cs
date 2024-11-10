@@ -19,30 +19,51 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestUserSignUp()
         {
-            var result = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
-            Assert.NotNull(result?.Token);
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.NotNull(signUpResult?.Token);
+
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
         }
 
         [Fact]
         public async Task TestUserLogin()
         {
-            await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
-            var result = await _utilities.LoginUserAsync("testuser", "testpassword");
-            Assert.NotNull(result?.Token);
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.NotNull(signUpResult?.Token);
+
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+
+            Assert.Equal(HttpStatusCode.OK, loginStatus);
+            Assert.NotNull(loginResult?.Token);
+
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
         }
 
         [Fact]
         public async Task TestUserDeletion()
         {
-            var signUpResult = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
-            var loginResult = await _utilities.LoginUserAsync("testuser", "testpassword");
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+            Assert.Equal(HttpStatusCode.OK, loginStatus);
             Assert.NotNull(loginResult?.Token);
 
-            await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
 
-            await Assert.ThrowsAsync<HttpRequestException>(async () => await _utilities.LoginUserAsync("testuser", "testpassword"));
+            var (loginAfterDeletionStatus, loginAfterDeletionResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+            Assert.Equal(HttpStatusCode.NotFound, loginAfterDeletionStatus);
+            Assert.Null(loginAfterDeletionResult);
         }
     }
 }
