@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http.Json;
+using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
 
 namespace VTA.Tests.IntegrationTests.ControllerTests
@@ -38,6 +41,7 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
             Assert.NotNull(loginResult?.Token);
 
             await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+
             await Assert.ThrowsAsync<HttpRequestException>(async () => await _utilities.LoginUserAsync("testuser", "testpassword"));
         }
     }
