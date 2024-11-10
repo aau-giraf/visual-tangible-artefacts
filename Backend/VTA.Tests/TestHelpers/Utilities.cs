@@ -14,6 +14,10 @@ namespace VTA.Tests.TestHelpers
 
         private readonly HttpClient _client;
 
+        private const string DefaultUsername = "tokenuser";
+        private const string DefaultPassword = "tokenpassword";
+        private const string DefaultName = "Token User";
+
         public Utilities(HttpClient client)
         {
             _client = client;
@@ -53,6 +57,27 @@ namespace VTA.Tests.TestHelpers
 
             var response = await _client.SendAsync(request);
             return response.StatusCode;
+        }
+
+        // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+        public async Task<string?> CreateUserAndReturnTokenAsync()
+        {
+            var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
+            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
+            {
+                return signUpResult.Token;
+            }
+            return null;
+        }
+
+        public async Task<HttpStatusCode> DeleteUserWithTokenAsync()
+        {
+            var (loginStatus, loginResult) = await LoginUserAsync(DefaultUsername, DefaultPassword);
+            if (loginStatus == HttpStatusCode.OK && loginResult != null)
+            {
+                return await DeleteUserAsync(loginResult.userId, loginResult.Token);
+            }
+            return HttpStatusCode.NotFound;
         }
     }
 }
