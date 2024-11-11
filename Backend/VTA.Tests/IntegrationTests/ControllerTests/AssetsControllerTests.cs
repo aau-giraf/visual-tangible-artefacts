@@ -19,7 +19,7 @@ public class AssetsControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task GetImage_ReturnsNotFound_WhenImageDoesNotExist()
     {
-        var filepath = "DrinkImages/nonexistent.jpg";
+        var filepath = "Images/nonexistent.jpg";
 
         var response = await _client.GetAsync($"/api/Assets/{filepath}");
 
