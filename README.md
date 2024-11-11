@@ -44,7 +44,7 @@
 
 #### DB-First Approach
 
-We follow a **DB-first approach** for this project. This means that the database schema is designed first, and the code is generated based on that schema. Changes to the database structure are reflected in the application via code generation tools (e.g., Entity Framework for C# or other ORM frameworks).
+We follow a **DB-first approach** for this project. This means that the database schema is designed first, and the code is generated based on that schema. Changes to the database structure are reflected in the API via code generation tools (e.g., Entity Framework for C# or other ORM frameworks, like dapper).
 
 - **Workflow:**
   1. **Database schema design**: Define tables, columns, relationships, and constraints in the database.
