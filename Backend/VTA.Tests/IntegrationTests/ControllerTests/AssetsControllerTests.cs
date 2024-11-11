@@ -17,7 +17,7 @@ public class AssetsControllerTests : IClassFixture<CustomApplicationFactory>
     }
 
     [Fact]
-    public async Task GetDrinkImage_ReturnsNotFound_WhenImageDoesNotExist()
+    public async Task GetImage_ReturnsNotFound_WhenImageDoesNotExist()
     {
         var filepath = "DrinkImages/nonexistent.jpg";
 
