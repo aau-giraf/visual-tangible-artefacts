@@ -66,6 +66,7 @@ class ArtifactState with ChangeNotifier {
         await ArtifactRepository().addCategory(category, token: token);
     if (newCategory != null) {
       _categories?.add(newCategory);
+      _categories?.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
       notifyListeners();
       return true;
     }
