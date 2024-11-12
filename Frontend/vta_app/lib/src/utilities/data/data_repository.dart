@@ -84,6 +84,7 @@ class ArtifactRepository extends ApiDataRepository {
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
             .toList();
+        categories.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
         return categories;
       } else {
         return null;

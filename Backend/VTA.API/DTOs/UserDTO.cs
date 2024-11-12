@@ -22,8 +22,6 @@ public partial class UserGetDTO
     public string Username { get; set; } = null!;
 
     public virtual ICollection<CategoryGetDTO> Categories { get; set; } = new List<CategoryGetDTO>();
-
-
 }
 
 public class UserSignupDTO

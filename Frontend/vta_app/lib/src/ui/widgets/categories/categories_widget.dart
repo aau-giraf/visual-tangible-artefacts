@@ -69,12 +69,16 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  TextButton _buildAddCategoryButton() {
-    return TextButton(
-      onPressed: () {
-        _showAddCategoryPopup(context);
-      },
-      child: _buildAddCategoryContainer(),
+  Widget _buildAddCategoryButton() {
+    return SizedBox(
+      height: widget.widgetHeight,
+      width: widget.widgetHeight * 2,
+      child: TextButton(
+        onPressed: () {
+          _showAddCategoryPopup(context);
+        },
+        child: _buildAddCategoryContainer(),
+      ),
     );
   }
 
@@ -85,16 +89,13 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(5),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            const SizedBox(width: 5),
-            Icon(
-              Icons.add_circle,
-              color: Colors.blue,
-            )
-          ],
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(
+            Icons.add_circle,
+            color: Colors.blue,
+          ),
         ),
       ),
     );
@@ -109,19 +110,29 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildCategoryContainer(Category item) {
+    var authState = Provider.of<AuthState>(context);
+    var headers = <String, String>{
+      'Authorization': 'Bearer ${authState.token}'
+    };
+
     return Container(
       height: widget.widgetHeight,
+      width: widget.widgetHeight * 2,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Text(item.name!),
-            const SizedBox(width: 5),
-          ],
+        child: Center(
+          // Added Center widget
+          child: item.imageUrl != null
+              ? Image.network(
+                  item.imageUrl!,
+                  headers: headers,
+                  fit: BoxFit.contain,
+                )
+              : Text(item.name!),
         ),
       ),
     );
@@ -284,56 +295,61 @@ class _CategoryPopupState extends State<CategoryPopup> {
     final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
     return Dialog(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight, minWidth: minWidth),
-        child: Container(
-          height: minHeight,
-          width: minWidth,
-          decoration: BoxDecoration(
-            color: Color(0xFFF5F2E7),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x3F000000),
-                blurRadius: 4,
-                offset: Offset(4, 4),
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Navigator(
-            key: navigatorKey,
-            onGenerateRoute: (RouteSettings settings) {
-              Widget page;
-              switch (settings.name) {
-                case '/ai':
-                  page = Padding(
-                      padding: EdgeInsets.all(20),
-                      child: AIPage(onImageProcessed: setGeneratedImage));
-                  break;
-                default:
-                  page = Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: _buildAddCategoryForm(minWidth, formKey,
-                        categoryNameController, navigatorKey, context),
-                  );
-              }
-              return PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => page,
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(-1.0, 0.0); // Start from the left
-                  const end = Offset.zero; // End at the current position
-                  const curve = Curves.easeInOut;
-                  var tween = Tween(begin: begin, end: end)
-                      .chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
-                  return SlideTransition(
-                      position: offsetAnimation, child: child);
-                },
-              );
-            },
-          ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: minHeight,
+          maxWidth: minWidth,
+          minHeight: 300,
+          minWidth: 250,
+        ),
+        decoration: BoxDecoration(
+          color: Color(0xFFF5F2E7),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(4, 4),
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Navigator(
+          key: navigatorKey,
+          onGenerateRoute: (RouteSettings settings) {
+            Widget page;
+            switch (settings.name) {
+              case '/ai':
+                page = Padding(
+                  padding: EdgeInsets.all(20),
+                  child: AIPage(onImageProcessed: setGeneratedImage),
+                );
+                break;
+              default:
+                page = Scrollbar(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildAddCategoryForm(minWidth, formKey,
+                          categoryNameController, navigatorKey, context),
+                    ),
+                  ),
+                );
+            }
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => page,
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(-1.0, 0.0);
+                const end = Offset.zero;
+                const curve = Curves.easeInOut;
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+                var offsetAnimation = animation.drive(tween);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+            );
+          },
         ),
       ),
     );
@@ -590,61 +606,64 @@ class _AddItemPopupState extends State<AddItemPopup> {
   @override
   Widget build(BuildContext context) {
     var screenSize = MediaQuery.of(context).size;
-    var minHeight = screenSize.height * 0.7;
-    var minWidth = screenSize.width * 0.5;
+    var minHeight = screenSize.height * 0.8;
+    var minWidth = screenSize.width * 0.6;
     final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
     return Dialog(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight, minWidth: minWidth),
-        child: Container(
-          height: minHeight,
-          width: minWidth,
-          decoration: BoxDecoration(
-            color: Color(0xFFF5F2E7),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x3F000000),
-                blurRadius: 4,
-                offset: Offset(4, 4),
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Navigator(
-            key: navigatorKey,
-            onGenerateRoute: (RouteSettings settings) {
-              Widget page;
-              switch (settings.name) {
-                case '/ai':
-                  page = Padding(
-                      padding: EdgeInsets.all(20),
-                      child: AIPage(onImageProcessed: setGeneratedImage));
-                  break;
-                default:
-                  page = Padding(
-                    padding: const EdgeInsets.all(10.0),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: minHeight,
+          maxWidth: minWidth,
+          minHeight: 400,
+          minWidth: 300,
+        ),
+        decoration: BoxDecoration(
+          color: Color(0xFFF5F2E7),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(4, 4),
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Navigator(
+          key: navigatorKey,
+          onGenerateRoute: (RouteSettings settings) {
+            Widget page;
+            switch (settings.name) {
+              case '/ai':
+                page = Padding(
+                  padding: EdgeInsets.all(20),
+                  child: AIPage(onImageProcessed: setGeneratedImage),
+                );
+                break;
+              default:
+                page = SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: _buildForm(
                         minWidth, formKey, nameController, navigatorKey),
-                  );
-              }
-              return PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => page,
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(-1.0, 0.0); // Start from the left
-                  const end = Offset.zero; // End at the current position
-                  const curve = Curves.easeInOut;
-                  var tween = Tween(begin: begin, end: end)
-                      .chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
-                  return SlideTransition(
-                      position: offsetAnimation, child: child);
-                },
-              );
-            },
-          ),
+                  ),
+                );
+            }
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => page,
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(-1.0, 0.0);
+                const end = Offset.zero;
+                const curve = Curves.easeInOut;
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+                var offsetAnimation = animation.drive(tween);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+            );
+          },
         ),
       ),
     );
@@ -656,22 +675,20 @@ class _AddItemPopupState extends State<AddItemPopup> {
       TextEditingController nameController,
       GlobalKey<NavigatorState> navigatorKey) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 18.0),
-          child: Text(
-            widget.title,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 32,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
-            ),
+        Text(
+          widget.title,
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 28,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w400,
           ),
         ),
-        SizedBox(height: 10),
+        SizedBox(height: 16),
         SizedBox(
-          width: minWidth * 0.5,
+          width: minWidth * 0.8,
           child: Form(
             key: formKey,
             child: Column(
@@ -698,62 +715,69 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
                   ),
                 ),
-                FormField(
-                  validator: (value) =>
-                      imageBytes == null ? 'Et billede er påkrævet' : null,
-                  builder: (FormFieldState state) {
-                    return Container();
-                  },
-                ),
-                SizedBox(height: 20),
-                imageBytes != null
-                    ? Image.memory(
-                        imageBytes!,
-                        width: 200,
-                        height: 200,
-                      )
-                    : Image.asset(
-                        'assets/images/no_image.png',
-                        width: 200,
-                        height: 200,
-                      ),
+                SizedBox(height: 16),
+                if (imageBytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.memory(
+                      imageBytes!,
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                else
+                  Image.asset(
+                    'assets/images/no_image.png',
+                    width: 150,
+                    height: 150,
+                  ),
               ],
             ),
           ),
         ),
-        SizedBox(height: 10),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildButton(
-                  'Tag nyt billede', 'assets/images/camera_icon_filled.png',
-                  onClick: () => _onTakePictureButtonPressed()),
-              SizedBox(width: 20),
-              _buildButton('Upload', 'assets/images/folder_icon.png',
-                  onClick: () async {
-                var result = await FilePicker.platform.pickFiles(
-                    type: FileType.image, allowMultiple: false, withData: true);
-                if (result != null) {
-                  setState(() {
-                    imageBytes = result.files.single.bytes;
-                  });
-                }
-              }),
-              SizedBox(width: 20),
-              _buildButton('Lav med AI', 'assets/images/ai_file.png',
-                  onClick: () {
-                navigatorKey.currentState?.pushNamed('/ai');
-              }),
-            ],
+        SizedBox(height: 16),
+        Flexible(
+          fit: FlexFit.loose,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildButton(
+                    'Tag nyt billede', 'assets/images/camera_icon_filled.png',
+                    onClick: _onTakePictureButtonPressed),
+                SizedBox(width: 16),
+                _buildButton('Upload', 'assets/images/folder_icon.png',
+                    onClick: () async {
+                  var result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                      allowMultiple: false,
+                      withData: true);
+                  if (result != null) {
+                    setState(() {
+                      imageBytes = result.files.single.bytes;
+                    });
+                  }
+                }),
+                SizedBox(width: 16),
+                _buildButton('Lav med AI', 'assets/images/ai_file.png',
+                    onClick: () {
+                  navigatorKey.currentState?.pushNamed('/ai');
+                }),
+              ],
+            ),
           ),
         ),
-        SizedBox(height: 20),
-        Column(
+        SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Color(0xFFBADFB5)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFBADFB5),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               onPressed: () {
                 if (formKey.currentState!.validate()) {
                   widget.onSubmit(nameController.text, imageBytes);
@@ -765,17 +789,13 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 style: TextStyle(color: Colors.white),
               ),
             ),
-            SizedBox(
-              height: 10,
-            ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Close'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Luk'),
             ),
           ],
         ),
+        SizedBox(height: 16),
       ],
     );
   }
