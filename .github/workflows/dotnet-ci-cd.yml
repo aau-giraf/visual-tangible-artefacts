@@ -50,7 +50,7 @@ jobs:
         run: dotnet publish --configuration Release --output ./output
 
       - name: Copy to deployment directory
-        run: sudo rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
+        run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
 
       - name: Set permissions for the assets folder
         run: sudo chmod 777 /var/www/VTA.API/Assets
