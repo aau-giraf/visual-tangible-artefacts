@@ -44,4 +44,4 @@ flutter:
     - assets/icons/
     - assets/sound/
     - assets/cfg/
-    - assets/cfg/appsettings.json
+    - assets/cfg/app_settings.json

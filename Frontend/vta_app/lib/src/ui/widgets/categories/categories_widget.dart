@@ -141,6 +141,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showCategoryModal(BuildContext context, Category category) {
     setState(() {
       showModalBottomSheet(
+        backgroundColor: Colors.white,
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.9,
         ),
@@ -390,6 +391,7 @@ class _CategoryPopupState extends State<CategoryPopup> {
                     return null;
                   },
                   controller: categoryNameController,
+                  style: TextStyle(color: Colors.black),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,

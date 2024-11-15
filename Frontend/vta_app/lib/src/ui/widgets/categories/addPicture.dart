@@ -23,7 +23,8 @@ class _AIPageState extends State<AIPage> {
   double imageWidth = 150;
   double imageHeight = 150;
   String selectedOption = 'Vælg format'; // Default selected option
-  bool showError = false; // Track if the generate button was pressed without a valid selection
+  bool showError =
+      false; // Track if the generate button was pressed without a valid selection
 
   @override
   void initState() {
@@ -34,7 +35,7 @@ class _AIPageState extends State<AIPage> {
   Future<void> loadConfiguration() async {
     final aiSettings = GlobalConfiguration().appConfig['OpenAi'];
     setState(() {
-      apiKey = aiSettings['apiKey'];
+      apiKey = aiSettings['ApiKey'];
     });
   }
 
@@ -52,16 +53,22 @@ class _AIPageState extends State<AIPage> {
         showError = false; // Reset the error when a valid option is selected
       });
 
-       String prompt;
+      String prompt;
       switch (selectedOption) {
         case 'Piktogram':
-          prompt = "Hvid baggrund, et enkelt ikon med ingen unødvendige detajler, børne venligt, kontinuert line art ingen mellemrum, ingen tekst, simpelt ikon af " + _controller.text;
+          prompt =
+              "Hvid baggrund, et enkelt ikon med ingen unødvendige detajler, børne venligt, kontinuert line art ingen mellemrum, ingen tekst, simpelt ikon af " +
+                  _controller.text;
           break;
         case 'Realistisk':
-          prompt = "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, høj-kvalitets billede af " + _controller.text;
+          prompt =
+              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, ingen tekst billede af " +
+                  _controller.text;
           break;
         case 'Tegning':
-          prompt = "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning af " + _controller.text;
+          prompt =
+              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning, ingen text billede af " +
+                  _controller.text;
           break;
         default:
           prompt = _controller.text;
@@ -103,8 +110,10 @@ class _AIPageState extends State<AIPage> {
     return Scaffold(
       backgroundColor: Colors.transparent, // Make the background transparent
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F2E7), // Use a contrasting color for the app bar
-        iconTheme: const IconThemeData(color: Colors.black), // Set the back arrow color to black
+        backgroundColor:
+            const Color(0xFFF5F2E7), // Use a contrasting color for the app bar
+        iconTheme: const IconThemeData(
+            color: Colors.black), // Set the back arrow color to black
       ),
       body: Center(
         child: Container(
@@ -125,55 +134,72 @@ class _AIPageState extends State<AIPage> {
                     Align(
                       alignment: Alignment.center,
                       child: Container(
-                         padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
                         decoration: BoxDecoration(
-                          color: showError && selectedOption == 'Vælg format' ? Colors.red : const Color(0xFFF5F2E7), 
+                          color: showError && selectedOption == 'Vælg format'
+                              ? Colors.red
+                              : const Color(0xFFF5F2E7),
                           borderRadius: BorderRadius.circular(5),
                           border: Border.all(color: Colors.black),
                         ),
                         child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: selectedOption,
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              selectedOption = newValue!;
-                              showError = false; // Reset the error when a valid option is selected
-                            });
-                          },
-                          items: <String>['Vælg format', 'Piktogram', 'Realistisk', 'Tegning']
-                              .map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(
-                                value,
-                                style: const TextStyle(color: Colors.black), // Black text
-                              ),
-                            );
-                          }).toList(),
-                          dropdownColor: Colors.white, // Set the background color of the dropdown menu to white
-                          icon: const Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.black, // Black arrow icon
+                          child: DropdownButton<String>(
+                            value: selectedOption,
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                selectedOption = newValue!;
+                                showError =
+                                    false; // Reset the error when a valid option is selected
+                              });
+                            },
+                            items: <String>[
+                              'Vælg format',
+                              'Piktogram',
+                              'Realistisk',
+                              'Tegning'
+                            ].map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(
+                                  value,
+                                  style: const TextStyle(
+                                      color: Colors.black), // Black text
+                                ),
+                              );
+                            }).toList(),
+                            dropdownColor: Colors
+                                .white, // Set the background color of the dropdown menu to white
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.black, // Black arrow icon
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                    const SizedBox(width: 15), // Add some spacing between the dropdown and the text field
+                    const SizedBox(
+                        width:
+                            15), // Add some spacing between the dropdown and the text field
                     Expanded(
                       child: TextField(
                         controller: _controller,
                         decoration: const InputDecoration(
                           hintText: 'Skriv her',
-                          hintStyle: TextStyle(color: Color.fromARGB(255, 136, 136, 136)),
+                          hintStyle: TextStyle(
+                              color: Color.fromARGB(255, 136, 136, 136)),
                           focusedBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black), // Black underline when focused
+                            borderSide: BorderSide(
+                                color: Colors
+                                    .black), // Black underline when focused
                           ),
                           enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black), // Black underline when not focused
+                            borderSide: BorderSide(
+                                color: Colors
+                                    .black), // Black underline when not focused
                           ),
                         ),
-                        style: const TextStyle(color: Colors.black), // Black input text
+                        style: const TextStyle(
+                            color: Colors.black), // Black input text
                       ),
                     ),
                   ],
@@ -184,7 +210,8 @@ class _AIPageState extends State<AIPage> {
                 onPressed: () {
                   if (selectedOption == 'Vælg format') {
                     setState(() {
-                      showError = true; // Show error if no valid option is selected
+                      showError =
+                          true; // Show error if no valid option is selected
                     });
                   } else {
                     generateImage();
@@ -201,7 +228,8 @@ class _AIPageState extends State<AIPage> {
                   : Column(
                       children: [
                         image != null
-                            ? Image.memory(base64Decode(image!), width: imageWidth, height: imageHeight)
+                            ? Image.memory(base64Decode(image!),
+                                width: imageWidth, height: imageHeight)
                             : const Text(
                                 'Intet billede genereret',
                                 style: TextStyle(color: Colors.black),
@@ -242,7 +270,8 @@ class AddPicturePage extends StatelessWidget {
         children: [
           ModalBarrier(
             dismissible: false,
-            color: Colors.black.withOpacity(0.5), // Grey out the rest of the app
+            color:
+                Colors.black.withOpacity(0.5), // Grey out the rest of the app
           ),
           Center(
             child: Container(
@@ -250,7 +279,8 @@ class AddPicturePage extends StatelessWidget {
                   0.8, // Set width based on screen size
               padding: const EdgeInsets.all(45.0), // Reduced padding
               decoration: BoxDecoration(
-                color: Colors.white, // Set the background color of the container
+                color:
+                    Colors.white, // Set the background color of the container
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
@@ -270,7 +300,10 @@ class AddPicturePage extends StatelessWidget {
                     Center(
                       child: Text(
                         'Tilføj billede',
-                        style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.black),
+                        style: Theme.of(context)
+                            .textTheme
+                            .displayMedium
+                            ?.copyWith(color: Colors.black),
                       ),
                     ),
                     SizedBox(height: 20), // Add some spacing
@@ -279,13 +312,13 @@ class AddPicturePage extends StatelessWidget {
                       children: [
                         FloatingActionButton(
                           onPressed: () async {
-                          FilePickerResult? result =
-                              await FilePicker.platform.pickFiles();
-                          if (result != null) {
-                            File file = File(result.files.single.path!);
-                          } else {
-                            print("Ingen fil valgt");
-                            }// Button 1 action
+                            FilePickerResult? result =
+                                await FilePicker.platform.pickFiles();
+                            if (result != null) {
+                              File file = File(result.files.single.path!);
+                            } else {
+                              print("Ingen fil valgt");
+                            } // Button 1 action
                           },
                           tooltip: 'Upload fra galleri',
                           child: Icon(Icons.add),
@@ -293,23 +326,23 @@ class AddPicturePage extends StatelessWidget {
                         FloatingActionButton(
                           onPressed: () {
                             showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return Dialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(60),
-                                ),
-                                child: Container(
-                                  color: Colors.white,
-                                  width: 760, // Set your desired width here
-                                  height: 500, // Set your desired height here
-                                  child: const AIPage(), // The AIPage widget
-                            // Button 2 action
-                                ),
-                              );
-                            },
-                          );
-                        },
+                              context: context,
+                              builder: (BuildContext context) {
+                                return Dialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(60),
+                                  ),
+                                  child: Container(
+                                    color: Colors.white,
+                                    width: 760, // Set your desired width here
+                                    height: 500, // Set your desired height here
+                                    child: const AIPage(), // The AIPage widget
+                                    // Button 2 action
+                                  ),
+                                );
+                              },
+                            );
+                          },
                           tooltip: 'Tag ny billede',
                           child: Icon(Icons.camera_alt),
                         ),
@@ -324,7 +357,7 @@ class AddPicturePage extends StatelessWidget {
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760,  // Set your desired width here
+                                    width: 760, // Set your desired width here
                                     height: 500, // Set your desired height here
                                     child: const AIPage(), // The AIPage widget
                                   ),
