@@ -45,9 +45,4 @@ flutter:
     - assets/icons/
     - assets/sound/
     - assets/cfg/
-<<<<<<< Updated upstream
-=======
-    - assets/sound/dårligt.mp3
-    - assets/sound/sulten.mp3
-    - assets/sound/toilet.mp3
->>>>>>> Stashed changes
+    - assets/sound/

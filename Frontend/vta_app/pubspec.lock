@@ -153,8 +153,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.4+2"
-<<<<<<< Updated upstream
-=======
   crypto:
     dependency: transitive
     description:
@@ -163,7 +161,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.6"
->>>>>>> Stashed changes
   fake_async:
     dependency: transitive
     description:
@@ -196,8 +193,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "8.1.4"
-<<<<<<< Updated upstream
-=======
   fixnum:
     dependency: transitive
     description:
@@ -206,7 +201,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
->>>>>>> Stashed changes
   flutter:
     dependency: "direct main"
     description: flutter
