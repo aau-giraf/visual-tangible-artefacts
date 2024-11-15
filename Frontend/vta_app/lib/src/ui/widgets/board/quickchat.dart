@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class QuickChatButton extends StatefulWidget {
   const QuickChatButton({super.key});
@@ -8,8 +9,8 @@ class QuickChatButton extends StatefulWidget {
 }
 
 class _FloatingActionButtonExampleState extends State<QuickChatButton> {
-  bool _isPopupVisible =
-      false; // Track popup visibilityeate an instance of AudioPlayer
+  bool _isPopupVisible = false; // Track popup visibilityeate an instance of AudioPlayer
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +53,11 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () async{
+                        await _audioPlayer.play(AssetSource('sound/dårligt.mp3'));
+                    },
                     icon: const Icon(Icons.sick, color: Colors.white),
-                    label: const Text('Sick',
+                    label: const Text('Har det ikke godt',
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black
@@ -63,10 +66,12 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () async {
+                      await _audioPlayer.play(AssetSource('sound/toilet.mp3'));
+                    },
                     icon: const Icon(Icons.wc, color: Colors.white),
                     label:
-                        const Text('WC', style: TextStyle(color: Colors.white)),
+                        const Text('Toilet', style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black
                           .withOpacity(0.2), // Button background color
@@ -74,9 +79,12 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () async {
+                      await _audioPlayer.play(AssetSource('sound/sulten.mp3'));
+
+                    },
                     icon: const Icon(Icons.lunch_dining, color: Colors.white),
-                    label: const Text('Lunch',
+                    label: const Text('Sulten',
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black
