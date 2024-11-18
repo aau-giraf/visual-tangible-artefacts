@@ -617,8 +617,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
         constraints: BoxConstraints(
           maxHeight: minHeight,
           maxWidth: minWidth,
-          minHeight: 400,
-          minWidth: 300,
+          minHeight: 0,
+          minWidth: 0,
         ),
         decoration: BoxDecoration(
           color: Color(0xFFF5F2E7),
