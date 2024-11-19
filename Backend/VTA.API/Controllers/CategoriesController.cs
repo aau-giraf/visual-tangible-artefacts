@@ -156,6 +156,8 @@ public class CategoriesController : ControllerBase
             return Forbid();
         }
 
+        ImageUtilities.DeleteImage(category.CategoryId);
+
         _context.Categories.Remove(category);
         await _context.SaveChangesAsync();
 
