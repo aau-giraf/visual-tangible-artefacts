@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -35,10 +36,14 @@ class CategoriesWidget extends StatefulWidget {
 class _CategoriesWidgetState extends State<CategoriesWidget> {
   bool _isMatrixVisible = false;
   late List<Category> categories;
+  late ArtifactState artifactState;
+  late AuthState authState;
 
   @override
   void initState() {
     super.initState();
+    artifactState = Provider.of<ArtifactState>(context, listen: false);
+    authState = Provider.of<AuthState>(context, listen: false);
     categories = widget.categories;
   }
 
@@ -56,21 +61,52 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildCategoryList() {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      itemCount: categories.length + 1, //+1 room for add button
-      itemBuilder: (context, index) {
-        if (index == categories.length) {
-          return _buildAddCategoryButton();
-        }
-        return _buildCategoryItem(context, index);
-      },
-      separatorBuilder: (context, index) => const SizedBox(width: 10),
+    return Theme(
+      data: ThemeData(
+        canvasColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+      ),
+      child: ReorderableListView.builder(
+        scrollDirection: Axis.horizontal,
+        buildDefaultDragHandles: false,
+        itemCount: categories.length + 1, //+1 room for add button
+        itemBuilder: (context, index) {
+          if (index == categories.length) {
+            return _buildAddCategoryButton(key: ValueKey('add_button'));
+          }
+          return _buildCategoryItem(context, index,
+              key: ValueKey(categories[index].categoryId));
+        },
+        onReorder: (int oldIndex, int newIndex) {
+          setState(() {
+            if (newIndex > categories.length) return;
+
+            if (oldIndex < newIndex) {
+              newIndex -= 1;
+            }
+
+            final Category movedCategory = categories.removeAt(oldIndex);
+            categories.insert(newIndex, movedCategory);
+
+            for (int i = min(oldIndex, newIndex);
+                i <= max(oldIndex, newIndex);
+                i++) {
+              categories[i].categoryIndex = i;
+              categories[i].userId = authState.userId;
+              artifactState.updateCategory(
+                categories[i],
+                token: authState.token!,
+              );
+            }
+          });
+        },
+      ),
     );
   }
 
-  Widget _buildAddCategoryButton() {
+  Widget _buildAddCategoryButton({Key? key}) {
     return SizedBox(
+      key: key,
       height: widget.widgetHeight,
       width: widget.widgetHeight * 2,
       child: TextButton(
@@ -101,11 +137,16 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, int index) {
+  Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
-    return TextButton(
-      onPressed: () => _showCategoryModal(context, categories[index]),
-      child: _buildCategoryContainer(item),
+    return ReorderableDragStartListener(
+      key: key,
+      index: index,
+      child: TextButton(
+        key: key,
+        onPressed: () => _showCategoryModal(context, categories[index]),
+        child: _buildCategoryContainer(item),
+      ),
     );
   }
 

@@ -52,6 +52,24 @@ class ApiProvider {
     }
   }
 
+  Future<Response?> patchAsJson(String endPoint,
+      {Map<String, String>? headers, Map<String, dynamic>? body}) async {
+    var uri = Uri.parse(baseUrl + endPoint);
+    try {
+      headers?.addEntries([
+        MapEntry('Content-Type', 'application/json'),
+      ]);
+      return await http.patch(
+        uri,
+        headers: headers ?? {'Content-Type': 'application/json'},
+        body: body != null ? json.encode(body) : null,
+      );
+    } on Exception catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
   void _buildMultipartRequest(
       Map<String, dynamic>? body, http.MultipartRequest request) {
     body?.forEach((key, value) {
