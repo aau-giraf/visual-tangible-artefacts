@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
