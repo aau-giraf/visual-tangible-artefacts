@@ -62,33 +62,33 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   }
 
   void removeAllArtifacts() {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text("Confirm"),
-        content: Text("Are you sure you want to remove all artifacts?"),
-        actions: <Widget>[
-          TextButton(
-            child: Text("Cancel"),
-            onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-            },
-          ),
-          TextButton(
-            child: Text("Yes"),
-            onPressed: () {
-              setState(() {
-                artifacts.clear();
-              });
-              Navigator.of(context).pop(); // Close the dialog
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Confirm"),
+          content: Text("Are you sure you want to remove all artifacts?"),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text("Yes"),
+              onPressed: () {
+                setState(() {
+                  artifacts.clear();
+                });
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _updateArtifactPosition(BoardArtefact artifact, Offset offset) {
     // Get the rendered size of the artifact if available
@@ -105,7 +105,20 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       // Update the artifact's position in the state
       // This will trigger a rebuild with the new position
       setState(() {
-        artifact.position = localPosition;
+        artifact.position =
+            Offset(offset.dx - size.width / 4, offset.dy - size.height / 4);
+
+        // Find highest current index and add 1
+        int highestIndex = artifacts.fold(
+            0,
+            (max, a) => (a.baseArtefact?.artefactIndex ?? 0) > max
+                ? (a.baseArtefact?.artefactIndex ?? 0)
+                : max);
+        artifact.baseArtefact!.artefactIndex = highestIndex + 1;
+
+        // Sort artifacts by their index
+        artifacts.sort((a, b) => (a.baseArtefact?.artefactIndex ?? 0)
+            .compareTo(b.baseArtefact?.artefactIndex ?? 0));
       });
     }
   }
@@ -218,8 +231,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     child: DragTarget<BoardArtefact>(
                       builder: (context, data, rejectedData) {
                         return buildTrashCan(
-                          height: _isDraggingOverTrashCan ? 120 : 50, 
-                          width: _isDraggingOverTrashCan ? 120 : 50, 
+                          height: _isDraggingOverTrashCan ? 120 : 50,
+                          width: _isDraggingOverTrashCan ? 120 : 50,
                         );
                       },
                       onAcceptWithDetails: (details) {
@@ -261,7 +274,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                   ),
                 ]),
               ),
-
             ],
           ),
         );
