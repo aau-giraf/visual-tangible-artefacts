@@ -67,14 +67,21 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   }
 
   void _updateArtifactPosition(BoardArtefact artifact, Offset offset) {
-    // Retrieve the stored size for the artifact
+    // Get the rendered size of the artifact if available
     Size? size = artifact.renderedSize;
 
     if (size != null) {
-      // Offset the position by half of the width and height to center it on the drag end
+      // Get the RenderBox of the current widget to handle coordinate conversions
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+
+      // Convert the global touch/click position to local coordinates
+      // This ensures the position is relative to the board's coordinate space
+      final localPosition = renderBox.globalToLocal(offset);
+
+      // Update the artifact's position in the state
+      // This will trigger a rebuild with the new position
       setState(() {
-        artifact.position =
-            Offset(offset.dx - size.width / 4, offset.dy - size.height / 4);
+        artifact.position = localPosition;
       });
     }
   }
