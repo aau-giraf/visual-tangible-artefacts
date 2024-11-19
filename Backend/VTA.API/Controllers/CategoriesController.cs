@@ -58,17 +58,13 @@ public class CategoriesController : ControllerBase
     // PUT: api/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{categoryId}")]
-    public async Task<IActionResult> PutCategory(string categoryId, Category category)
+    public async Task<IActionResult> PutCategory(Category category)
     {
         var userId = User.FindFirst("id")?.Value;
 
         if (userId != category.UserId)
         {
             return Forbid();
-        }
-        if (categoryId != category.CategoryId)
-        {
-            return BadRequest();
         }
 
         _context.Entry(category).State = EntityState.Modified;
