@@ -213,64 +213,58 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         builder: (BuildContext context, StateSetter setState) {
       int totalItems = (category.artefacts?.length ?? 0) + 1;
 
-      return Column(
-        children: [
-          if (isInDeletionMode)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => setState(() {
-                      isInDeletionMode = false;
-                    }),
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: totalItems,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _buildAddArtifactButton(category);
-                } else {
-                  final artifactIndex = index - 1;
-                  if (artifactIndex >= category.artefacts!.length) {
-                    return SizedBox(); // Return empty widget if index out of bounds
-                  }
-                  return GestureDetector(
-                    onLongPress: () {
-                      setState(() {
-                        isInDeletionMode = true;
-                      });
-                    },
-                    child: _buildImageGridItem(
-                      context,
-                      artifactIndex,
-                      category,
-                      isInDeletionMode,
-                      () => setState(() {
-                        isInDeletionMode = true;
-                      }),
-                      onDelete: () {
-                        setState(() {}); // Trigger rebuild after deletion
+      return GestureDetector(
+        onTap: () {
+          if (isInDeletionMode) {
+            setState(() {
+              isInDeletionMode = false;
+            });
+          }
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(10),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 8,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: totalItems,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _buildAddArtifactButton(category);
+                  } else {
+                    final artifactIndex = index - 1;
+                    if (artifactIndex >= category.artefacts!.length) {
+                      return SizedBox();
+                    }
+                    return GestureDetector(
+                      onLongPress: () {
+                        setState(() {
+                          isInDeletionMode = true;
+                        });
                       },
-                    ),
-                  );
-                }
-              },
+                      child: _buildImageGridItem(
+                        context,
+                        artifactIndex,
+                        category,
+                        isInDeletionMode,
+                        () => setState(() {
+                          isInDeletionMode = true;
+                        }),
+                        onDelete: () {
+                          setState(() {});
+                        },
+                      ),
+                    );
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
