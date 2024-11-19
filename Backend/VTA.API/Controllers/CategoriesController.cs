@@ -75,7 +75,7 @@ public class CategoriesController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!CategoryExists(categoryId))
+            if (!CategoryExists(category.CategoryId))
             {
                 return NotFound();
             }
