@@ -75,6 +75,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       setState(() {
         artifact.position =
             Offset(offset.dx - size.width / 4, offset.dy - size.height / 4);
+
+        // Find highest current index and add 1
+        int highestIndex = artifacts.fold(
+            0,
+            (max, a) => (a.baseArtefact?.artefactIndex ?? 0) > max
+                ? (a.baseArtefact?.artefactIndex ?? 0)
+                : max);
+        artifact.baseArtefact!.artefactIndex = highestIndex + 1;
+
+        // Sort artifacts by their index
+        artifacts.sort((a, b) => (a.baseArtefact?.artefactIndex ?? 0)
+            .compareTo(b.baseArtefact?.artefactIndex ?? 0));
       });
     }
   }
