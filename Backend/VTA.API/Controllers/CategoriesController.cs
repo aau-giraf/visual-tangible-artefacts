@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
@@ -57,14 +58,27 @@ public class CategoriesController : ControllerBase
 
     // PUT: api/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{categoryId}")]
-    public async Task<IActionResult> PutCategory(Category category)
+    [HttpPatch]
+    public async Task<IActionResult> PatchCategory(CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
 
-        if (userId != category.UserId)
+        var category = _context.Categories.Find(dto.CategoryId);
+
+        if (category == null)
         {
-            return Forbid();
+            return BadRequest();
+        }
+
+        if (dto.CategoryIndex != null && category.CategoryIndex != dto.CategoryIndex){
+            category.CategoryIndex = dto.CategoryIndex;
+        }
+        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name){
+            category.Name = dto.Name;
+        }
+        if (dto.Image != null){
+            //category.ImagePath. dto.Image
+            //category.CategoryIndex = dto.CategoryIndex;
         }
 
         _context.Entry(category).State = EntityState.Modified;
