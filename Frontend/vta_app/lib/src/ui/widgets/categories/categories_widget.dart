@@ -211,6 +211,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
     return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
+      int totalItems = (category.artefacts?.length ?? 0) + 1;
+
       return Column(
         children: [
           if (isInDeletionMode)
@@ -236,11 +238,15 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
-              itemCount: category.artefacts!.length + 1,
+              itemCount: totalItems,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _buildAddArtifactButton(category);
                 } else {
+                  final artifactIndex = index - 1;
+                  if (artifactIndex >= category.artefacts!.length) {
+                    return SizedBox(); // Return empty widget if index out of bounds
+                  }
                   return GestureDetector(
                     onLongPress: () {
                       setState(() {
@@ -249,12 +255,15 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                     },
                     child: _buildImageGridItem(
                       context,
-                      index - 1,
+                      artifactIndex,
                       category,
                       isInDeletionMode,
                       () => setState(() {
                         isInDeletionMode = true;
                       }),
+                      onDelete: () {
+                        setState(() {}); // Trigger rebuild after deletion
+                      },
                     ),
                   );
                 }
@@ -267,12 +276,18 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildImageGridItem(BuildContext context, int index, Category category,
-      bool isInDeletionMode, VoidCallback onLongPress) {
+      bool isInDeletionMode, VoidCallback onLongPress,
+      {required VoidCallback onDelete}) {
     var authState = Provider.of<AuthState>(context);
     var artifactState = Provider.of<ArtifactState>(context, listen: false);
     var headers = <String, String>{
       'Authorization': 'Bearer ${authState.token}'
     };
+
+    if (index >= category.artefacts!.length) {
+      return SizedBox(); // Safety check
+    }
+
     var boardArtefacts = category.artefacts!
         .map((artefact) =>
             BoardArtefact.fromArtefact(artefact, headers: headers))
@@ -345,6 +360,9 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                           token: authState.token!,
                         );
 
+                        category.artefacts!.removeAt(index);
+                        onDelete(); // Trigger parent rebuild
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Artifact deleted successfully'),
@@ -352,9 +370,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                           ),
                         );
 
-                        if (category.artefacts!.length <= 1) {
-                          Navigator.pop(
-                              context); // Close modal if no artifacts left
+                        if (category.artefacts!.isEmpty) {
+                          Navigator.pop(context);
                         }
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
