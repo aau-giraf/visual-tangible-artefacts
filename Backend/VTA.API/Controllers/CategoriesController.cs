@@ -76,10 +76,6 @@ public class CategoriesController : ControllerBase
         if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name){
             category.Name = dto.Name;
         }
-        if (dto.Image != null){
-            //category.ImagePath. dto.Image
-            //category.CategoryIndex = dto.CategoryIndex;
-        }
 
         _context.Entry(category).State = EntityState.Modified;
 
