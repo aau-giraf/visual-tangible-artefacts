@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -78,15 +79,24 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         },
         onReorder: (int oldIndex, int newIndex) {
           setState(() {
-            if (newIndex <= categories.length) {
-              if (oldIndex < newIndex) {
-                newIndex -= 1;
-              }
-              categories.insert(newIndex, categories.removeAt(oldIndex));
-              categories[newIndex].categoryIndex = newIndex;
-              categories[newIndex].userId = authState.userId;
-              artifactState.updateCategory(categories[newIndex],
-                  token: authState.token!);
+            if (newIndex > categories.length) return;
+
+            if (oldIndex < newIndex) {
+              newIndex -= 1;
+            }
+
+            final Category movedCategory = categories.removeAt(oldIndex);
+            categories.insert(newIndex, movedCategory);
+
+            for (int i = min(oldIndex, newIndex);
+                i <= max(oldIndex, newIndex);
+                i++) {
+              categories[i].categoryIndex = i;
+              categories[i].userId = authState.userId;
+              artifactState.updateCategory(
+                categories[i],
+                token: authState.token!,
+              );
             }
           });
         },

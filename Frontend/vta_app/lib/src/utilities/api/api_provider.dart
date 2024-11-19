@@ -52,15 +52,14 @@ class ApiProvider {
     }
   }
 
-  Future<Response?> putAsJson(String endPoint,
+  Future<Response?> patchAsJson(String endPoint,
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
-    print(json.encode(body));
     try {
       headers?.addEntries([
         MapEntry('Content-Type', 'application/json'),
       ]);
-      return await http.put(
+      return await http.patch(
         uri,
         headers: headers ?? {'Content-Type': 'application/json'},
         body: body != null ? json.encode(body) : null,

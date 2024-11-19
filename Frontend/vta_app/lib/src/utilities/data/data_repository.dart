@@ -114,21 +114,14 @@ class ArtifactRepository extends ApiDataRepository {
 
   Future<Category?> updateCategory(Category category,
       {required String token}) async {
-    try {
-      var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var response = await apiProvider.putAsJson(
-          'Users/Categories/${category.categoryId}',
-          headers: headers,
-          body: category.toJson());
-      if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body);
-        return Category.fromJson(jsonResponse);
-      }
-      return null;
-    } catch (e) {
-      debugPrint("An error occured while posting category: $e");
-      return null;
+    var headers = <String, String>{'Authorization': 'Bearer $token'};
+    var response = await apiProvider.patchAsJson('Users/Categories/',
+        headers: headers, body: category.toJson());
+    if (responseOk(response)) {
+      var jsonResponse = json.decode(response!.body);
+      return Category.fromJson(jsonResponse);
     }
+    return null;
   }
 
   Future<Artefact?> addArtifact(Artefact artefact,
