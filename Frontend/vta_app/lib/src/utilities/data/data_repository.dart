@@ -140,6 +140,25 @@ class ArtifactRepository extends ApiDataRepository {
       return null;
     }
   }
+
+  Future<bool> deleteArtifact({
+    required String artifactId,
+    required String token,
+  }) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+
+      var response = await apiProvider.delete(
+        'Users/Artefacts/$artifactId',
+        headers: headers,
+      );
+
+      return responseOk(response);
+    } catch (e) {
+      debugPrint("An error occurred while deleting artifact: $e");
+      return false;
+    }
+  }
 }
 
 class UserRepository extends ApiDataRepository {
