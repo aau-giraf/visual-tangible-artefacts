@@ -73,6 +73,18 @@ class ArtifactState with ChangeNotifier {
     return false;
   }
 
+  Future<bool> updateCategory(Category category,
+      {required String token}) async {
+    try {
+      await ArtifactRepository().updateCategory(category, token: token);
+      _categories?.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> addArtifact(Artefact artifact, {required String token}) async {
     var newArtifact =
         await ArtifactRepository().addArtifact(artifact, token: token);
