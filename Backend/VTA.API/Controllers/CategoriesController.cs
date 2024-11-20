@@ -70,11 +70,18 @@ public class CategoriesController : ControllerBase
             return BadRequest();
         }
 
-        if (dto.CategoryIndex != null && category.CategoryIndex != dto.CategoryIndex){
+        if (dto.CategoryIndex != null && category.CategoryIndex != dto.CategoryIndex)
+        {
             category.CategoryIndex = dto.CategoryIndex;
         }
-        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name){
+        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name)
+        {
             category.Name = dto.Name;
+        }
+        if (dto.Image != null)
+        {
+            ImageUtilities.DeleteImage(category.CategoryId);
+            ImageUtilities.AddImage(dto.Image, dto.CategoryId);
         }
 
         _context.Entry(category).State = EntityState.Modified;
