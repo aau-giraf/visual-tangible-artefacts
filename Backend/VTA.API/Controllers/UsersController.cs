@@ -47,10 +47,10 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        //if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
-        //{
-        //    return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
-        //}
+        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
+        {
+            return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
+        }
 
         var token = GenerateJwt(user.Id, user.Name);
         return new UserLoginResponseDTO
@@ -121,7 +121,7 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/Users
-    [HttpGet]
+    [HttpGet("Users")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
     {
         List<User> users = await _context.Users.ToListAsync();
@@ -134,10 +134,12 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/Users/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<UserGetDTO>> GetUser(string id)
+    [HttpGet]
+    public async Task<ActionResult<UserGetDTO>> GetUser()
     {
-        var user = await _context.Users.FindAsync(id);
+        var userId = User.FindFirst("id")?.Value;
+
+        User user = await _context.Users.FindAsync(userId);
 
         if (user == null)
         {
@@ -218,21 +220,30 @@ public class UsersController : ControllerBase
 
     private string GenerateJwt(string userId, string name)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretsSingleton.Secrets["SecretKey"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);//secure enough for this projec
+        var secretKey = _config.GetValue<string>("Secret:SecretKey")
+                        ?? Environment.GetEnvironmentVariable("JWT_SECRET")
+                        ?? throw new InvalidOperationException("A JWT secret is required for token generation.");
+        var validIssuer = "api.vta.com";
+        var validAudience = "user.vta.com";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); // secure enough for this project
+
         var claims = new[]
         {
-            new Claim("id", userId),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-        };
+        new Claim("id", userId),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+    };
+
         var token = new JwtSecurityToken(
-        issuer: _config.GetSection("Secret")["ValidIssuer"],
-        audience: _config.GetSection("Secret")["ValidAudience"],
-        claims: claims,
-        expires: DateTime.UtcNow.AddDays(1),
-        signingCredentials: creds);
+            issuer: validIssuer,
+            audience: validAudience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
 }

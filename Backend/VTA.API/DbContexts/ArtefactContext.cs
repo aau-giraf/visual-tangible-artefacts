@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 
@@ -55,7 +55,10 @@ public partial class ArtefactContext : DbContext
             entity.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("userID");
-
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
+                
             entity.HasOne(d => d.Category).WithMany(p => p.Artefacts)
                 .HasForeignKey(d => d.CategoryId)
                 .HasConstraintName("artefact_ibfk_2");

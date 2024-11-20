@@ -94,7 +94,7 @@ public class ArtefactsController : ControllerBase
     // POST: api/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Artefact>> PostArtefact(ArtefactPostDTO artefactPostDTO)
+    public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
 
@@ -125,7 +125,11 @@ public class ArtefactsController : ControllerBase
             }
         }
 
-        return CreatedAtAction("GetArtefact", new { artefactId = artefact.ArtefactId }, artefact);
+        var artefacts = await _context.Artefacts.FindAsync(artefactId);
+
+        ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
+
+        return Ok(artefactGetDTO);
     }
 
     // DELETE: api/Artefacts/5

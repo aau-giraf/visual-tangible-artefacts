@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/models/artefact.dart';
 import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/models/user.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 
 class AuthState with ChangeNotifier {
@@ -64,6 +66,71 @@ class ArtifactState with ChangeNotifier {
         await ArtifactRepository().addCategory(category, token: token);
     if (newCategory != null) {
       _categories?.add(newCategory);
+      _categories?.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> updateCategory(Category category,
+      {required String token}) async {
+    try {
+      await ArtifactRepository().updateCategory(category, token: token);
+      _categories?.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> addArtifact(Artefact artifact, {required String token}) async {
+    var newArtifact =
+        await ArtifactRepository().addArtifact(artifact, token: token);
+    if (newArtifact != null) {
+      _categories
+          ?.firstWhere(
+              (category) => category.categoryId == newArtifact.categoryId)
+          .artefacts
+          ?.add(newArtifact);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Inside ArtifactState class:
+
+  Future<bool> deleteArtifact(String artifactId,
+      {required String token}) async {
+    try {
+      final success = await ArtifactRepository()
+          .deleteArtifact(artifactId: artifactId, token: token);
+
+      if (success) {
+        // Remove artifact from local state
+        for (var category in _categories ?? []) {
+          category.artefacts
+              ?.removeWhere((artifact) => artifact.artefactId == artifactId);
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting artifact: $e');
+      return false;
+    }
+  }
+}
+
+class UserState with ChangeNotifier {
+  User? _user;
+  User? get user => _user;
+  Future<bool> loadUser(String token) async {
+    _user = await UserRepository().fetchUser(token);
+    if (_user != null) {
       notifyListeners();
       return true;
     }

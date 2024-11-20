@@ -20,6 +20,7 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _checkAuth() async {
     final authState = Provider.of<AuthState>(context, listen: false);
     final artifactState = Provider.of<ArtifactState>(context, listen: false);
+    final userState = Provider.of<UserState>(context, listen: false);
     if (await authState.loadTokenFromCache() &&
         await authState.loadUserIdFromCache()) {
       // Token is valid, navigate to user page
@@ -27,7 +28,10 @@ class _AuthPageState extends State<AuthPage> {
         MaterialPageRoute(
           builder: (context) => LoadingPage(
             awaitCallbacks: [
-              () async => artifactState.loadCategories(authState.token!),
+              () async {
+                return await userState.loadUser(authState.token!) &&
+                    await artifactState.loadCategories(authState.token!);
+              },
             ],
             child: ArtifactBoardScreen(),
           ),

@@ -1,17 +1,26 @@
 name: Continuous Integration and Deployment
 
 on:
+  pull_request:
+    branches:
+      - dev-main
+      - main
   push:
     branches:
+      - dev-main
       - main
 
 jobs:
-  test-and-deploy:
-    runs-on: self-hosted
+  ci:
+    runs-on: ubuntu-latest
+
+    env:
+      TEST_CONNECTION_STRING: ${{ secrets.TEST_CONNECTION_STRING }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore dependencies
         run: dotnet restore
@@ -22,16 +31,29 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
+  cd:
+    runs-on: self-hosted
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build the project
+        run: dotnet build --configuration Release
+
       - name: Publish the WebAPI
-        if: success()
         run: dotnet publish --configuration Release --output ./output
 
       - name: Copy to deployment directory
-        if: success()
         run: rsync -av --exclude='appsettings.json' --exclude='Assets/' ./output/ /var/www/VTA.API/
 
       - name: Set permissions for the assets folder
         run: sudo chmod 777 /var/www/VTA.API/Assets
-        
-      - name: Restart the service using SSH
+
+      - name: Restart the service
         run: sudo systemctl restart vtaapi.service

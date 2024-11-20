@@ -19,6 +19,20 @@ class ApiProvider {
     }
   }
 
+  Future<Response?> delete(String endPoint,
+      {Map<String, String>? headers}) async {
+    var uri = Uri.parse(baseUrl + endPoint);
+    try {
+      return await http.delete(
+        uri,
+        headers: headers,
+      );
+    } on Exception catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
   Future<Response?> postAsJson(String endPoint,
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
@@ -46,6 +60,24 @@ class ApiProvider {
       _buildMultipartRequest(body, request);
       var streamedResponse = await request.send();
       return await http.Response.fromStream(streamedResponse);
+    } on Exception catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
+  Future<Response?> patchAsJson(String endPoint,
+      {Map<String, String>? headers, Map<String, dynamic>? body}) async {
+    var uri = Uri.parse(baseUrl + endPoint);
+    try {
+      headers?.addEntries([
+        MapEntry('Content-Type', 'application/json'),
+      ]);
+      return await http.patch(
+        uri,
+        headers: headers ?? {'Content-Type': 'application/json'},
+        body: body != null ? json.encode(body) : null,
+      );
     } on Exception catch (e) {
       print(e.toString());
       return null;

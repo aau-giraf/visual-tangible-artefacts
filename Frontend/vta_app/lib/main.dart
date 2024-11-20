@@ -17,7 +17,7 @@ Future<void> clearSharedPreferences() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
-  await clearSharedPreferences();
+  // await clearSharedPreferences();
 
   // Set up the SettingsController, which will glue user settings to multiple
   // Flutter Widgets.
@@ -40,5 +40,6 @@ void main() async {
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => AuthState()),
     ChangeNotifierProvider(create: (context) => ArtifactState()),
+    ChangeNotifierProvider(create: (context) => UserState()),
   ], child: MyApp(settingsController: settingsController)));
 }

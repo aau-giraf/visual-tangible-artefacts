@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  String _errorMessage = '';
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -29,14 +30,14 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => AuthPage()));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed')),
-          );
+          setState(() {
+            _errorMessage = 'Brugernavn eller adgangskode forkert.';
+          });
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e')),
-        );
+        setState(() {
+          _errorMessage = 'Ukendt fejl: $e';
+        });
       }
     }
   }
@@ -86,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _usernameController,
                       decoration: InputDecoration(
-                        labelText: 'Navn',
+                        labelText: 'Brugernavn',
                         filled: true,
                         fillColor: Colors.grey.shade200,
                         border: OutlineInputBorder(
@@ -96,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Indtast venligst dit navn';
+                          return 'Indtast venligst dit brugernavn';
                         }
                         return null;
                       },
@@ -121,6 +122,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
+                    if (_errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20.0),
+                        child: Text(
+                          _errorMessage,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
                     SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _login,

@@ -1,77 +1,155 @@
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
 
-namespace VTA.Tests.IntegrationTests.ControllerTests;
-
-public class UsersControllerTests : IClassFixture<CustomApplicationFactory<Program>>
+namespace VTA.Tests.IntegrationTests.ControllerTests
 {
-    private readonly HttpClient _client;
-    private readonly TestUserHelper _testUserHelper;
-    private readonly string _secretKey;
-
-    public UsersControllerTests(CustomApplicationFactory<Program> factory)
+    public class UsersControllerTests : IClassFixture<CustomApplicationFactory>
     {
-        _client = factory.CreateClient();
-        _testUserHelper = new TestUserHelper(_client);
-        _secretKey = factory.Configuration["Secret:SecretKey"];
-    }
+        private readonly HttpClient _client;
+        private readonly Utilities _utilities;
 
-    [Fact]
-    public async Task Login_ReturnsValidJwtWithCorrectUserId()
-    {
-        await _testUserHelper.CreateTestUserAsync();
-        var loginDto = new UserLoginDTO
+        public UsersControllerTests(CustomApplicationFactory factory)
         {
-            Username = "testuser",
-            Password = "123"
-        };
+            _client = factory.CreateClient();
+            _utilities = new Utilities(_client);
+        }
 
-        var response = await _client.PostAsJsonAsync("/api/Users/Login", loginDto);
-        response.EnsureSuccessStatusCode();
-
-        var loginResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
-        Assert.NotNull(loginResponse);
-        Assert.NotEmpty(loginResponse.Token);
-
-        await ValidateJwtMatchesUser(loginResponse.Token, loginDto.Username);
-
-        await _testUserHelper.DeleteTestUserAsync();
-    }
-
-    private async Task ValidateJwtMatchesUser(string token, string expectedUsername)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_secretKey);
-
-        var validationParameters = new TokenValidationParameters
+        [Fact]
+        public async Task TestUserSignUp()
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = true,
-            ValidIssuer = "api.vta.com",
-            ValidateAudience = true,
-            ValidAudience = "user.vta.com",
-            ValidateLifetime = false
-        };
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
 
-        tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-        var jwtToken = (JwtSecurityToken)validatedToken;
-        var userId = jwtToken.Claims.First(x => x.Type == "id").Value;
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.NotNull(signUpResult?.Token);
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/{userId}");
-        requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
+        }
 
-        var userResponse = await _client.SendAsync(requestMessage);
-        userResponse.EnsureSuccessStatusCode();
-        var user = await userResponse.Content.ReadFromJsonAsync<UserGetDTO>();
+        [Fact]
+        public async Task TestUserLogin()
+        {
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.NotNull(signUpResult?.Token);
 
-        Assert.Equal(expectedUsername, user?.Username);
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
 
-        Assert.NotNull(jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Jti));
-        Assert.NotNull(jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Iat));
+            Assert.Equal(HttpStatusCode.OK, loginStatus);
+            Assert.NotNull(loginResult?.Token);
+
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
+        }
+
+        [Fact]
+        public async Task TestUserDeletion()
+        {
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.NotNull(signUpResult?.Token);
+
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+            Assert.Equal(HttpStatusCode.OK, loginStatus);
+            Assert.NotNull(loginResult?.Token);
+
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
+
+            var (loginAfterDeletionStatus, loginAfterDeletionResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+            Assert.Equal(HttpStatusCode.NotFound, loginAfterDeletionStatus);
+            Assert.Null(loginAfterDeletionResult);
+        }
+
+        // This test requires the username to be unique
+        // [Fact]
+        // public async Task TestDuplicateUserSignUpReturnsConflict()
+        // {
+        //     // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+        //     var (firstSignUpStatus, _) = await _utilities.SignUpUserAsync("duplicateUser", "testpassword", "Test User");
+        //     Assert.Equal(HttpStatusCode.OK, firstSignUpStatus);
+
+        //     var (duplicateSignUpStatus, _) = await _utilities.SignUpUserAsync("duplicateUser", "testpassword", "Test User");
+        //     Assert.Equal(HttpStatusCode.Conflict, duplicateSignUpStatus);
+
+        //     var (loginStatus, loginResult) = await _utilities.LoginUserAsync("duplicateUser", "testpassword");
+        //     Assert.Equal(HttpStatusCode.OK, loginStatus);
+
+        //     var deleteStatus = await _utilities.DeleteUserAsync(loginResult!.userId, loginResult.Token);
+        //     Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
+        // }
+
+        [Fact]
+        public async Task TestLoginWithIncorrectPasswordReturnsNotFound()
+        {
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "correctpassword", "Test User");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.NotNull(signUpResult?.Token);
+
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "wrongpassword");
+            Assert.Equal(HttpStatusCode.NotFound, loginStatus);
+            Assert.Null(loginResult);
+
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
+        }
+
+        [Fact]
+        public async Task TestGetUsersReturnsOk()
+        {
+            var token = await _utilities.CreateUserAndReturnTokenAsync();
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Users");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            await _utilities.DeleteUserWithTokenAsync();
+        }
+
+        [Fact]
+        public async Task TestGetUsersReturnsUnauthorizedWithNoToken()
+        {
+            var response = await _client.GetAsync("/api/Users");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task TestImageUploadReturnsBadRequestWithoutFile()
+        {
+            var response = await _client.PostAsync("/api/Users/test-upload", null);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task TestForbiddenUserDeletionByAnotherUser()
+        {
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync("user1", "password1", "User One");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+            Assert.NotNull(signUpResult1?.Token);
+
+            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync("user2", "password2", "User Two");
+            Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+            Assert.NotNull(signUpResult2?.Token);
+
+            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult1!.userId, signUpResult2!.Token);
+            Assert.Equal(HttpStatusCode.Forbidden, deleteStatus);
+
+            var deleteStatus1 = await _utilities.DeleteUserAsync(signUpResult1!.userId, signUpResult1.Token);
+            var deleteStatus2 = await _utilities.DeleteUserAsync(signUpResult2!.userId, signUpResult2.Token);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus1);
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatus2);
+        }
+
     }
 }

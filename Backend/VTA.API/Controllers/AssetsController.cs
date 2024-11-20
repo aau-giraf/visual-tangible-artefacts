@@ -8,9 +8,9 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class AssetsController : ControllerBase
 {
-    // GET: api/Assets/DrinkImages
+    // GET: api/Assets/Images
     [HttpGet("{filepath}")]
-    public IActionResult GetDrinkImage(string filepath)
+    public IActionResult GetImage(string filepath)
     {
         var imagePath = $"Assets/{filepath}";
         if (!System.IO.File.Exists(imagePath))

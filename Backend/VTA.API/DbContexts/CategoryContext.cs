@@ -52,6 +52,9 @@ public partial class CategoryContext : DbContext
             entity.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("userID");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Artefacts)
                 .HasForeignKey(d => d.CategoryId)

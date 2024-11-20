@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/models/artefact.dart';
 import 'package:vta_app/src/models/category.dart';
 import 'package:vta_app/src/models/login_form.dart';
 import 'package:vta_app/src/models/login_response.dart';
+import 'package:vta_app/src/models/user.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'dart:convert';
 
@@ -13,7 +15,7 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Local']);
+    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
   }
 
   bool responseOk(http.Response? response) {
@@ -82,6 +84,7 @@ class ArtifactRepository extends ApiDataRepository {
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
             .toList();
+        categories.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
         return categories;
       } else {
         return null;
@@ -100,12 +103,80 @@ class ArtifactRepository extends ApiDataRepository {
           headers: headers, body: category.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
-        var newcategory = Category.fromJson(jsonResponse);
         return Category.fromJson(jsonResponse);
       }
       return null;
     } catch (e) {
       debugPrint("An error occured while posting category: $e");
+      return null;
+    }
+  }
+
+  Future<Category?> updateCategory(Category category,
+      {required String token}) async {
+    var headers = <String, String>{'Authorization': 'Bearer $token'};
+    var response = await apiProvider.patchAsJson('Users/Categories/',
+        headers: headers, body: category.toJson());
+    if (responseOk(response)) {
+      var jsonResponse = json.decode(response!.body);
+      return Category.fromJson(jsonResponse);
+    }
+    return null;
+  }
+
+  Future<Artefact?> addArtifact(Artefact artefact,
+      {required String token}) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+      var response = await apiProvider.postAsMultiPart('Users/Artefacts',
+          headers: headers, body: artefact.toJson());
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body);
+        return Artefact.fromJson(jsonResponse);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("An error occured while posting category: $e");
+      return null;
+    }
+  }
+
+  Future<bool> deleteArtifact({
+    required String artifactId,
+    required String token,
+  }) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+
+      var response = await apiProvider.delete(
+        'Users/Artefacts/$artifactId',
+        headers: headers,
+      );
+
+      return responseOk(response);
+    } catch (e) {
+      debugPrint("An error occurred while deleting artifact: $e");
+      return false;
+    }
+  }
+}
+
+class UserRepository extends ApiDataRepository {
+  Future<User?> fetchUser(String token) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Users', headers: headers);
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body);
+        var user = User.fromJson(jsonResponse);
+        return user;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint("An error occured while fetching user data: $e");
       return null;
     }
   }
