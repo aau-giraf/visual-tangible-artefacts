@@ -80,8 +80,8 @@ public class CategoriesController : ControllerBase
         }
         if (dto.Image != null)
         {
-            ImageUtilities.DeleteImage(category.CategoryId);
-            ImageUtilities.AddImage(dto.Image, dto.CategoryId);
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+            ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories");
         }
 
         _context.Entry(category).State = EntityState.Modified;
