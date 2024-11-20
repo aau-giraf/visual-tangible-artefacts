@@ -13,6 +13,7 @@ import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:cross_file/cross_file.dart';
+import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 
 class CategoriesWidget extends StatefulWidget {
@@ -139,9 +140,10 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
-    return ReorderableDelayedDragStartListener(
+    return CustomDelayDragStartListener(
       key: key,
       index: index,
+      delay: 200,
       child: TextButton(
         key: key,
         onPressed: () => _showCategoryModal(context, categories[index]),
