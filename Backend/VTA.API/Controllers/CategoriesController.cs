@@ -56,10 +56,10 @@ public class CategoriesController : ControllerBase
         return categoryGetDTO;
     }
 
-    // PUT: api/Categories/5
+    // PATCH: api/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPatch]
-    public async Task<IActionResult> PatchCategory(CategoryPatchDTO dto)
+    public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
 
