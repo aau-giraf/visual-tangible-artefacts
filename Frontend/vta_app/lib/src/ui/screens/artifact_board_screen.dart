@@ -82,10 +82,10 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double padding = 10;
+    double padding = 5;
     double screenHeight = MediaQuery.of(context).size.height;
     double categoriesWidgetHeight = 60;
-    double dividerHeight = 20;
+    double dividerHeight = 5;
 
     var categories = context.watch<ArtifactState>().categories;
 
@@ -122,17 +122,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       child: Center(
                         child: _showDirectional ? linearBoard : talkingMat,
                       ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        BoardArtefact newArtifact = BoardArtefact(
-                          content:
-                              SvgPicture.asset('assets/icons/sillyface.svg'),
-                          position: const Offset(299, 200),
-                        );
-                        talkingMatKey.currentState?.addArtifact(newArtifact);
-                      },
-                      child: const Text('Add Artifact'),
                     ),
                     Positioned(
                       top: 30,
