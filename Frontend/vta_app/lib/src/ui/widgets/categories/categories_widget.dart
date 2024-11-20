@@ -15,6 +15,7 @@ import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
+import 'package:http/http.dart' as http;
 
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
@@ -49,7 +50,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     categories = widget.categories;
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: widget.widgetHeight,
@@ -109,9 +110,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         },
       ),
     );
-    
   }
-
 
   Widget _buildAddCategoryButton({Key? key}) {
     return SizedBox(
@@ -146,7 +145,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-
   Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
     return ReorderableDragStartListener(
@@ -154,8 +152,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       index: index,
       child: GestureDetector(
         onLongPress: () {
-      _showCategoryEditModal(context, item); // Show modal on long press
-    },
+          _showCategoryEditModal(context, item); // Show modal on long press
+        },
         child: TextButton(
           key: key,
           onPressed: () => _showCategoryModal(context, categories[index]),
@@ -195,7 +193,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
 //ModalSheet for viewing categories with artefacts
-   void _showCategoryModal(BuildContext context, Category category) {
+  void _showCategoryModal(BuildContext context, Category category) {
     setState(() {
       showModalBottomSheet(
         backgroundColor: Colors.white,
@@ -224,6 +222,14 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
 // ModalSheet for editing and deleting categories
   void _showCategoryEditModal(BuildContext context, Category category) {
+    final categoriesEdit = CategoriesEdit(
+      categoryName: category.name!,
+      imageUrl: category.imageUrl,
+      categoryId: category.categoryId!,
+      onEdit: () {
+        MaterialPageRoute(builder: (context) => AddPicturePage());
+      }, // Pass edit functionality if needed
+    );
     showModalBottomSheet(
       backgroundColor: Colors.white,
       isScrollControlled: true,
@@ -242,35 +248,24 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 title: const Text('Edit', style: TextStyle(color: Colors.blue)),
                 onTap: () {
                   Navigator.pop(context); // Close the modal
+                  _showEditCategoryPopup(context, category);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                title:
+                    const Text('Delete', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context); // Close the modal
-                  final categoriesEdit = CategoriesEdit(
-                    categoryName: category.name!,
-                    imageUrl: category.imageUrl,
-                    onEdit: () {
-                      MaterialPageRoute(builder: (context) => AddPicturePage());
-                    }, // Pass edit functionality if needed
-                    onDelete: () {
-                      // Perform deletion using CategoriesEdit logic
-                      setState(() {
-                        categories.remove(category); // Reflect UI changes
-                      });
-                    },
-                  );
                   categoriesEdit.showDeleteConfirmationDialog(context);
                 },
               ),
               TextButton(
                 onPressed: () {
-                  //CategoriesEdit.deleteCategory(context, category);
                   Navigator.pop(context); // Close the modal
                 },
-                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                child:
+                    const Text('Cancel', style: TextStyle(color: Colors.grey)),
               ),
             ],
           ),
@@ -278,8 +273,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       },
     );
   }
-
-
 
   Widget _buildImageGrid(Category category) {
     return GridView.builder(
@@ -356,6 +349,30 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
+  void _showEditCategoryPopup(BuildContext context, Category category) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AddItemPopup(
+            isCategory: true,
+            category: category,
+            onSubmit: (name, imageBytes) {
+              var artifactState =
+                  Provider.of<ArtifactState>(context, listen: false);
+              var authState = Provider.of<AuthState>(context, listen: false);
+              var newCategory = Category(
+                  categoryId: category.categoryId,
+                  name: name,
+                  userId: authState.userId,
+                  categoryIndex: category.categoryIndex,
+                  image: imageBytes);
+              artifactState.updateCategory(newCategory,
+                  token: authState.token!);
+            });
+      },
+    );
+  }
+
   void _showAddArtifactPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
@@ -378,325 +395,19 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       },
     );
   }
-
-}
-
-class CategoryPopup extends StatefulWidget {
-  const CategoryPopup({super.key});
-
-  @override
-  State<CategoryPopup> createState() => _CategoryPopupState();
-}
-
-class _CategoryPopupState extends State<CategoryPopup> {
-  Uint8List? imageBytes;
-  var formKey = GlobalKey<FormState>();
-  TextEditingController categoryNameController = TextEditingController();
-  void setGeneratedImage(String bytes) {
-    final decodedBytes = base64Decode(bytes);
-    setState(() {
-      imageBytes = decodedBytes;
-    });
-  }
-
-  @override
-  void dispose() {
-    categoryNameController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    var screenSize = MediaQuery.of(context).size;
-    var minHeight = screenSize.height * 0.7;
-    var minWidth = screenSize.width * 0.5;
-    final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-    return Dialog(
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: minHeight,
-          maxWidth: minWidth,
-          minHeight: 300,
-          minWidth: 250,
-        ),
-        decoration: BoxDecoration(
-          color: Color(0xFFF5F2E7),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(4, 4),
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Navigator(
-          key: navigatorKey,
-          onGenerateRoute: (RouteSettings settings) {
-            Widget page;
-            switch (settings.name) {
-              case '/ai':
-                page = Padding(
-                  padding: EdgeInsets.all(20),
-                  child: AIPage(onImageProcessed: setGeneratedImage),
-                );
-                break;
-              default:
-                page = Scrollbar(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _buildAddCategoryForm(minWidth, formKey,
-                          categoryNameController, navigatorKey, context),
-                    ),
-                  ),
-                );
-            }
-            return PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => page,
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                const begin = Offset(-1.0, 0.0);
-                const end = Offset.zero;
-                const curve = Curves.easeInOut;
-                var tween = Tween(begin: begin, end: end)
-                    .chain(CurveTween(curve: curve));
-                var offsetAnimation = animation.drive(tween);
-                return SlideTransition(position: offsetAnimation, child: child);
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddCategoryForm(
-      double minWidth,
-      GlobalKey<FormState> formKey,
-      TextEditingController categoryNameController,
-      GlobalKey<NavigatorState> navigatorKey,
-      BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 18.0),
-          child: Text(
-            'Tilføj kategori',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 32,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-        SizedBox(height: 10),
-        SizedBox(
-          width: minWidth * 0.5,
-          child: Form(
-            key: formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Et navn er påkrævet';
-                    }
-                    return null;
-                  },
-                  controller: categoryNameController,
-                  style: TextStyle(color: Colors.black),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
-                    ),
-                    hintText: 'Kategori navn',
-                    hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
-                  ),
-                ),
-                FormField(
-                  validator: (value) =>
-                      imageBytes == null ? 'Et billede er påkrævet' : null,
-                  builder: (FormFieldState state) {
-                    return Container();
-                  },
-                ),
-                SizedBox(height: 20),
-                imageBytes != null
-                    ? Image.memory(
-                        imageBytes!,
-                        width: 200,
-                        height: 200,
-                      )
-                    : Image.asset(
-                        'assets/images/no_image.png',
-                        width: 200,
-                        height: 200,
-                      ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: 10),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildButton(
-                  'Tag nyt billede', 'assets/images/camera_icon_filled.png',
-                  onClick: () => _onTakePictureButtonPressed()),
-              SizedBox(width: 20),
-              _buildButton('Upload', 'assets/images/folder_icon.png',
-                  onClick: () async {
-                var result = await FilePicker.platform.pickFiles(
-                    type: FileType.image, allowMultiple: false, withData: true);
-                if (result != null) {
-                  setState(() {
-                    imageBytes = result.files.single.bytes;
-                  });
-                }
-              }),
-              SizedBox(width: 20),
-              _buildButton('Lav med AI', 'assets/images/ai_file.png',
-                  onClick: () {
-                navigatorKey.currentState?.pushNamed('/ai');
-              }),
-            ],
-          ),
-        ),
-        SizedBox(height: 20),
-        Column(
-          children: [
-            ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Color(0xFFBADFB5)),
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  var artifactState =
-                      Provider.of<ArtifactState>(context, listen: false);
-                  var authState =
-                      Provider.of<AuthState>(context, listen: false);
-                  var newCategory = Category(
-                      name: categoryNameController.text,
-                      userId: authState.userId,
-                      categoryIndex: 0,
-                      image: imageBytes);
-                  artifactState.addCategory(newCategory,
-                      token: authState.token!);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text(
-                'Tilføj',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Close'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  void _onTakePictureButtonPressed() {
-    {
-      if (CameraManager().cameras.isEmpty) {
-        var snackMessage = 'No cameras available';
-        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-          snackMessage = 'Camera not supported on desktop';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(snackMessage)),
-        );
-      } else {
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => TakePictureScreen(
-                  camera: CameraManager().cameras.first,
-                  onImageChosen: (bytes) {
-                    setState(() {
-                      imageBytes = bytes;
-                    });
-                  },
-                )));
-      }
-    }
-  }
-
-  Widget _buildButton(String label, String imageUrl,
-      {void Function()? onClick}) {
-    return GestureDetector(
-      onTap: onClick,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x3F000000),
-                  blurRadius: 4,
-                  offset: Offset(4, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage(imageUrl),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class AddItemPopup extends StatefulWidget {
+  Category? category;
   final bool isCategory;
   final void Function(String name, Uint8List? imageBytes) onSubmit;
   final String title;
 
-  const AddItemPopup({
+  AddItemPopup({
     super.key,
     required this.isCategory,
     required this.onSubmit,
+    this.category,
     this.title = 'Tilføj kategori',
   });
 
@@ -717,9 +428,43 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.category != null) {
+      nameController.text = widget.category!.name ?? '';
+      _loadImageBytes();
+    }
+  }
+
+  @override
   void dispose() {
     nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadImageBytes() async {
+    if (widget.category?.imageUrl != null) {
+      final bytes = await getImageFromUrl(widget.category!.imageUrl);
+      setState(() {
+        imageBytes = bytes;
+      });
+    }
+  }
+
+  Future<Uint8List?> getImageFromUrl(String? imageUrl) async {
+    if (imageUrl == null) {
+      return null;
+    }
+    var headers = <String, String>{
+      "Authorization":
+          "Bearer ${Provider.of<AuthState>(context, listen: false).token}"
+    };
+    final response = await http.get(Uri.parse(imageUrl), headers: headers);
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    } else {
+      return null;
+    }
   }
 
   @override

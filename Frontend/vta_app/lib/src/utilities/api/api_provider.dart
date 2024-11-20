@@ -37,11 +37,11 @@ class ApiProvider {
     }
   }
 
-  Future<Response?> postAsMultiPart(String endPoint,
+  Future<Response?> sendAsMultiPart(String action, String endPoint,
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
     try {
-      var request = http.MultipartRequest('POST', uri);
+      var request = http.MultipartRequest(action.toUpperCase(), uri);
       request.headers.addAll(headers ?? {}); // Add custom headers
       _buildMultipartRequest(body, request);
       var streamedResponse = await request.send();
