@@ -148,7 +148,7 @@ public class ArtefactsController : ControllerBase
         {
             return Forbid();
         }
-
+        ImageUtilities.DeleteImage(artefact.ArtefactId);
         _context.Artefacts.Remove(artefact);
         await _context.SaveChangesAsync();
 

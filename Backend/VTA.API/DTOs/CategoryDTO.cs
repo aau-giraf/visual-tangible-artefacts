@@ -10,6 +10,14 @@ public partial class CategoryPostDTO
     public required IFormFile Image { get; set; }
 }
 
+public partial class CategoryPatchDTO
+{
+    public string CategoryId { get; set; }
+
+    public byte? CategoryIndex { get; set; }
+    public string? Name { get; set; }
+}
+
 public partial class CategoryGetDTO
 {
     public string CategoryId { get; set; } = null!;
