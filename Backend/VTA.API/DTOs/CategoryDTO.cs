@@ -16,6 +16,7 @@ public partial class CategoryPatchDTO
 
     public byte? CategoryIndex { get; set; }
     public string? Name { get; set; }
+    public IFormFile? Image { get; set; }
 }
 
 public partial class CategoryGetDTO

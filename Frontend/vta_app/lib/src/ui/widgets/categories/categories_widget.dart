@@ -14,6 +14,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
 import 'package:cross_file/cross_file.dart';
+import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:http/http.dart' as http;
 
@@ -147,9 +148,10 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
-    return ReorderableDragStartListener(
+    return CustomDelayDragStartListener(
       key: key,
       index: index,
+      delay: 200,
       child: GestureDetector(
         onLongPress: () {
           _showCategoryEditModal(context, item); // Show modal on long press
@@ -275,44 +277,181 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildImageGrid(Category category) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(10),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 8,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: category.artefacts!.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildAddArtifactButton(category);
-        } else {
-          return _buildImageGridItem(context, index - 1, category);
-        }
-      },
-    );
+    bool isInDeletionMode = false;
+
+    return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+      int totalItems = (category.artefacts?.length ?? 0) + 1;
+
+      return GestureDetector(
+        onTap: () {
+          if (isInDeletionMode) {
+            setState(() {
+              isInDeletionMode = false;
+            });
+          }
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(10),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 8,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: totalItems,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _buildAddArtifactButton(category);
+                  } else {
+                    final artifactIndex = index - 1;
+                    if (artifactIndex >= category.artefacts!.length) {
+                      return SizedBox();
+                    }
+                    return GestureDetector(
+                      onLongPress: () {
+                        setState(() {
+                          isInDeletionMode = true;
+                        });
+                      },
+                      child: _buildImageGridItem(
+                        context,
+                        artifactIndex,
+                        category,
+                        isInDeletionMode,
+                        () => setState(() {
+                          isInDeletionMode = true;
+                        }),
+                        onDelete: () {
+                          setState(() {});
+                        },
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
-  Widget _buildImageGridItem(
-      BuildContext context, int index, Category category) {
+  Widget _buildImageGridItem(BuildContext context, int index, Category category,
+      bool isInDeletionMode, VoidCallback onLongPress,
+      {required VoidCallback onDelete}) {
     var authState = Provider.of<AuthState>(context);
+    var artifactState = Provider.of<ArtifactState>(context, listen: false);
     var headers = <String, String>{
       'Authorization': 'Bearer ${authState.token}'
     };
+
+    if (index >= category.artefacts!.length) {
+      return SizedBox(); // Safety check
+    }
+
     var boardArtefacts = category.artefacts!
         .map((artefact) =>
             BoardArtefact.fromArtefact(artefact, headers: headers))
         .toList();
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: TextButton(
-          onPressed: () => {
-                widget.talkingMatKey.currentState
-                    ?.addArtifact(boardArtefacts[index]),
-                Navigator.pop(context),
-              },
-          child: boardArtefacts[index].content),
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: TextButton(
+              onPressed: isInDeletionMode
+                  ? null
+                  : () {
+                      widget.talkingMatKey.currentState
+                          ?.addArtifact(boardArtefacts[index]);
+                      Navigator.pop(context);
+                    },
+              child: boardArtefacts[index].content,
+            ),
+          ),
+          if (isInDeletionMode)
+            Positioned(
+              right: -10,
+              top: -10,
+              child: Material(
+                color: Colors.transparent,
+                child: IconButton(
+                  icon: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                  onPressed: () async {
+                    final bool confirmed = await showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text('Delete Artifact'),
+                          content: Text(
+                              'Are you sure you want to delete this artifact?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (confirmed) {
+                      try {
+                        await artifactState.deleteArtifact(
+                          category.artefacts![index].artefactId!,
+                          token: authState.token!,
+                        );
+
+                        category.artefacts!.removeAt(index);
+                        onDelete(); // Trigger parent rebuild
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Artifact deleted successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        if (category.artefacts!.isEmpty) {
+                          Navigator.pop(context);
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to delete artifact'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -344,6 +483,30 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                   categoryIndex: 0,
                   image: imageBytes);
               artifactState.addCategory(newCategory, token: authState.token!);
+            });
+      },
+    );
+  }
+
+  void _showEditCategoryPopup(BuildContext context, Category category) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AddItemPopup(
+            isCategory: true,
+            category: category,
+            onSubmit: (name, imageBytes) {
+              var artifactState =
+                  Provider.of<ArtifactState>(context, listen: false);
+              var authState = Provider.of<AuthState>(context, listen: false);
+              var newCategory = Category(
+                  categoryId: category.categoryId,
+                  name: name,
+                  userId: authState.userId,
+                  categoryIndex: category.categoryIndex,
+                  image: imageBytes);
+              artifactState.updateCategory(newCategory,
+                  token: authState.token!);
             });
       },
     );
@@ -479,8 +642,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
         constraints: BoxConstraints(
           maxHeight: minHeight,
           maxWidth: minWidth,
-          minHeight: 400,
-          minWidth: 300,
+          minHeight: 0,
+          minWidth: 0,
         ),
         decoration: BoxDecoration(
           color: Color(0xFFF5F2E7),

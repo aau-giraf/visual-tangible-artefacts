@@ -56,10 +56,10 @@ public class CategoriesController : ControllerBase
         return categoryGetDTO;
     }
 
-    // PUT: api/Categories/5
+    // PATCH: api/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPatch]
-    public async Task<IActionResult> PatchCategory(CategoryPatchDTO dto)
+    public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
 
@@ -70,11 +70,18 @@ public class CategoriesController : ControllerBase
             return BadRequest();
         }
 
-        if (dto.CategoryIndex != null && category.CategoryIndex != dto.CategoryIndex){
+        if (dto.CategoryIndex != null && category.CategoryIndex != dto.CategoryIndex)
+        {
             category.CategoryIndex = dto.CategoryIndex;
         }
-        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name){
+        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name)
+        {
             category.Name = dto.Name;
+        }
+        if (dto.Image != null)
+        {
+            ImageUtilities.DeleteImage(category.CategoryId);
+            ImageUtilities.AddImage(dto.Image, dto.CategoryId);
         }
 
         _context.Entry(category).State = EntityState.Modified;

@@ -1,3 +1,5 @@
+using Microsoft.IdentityModel.Tokens;
+
 namespace VTA.API.Utilities;
 
 public static class ImageUtilities
@@ -5,11 +7,11 @@ public static class ImageUtilities
     private static string _APIEndpoint = "/api/Assets/";
     private static string _Dir = "Assets";
 
-    public static string? AddImage(IFormFile? image, string artefactId)
+    public static string? AddImage(IFormFile? image, string id)
     {
         if (image != null && image.Length > 0)
         {
-            string fileName = artefactId + (Path.GetExtension(image.FileName));
+            string fileName = id + (Path.GetExtension(image.FileName));
             string imageFolder = Path.Combine(Directory.GetCurrentDirectory(), _Dir);
             string filePath = Path.Combine(imageFolder, fileName);
 

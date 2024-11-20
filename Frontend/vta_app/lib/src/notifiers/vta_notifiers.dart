@@ -107,6 +107,30 @@ class ArtifactState with ChangeNotifier {
     }
     return false;
   }
+
+  // Inside ArtifactState class:
+
+  Future<bool> deleteArtifact(String artifactId,
+      {required String token}) async {
+    try {
+      final success = await ArtifactRepository()
+          .deleteArtifact(artifactId: artifactId, token: token);
+
+      if (success) {
+        // Remove artifact from local state
+        for (var category in _categories ?? []) {
+          category.artefacts
+              ?.removeWhere((artifact) => artifact.artefactId == artifactId);
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting artifact: $e');
+      return false;
+    }
+  }
 }
 
 class UserState with ChangeNotifier {
