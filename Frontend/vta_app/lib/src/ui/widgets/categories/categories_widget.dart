@@ -512,30 +512,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  void _showEditCategoryPopup(BuildContext context, Category category) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AddItemPopup(
-            isCategory: true,
-            category: category,
-            onSubmit: (name, imageBytes) {
-              var artifactState =
-                  Provider.of<ArtifactState>(context, listen: false);
-              var authState = Provider.of<AuthState>(context, listen: false);
-              var newCategory = Category(
-                  categoryId: category.categoryId,
-                  name: name,
-                  userId: authState.userId,
-                  categoryIndex: category.categoryIndex,
-                  image: imageBytes);
-              artifactState.updateCategory(newCategory,
-                  token: authState.token!);
-            });
-      },
-    );
-  }
-
   void _showAddArtifactPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
