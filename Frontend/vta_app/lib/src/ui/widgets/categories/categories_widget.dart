@@ -11,6 +11,7 @@ import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
+import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 
@@ -34,6 +35,7 @@ class CategoriesWidget extends StatefulWidget {
 
 class _CategoriesWidgetState extends State<CategoriesWidget> {
   bool _isMatrixVisible = false;
+  Category? _selectedCategory;
   late List<Category> categories;
 
   @override
@@ -42,20 +44,28 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     categories = widget.categories;
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return SizedBox(
-      child: ClipRRect(
-        borderRadius: const BorderRadius.horizontal(
-          left: Radius.circular(10),
-          right: Radius.circular(10),
-        ),
-        child: _buildCategoryList(),
+      height: widget.widgetHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length + 1, // +1 for Add button
+        itemBuilder: (context, index) {
+          if (index == categories.length) {
+            return _buildAddCategoryButton();
+          }
+          return _buildCategoryItem(context, index);
+        },
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
       ),
     );
   }
 
-  Widget _buildCategoryList() {
+
+  
+
+ Widget _buildCategoryList() {
     return ListView.separated(
       scrollDirection: Axis.horizontal,
       itemCount: categories.length + 1, //+1 room for add button
@@ -67,7 +77,9 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       },
       separatorBuilder: (context, index) => const SizedBox(width: 10),
     );
+    
   }
+
 
   Widget _buildAddCategoryButton() {
     return SizedBox(
@@ -101,13 +113,20 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
+
   Widget _buildCategoryItem(BuildContext context, int index) {
-    final item = categories[index];
-    return TextButton(
-      onPressed: () => _showCategoryModal(context, categories[index]),
+  final item = categories[index];
+
+  return GestureDetector(
+    onLongPress: () {
+      _showCategoryEditModal(context, item); // Show modal on long press
+    },
+    child: TextButton(
+      onPressed: () => _showCategoryModal(context, item), // Optional: Add tap handling
       child: _buildCategoryContainer(item),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCategoryContainer(Category item) {
     var authState = Provider.of<AuthState>(context);
@@ -138,7 +157,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  void _showCategoryModal(BuildContext context, Category category) {
+//ModalSheet for viewing categories with artefacts
+   void _showCategoryModal(BuildContext context, Category category) {
     setState(() {
       showModalBottomSheet(
         backgroundColor: Colors.white,
@@ -164,6 +184,65 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       _isMatrixVisible = !_isMatrixVisible;
     });
   }
+
+// ModalSheet for editing and deleting categories
+  void _showCategoryEditModal(BuildContext context, Category category) {
+    showModalBottomSheet(
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 10.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.blue),
+                title: const Text('Edit', style: TextStyle(color: Colors.blue)),
+                onTap: () {
+                  Navigator.pop(context); // Close the modal
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context); // Close the modal
+                  final categoriesEdit = CategoriesEdit(
+                    categoryName: category.name!,
+                    imageUrl: category.imageUrl,
+                    onEdit: () {
+                      MaterialPageRoute(builder: (context) => AddPicturePage());
+                    }, // Pass edit functionality if needed
+                    onDelete: () {
+                      // Perform deletion using CategoriesEdit logic
+                      setState(() {
+                        categories.remove(category); // Reflect UI changes
+                      });
+                    },
+                  );
+                  categoriesEdit.showDeleteConfirmationDialog(context);
+                },
+              ),
+              TextButton(
+                onPressed: () {
+                  //CategoriesEdit.deleteCategory(context, category);
+                  Navigator.pop(context); // Close the modal
+                },
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
 
   Widget _buildImageGrid(Category category) {
     return GridView.builder(
@@ -262,6 +341,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       },
     );
   }
+
 }
 
 class CategoryPopup extends StatefulWidget {
