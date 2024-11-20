@@ -139,7 +139,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
-    return ReorderableDragStartListener(
+    return ReorderableDelayedDragStartListener(
       key: key,
       index: index,
       child: TextButton(
