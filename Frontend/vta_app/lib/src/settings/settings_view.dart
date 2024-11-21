@@ -21,7 +21,7 @@ class SettingsView extends StatelessWidget {
           title: const Text('Settings'),
         ),
         body: ListView(
-          children: [buildTextUnderImages(), buildLanguage()],
+          children: [buildTextUnderImages()/*, buildLanguage()*/],
         ));
   }
 
@@ -42,7 +42,7 @@ class SettingsView extends StatelessWidget {
       onChange: _onToggleTextUnderImages,
     );
   }
-
+/*
   Widget buildLanguage() {
     return DropDownSettingsTile(
       title: "Sprog",
@@ -53,5 +53,5 @@ class SettingsView extends StatelessWidget {
           .map((e) => MapEntry(e.index, e.name.capitalize()))),
       onChange: _onToggleLocalization,
     );
-  }
+  }*/
 }

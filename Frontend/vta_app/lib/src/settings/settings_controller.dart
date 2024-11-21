@@ -31,9 +31,9 @@ class SettingsController with ChangeNotifier {
       _textUnderImages = textUnderImages;
     }
     // Load localization
-    var localization = await _settingsService.localization();
+    //var localization = await _settingsService.localization();
     if (localization != null) {
-      _localization = Localization.values[localization];
+      //_localization = Localization.values[localization];
     }
     // Important! Inform listeners a change has occurred.
     notifyListeners();
