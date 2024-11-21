@@ -69,10 +69,20 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 // Check if Assets directory exists
 // Create Assets directory if it does not exist
-var assetsDir = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
-if (!Directory.Exists(assetsDir))
+var assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
+if (!Directory.Exists(assetsDirs))
 {
-    Directory.CreateDirectory(assetsDir);
+    Directory.CreateDirectory(assetsDirs);
+}
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Categories");
+if (!Directory.Exists(assetsDirs))
+{
+    Directory.CreateDirectory(assetsDirs);
+}
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts");
+if (!Directory.Exists(assetsDirs))
+{
+    Directory.CreateDirectory(assetsDirs);
 }
 
 builder.Services.AddEndpointsApiExplorer();

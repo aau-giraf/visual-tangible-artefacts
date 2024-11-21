@@ -43,4 +43,8 @@
       <None Remove="VTA.API\**" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Assets\Artefacts\" />
+    </ItemGroup>
+
 </Project>

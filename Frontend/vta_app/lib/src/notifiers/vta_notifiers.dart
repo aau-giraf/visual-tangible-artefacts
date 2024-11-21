@@ -77,6 +77,26 @@ class ArtifactState with ChangeNotifier {
     return false;
   }
 
+  Future<bool> updateCategory(Category category,
+      {required String token}) async {
+    try {
+      var responseOk =
+          await ArtifactRepository().updateCategory(category, token: token);
+      if (responseOk == false) return false;
+      var categoryMatch = _categories
+          ?.firstWhere((element) => element.categoryId == category.categoryId);
+      if (categoryMatch != null) {
+        int index = _categories!.indexOf(categoryMatch);
+        _categories![index].name = category.name;
+      }
+      _categories?.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> addArtifact(Artefact artifact, {required String token}) async {
     var newArtifact =
         await ArtifactRepository().addArtifact(artifact, token: token);
@@ -90,6 +110,30 @@ class ArtifactState with ChangeNotifier {
       return true;
     }
     return false;
+  }
+
+  // Inside ArtifactState class:
+
+  Future<bool> deleteArtifact(String artifactId,
+      {required String token}) async {
+    try {
+      final success = await ArtifactRepository()
+          .deleteArtifact(artifactId: artifactId, token: token);
+
+      if (success) {
+        // Remove artifact from local state
+        for (var category in _categories ?? []) {
+          category.artefacts
+              ?.removeWhere((artifact) => artifact.artefactId == artifactId);
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting artifact: $e');
+      return false;
+    }
   }
 }
 

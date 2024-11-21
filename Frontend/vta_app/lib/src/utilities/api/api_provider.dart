@@ -19,6 +19,20 @@ class ApiProvider {
     }
   }
 
+  Future<Response?> delete(String endPoint,
+      {Map<String, String>? headers}) async {
+    var uri = Uri.parse(baseUrl + endPoint);
+    try {
+      return await http.delete(
+        uri,
+        headers: headers,
+      );
+    } on Exception catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
   Future<Response?> postAsJson(String endPoint,
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
@@ -37,15 +51,33 @@ class ApiProvider {
     }
   }
 
-  Future<Response?> postAsMultiPart(String endPoint,
+  Future<Response?> sendAsMultiPart(String action, String endPoint,
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
     try {
-      var request = http.MultipartRequest('POST', uri);
+      var request = http.MultipartRequest(action.toUpperCase(), uri);
       request.headers.addAll(headers ?? {}); // Add custom headers
       _buildMultipartRequest(body, request);
       var streamedResponse = await request.send();
       return await http.Response.fromStream(streamedResponse);
+    } on Exception catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
+  Future<Response?> patchAsJson(String endPoint,
+      {Map<String, String>? headers, Map<String, dynamic>? body}) async {
+    var uri = Uri.parse(baseUrl + endPoint);
+    try {
+      headers?.addEntries([
+        MapEntry('Content-Type', 'application/json'),
+      ]);
+      return await http.patch(
+        uri,
+        headers: headers ?? {'Content-Type': 'application/json'},
+        body: body != null ? json.encode(body) : null,
+      );
     } on Exception catch (e) {
       print(e.toString());
       return null;
@@ -83,6 +115,11 @@ class ApiProvider {
           request.files.add(http.MultipartFile.fromBytes(
               key, utf8.encode(value.map((v) => v.toString()).join(',')),
               filename: '$key.txt'));
+        } else if (value is List<Map<String, dynamic>>) {
+          // Add support for List of Maps
+          request.files.add(http.MultipartFile.fromBytes(
+              key, utf8.encode(json.encode(value)),
+              filename: '$key.json'));
         } else {
           throw Exception(
               'Unsupported list type for key $key: ${value.runtimeType}');

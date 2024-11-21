@@ -99,7 +99,8 @@ class ArtifactRepository extends ApiDataRepository {
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var response = await apiProvider.postAsMultiPart('Users/Categories',
+      var response = await apiProvider.sendAsMultiPart(
+          'POST', 'Users/Categories',
           headers: headers, body: category.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
@@ -112,11 +113,24 @@ class ArtifactRepository extends ApiDataRepository {
     }
   }
 
+  Future<bool> updateCategory(Category category,
+      {required String token}) async {
+    var headers = <String, String>{'Authorization': 'Bearer $token'};
+    var response = await apiProvider.sendAsMultiPart(
+        'PATCH', 'Users/Categories/',
+        headers: headers, body: category.toJson());
+    if (responseOk(response)) {
+      return true;
+    }
+    return false;
+  }
+
   Future<Artefact?> addArtifact(Artefact artefact,
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var response = await apiProvider.postAsMultiPart('Users/Artefacts',
+      var response = await apiProvider.sendAsMultiPart(
+          'POST', 'Users/Artefacts',
           headers: headers, body: artefact.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
@@ -126,6 +140,25 @@ class ArtifactRepository extends ApiDataRepository {
     } catch (e) {
       debugPrint("An error occured while posting category: $e");
       return null;
+    }
+  }
+
+  Future<bool> deleteArtifact({
+    required String artifactId,
+    required String token,
+  }) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+
+      var response = await apiProvider.delete(
+        'Users/Artefacts/$artifactId',
+        headers: headers,
+      );
+
+      return responseOk(response);
+    } catch (e) {
+      debugPrint("An error occurred while deleting artifact: $e");
+      return false;
     }
   }
 }

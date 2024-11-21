@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 
 class QuickChatButton extends StatefulWidget {
   const QuickChatButton({super.key});
@@ -9,8 +9,23 @@ class QuickChatButton extends StatefulWidget {
 }
 
 class _FloatingActionButtonExampleState extends State<QuickChatButton> {
-  bool _isPopupVisible = false; // Track popup visibilityeate an instance of AudioPlayer
+  bool _isPopupVisible = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playAudio(String assetPath) async {
+    try {
+      await _audioPlayer.setAsset(assetPath);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +34,12 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
         AnimatedPositioned(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          top: 70, // Adjust vertical alignment of the popup with the button
-          right: _isPopupVisible
-              ? 100
-              : -250, // Moves the popup to the right of the button
+          top: 70,
+          right: _isPopupVisible ? 100 : -250,
           child: Material(
             color: Colors.transparent,
             child: Container(
-              width: 150, // Adjust the width of the popup as needed
+              width: 150,
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
                 color: Colors.red,
@@ -53,42 +66,32 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
-                    onPressed: () async{
-                        await _audioPlayer.play(AssetSource('sound/dårligt.mp3'));
-                    },
+                    onPressed: () => _playAudio('assets/sound/dårligt.mp3'),
                     icon: const Icon(Icons.sick, color: Colors.white),
                     label: const Text('Har det ikke godt',
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black
-                          .withOpacity(0.2), // Button background color
+                      backgroundColor: Colors.black.withOpacity(0.2),
                     ),
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      await _audioPlayer.play(AssetSource('sound/toilet.mp3'));
-                    },
+                    onPressed: () => _playAudio('assets/sound/toilet.mp3'),
                     icon: const Icon(Icons.wc, color: Colors.white),
-                    label:
-                        const Text('Toilet', style: TextStyle(color: Colors.white)),
+                    label: const Text('Toilet',
+                        style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black
-                          .withOpacity(0.2), // Button background color
+                      backgroundColor: Colors.black.withOpacity(0.2),
                     ),
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      await _audioPlayer.play(AssetSource('sound/sulten.mp3'));
-
-                    },
+                    onPressed: () => _playAudio('assets/sound/sulten.mp3'),
                     icon: const Icon(Icons.lunch_dining, color: Colors.white),
                     label: const Text('Sulten',
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black
-                          .withOpacity(0.2), // Button background color
+                      backgroundColor: Colors.black.withOpacity(0.2),
                     ),
                   ),
                 ],
@@ -103,7 +106,7 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
             child: FloatingActionButton(
               onPressed: () {
                 setState(() {
-                  _isPopupVisible = !_isPopupVisible; // Toggle popup visibility
+                  _isPopupVisible = !_isPopupVisible;
                 });
               },
               foregroundColor: Colors.white,

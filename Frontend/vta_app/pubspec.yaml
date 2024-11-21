@@ -25,7 +25,7 @@ dependencies:
   camera: ^0.11.0+2
   path_provider: ^2.1.5
   path: ^1.9.0
-  audioplayers: ^6.1.0
+  just_audio: ^0.9.42 # Replaced audioplayers
   flutter_settings_screens: ^0.3.4
 dev_dependencies:
   flutter_test:

@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _usernameController,
                       decoration: InputDecoration(
-                        labelText: 'Navn',
+                        labelText: 'Brugernavn',
                         filled: true,
                         fillColor: Colors.grey.shade200,
                         border: OutlineInputBorder(
@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Indtast venligst dit navn';
+                          return 'Indtast venligst dit brugernavn';
                         }
                         return null;
                       },

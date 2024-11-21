@@ -25,6 +25,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
+  bool _isDraggingOverTrashCan = false;
 
   @override
   void initState() {
@@ -61,20 +62,50 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   }
 
   void removeAllArtifacts() {
-    setState(() {
-      artifacts.clear();
-    });
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Confirm"),
+          content: Text("Are you sure you want to remove all artifacts?"),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text("Yes"),
+              onPressed: () {
+                setState(() {
+                  artifacts.clear();
+                });
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _updateArtifactPosition(BoardArtefact artifact, Offset offset) {
-    // Retrieve the stored size for the artifact
+    // Get the rendered size of the artifact if available
     Size? size = artifact.renderedSize;
 
     if (size != null) {
-      // Offset the position by half of the width and height to center it on the drag end
+      // Get the RenderBox of the current widget to handle coordinate conversions
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+
+      // Convert the global touch/click position to local coordinates
+      // This ensures the position is relative to the board's coordinate space
+      final localPosition = renderBox.globalToLocal(offset);
+
+      // Update the artifact's position in the state
+      // This will trigger a rebuild with the new position
       setState(() {
-        artifact.position =
-            Offset(offset.dx - size.width / 4, offset.dy - size.height / 4);
+        artifact.position = localPosition;
       });
     }
   }
@@ -119,7 +150,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.grey.withOpacity(0.3),
                 spreadRadius: 2,
                 blurRadius: 2,
                 offset: const Offset(0, 4),
@@ -127,6 +158,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
             ],
           ),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               ...artifacts.map((artifact) {
                 _loadArtifactSize(
@@ -142,14 +174,17 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         decoration: BoxDecoration(
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 8,
-                              spreadRadius: 1,
+                              color: Colors.grey.withOpacity(0.2),
+                              blurRadius: 15,
+                              spreadRadius: 5,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        child: artifact.content,
+                        child: Opacity(
+                          opacity: 0.5,
+                          child: artifact.content,
+                        ),
                       ),
                     ),
                     childWhenDragging: Container(),
@@ -182,7 +217,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     },
                     child: DragTarget<BoardArtefact>(
                       builder: (context, data, rejectedData) {
-                        return buildTrashCan(height: 50, width: 50);
+                        return buildTrashCan(
+                          height: _isDraggingOverTrashCan ? 120 : 50,
+                          width: _isDraggingOverTrashCan ? 120 : 50,
+                        );
                       },
                       onAcceptWithDetails: (details) {
                         var artifactKey = details.data.key;
@@ -201,12 +239,14 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                       onWillAcceptWithDetails: (details) {
                         setState(() {
                           _showDeleteHover = true;
+                          _isDraggingOverTrashCan = true;
                         });
                         _animationController.forward();
                         return true;
                       },
                       onLeave: (details) {
                         _animationController.reverse();
+                        _isDraggingOverTrashCan = false;
                         // Listen for the animation status
                         _animationController.addStatusListener((status) {
                           if (status == AnimationStatus.dismissed) {
@@ -228,7 +268,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     );
   }
 
-  Stack buildTrashCan(
+  Widget buildTrashCan(
       {double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
