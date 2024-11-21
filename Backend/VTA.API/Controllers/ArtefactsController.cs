@@ -104,7 +104,7 @@ public class ArtefactsController : ControllerBase
         }
 
         string artefactId = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);
+        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
         artefact.UserId = userId;
 
@@ -153,7 +153,8 @@ public class ArtefactsController : ControllerBase
         {
             return Forbid();
         }
-        ImageUtilities.DeleteImage(artefact.ArtefactId);
+        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+
         _context.Artefacts.Remove(artefact);
         await _context.SaveChangesAsync();
 
