@@ -107,8 +107,8 @@ public class CategoriesController : ControllerBase
 
     // POST: api/Categories
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [DisableRequestSizeLimit]
     [HttpPost]
+    [DisableRequestSizeLimit]
     //[RequestSizeLimit(200_000_000)]//20mb (Greater than an 8K image) 
     public async Task<ActionResult<CategoryGetDTO>> PostCategory([FromForm] CategoryPostDTO categoryPostDTO)
     {
