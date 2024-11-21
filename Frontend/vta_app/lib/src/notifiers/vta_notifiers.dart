@@ -43,6 +43,10 @@ class AuthState with ChangeNotifier {
 
   void logout() {
     _token = null;
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('jwt_token');
+      prefs.remove('userId');
+    });
     notifyListeners();
   }
 }
@@ -89,6 +93,24 @@ class ArtifactState with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteCategory(String categoryId,
+      {required String token}) async {
+    try {
+      final success =
+          await ArtifactRepository().deleteCategory(categoryId, token: token);
+      if (success) {
+        _categories
+            ?.removeWhere((category) => category.categoryId == categoryId);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting category: $e');
       return false;
     }
   }
