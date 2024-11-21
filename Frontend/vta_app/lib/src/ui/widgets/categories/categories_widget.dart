@@ -435,33 +435,69 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                       },
                     );
 
+                    print(confirmed);
+
                     if (confirmed) {
                       try {
+                        print('Attempting to delete artifact...');
+
                         await artifactState.deleteArtifact(
                           category.artefacts![index].artefactId!,
                           token: authState.token!,
                         );
 
-                        category.artefacts!.removeAt(index);
-                        onDelete(); // Trigger parent rebuild
+                        print('Server deletion successful');
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Artifact deleted successfully'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        if (mounted) {
+                          bool wasLastItem = category.artefacts!.length == 1;
 
-                        if (category.artefacts!.isEmpty) {
-                          Navigator.pop(context);
+                          setState(() {
+                            if (index >= 0 &&
+                                index < category.artefacts!.length) {
+                              category.artefacts!.removeAt(index);
+                            }
+                          });
+
+                          // UI updates after state change
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              context.mounted
+                                  ? ScaffoldMessenger.of(context
+                                          .findRootAncestorStateOfType<
+                                              NavigatorState>()!
+                                          .context)
+                                      .showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Artifact deleted successfully'),
+                                        backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
+                                        elevation: 24,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    )
+                                  : null;
+
+                              if (wasLastItem && category.artefacts!.isEmpty) {
+                                Navigator.of(context).pop();
+                              }
+                            }
+                          });
+
+                          onDelete();
                         }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to delete artifact'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        print('Error during deletion: $e');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to delete artifact'),
+                              backgroundColor: Colors.red,
+                              elevation: 24,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       }
                     }
                   },
