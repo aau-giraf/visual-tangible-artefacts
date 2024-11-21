@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
-import '../widgets/board/linear_board.dart';
+// import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
@@ -21,53 +22,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   bool _showDirectional = false;
   late TalkingMat talkingMat;
   late GlobalKey<TalkingMatState> talkingMatKey;
-  late LinearBoard linearBoard;
-
-  // List<categories_widget.Category> categories = [
-  //   categories_widget.Category(
-  //       id: "Category 1",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 2",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 3",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 4",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 5",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 6",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 7",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  //   categories_widget.Category(
-  //       id: "Category 8",
-  //       imageLink:
-  //           "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg"),
-  // ];
-
-  // List<String> imageMatrix = [
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  //   "https://st3.depositphotos.com/2212674/16303/i/450/depositphotos_163039262-stock-photo-outraged-woman-asking-what-the.jpg",
-  // ];
+  // late LinearBoard linearBoard;
 
   @override
   void initState() {
@@ -77,7 +32,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
       key: talkingMatKey,
       artifacts: [],
     );
-    linearBoard = LinearBoard();
+    // linearBoard = LinearBoard();
   }
 
   @override
@@ -120,40 +75,60 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: padding),
                       child: Center(
-                        child: _showDirectional ? linearBoard : talkingMat,
+                        child: /*_showDirectional ? linearBoard :*/ talkingMat,
                       ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        BoardArtefact newArtifact = BoardArtefact(
-                          content:
-                              SvgPicture.asset('assets/icons/sillyface.svg'),
-                          position: const Offset(299, 200),
-                        );
-                        talkingMatKey.currentState?.addArtifact(newArtifact);
-                      },
-                      child: const Text('Add Artifact'),
                     ),
                     Positioned(
                       top: 30,
                       left: 30,
-                      child: RelationalBoardButton(
-                        onPressed: () {
-                          setState(() {
-                            _showDirectional = !_showDirectional;
-                          });
-                        },
-                        icon: _showDirectional
-                            ? const Icon(
-                                IconData(0xf685, fontFamily: 'MaterialIcons'),
-                                size: 24.0,
-                              )
-                            : const Icon(
-                                IconData(0xf601, fontFamily: 'MaterialIcons'),
-                                size: 24.0,
-                              ),
-                      ),
+                      child: PopupMenuButton(
+                          offset: const Offset(0, 60),
+                          icon: Icon(Icons.supervised_user_circle_outlined,
+                              size: 50),
+                          itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  child: ListTile(
+                                    title: const Text('Instillinger'),
+                                    onTap: () {
+                                      Navigator.of(context)
+                                          .pushNamed('/settings');
+                                    },
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  child: ListTile(
+                                    title: const Text('Log ud'),
+                                    onTap: () {
+                                      context.read<AuthState>().logout();
+                                      Navigator.of(context)
+                                          .pushNamedAndRemoveUntil(
+                                              AuthPage.routeName,
+                                              (route) => false);
+                                    },
+                                  ),
+                                ),
+                              ]),
                     ),
+                    // Positioned(
+                    //   top: 30,
+                    //   left: 30,
+                    //   child: RelationalBoardButton(
+                    //     onPressed: () {
+                    //       setState(() {
+                    //         _showDirectional = !_showDirectional;
+                    //       });
+                    //     },
+                    //     icon: _showDirectional
+                    //         ? const Icon(
+                    //             IconData(0xf685, fontFamily: 'MaterialIcons'),
+                    //             size: 24.0,
+                    //           )
+                    //         : const Icon(
+                    //             IconData(0xf601, fontFamily: 'MaterialIcons'),
+                    //             size: 24.0,
+                    //           ),
+                    //   ),
+                    // ),
                     const QuickChatButton(),
                   ],
                 ),

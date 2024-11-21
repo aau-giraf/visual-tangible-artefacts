@@ -67,6 +67,8 @@ class MyApp extends StatelessWidget {
               settings: routeSettings,
               builder: (BuildContext context) {
                 switch (routeSettings.name) {
+                  case '/':
+                    return AuthPage();
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
                   case SampleItemDetailsView.routeName:
@@ -74,7 +76,6 @@ class MyApp extends StatelessWidget {
                   case SampleItemListView.routeName:
                   default:
                     return AuthPage();
-                    return SettingsView(controller: settingsController);
                 }
               },
             );
