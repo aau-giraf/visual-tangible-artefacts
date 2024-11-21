@@ -161,7 +161,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       categories: categories,
                       widgetHeight: categoriesWidgetHeight,
                       talkingMatKey: talkingMatKey,
-                      isMatrixVisible: (bool isVisible) {},
                     )))
           ],
         ),

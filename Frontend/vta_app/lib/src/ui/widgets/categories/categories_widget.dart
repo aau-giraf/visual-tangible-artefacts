@@ -21,14 +21,12 @@ import 'package:http/http.dart' as http;
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
   final double widgetHeight;
-  final Function(bool isMatrixVisible) isMatrixVisible;
   final GlobalKey<TalkingMatState> talkingMatKey;
 
   const CategoriesWidget({
     super.key,
     required this.categories,
     required this.widgetHeight,
-    required this.isMatrixVisible,
     required this.talkingMatKey,
   });
 
@@ -37,10 +35,10 @@ class CategoriesWidget extends StatefulWidget {
 }
 
 class _CategoriesWidgetState extends State<CategoriesWidget> {
-  bool _isMatrixVisible = false;
   late List<Category> categories;
   late ArtifactState artifactState;
   late AuthState authState;
+  bool moveCategoriesMode = false;
 
   @override
   void initState() {
@@ -52,20 +50,16 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.widgetHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length + 1, // +1 for Add button
-        itemBuilder: (context, index) {
-          if (index == categories.length) {
-            return _buildAddCategoryButton();
-          }
-          return _buildCategoryItem(context, index);
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
-      ),
-    );
+    return TapRegion(
+        onTapOutside: (event) => {
+              if (moveCategoriesMode)
+                {
+                  setState(() {
+                    moveCategoriesMode = false;
+                  })
+                }
+            },
+        child: _buildCategoryList());
   }
 
   Widget _buildCategoryList() {
@@ -82,16 +76,22 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
           if (index == categories.length) {
             return _buildAddCategoryButton(key: ValueKey('add_button'));
           }
+          if (moveCategoriesMode) {
+            return Material(
+              key: ValueKey(categories[index].categoryId),
+              elevation: 2,
+              child: _buildCategoryItem(context, index),
+            );
+          }
           return _buildCategoryItem(context, index,
               key: ValueKey(categories[index].categoryId));
         },
         onReorder: (int oldIndex, int newIndex) {
           setState(() {
-            if (newIndex > categories.length) return;
-
             if (oldIndex < newIndex) {
               newIndex -= 1;
             }
+            newIndex = min(newIndex, categories.length - 1);
 
             final Category movedCategory = categories.removeAt(oldIndex);
             categories.insert(newIndex, movedCategory);
@@ -147,20 +147,30 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
-    return CustomDelayDragStartListener(
-      key: key,
-      index: index,
-      delay: 200,
-      child: GestureDetector(
+    if (moveCategoriesMode) {
+      return CustomDelayDragStartListener(
+        delay: 100,
+        key: key,
+        index: index,
+        child: _buildCategoryButton(key, context, index, item),
+      );
+    } else {
+      return GestureDetector(
+        key: key,
         onLongPress: () {
           _showCategoryEditModal(context, item); // Show modal on long press
         },
-        child: TextButton(
-          key: key,
-          onPressed: () => _showCategoryModal(context, categories[index]),
-          child: _buildCategoryContainer(item),
-        ),
-      ),
+        child: _buildCategoryButton(key, context, index, item),
+      );
+    }
+  }
+
+  TextButton _buildCategoryButton(
+      Key? key, BuildContext context, int index, Category item) {
+    return TextButton(
+      key: key,
+      onPressed: () => _showCategoryModal(context, categories[index]),
+      child: _buildCategoryContainer(item),
     );
   }
 
@@ -216,8 +226,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
           );
         },
       );
-      widget.isMatrixVisible(!_isMatrixVisible);
-      _isMatrixVisible = !_isMatrixVisible;
     });
   }
 
@@ -259,6 +267,17 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 onTap: () {
                   Navigator.pop(context); // Close the modal
                   categoriesEdit.showDeleteConfirmationDialog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.move_down, color: Colors.yellow),
+                title:
+                    const Text('Move', style: TextStyle(color: Colors.yellow)),
+                onTap: () {
+                  setState(() {
+                    moveCategoriesMode = true;
+                    Navigator.pop(context); // Close the modal
+                  });
                 },
               ),
               TextButton(
