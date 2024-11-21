@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'categories_widget.dart';
 
 class CategoriesEdit extends StatelessWidget {
@@ -68,10 +70,18 @@ class CategoriesEdit extends StatelessWidget {
     );
   }
 
-  void deleteCategory(BuildContext context, String categoryId) {
+  void deleteCategory(BuildContext context, String categoryId) async {
     // Implement your delete functionality here
+    String message = 'Something went wrong';
+    var artifactState = Provider.of<ArtifactState>(context, listen: false);
+    var authState = Provider.of<AuthState>(context, listen: false);
+    var success =
+        await artifactState.deleteCategory(categoryId, token: authState.token!);
+    if (success) {
+      message = 'Deleted category: $categoryId';
+    }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Deleted category: $categoryId')),
+      SnackBar(content: Text(message)),
     );
   }
 }

@@ -125,6 +125,25 @@ class ArtifactRepository extends ApiDataRepository {
     return false;
   }
 
+  Future<bool> deleteCategory(String categoryId,
+      {required String token}) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+      var response = await apiProvider.delete(
+        'Users/Categories/$categoryId',
+        headers: headers,
+      );
+      if (responseOk(response)) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      debugPrint("An error occured while deleting category: $e");
+      return false;
+    }
+  }
+
   Future<Artefact?> addArtifact(Artefact artefact,
       {required String token}) async {
     try {
