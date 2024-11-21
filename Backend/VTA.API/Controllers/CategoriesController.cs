@@ -80,8 +80,8 @@ public class CategoriesController : ControllerBase
         }
         if (dto.Image != null)
         {
-            ImageUtilities.DeleteImage(category.CategoryId);
-            ImageUtilities.AddImage(dto.Image, dto.CategoryId);
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+            ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories");
         }
 
         _context.Entry(category).State = EntityState.Modified;
@@ -107,6 +107,7 @@ public class CategoriesController : ControllerBase
 
     // POST: api/Categories
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
     public async Task<ActionResult<CategoryGetDTO>> PostCategory([FromForm] CategoryPostDTO categoryPostDTO)
     {
@@ -119,7 +120,7 @@ public class CategoriesController : ControllerBase
 
 
         string id = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id);
+        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories");
 
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
@@ -133,7 +134,12 @@ public class CategoriesController : ControllerBase
             Console.WriteLine(ex.ToString());
             if (CategoryExists(category.CategoryId))
             {
-                return Conflict();
+                //Chance of this happening is infinitely small ! But never zero !
+                while (CategoryExists(category.CategoryId))
+                {
+                    category.CategoryId = Guid.NewGuid().ToString();
+                }
+                await _context.SaveChangesAsync();
             }
             else
             {
@@ -154,6 +160,7 @@ public class CategoriesController : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         var category = await _context.Categories.FindAsync(categoryId);
+
         if (category == null)
         {
             return NotFound();
@@ -162,10 +169,14 @@ public class CategoriesController : ControllerBase
         {
             return Forbid();
         }
+        foreach (var artefact in category.Artefacts)
+        {
+            ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+        }
 
-        ImageUtilities.DeleteImage(category.CategoryId);
+        ImageUtilities.DeleteImage(category.CategoryId, "Categories");
 
-        _context.Categories.Remove(category);
+        _context.Categories.Remove(category);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
         await _context.SaveChangesAsync();
 
         return NoContent();

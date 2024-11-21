@@ -93,6 +93,7 @@ public class ArtefactsController : ControllerBase
 
     // POST: api/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
@@ -104,7 +105,7 @@ public class ArtefactsController : ControllerBase
         }
 
         string artefactId = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId);
+        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
         artefact.UserId = userId;
 
@@ -117,7 +118,12 @@ public class ArtefactsController : ControllerBase
         {
             if (ArtefactExists(artefact.ArtefactId))
             {
-                return Conflict();
+                //Chance of this happening is infinitely small ! But never zero !
+                while (ArtefactExists(artefact.ArtefactId))
+                {
+                    artefact.ArtefactId = Guid.NewGuid().ToString();
+                }
+                await _context.SaveChangesAsync();
             }
             else
             {
@@ -148,7 +154,8 @@ public class ArtefactsController : ControllerBase
         {
             return Forbid();
         }
-        ImageUtilities.DeleteImage(artefact.ArtefactId);
+        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+
         _context.Artefacts.Remove(artefact);
         await _context.SaveChangesAsync();
 

@@ -123,13 +123,6 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         }
 
         [Fact]
-        public async Task TestImageUploadReturnsBadRequestWithoutFile()
-        {
-            var response = await _client.PostAsync("/api/Users/test-upload", null);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
-
-        [Fact]
         public async Task TestForbiddenUserDeletionByAnotherUser()
         {
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)

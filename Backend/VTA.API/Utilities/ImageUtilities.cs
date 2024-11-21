@@ -4,15 +4,17 @@ namespace VTA.API.Utilities;
 
 public static class ImageUtilities
 {
-    private static string _APIEndpoint = "/api/Assets/";
-    private static string _Dir = "Assets";
+    //private static string _APIEndpoint = "";
+    private static string _Dir = "";
 
-    public static string? AddImage(IFormFile? image, string id)
+    public static string? AddImage(IFormFile? image, string artefactId, string dir)
     {
+        _Dir = dir;
+        string _APIEndpoint = "/api/Assets/" + _Dir + "/";
         if (image != null && image.Length > 0)
         {
-            string fileName = id + (Path.GetExtension(image.FileName));
-            string imageFolder = Path.Combine(Directory.GetCurrentDirectory(), _Dir);
+            string fileName = artefactId + Path.GetExtension(image.FileName);
+            string imageFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir);
             string filePath = Path.Combine(imageFolder, fileName);
 
             using (FileStream stream = new FileStream(filePath, FileMode.Create))
@@ -23,8 +25,9 @@ public static class ImageUtilities
         }
         return null;
     }
-    public static bool? DeleteImage(string imgName)
+    public static bool? DeleteImage(string imgName, string dir)
     {
+        _Dir = dir;
         string? file = FindFile(imgName);
 
         if (file == null) { return null; }

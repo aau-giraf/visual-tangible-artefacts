@@ -59,16 +59,6 @@ public class UsersController : ControllerBase
             userId = user.Id
         };
     }
-    [AllowAnonymous]
-    [HttpPost("test-upload")]
-    public IActionResult TestUpload(IFormFile image)
-    {
-        if (image == null)
-        {
-            return BadRequest("Image file not received.");
-        }
-        return Ok("Image received successfully.");
-    }
 
     [AllowAnonymous]
     [Route("SignUp")]
@@ -198,7 +188,16 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        _context.Users.Remove(user);
+        foreach (var category in user.Categories)//We should remove all artefacts referenced by the user, therfore I've designed it like this 
+        {
+            foreach (var artefact in category.Artefacts)
+            {
+                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+            }
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+        }
+
+        _context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
         await _context.SaveChangesAsync();
 
         return NoContent();
