@@ -149,7 +149,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     final item = categories[index];
     if (moveCategoriesMode) {
       return CustomDelayDragStartListener(
-        delay: 100,
+        delay: 200,
         key: key,
         index: index,
         child: _buildCategoryButton(key, context, index, item),
