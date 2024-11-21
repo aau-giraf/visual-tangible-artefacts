@@ -9,10 +9,10 @@ namespace VTA.API.Controllers;
 public class AssetsController : ControllerBase
 {
     // GET: api/Assets/Images
-    [HttpGet("{filepath}")]
-    public IActionResult GetImage(string filepath)
+    [HttpGet("Artefacts/{filepath}")]
+    public IActionResult GetArtefactImage(string filepath)
     {
-        var imagePath = $"Assets/{filepath}";
+        var imagePath = $"Assets/Artefacts/{filepath}";
         if (!System.IO.File.Exists(imagePath))
         {
             return NotFound();
@@ -20,4 +20,17 @@ public class AssetsController : ControllerBase
         var fileBytes = System.IO.File.ReadAllBytes(imagePath);
         return File(fileBytes, "image/jpeg");
     }
+    [HttpGet("Categories/{filepath}")]
+    public IActionResult GetCategoryImage(string filepath)
+    {
+        var imagePath = $"Assets/Categories/{filepath}";
+        if (!System.IO.File.Exists(imagePath))
+        {
+            return NotFound();
+        }
+        var fileBytes = System.IO.File.ReadAllBytes(imagePath);
+        return File(fileBytes, "image/jpeg");
+    }
+    
+
 }

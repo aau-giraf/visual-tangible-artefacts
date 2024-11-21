@@ -4,13 +4,13 @@ namespace VTA.API.Utilities;
 
 public static class ImageUtilities
 {
-    private static string _APIEndpoint = "/api/Assets/";
+    //private static string _APIEndpoint = "";
     private static string _Dir = "";
 
     public static string? AddImage(IFormFile? image, string artefactId, string dir)
     {
         _Dir = dir;
-        _APIEndpoint = _APIEndpoint + _Dir + "/";
+        string _APIEndpoint = "/api/Assets/" + _Dir + "/";
         if (image != null && image.Length > 0)
         {
             string fileName = artefactId + Path.GetExtension(image.FileName);
