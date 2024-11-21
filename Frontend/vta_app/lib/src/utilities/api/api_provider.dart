@@ -115,6 +115,11 @@ class ApiProvider {
           request.files.add(http.MultipartFile.fromBytes(
               key, utf8.encode(value.map((v) => v.toString()).join(',')),
               filename: '$key.txt'));
+        } else if (value is List<Map<String, dynamic>>) {
+          // Add support for List of Maps
+          request.files.add(http.MultipartFile.fromBytes(
+              key, utf8.encode(json.encode(value)),
+              filename: '$key.json'));
         } else {
           throw Exception(
               'Unsupported list type for key $key: ${value.runtimeType}');
