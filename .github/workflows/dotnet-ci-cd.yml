@@ -28,8 +28,8 @@ jobs:
       - name: Build the project
         run: dotnet build --configuration Release
 
-#      - name: Run tests
-#        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
+      - name: Run tests
+        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
   cd:
     runs-on: self-hosted
