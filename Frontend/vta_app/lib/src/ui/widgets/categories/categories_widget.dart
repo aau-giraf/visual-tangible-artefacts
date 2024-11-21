@@ -38,7 +38,6 @@ class CategoriesWidget extends StatefulWidget {
 
 class _CategoriesWidgetState extends State<CategoriesWidget> {
   bool _isMatrixVisible = false;
-  Category? _selectedCategory;
   late List<Category> categories;
   late ArtifactState artifactState;
   late AuthState authState;
@@ -483,30 +482,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                   categoryIndex: 0,
                   image: imageBytes);
               artifactState.addCategory(newCategory, token: authState.token!);
-            });
-      },
-    );
-  }
-
-  void _showEditCategoryPopup(BuildContext context, Category category) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AddItemPopup(
-            isCategory: true,
-            category: category,
-            onSubmit: (name, imageBytes) {
-              var artifactState =
-                  Provider.of<ArtifactState>(context, listen: false);
-              var authState = Provider.of<AuthState>(context, listen: false);
-              var newCategory = Category(
-                  categoryId: category.categoryId,
-                  name: name,
-                  userId: authState.userId,
-                  categoryIndex: category.categoryIndex,
-                  image: imageBytes);
-              artifactState.updateCategory(newCategory,
-                  token: authState.token!);
             });
       },
     );
