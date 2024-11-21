@@ -94,7 +94,6 @@ public class ArtefactsController : ControllerBase
     // POST: api/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    [DisableRequestSizeLimit]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
