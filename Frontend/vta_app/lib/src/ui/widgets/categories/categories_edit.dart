@@ -58,9 +58,13 @@ class CategoriesEdit extends StatelessWidget {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                var message = await deleteCategory(
+                    context, categoryId); // Call the delete function
                 Navigator.of(context).pop(); // Close the dialog
-                deleteCategory(context, categoryId); // Call the delete function
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
@@ -70,7 +74,7 @@ class CategoriesEdit extends StatelessWidget {
     );
   }
 
-  void deleteCategory(BuildContext context, String categoryId) async {
+  Future<String> deleteCategory(BuildContext context, String categoryId) async {
     // Implement your delete functionality here
     String message = 'Something went wrong';
     var artifactState = Provider.of<ArtifactState>(context, listen: false);
@@ -78,10 +82,8 @@ class CategoriesEdit extends StatelessWidget {
     var success =
         await artifactState.deleteCategory(categoryId, token: authState.token!);
     if (success) {
-      message = 'Deleted category: $categoryId';
+      message = 'Deleted category: $categoryName';
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    return message;
   }
 }

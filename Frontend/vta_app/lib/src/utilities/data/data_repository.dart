@@ -22,18 +22,14 @@ abstract class ApiDataRepository {
     if (response == null) {
       throw Exception('No response from server.');
     }
-    switch (response.statusCode) {
-      case 200:
-        return true;
-      case 201:
-        return true;
-      case 401:
-        throw Exception('Invalid username or password.');
-
-      case 500:
-        throw Exception('Internal server error.');
-      default:
-        throw Exception('Unexpected response code ${response.statusCode}.');
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return true;
+    } else if (response.statusCode == 401) {
+      throw Exception('Invalid username or password.');
+    } else if (response.statusCode == 500) {
+      throw Exception('500 Internal server error.');
+    } else {
+      throw Exception('Unexpected response code ${response.statusCode}.');
     }
   }
 }
