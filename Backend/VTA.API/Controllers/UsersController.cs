@@ -198,7 +198,7 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        foreach (var category in user.Categories)//Ww should maybe remove the artefacts reference to the user, therfore I've designed it like this 
+        foreach (var category in user.Categories)//We should remove all artefacts referenced by the user, therfore I've designed it like this 
         {
             foreach (var artefact in category.Artefacts)
             {
