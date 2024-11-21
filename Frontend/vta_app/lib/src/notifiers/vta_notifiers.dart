@@ -43,6 +43,10 @@ class AuthState with ChangeNotifier {
 
   void logout() {
     _token = null;
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('jwt_token');
+      prefs.remove('userId');
+    });
     notifyListeners();
   }
 }
