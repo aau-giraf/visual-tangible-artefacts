@@ -82,12 +82,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       top: 30,
                       left: 30,
                       child: PopupMenuButton(
+                          tooltip: "Brugerindstillinger",
                           offset: const Offset(0, 60),
                           icon: Icon(Icons.supervised_user_circle_outlined,
                               size: 50),
                           itemBuilder: (context) => [
                                 PopupMenuItem(
                                   child: ListTile(
+                                    leading: Icon(Icons.settings, size: 20),
                                     title: const Text('Instillinger'),
                                     onTap: () {
                                       Navigator.of(context)
@@ -97,6 +99,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                 ),
                                 PopupMenuItem(
                                   child: ListTile(
+                                    leading: Icon(Icons.logout, size: 20),
                                     title: const Text('Log ud'),
                                     onTap: () {
                                       context.read<AuthState>().logout();

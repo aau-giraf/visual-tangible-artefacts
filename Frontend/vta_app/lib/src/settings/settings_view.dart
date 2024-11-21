@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vta_app/src/utilities/extensions/string_extension.dart';
 import 'settings_controller.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 
@@ -48,8 +49,8 @@ class SettingsView extends StatelessWidget {
       settingKey: "languageSetting",
       selected: controller.localization.index,
       leading: Icon(Icons.language),
-      values: Map.fromEntries(
-          Localization.values.map((e) => MapEntry(e.index, e.name))),
+      values: Map.fromEntries(Localization.values
+          .map((e) => MapEntry(e.index, e.name.capitalize()))),
       onChange: _onToggleLocalization,
     );
   }
