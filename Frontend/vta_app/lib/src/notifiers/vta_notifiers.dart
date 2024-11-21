@@ -97,6 +97,24 @@ class ArtifactState with ChangeNotifier {
     }
   }
 
+  Future<bool> deleteCategory(String categoryId,
+      {required String token}) async {
+    try {
+      final success =
+          await ArtifactRepository().deleteCategory(categoryId, token: token);
+      if (success) {
+        _categories
+            ?.removeWhere((category) => category.categoryId == categoryId);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting category: $e');
+      return false;
+    }
+  }
+
   Future<bool> addArtifact(Artefact artifact, {required String token}) async {
     var newArtifact =
         await ArtifactRepository().addArtifact(artifact, token: token);
