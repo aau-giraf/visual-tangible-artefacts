@@ -270,9 +270,9 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.move_down, color: Colors.yellow),
+                leading: const Icon(Icons.move_down, color: Colors.green),
                 title:
-                    const Text('Move', style: TextStyle(color: Colors.yellow)),
+                    const Text('Move', style: TextStyle(color: Colors.green)),
                 onTap: () {
                   setState(() {
                     moveCategoriesMode = true;
