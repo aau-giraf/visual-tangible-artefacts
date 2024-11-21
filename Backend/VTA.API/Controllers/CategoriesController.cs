@@ -133,7 +133,12 @@ public class CategoriesController : ControllerBase
             Console.WriteLine(ex.ToString());
             if (CategoryExists(category.CategoryId))
             {
-                return Conflict();
+                //Chance of this happening is infinitely small ! But never zero !
+                while (CategoryExists(category.CategoryId))
+                {
+                    category.CategoryId = Guid.NewGuid().ToString();
+                }
+                await _context.SaveChangesAsync();
             }
             else
             {
