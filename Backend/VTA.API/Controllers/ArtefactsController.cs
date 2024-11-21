@@ -117,7 +117,12 @@ public class ArtefactsController : ControllerBase
         {
             if (ArtefactExists(artefact.ArtefactId))
             {
-                return Conflict();
+                //Chance of this happening is infinitely small ! But never zero !
+                while (ArtefactExists(artefact.ArtefactId))
+                {
+                    artefact.ArtefactId = Guid.NewGuid().ToString();
+                }
+                await _context.SaveChangesAsync();
             }
             else
             {
