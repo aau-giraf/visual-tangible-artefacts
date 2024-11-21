@@ -99,6 +99,11 @@ builder.Services.AddSwaggerGen(options =>
     // https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
 });
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 300 * 1024 * 1024; // 300 MB
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
