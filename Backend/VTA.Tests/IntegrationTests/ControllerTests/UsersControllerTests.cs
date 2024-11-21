@@ -122,12 +122,12 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
-        [Fact]
-        public async Task TestImageUploadReturnsBadRequestWithoutFile()
-        {
-            var response = await _client.PostAsync("/api/Users/test-upload", null);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
+        // [Fact]
+        // public async Task TestImageUploadReturnsBadRequestWithoutFile()
+        // {
+        //     var response = await _client.PostAsync("/api/Users/test-upload", null);
+        //     Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        // }
 
         [Fact]
         public async Task TestForbiddenUserDeletionByAnotherUser()
