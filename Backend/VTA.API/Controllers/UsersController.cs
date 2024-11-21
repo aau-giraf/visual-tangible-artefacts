@@ -59,16 +59,6 @@ public class UsersController : ControllerBase
             userId = user.Id
         };
     }
-    [AllowAnonymous]
-    [HttpPost("test-upload")]
-    public IActionResult TestUpload(IFormFile image)
-    {
-        if (image == null)
-        {
-            return BadRequest("Image file not received.");
-        }
-        return Ok("Image received successfully.");
-    }
 
     [AllowAnonymous]
     [Route("SignUp")]

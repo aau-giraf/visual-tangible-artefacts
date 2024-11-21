@@ -56,10 +56,10 @@ public class CategoriesController : ControllerBase
         return categoryGetDTO;
     }
 
-    // PUT: api/Categories/5
+    // PATCH: api/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPatch]
-    public async Task<IActionResult> PatchCategory(CategoryPatchDTO dto)
+    public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
 
@@ -133,7 +133,12 @@ public class CategoriesController : ControllerBase
             Console.WriteLine(ex.ToString());
             if (CategoryExists(category.CategoryId))
             {
-                return Conflict();
+                //Chance of this happening is infinitely small ! But never zero !
+                while (CategoryExists(category.CategoryId))
+                {
+                    category.CategoryId = Guid.NewGuid().ToString();
+                }
+                await _context.SaveChangesAsync();
             }
             else
             {

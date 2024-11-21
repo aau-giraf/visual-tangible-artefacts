@@ -76,7 +76,15 @@ class ArtifactState with ChangeNotifier {
   Future<bool> updateCategory(Category category,
       {required String token}) async {
     try {
-      await ArtifactRepository().updateCategory(category, token: token);
+      var responseOk =
+          await ArtifactRepository().updateCategory(category, token: token);
+      if (responseOk == false) return false;
+      var categoryMatch = _categories
+          ?.firstWhere((element) => element.categoryId == category.categoryId);
+      if (categoryMatch != null) {
+        int index = _categories!.indexOf(categoryMatch);
+        _categories![index].name = category.name;
+      }
       _categories?.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
       notifyListeners();
       return true;

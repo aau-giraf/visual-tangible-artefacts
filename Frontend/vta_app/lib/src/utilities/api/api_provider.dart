@@ -51,11 +51,11 @@ class ApiProvider {
     }
   }
 
-  Future<Response?> postAsMultiPart(String endPoint,
+  Future<Response?> sendAsMultiPart(String action, String endPoint,
       {Map<String, String>? headers, Map<String, dynamic>? body}) async {
     var uri = Uri.parse(baseUrl + endPoint);
     try {
-      var request = http.MultipartRequest('POST', uri);
+      var request = http.MultipartRequest(action.toUpperCase(), uri);
       request.headers.addAll(headers ?? {}); // Add custom headers
       _buildMultipartRequest(body, request);
       var streamedResponse = await request.send();
@@ -115,6 +115,11 @@ class ApiProvider {
           request.files.add(http.MultipartFile.fromBytes(
               key, utf8.encode(value.map((v) => v.toString()).join(',')),
               filename: '$key.txt'));
+        } else if (value is List<Map<String, dynamic>>) {
+          // Add support for List of Maps
+          request.files.add(http.MultipartFile.fromBytes(
+              key, utf8.encode(json.encode(value)),
+              filename: '$key.json'));
         } else {
           throw Exception(
               'Unsupported list type for key $key: ${value.runtimeType}');

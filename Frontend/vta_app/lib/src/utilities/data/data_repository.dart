@@ -99,7 +99,8 @@ class ArtifactRepository extends ApiDataRepository {
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var response = await apiProvider.postAsMultiPart('Users/Categories',
+      var response = await apiProvider.sendAsMultiPart(
+          'POST', 'Users/Categories',
           headers: headers, body: category.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
@@ -112,23 +113,24 @@ class ArtifactRepository extends ApiDataRepository {
     }
   }
 
-  Future<Category?> updateCategory(Category category,
+  Future<bool> updateCategory(Category category,
       {required String token}) async {
     var headers = <String, String>{'Authorization': 'Bearer $token'};
-    var response = await apiProvider.patchAsJson('Users/Categories/',
+    var response = await apiProvider.sendAsMultiPart(
+        'PATCH', 'Users/Categories/',
         headers: headers, body: category.toJson());
     if (responseOk(response)) {
-      var jsonResponse = json.decode(response!.body);
-      return Category.fromJson(jsonResponse);
+      return true;
     }
-    return null;
+    return false;
   }
 
   Future<Artefact?> addArtifact(Artefact artefact,
       {required String token}) async {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
-      var response = await apiProvider.postAsMultiPart('Users/Artefacts',
+      var response = await apiProvider.sendAsMultiPart(
+          'POST', 'Users/Artefacts',
           headers: headers, body: artefact.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
