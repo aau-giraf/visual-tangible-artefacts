@@ -230,7 +230,7 @@ public class UsersController : ControllerBase
             issuer: validIssuer,
             audience: validAudience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
+            expires: DateTime.UtcNow.AddDays(30),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
