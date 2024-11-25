@@ -665,7 +665,6 @@ class _AddItemPopupState extends State<AddItemPopup> {
     var screenSize = MediaQuery.of(context).size;
     var minHeight = screenSize.height * 0.8;
     var minWidth = screenSize.width * 0.6;
-    final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
     return Dialog(
       child: Container(
@@ -687,67 +686,35 @@ class _AddItemPopupState extends State<AddItemPopup> {
             ),
           ],
         ),
-        child: Navigator(
-          key: navigatorKey,
-          onGenerateRoute: (RouteSettings settings) {
-            Widget page;
-            switch (settings.name) {
-              case '/ai':
-                page = Padding(
-                  padding: EdgeInsets.all(20),
-                  child: AIPage(onImageProcessed: setGeneratedImage),
-                );
-                break;
-              default:
-                page = SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildForm(
-                        minWidth, formKey, nameController, navigatorKey),
-                  ),
-                );
-            }
-            return PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => page,
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                const begin = Offset(-1.0, 0.0);
-                const end = Offset.zero;
-                const curve = Curves.easeInOut;
-                var tween = Tween(begin: begin, end: end)
-                    .chain(CurveTween(curve: curve));
-                var offsetAnimation = animation.drive(tween);
-                return SlideTransition(position: offsetAnimation, child: child);
-              },
-            );
-          },
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _buildForm(minWidth, formKey, nameController),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildForm(
-      double minWidth,
-      GlobalKey<FormState> formKey,
-      TextEditingController nameController,
-      GlobalKey<NavigatorState> navigatorKey) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          widget.title,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 28,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w400,
+  Widget _buildForm(double minWidth, GlobalKey<FormState> formKey,
+      TextEditingController nameController) {
+    return Form(
+      key: formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            widget.title,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 28,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w400,
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        SizedBox(
-          width: minWidth * 0.8,
-          child: Form(
-            key: formKey,
+          SizedBox(height: 16),
+          SizedBox(
+            width: minWidth * 0.8,
             child: Column(
               children: [
                 TextFormField(
@@ -792,11 +759,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ],
             ),
           ),
-        ),
-        SizedBox(height: 16),
-        Flexible(
-          fit: FlexFit.loose,
-          child: SingleChildScrollView(
+          SizedBox(height: 16),
+          SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -820,40 +784,55 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 SizedBox(width: 16),
                 _buildButton('Lav med AI', 'assets/images/ai_file.png',
                     onClick: () {
-                  navigatorKey.currentState?.pushNamed('/ai');
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Container(
+                          color: Colors.white,
+                          width: 760,
+                          height: 500,
+                          child: AIPage(onImageProcessed: setGeneratedImage),
+                        ),
+                      );
+                    },
+                  );
                 }),
               ],
             ),
           ),
-        ),
-        SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFBADFB5),
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFBADFB5),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    widget.onSubmit(nameController.text, imageBytes);
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: Text(
+                  widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  widget.onSubmit(nameController.text, imageBytes);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text(
-                widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
-                style: TextStyle(color: Colors.white),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Luk'),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Luk'),
-            ),
-          ],
-        ),
-        SizedBox(height: 16),
-      ],
+            ],
+          ),
+          SizedBox(height: 16),
+        ],
+      ),
     );
   }
 
