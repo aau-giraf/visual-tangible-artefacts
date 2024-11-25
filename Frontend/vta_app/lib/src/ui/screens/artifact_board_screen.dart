@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
 // import '../widgets/board/linear_board.dart';
@@ -21,18 +22,30 @@ class ArtifactBoardScreen extends StatefulWidget {
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   bool _showDirectional = false;
   late TalkingMat talkingMat;
+  late LinearBoard linearBoard;
   late GlobalKey<TalkingMatState> talkingMatKey;
-  // late LinearBoard linearBoard;
+  late GlobalKey<LinearBoardState> linearBoardKey;
 
   @override
   void initState() {
     super.initState();
     talkingMatKey = GlobalKey<TalkingMatState>();
+    linearBoardKey = GlobalKey<LinearBoardState>();
     talkingMat = TalkingMat(
       key: talkingMatKey,
       artifacts: [],
     );
-    // linearBoard = LinearBoard();
+    linearBoard = LinearBoard(
+      key: linearBoardKey
+    );
+  }
+
+  void addArtifactToCurrentMat(BoardArtefact artifact) {
+    if (_showDirectional) {
+      linearBoardKey.currentState?.addArtifact(artifact);
+    } else {
+      talkingMatKey.currentState?.addArtifact(artifact);
+    }
   }
 
   @override
@@ -76,8 +89,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: padding),
                         child: Center(
-                          child: /*_showDirectional ? linearBoard :*/
-                              talkingMat,
+                          child: _showDirectional ? linearBoard : talkingMat,
                         ),
                       ),
                       Positioned(
@@ -114,26 +126,28 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ]),
                       ),
-                      // Positioned(
-                      //   top: 30,
-                      //   left: 30,
-                      //   child: RelationalBoardButton(
-                      //     onPressed: () {
-                      //       setState(() {
-                      //         _showDirectional = !_showDirectional;
-                      //       });
-                      //     },
-                      //     icon: _showDirectional
-                      //         ? const Icon(
-                      //             IconData(0xf685, fontFamily: 'MaterialIcons'),
-                      //             size: 24.0,
-                      //           )
-                      //         : const Icon(
-                      //             IconData(0xf601, fontFamily: 'MaterialIcons'),
-                      //             size: 24.0,
-                      //           ),
-                      //   ),
-                      // ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 20),
+                          child: RelationalBoardButton(
+                            onPressed: () {
+                              setState(() {
+                                _showDirectional = !_showDirectional;
+                              });
+                            },
+                            icon: _showDirectional
+                                ? const Icon(
+                              IconData(0xf685, fontFamily: 'MaterialIcons'),
+                              size: 24.0,
+                            )
+                                : const Icon(
+                              IconData(0xf601, fontFamily: 'MaterialIcons'),
+                              size: 24.0,
+                            ),
+                          ),
+                        ),
+                      ),
                       const QuickChatButton(),
                     ],
                   ),
@@ -151,7 +165,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                         // Use the aliased widget here
                         categories: categories,
                         widgetHeight: categoriesWidgetHeight,
-                        talkingMatKey: talkingMatKey,
+                        onArtifactAdded: addArtifactToCurrentMat,
                       )))
             ],
           ),

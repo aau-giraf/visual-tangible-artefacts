@@ -21,13 +21,13 @@ import 'package:http/http.dart' as http;
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
   final double widgetHeight;
-  final GlobalKey<TalkingMatState> talkingMatKey;
+  final Function(BoardArtefact) onArtifactAdded;
 
   const CategoriesWidget({
     super.key,
     required this.categories,
     required this.widgetHeight,
-    required this.talkingMatKey,
+    required this.onArtifactAdded,
   });
 
   @override
@@ -385,9 +385,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
               onPressed: isInDeletionMode
                   ? null
                   : () {
-                      widget.talkingMatKey.currentState
-                          ?.addArtifact(boardArtefacts[index]);
                       Navigator.pop(context);
+                      widget.onArtifactAdded(boardArtefacts[index]);
                     },
               child: boardArtefacts[index].content,
             ),
