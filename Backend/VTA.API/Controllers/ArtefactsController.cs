@@ -57,6 +57,7 @@ public class ArtefactsController : ControllerBase
     // PUT: api/Artefacts/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{artefactId}")]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -93,8 +94,8 @@ public class ArtefactsController : ControllerBase
 
     // POST: api/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
