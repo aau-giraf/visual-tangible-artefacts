@@ -62,33 +62,52 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     });
   }
 
+  /// Function to move artifacts.
+  void moveArtifact(int currentId, int newId) {
+    if (artifacts[newId] == null) {
+      // If the new index is empty, simply move the artifact there
+      artifacts[newId] = artifacts[currentId];
+      artifacts[currentId] = null;
+    } else {
+      // If not, attempt to shift artifacts to make room at the new index
+      if (shiftArtifactsToMakeRoom(newId)) {
+        artifacts[newId] = artifacts[currentId];
+        artifacts[currentId] = null;
+      } else {
+        // If shifting is not possible, perform a swap
+        swapArtifacts(currentId, newId);
+      }
+    }
+    setState(() {});
+  }
+
   /// Function to attempt shifting the artifacts, to make room.
   bool shiftArtifactsToMakeRoom(int index) {
-    // Attempt to find a space by moving artifacts around within the size of the map.
-    for (int i = artifacts.length - 1; i > index; i--) {
-      if (artifacts[i] == null) {
-        // First, attempt to move it to the right
-        for (int j = i; j > index; j--) {
-          artifacts[j] = artifacts[j - 1];
-        }
-        artifacts[index] = null;
-        return true;
-      }
+    // Check if shifting right is possible and needed
+    if (index < artifacts.length - 1 && artifacts[index + 1] == null) {
+      // Shift the artifact from index to index + 1
+      artifacts[index + 1] = artifacts[index];
+      artifacts[index] = null;
+      return true;
+    }
+    
+    // Check if shifting left is possible and needed
+    if (index > 0 && artifacts[index - 1] == null) {
+      // Shift the artifact from index to index - 1
+      artifacts[index - 1] = artifacts[index];
+      artifacts[index] = null;
+      return true;
     }
 
-    for (int i = 0; i < index; i++) {
-      if (artifacts[i] == null) {
-        // If it didn't succeed moving it to the right, move it to the left
-        for (int j = i; j < index; j++) {
-          artifacts[j] = artifacts[j + 1];
-        }
-        removeArtifact(index);
-        return true;
-      }
-    }
-
-    // Return false if unable to move artifacts
+    // Return false if no shifting occurred
     return false;
+  }
+
+  /// Function to swap artifacts locations
+  void swapArtifacts(int id1, int id2) {
+    BoardArtefact? temp = artifacts[id1];
+    artifacts[id1] = artifacts[id2];
+    artifacts[id2] = temp;
   }
 
   /// Remove an artifact
@@ -189,13 +208,19 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     return Expanded(
       child: DragTarget<BoardArtefact>(
         onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-          addArtifact(details.data, index: index);
+          int currentIndex = artifacts.indexOf(details.data);
+          if (currentIndex != -1) {
+            moveArtifact(currentIndex, index);
+          }
         },
         builder: (BuildContext context, List<BoardArtefact?> candidateData, List<dynamic> rejectedData) {
-          return SizedBox(
-            width: MediaQuery.of(context).size.width * 0.2,
-            height: MediaQuery.of(context).size.height * 0.4,
-            child: artifact == null ? null : _buildDraggableArtifact(context, artifact, index),
+          return Padding (
+            padding: EdgeInsets.all(5),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.2,
+              height: MediaQuery.of(context).size.height * 0.4,
+              child: artifact == null ? null : _buildDraggableArtifact(context, artifact, index),
+            ),
           );
         },
       ),
@@ -213,9 +238,6 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
           child: artifact.content,
         ),
       ),
-      onDragCompleted: () {
-        removeArtifact(index);
-      },
       childWhenDragging: Opacity(
         opacity: 0.5,
         child: artifact.content,
