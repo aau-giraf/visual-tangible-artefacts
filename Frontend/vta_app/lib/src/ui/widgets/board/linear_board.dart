@@ -3,15 +3,11 @@ import 'package:vta_app/src/ui/widgets/board/artifact.dart'; // Import the Linea
 
 class LinearBoard extends StatefulWidget {
   final Map<int, BoardArtefact?>? artifacts;
-  final double? width;
-  final double? height;
   final Color? backgroundColor;
 
   const LinearBoard({
     super.key,
     this.artifacts,
-    this.width,
-    this.height,
     this.backgroundColor,
   });
 
@@ -21,14 +17,14 @@ class LinearBoard extends StatefulWidget {
 
 class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin {
   late Map<int, BoardArtefact?> artifacts;
-  int columnCount = 4;
+  int fieldCount = 4;
 
   @override
   void initState() {
     super.initState();
     // Initialize with a fixed number spots in the map
     artifacts = widget.artifacts ??
-        Map.fromIterable(List.generate(columnCount, (index) => index),
+        Map.fromIterable(List.generate(fieldCount, (index) => index),
             value: (_) => null);
   }
 
@@ -165,9 +161,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   @override
   Widget build(BuildContext context) {
     return Center(
-      // Background box container
       child: Container(
-        // Adjust height as needed
+        width: MediaQuery.of(context).size.width * 0.85,
+        height: MediaQuery.of(context).size.height * 0.5,
         decoration: BoxDecoration(
             color: const Color.fromARGB(255, 255, 255, 255),
             borderRadius: BorderRadius.circular(10.0),
@@ -182,9 +178,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            for (int i = 0; i < columnCount; i++) ...[
-              _buildBox(context, "Box $i"),
-              if (i < columnCount - 1) _buildVerticalDivider(context),
+            for (int i = 0; i < fieldCount; i++) ...[
+              _buildBox(context, artifacts[i], i),
+              if (i < fieldCount - 1) _buildVerticalDivider(context),
             ]
           ],
         ),
@@ -192,44 +188,47 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     );
   }
 
-  Widget _buildBox(BuildContext context, String title) {
+  Widget _buildBox(BuildContext context, BoardArtefact? artifact, int index) {
     return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          print("tap");
+      child: DragTarget<BoardArtefact>(
+        onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
+          addArtifact(details.data, index: index);
         },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: MediaQuery.of(context).size.width * 0.2,
-              height: MediaQuery.of(context).size.height * 0.4,
-              color: const Color.fromARGB(255, 255, 255, 255),
-              child: Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: () {
-                      print("button");
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
+        builder: (BuildContext context, List<BoardArtefact?> candidateData, List<dynamic> rejectedData) {
+          return SizedBox(
+            width: MediaQuery.of(context).size.width * 0.2,
+            height: MediaQuery.of(context).size.height * 0.4,
+            child: artifact == null ? null : _buildDraggableArtifact(context, artifact, index),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact, int index) {
+    return Draggable<BoardArtefact>(
+      data: artifact,
+      feedback: Material(
+        type: MaterialType.transparency,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.2,
+          height: MediaQuery.of(context).size.height * 0.4,
+          child: artifact.content,
         ),
+      ),
+      onDragCompleted: () {
+        removeArtifact(index);
+      },
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: artifact.content,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: artifact.content,
       ),
     );
   }
@@ -238,7 +237,7 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     return Container(
       height: MediaQuery.of(context).size.height * 0.44,
       width: 1,
-      color: Colors.black,
+      color: Colors.grey,
     );
   }
 }
