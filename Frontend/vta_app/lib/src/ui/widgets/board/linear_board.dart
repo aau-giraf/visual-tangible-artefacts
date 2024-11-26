@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart'; // Import the LinearBoardButton widget
 
 class LinearBoard extends StatefulWidget {
-  final Map<int, BoardArtefact?>? artifacts;
+  final List<BoardArtefact?> ?artifacts;
   final Color? backgroundColor;
 
   const LinearBoard({
@@ -16,16 +16,14 @@ class LinearBoard extends StatefulWidget {
 }
 
 class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin {
-  late Map<int, BoardArtefact?> artifacts;
+  late List<BoardArtefact?> artifacts;
   int fieldCount = 4;
 
   @override
   void initState() {
     super.initState();
     // Initialize with a fixed number spots in the map
-    artifacts = widget.artifacts ??
-        Map.fromIterable(List.generate(fieldCount, (index) => index),
-            value: (_) => null);
+    artifacts = List<BoardArtefact?>.filled(fieldCount, null, growable: false);
   }
 
   /// Function for adding an artifact to the board. An index of location can be provided, if available
@@ -95,15 +93,18 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
 
   /// Remove an artifact
   void removeArtifact(int index) {
-    if (artifacts.containsKey(index)) {
-      setState(() {
-        artifacts[index] = null; // Set to null indicating the location is now empty
-      });
+    artifacts[index] = null;
+  }
+
+  /// Remove all artifacts
+  void removeAllArtifacts() {
+    for (int i = artifacts.length - 1; i > 0; i--) {
+      artifacts[i] = null;
     }
   }
 
-  /// Remove all artifacts on the board
-  void removeAllArtifacts() {
+  /// Confirmation dialog for removing all artifacts on the board
+  void confirmRemoveAllArtifacts() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -121,13 +122,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
               child: Text("Yes"),
               onPressed: () {
                 setState(() {
-                  // Get all keys from map
-                  var keys = List.from(artifacts.keys);
-                  for (int key in keys) {
-                    // Put null in each key
-                    artifacts[key] = null;
+                  removeAllArtifacts();
                   }
-                });
+                );
                 Navigator.of(context).pop(); // Close the dialog
               },
             ),
