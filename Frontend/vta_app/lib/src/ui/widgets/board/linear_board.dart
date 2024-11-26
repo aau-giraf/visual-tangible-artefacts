@@ -113,12 +113,13 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   /// Remove an artifact
   void removeArtifact(int index) {
     artifacts[index] = null;
+    setState(() {});
   }
 
   /// Remove all artifacts
   void removeAllArtifacts() {
-    for (int i = artifacts.length - 1; i > 0; i--) {
-      artifacts[i] = null;
+    for (int i = artifacts.length - 1; i >= 0; i--) {
+      removeArtifact(i);
     }
   }
 
@@ -140,10 +141,7 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
             TextButton(
               child: Text("Yes"),
               onPressed: () {
-                setState(() {
-                  removeAllArtifacts();
-                  }
-                );
+                removeAllArtifacts();
                 Navigator.of(context).pop(); // Close the dialog
               },
             ),
@@ -176,6 +174,18 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildGrid(context),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: _buildTrashcan(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGrid(BuildContext context) {
     return Center(
       child: Container(
         width: MediaQuery.of(context).size.width * 0.85,
@@ -257,6 +267,67 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
       height: MediaQuery.of(context).size.height * 0.44,
       width: 1,
       color: Colors.grey,
+    );
+  }
+
+  Widget _buildTrashcan(BuildContext context) {
+    return DragTarget<BoardArtefact>(
+      onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
+        int artifactIndex = artifacts.indexOf(details.data);
+        print("artifact index: $artifactIndex");
+        if (artifactIndex != -1) {
+          removeArtifact(artifactIndex);
+        }
+      },
+      builder: (BuildContext context, List<BoardArtefact?> candidateData, List<dynamic> rejectedData) {
+        return Container(
+          // Defined size to increase target area
+          width: 200,
+          height: 100,
+          color: Colors.transparent,
+          alignment: Alignment.center,
+          child: _buildTrashcanIcon(),
+        );
+      },
+    );
+  }
+
+  Widget _buildTrashcanIcon({
+    double width = 50,
+    double height = 50,
+    Color color = const Color(0xFFF0F2D9)}) {
+    return GestureDetector(
+      onTap: () {
+        confirmRemoveAllArtifacts();
+      },
+      child: Stack(children: [
+        Container(
+          width: width,
+          height: height,
+          decoration: ShapeDecoration(
+            color: color,
+            shape: const OvalBorder(),
+            shadows: const [
+              BoxShadow(
+                color: Color(0x3F000000),
+                blurRadius: 4,
+                offset: Offset(0, 4),
+                spreadRadius: 0,
+              )
+            ],
+          ),
+          child: Center(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/icons/trash_bin.png'),
+                  fit: BoxFit.scaleDown,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
