@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'artifact.dart';
+import 'package:provider/provider.dart';
+import 'package:vta_app/src/controllers/board_controller.dart';
+import 'artefact.dart';
 
 class TalkingMat extends StatefulWidget {
-  final List<BoardArtefact>? artifacts;
   final double? width;
   final double? height;
   final Color? backgroundColor;
-
-  const TalkingMat({
-    super.key,
-    this.artifacts,
+  final BoardController boardController;
+  const TalkingMat({super.key,
     this.width,
     this.height,
     this.backgroundColor,
+    required this.boardController
   });
 
   @override
@@ -20,17 +20,11 @@ class TalkingMat extends StatefulWidget {
 }
 
 class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
-  late List<BoardArtefact> artifacts;
-  bool isGestureInsideMat = false;
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
-  bool _showDeleteHover = false;
-  bool _isDraggingOverTrashCan = false;
-
   @override
   void initState() {
     super.initState();
-    artifacts = widget.artifacts ?? [];
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -51,95 +45,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void addArtifact(BoardArtefact artifact) {
-    setState(() {
-      artifacts.add(artifact);
-    });
-  }
-
-  void removeArtifact(GlobalKey artifactKey) {
-    artifacts.removeWhere((artifact) => artifact.key == artifactKey);
-  }
-
-  void removeAllArtifacts() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Confirm"),
-          content: Text("Are you sure you want to remove all artifacts?"),
-          actions: <Widget>[
-            TextButton(
-              child: Text("Cancel"),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-            ),
-            TextButton(
-              child: Text("Yes"),
-              onPressed: () {
-                setState(() {
-                  artifacts.clear();
-                });
-                Navigator.of(context).pop(); // Close the dialog
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _updateArtifactPosition(BoardArtefact artifact, Offset offset) {
-    // Get the rendered size of the artifact if available
-    Size? size = artifact.renderedSize;
-
-    if (size != null) {
-      // Get the RenderBox of the current widget to handle coordinate conversions
-      final RenderBox renderBox = context.findRenderObject() as RenderBox;
-
-      // Convert the global touch/click position to local coordinates
-      // This ensures the position is relative to the board's coordinate space
-      final localPosition = renderBox.globalToLocal(offset);
-
-      // Update the artifact's position in the state
-      // This will trigger a rebuild with the new position
-      setState(() {
-        artifact.position = localPosition;
-      });
-    }
-  }
-
-  void _loadArtifactSize(BoardArtefact artifact) {
-    // Access the size of the artifact's content after it has been rendered
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? renderBox =
-          artifact.key.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final size = renderBox.size;
-
-        // Update the rendered size in the artifact
-        artifact.renderedSize = size;
-      }
-    });
-  }
-
-  bool _isInsideMat(Offset globalOffset) {
-    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return false;
-
-    // Get the global position of the top-left corner of the TalkingMat
-    final Offset matTopLeftGlobal = renderBox.localToGlobal(Offset.zero);
-
-    // Check if the artifact is inside the mat by comparing global coordinates
-    return globalOffset.dx - matTopLeftGlobal.dx >= 0 &&
-        globalOffset.dx + matTopLeftGlobal.dx <= renderBox.size.width &&
-        globalOffset.dy - matTopLeftGlobal.dy >= 0 &&
-        globalOffset.dy + matTopLeftGlobal.dy <= renderBox.size.height;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final boardController = widget.boardController;
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
@@ -160,14 +68,13 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              ...artifacts.map((artifact) {
-                _loadArtifactSize(
-                    artifact); // Ensure the artifact size is captured
+              ...boardController.artefacts.map((artefact) {
+                boardController.loadArtefactSize(artefact); // Ensure the artifact size is captured
                 return Positioned(
-                  left: artifact.position?.dx,
-                  top: artifact.position?.dy,
+                  left: artefact.position?.dx,
+                  top: artefact.position?.dy,
                   child: Draggable<BoardArtefact>(
-                    data: artifact,
+                    data: artefact,
                     feedback: Transform.scale(
                       scale: 1.2,
                       child: Container(
@@ -183,16 +90,16 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         ),
                         child: Opacity(
                           opacity: 0.5,
-                          child: artifact.content,
+                          child: artefact.content,
                         ),
                       ),
                     ),
                     childWhenDragging: Container(),
                     child:
-                        Container(key: artifact.key, child: artifact.content),
+                        Container(key: artefact.key, child: artefact.content),
                     onDragEnd: (details) {
-                      if (_isInsideMat(details.offset)) {
-                        _updateArtifactPosition(artifact, details.offset);
+                      if (boardController.isInsideMat(details.offset, context)) {
+                        boardController.updateArtefactPosition(artefact, details.offset, context);
                       }
                     },
                   ),
@@ -205,7 +112,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                 child: Stack(alignment: Alignment.center, children: [
                   SlideTransition(
                       position: _offsetAnimation,
-                      child: _showDeleteHover
+                      child:boardController.showDeleteHover
                           ? buildTrashCan(
                               height: 30,
                               width: 30,
@@ -213,46 +120,46 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           : null),
                   GestureDetector(
                     onTap: () {
-                      removeAllArtifacts();
+                      boardController.removeArtefactsPopUp(context);
                     },
                     child: DragTarget<BoardArtefact>(
                       builder: (context, data, rejectedData) {
                         return buildTrashCan(
-                          height: _isDraggingOverTrashCan ? 120 : 50,
-                          width: _isDraggingOverTrashCan ? 120 : 50,
+                          height: boardController.isDraggingOverTrashCan ? 120 : 50,
+                          width: boardController.isDraggingOverTrashCan ? 120 : 50,
                         );
                       },
                       onAcceptWithDetails: (details) {
-                        var artifactKey = details.data.key;
-                        removeArtifact(artifactKey);
+                        var artefactKey = details.data.key;
+                        boardController.removeArtefact(artefactKey);
                         _animationController.reverse();
                         // Listen for the animation status
                         _animationController.addStatusListener((status) {
                           if (status == AnimationStatus.dismissed) {
                             // Wait until animation is fully reversed
                             setState(() {
-                              _showDeleteHover = false;
+                              boardController.setDeleteHover(false);
                             });
                           }
                         });
                       },
                       onWillAcceptWithDetails: (details) {
                         setState(() {
-                          _showDeleteHover = true;
-                          _isDraggingOverTrashCan = true;
+                          boardController.setDeleteHover(true);
+                          boardController.setOverTrashCan(true);
                         });
                         _animationController.forward();
                         return true;
                       },
                       onLeave: (details) {
                         _animationController.reverse();
-                        _isDraggingOverTrashCan = false;
+                        boardController.setOverTrashCan(false);
                         // Listen for the animation status
                         _animationController.addStatusListener((status) {
                           if (status == AnimationStatus.dismissed) {
                             // Wait until animation is fully reversed
                             setState(() {
-                              _showDeleteHover = false;
+                              boardController.setDeleteHover(false);
                             });
                           }
                         });
@@ -269,7 +176,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   }
 
   Widget buildTrashCan(
-      {double width = 50,
+      {
+        double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
     return Stack(children: [

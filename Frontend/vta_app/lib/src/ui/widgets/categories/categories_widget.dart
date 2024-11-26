@@ -4,11 +4,11 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:vta_app/src/models/artefact.dart';
-import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/artefact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
@@ -17,6 +17,8 @@ import 'package:cross_file/cross_file.dart';
 import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:http/http.dart' as http;
+
+import '../../../controllers/board_controller.dart';
 
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
@@ -356,7 +358,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       );
     });
   }
-
   Widget _buildImageGridItem(BuildContext context, int index, Category category,
       bool isInDeletionMode, VoidCallback onLongPress,
       {required VoidCallback onDelete}) {
@@ -365,7 +366,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     var headers = <String, String>{
       'Authorization': 'Bearer ${authState.token}'
     };
-
+    final boardController = Provider.of<BoardController>(context);
     if (index >= category.artefacts!.length) {
       return SizedBox(); // Safety check
     }
@@ -374,7 +375,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         .map((artefact) =>
             BoardArtefact.fromArtefact(artefact, headers: headers))
         .toList();
-
     return GestureDetector(
       onLongPress: onLongPress,
       child: Stack(
@@ -385,8 +385,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
               onPressed: isInDeletionMode
                   ? null
                   : () {
-                      widget.talkingMatKey.currentState
-                          ?.addArtifact(boardArtefacts[index]);
+                boardController.addArtefact(boardArtefacts[index]);
                       Navigator.pop(context);
                     },
               child: boardArtefacts[index].content,

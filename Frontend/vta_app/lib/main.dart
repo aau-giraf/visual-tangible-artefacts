@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/controllers/board_controller.dart';
+import 'package:vta_app/src/models/board_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'src/app.dart';
@@ -24,6 +26,8 @@ void main() async {
   // Flutter Widgets.
   final settingsController = SettingsController(SettingsService());
 
+  final boardController = BoardController(BoardModel());
+
   // Initialize the CameraManager
   if (Platform.isAndroid || Platform.isIOS) {
     CameraManager().initialize();
@@ -43,5 +47,5 @@ void main() async {
     ChangeNotifierProvider(create: (context) => AuthState()),
     ChangeNotifierProvider(create: (context) => ArtifactState()),
     ChangeNotifierProvider(create: (context) => UserState()),
-  ], child: MyApp(settingsController: settingsController)));
+  ], child: MyApp(settingsController: settingsController, boardController: boardController,)));
 }

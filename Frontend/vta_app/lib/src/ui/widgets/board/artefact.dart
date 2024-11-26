@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/models/artefact.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
 
 class BoardArtefact {
   final Widget content;
