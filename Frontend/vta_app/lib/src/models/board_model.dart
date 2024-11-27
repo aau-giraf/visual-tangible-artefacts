@@ -7,7 +7,7 @@ import '../modelsDTOs/category.dart';
 class BoardModel
 {
   List<Category>? _categories;
-  late List<BoardArtefact> _artefacts;
+  final List<BoardArtefact> _artefacts = [];
   bool _isGestureInsideMat = false;
   /*TODO: Should this be handled by the controller, model, or UI?*/
   //late AnimationController _animationController
