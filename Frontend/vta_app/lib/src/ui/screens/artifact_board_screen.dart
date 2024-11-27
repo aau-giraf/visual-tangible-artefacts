@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/settings/settings_service.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
-// import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
@@ -25,22 +24,62 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   late LinearBoard linearBoard;
   late GlobalKey<TalkingMatState> talkingMatKey;
   late GlobalKey<LinearBoardState> linearBoardKey;
+  int? _linearBoardFieldCount;
 
   @override
   void initState() {
     super.initState();
+    getCurrentBoardStatus();
     talkingMatKey = GlobalKey<TalkingMatState>();
     linearBoardKey = GlobalKey<LinearBoardState>();
     talkingMat = TalkingMat(
       key: talkingMatKey,
       artifacts: [],
     );
-    linearBoard = LinearBoard(
-      key: linearBoardKey
-    );
+    _setupLinearBoard();
   }
 
-  void addArtifactToCurrentMat(BoardArtefact artifact) {
+  /// Function for setting up the linear board
+  void _setupLinearBoard() async {
+    // Get the count of fields from settings
+    int? count = await SettingsService().linearArtifactCount();
+    // If count is set and not current count, go ahead
+    if (count != null) {
+      setState(() {
+        _linearBoardFieldCount = count;
+        // Create a new board
+        List<BoardArtefact?> artifactList = List<BoardArtefact?>.filled(_linearBoardFieldCount!, null, growable: false);
+        linearBoard = LinearBoard(
+          key: linearBoardKey,
+          fieldCount: artifactList.length,
+          artifacts: artifactList,
+        );
+      });
+    }
+  }
+
+  /// Get the current status of whether the board is at talking mat or directional
+  void getCurrentBoardStatus() async {
+    // Get status from settings
+    bool? showDirectionalBoard = await SettingsService().showDirectionalBoard();
+    // If the bool is not null or not equal to current, go ahead
+    if (showDirectionalBoard != null && showDirectionalBoard != _showDirectional) {
+      _showDirectional = showDirectionalBoard;
+    }
+  }
+
+  /// Switch the status of whether the board is at talking mat or directional
+  void switchCurrentBoard() async {
+    bool newStatus = !_showDirectional;
+    // Update the setting with SettingsService
+    await SettingsService().updateShowDirectionalBoard(newStatus);
+    setState(() {
+      _showDirectional = newStatus;
+    });
+  }
+
+  /// Add an artifact to the currently active board
+  void addArtifactToCurrentBoard(BoardArtefact artifact) {
     if (_showDirectional) {
       linearBoardKey.currentState?.addArtifact(artifact);
     } else {
@@ -132,9 +171,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                           padding: EdgeInsets.only(left: 20),
                           child: RelationalBoardButton(
                             onPressed: () {
-                              setState(() {
-                                _showDirectional = !_showDirectional;
-                              });
+                              switchCurrentBoard();
                             },
                             icon: _showDirectional
                                 ? const Icon(
@@ -165,7 +202,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                         // Use the aliased widget here
                         categories: categories,
                         widgetHeight: categoriesWidgetHeight,
-                        onArtifactAdded: addArtifactToCurrentMat,
+                        onArtifactAdded: addArtifactToCurrentBoard,
                       )))
             ],
           ),

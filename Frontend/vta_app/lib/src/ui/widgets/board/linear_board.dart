@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart'; // Import the LinearBoardButton widget
 
 class LinearBoard extends StatefulWidget {
-  final List<BoardArtefact?> ?artifacts;
+  final List<BoardArtefact?>? artifacts;
+  final int? fieldCount;
   final Color? backgroundColor;
 
   const LinearBoard({
     super.key,
     this.artifacts,
+    this.fieldCount,
     this.backgroundColor,
   });
 
@@ -17,7 +19,7 @@ class LinearBoard extends StatefulWidget {
 
 class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin {
   late List<BoardArtefact?> artifacts;
-  int fieldCount = 4;
+  late int fieldCount;
 
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
@@ -27,8 +29,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
+    fieldCount = widget.fieldCount!;
     // Initialize with a fixed number spots in the map
-    artifacts = List<BoardArtefact?>.filled(fieldCount, null, growable: false);
+    artifacts = widget.artifacts ?? List<BoardArtefact?>.filled(fieldCount, null, growable: false);
 
     _animationController = AnimationController(
       vsync: this,
@@ -88,6 +91,12 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
 
   /// Function to move artifacts.
   void _moveArtifact(int currentId, int newId) {
+    // Return early if user is trying to place it in the same field
+    if (currentId == newId) {
+      return;
+    }
+
+    // Find a spot
     if (artifacts[newId] == null) {
       // If the new index is empty, simply move the artifact there
       artifacts[newId] = artifacts[currentId];
@@ -269,6 +278,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   }
 
   Widget _buildBox(BuildContext context, BoardArtefact? artifact, int index) {
+    double artifactWidth = MediaQuery.of(context).size.width * 0.2;
+    double artifactHeight = MediaQuery.of(context).size.height * 0.4;
+
     return Expanded(
       child: DragTarget<BoardArtefact>(
         onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
@@ -282,16 +294,10 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
           return Padding(
             padding: EdgeInsets.all(5),
             child: SizedBox(
-              width: MediaQuery
-                  .of(context)
-                  .size
-                  .width * 0.2,
-              height: MediaQuery
-                  .of(context)
-                  .size
-                  .height * 0.4,
+              width: artifactWidth,
+              height: artifactHeight,
               child: artifact == null ? null : _buildDraggableArtifact(
-                  context, artifact, index),
+                  context, artifact, index, artifactWidth, artifactHeight),
             ),
           );
         },
@@ -300,22 +306,16 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   }
 
   Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
-      int index) {
+      int index, double artifactWidth, double artifactHeight) {
     return Draggable<BoardArtefact>(
       data: artifact,
       feedback: Material(
         type: MaterialType.transparency,
         child: Opacity(
           opacity: 0.5,
-          child: Container(
-            width: MediaQuery
-                .of(context)
-                .size
-                .width * 0.2,
-            height: MediaQuery
-                .of(context)
-                .size
-                .height * 0.4,
+          child: SizedBox(
+            width: artifactWidth / (fieldCount / 4),
+            height: artifactHeight,
             child: artifact.content,
           ),
         ),

@@ -15,17 +15,33 @@ class SettingsService {
     return await SharedPreferencesAsync().getBool('textUnderImages');
   }
 
+  Future<int?> linearArtifactCount() async {
+    return await SharedPreferencesAsync().getInt('linearArtifactCount');
+  }
+
   Future<int?> localization() async {
     return await SharedPreferencesAsync().getInt('localization');
+  }
+
+  Future<bool?> showDirectionalBoard() async {
+    return await SharedPreferencesAsync().getBool('showDirectionalBoard');
   }
 
   Future<void> updateTextUnderImages(bool newValue) async {
     await SharedPreferencesAsync().setBool('textUnderImages', newValue);
   }
 
+  Future<void> updateLinearArtifactCount(int newValue) async {
+    await SharedPreferencesAsync().setInt('linearArtifactCount', newValue);
+  }
+
   Future<void> updateLocalization(Localization newLocalization) async {
     await SharedPreferencesAsync()
         .setInt('localization', newLocalization.index);
+  }
+
+  Future<void> updateShowDirectionalBoard(bool newValue) async {
+    await SharedPreferencesAsync().setBool('showDirectionalBoard', newValue);
   }
 
   /// Persists the user's preferred ThemeMode to local or remote storage.
