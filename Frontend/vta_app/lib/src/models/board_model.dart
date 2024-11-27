@@ -6,7 +6,7 @@ import '../modelsDTOs/category.dart';
 
 class BoardModel
 {
-  List<Category>? _categories;
+  List<Category> _categories = [];
   final List<BoardArtefact> _artefacts = [];
   bool _isGestureInsideMat = false;
   /*TODO: Should this be handled by the controller, model, or UI?*/
@@ -14,8 +14,9 @@ class BoardModel
   //late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _moveCategoriesMode = false;
 
-  List<Category>? get categories => _categories;
+  List<Category> get categories => _categories;
   List<BoardArtefact> get artefacts => _artefacts;
   bool get isGestureInsideMat => _isGestureInsideMat;
   /*TODO: Should this be handled by the controller, model, or UI?*/
@@ -23,13 +24,17 @@ class BoardModel
   //get Animation<Offset> offsetAnimation => _offsetAnimation;
   bool get showDeleteHover => _showDeleteHover;
   bool get isDraggingOverTrashCan => _isDraggingOverTrashCan;
-
+  bool get moveCategoriesMode => _moveCategoriesMode;
   void setDeleteHover(bool show){
     _showDeleteHover = show;
   }
   void setOverTrashCan(bool overTrash){
     _isDraggingOverTrashCan = overTrash;
   }
+  void setMoveCategories(bool move){
+    _moveCategoriesMode = move;
+  }
+
   void loadCategories(List<Category>? cat){
     _categories = cat;
   }
@@ -67,4 +72,11 @@ class BoardModel
       //});
     }
   }
-}
+}TextButton _buildCategoryButton(
+      Key? key, BuildContext context, int index, Category item) {
+    return TextButton(
+      key: key,
+      onPressed: () => _showCategoryModal(context, categories[index]),
+      child: _buildCategoryContainer(item),
+    );
+  }
