@@ -1,4 +1,4 @@
-import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
 class User implements JsonSerializable {
