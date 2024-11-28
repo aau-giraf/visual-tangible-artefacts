@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
+import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 
 /// Model for handling authentication and storing authentication data
@@ -43,10 +44,10 @@ class AuthModel {
   }
 
   /// Signs up the user with the provided [email] and [password]
-  Future<void> signup(String email, String password) async {
+  Future<void> signup(SignupForm form) async {
     try {
-      var response = await apiProvider
-          .postAsJson('Signup', body: {'email': email, 'password': password});
+      var response =
+          await apiProvider.postAsJson('Users/Signup', body: form.toJson());
       if (response != null && response.ok) {
         var jsonData = jsonDecode(response.body);
         var model = LoginResponse.fromJson(jsonData);
