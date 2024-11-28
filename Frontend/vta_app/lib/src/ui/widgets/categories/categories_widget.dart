@@ -13,7 +13,6 @@ import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:http/http.dart' as http;
