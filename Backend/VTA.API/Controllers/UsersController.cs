@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -69,10 +70,13 @@ public class UsersController : ControllerBase
         {
             return BadRequest();
         }
-
+        if (userSignUp.Username == )
+        {
+            return Conflict("Username already exists");
+        }
         User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
 
-        while (UserExists(user.Id))
+        while (UserIdExists(user.Id))
         {
             user.Id = Guid.NewGuid().ToString();
         }
@@ -86,7 +90,7 @@ public class UsersController : ControllerBase
         }
         catch (DbUpdateException)
         {
-            if (UserExists(user.Id))
+            if (UserIdExists(user.Id))
             {
                 return Conflict();
             }
@@ -159,7 +163,7 @@ public class UsersController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!UserExists(id))
+            if (!UserIdExists(id))
             {
                 return NotFound();
             }
@@ -203,9 +207,13 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    private bool UserExists(string id)
+    private bool UserIdExists(string id)
     {
         return _context.Users.Any(e => e.Id == id);
+    }
+    private bool UserNameExists(string username)
+    {
+        return _context.Users.Any(e => e.Username == username);
     }
 
     private string GenerateJwt(string userId, string name)
