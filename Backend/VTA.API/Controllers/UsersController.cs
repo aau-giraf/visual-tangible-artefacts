@@ -70,7 +70,7 @@ public class UsersController : ControllerBase
         {
             return BadRequest();
         }
-        if (userSignUp.Username == )
+        if (UserNameExists(userSignUp.Username))
         {
             return Conflict("Username already exists");
         }
