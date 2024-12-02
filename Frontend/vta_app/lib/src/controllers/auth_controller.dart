@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
+import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 
 /// Used to control the authentication process and store authentication data
@@ -19,6 +20,10 @@ class AuthController extends ChangeNotifier {
       {BuildContext? context}) async {
     try {
       await _model.login(username, password);
+      if (context != null && context.mounted) {
+        Navigator.of(context)
+            .pushReplacementNamed(ArtifactBoardScreen.routeName);
+      }
     } catch (e) {
       if (context != null && context.mounted) {
         _showErrorSnackBar(context, e.toString());

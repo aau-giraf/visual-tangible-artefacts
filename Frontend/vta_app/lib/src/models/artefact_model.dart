@@ -12,7 +12,7 @@ class ArtifactModel {
 
   ArtifactModel(this.apiProvider);
 
-  Future<void> fetchCategories(String token) async {
+  Future<void> fetchCategories({required String token}) async {
     try {
       var response = await apiProvider.fetchAsJson("Categories", headers: {
         'Authorization': 'Bearer $token',
@@ -34,6 +34,20 @@ class ArtifactModel {
       debugPrint("$e");
       rethrow;
     }
+  }
+
+  Future<void> postCategory(Category category, {required String token}) async {
+    try {
+      var response = await apiProvider
+          .postAsJson("Users/Categories", headers: {'Authorization': token});
+      if (response != null && response.ok) {
+        var jsonResponse = jsonDecode(response.body);
+        var newCategory = Category.fromJson(jsonResponse);
+        _categories.add(newCategory);
+        _categories
+            .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      }
+    } catch (e) {}
   }
 }
 

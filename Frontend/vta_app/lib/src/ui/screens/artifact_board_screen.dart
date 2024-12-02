@@ -13,6 +13,7 @@ import '../widgets/categories/categories_widget.dart'
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({super.key});
+  static const String routeName = "/boardview";
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
