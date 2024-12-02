@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vta_app/src/controllers/linear_board_controller.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/settings/settings_service.dart';
@@ -24,36 +25,50 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   late LinearBoard linearBoard;
   late GlobalKey<TalkingMatState> talkingMatKey;
   late GlobalKey<LinearBoardState> linearBoardKey;
+  late LinearBoardController linearBoardController;
   int? _linearBoardFieldCount;
 
   @override
   void initState() {
     super.initState();
-    getCurrentBoardStatus();
+    // Initialize talkingMatKey and linearBoardKey
     talkingMatKey = GlobalKey<TalkingMatState>();
     linearBoardKey = GlobalKey<LinearBoardState>();
+
+    // Synchronously initialize linearBoardController controller with an empty list and zero field count
+    linearBoardController = LinearBoardController(
+      artifacts: [],
+      fieldCount: 0,
+    );
+
+    // Setup TalkingMat and LinearBoard
     talkingMat = TalkingMat(
       key: talkingMatKey,
       artifacts: [],
     );
-    _setupLinearBoard();
+    linearBoard = LinearBoard(
+      key: linearBoardKey,
+      linearBoardController: linearBoardController,
+    );
+
+    // Fetch and setup the linear board configuration
+    _setupLinearBoardController();
+
+    // Fetch current board status
+    getCurrentBoardStatus();
   }
 
   /// Function for setting up the linear board
-  void _setupLinearBoard() async {
+  void _setupLinearBoardController() async {
     // Get the count of fields from settings
     int? count = await SettingsService().linearArtifactCount();
     // If count is set and not current count, go ahead
-    if (count != null) {
+    if (count != null && count != _linearBoardFieldCount) {
       setState(() {
         _linearBoardFieldCount = count;
-        // Create a new board
-        List<BoardArtefact?> artifactList = List<BoardArtefact?>.filled(_linearBoardFieldCount!, null, growable: false);
-        linearBoard = LinearBoard(
-          key: linearBoardKey,
-          fieldCount: artifactList.length,
-          artifacts: artifactList,
-        );
+        // Update the controller with new artifact list and field count
+        linearBoardController.artifacts = List<BoardArtefact?>.filled(_linearBoardFieldCount!, null, growable: false);
+        linearBoardController.fieldCount = _linearBoardFieldCount!;
       });
     }
   }
@@ -81,7 +96,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   /// Add an artifact to the currently active board
   void addArtifactToCurrentBoard(BoardArtefact artifact) {
     if (_showDirectional) {
-      linearBoardKey.currentState?.addArtifact(artifact);
+      linearBoardController.addArtifact(artifact);
     } else {
       talkingMatKey.currentState?.addArtifact(artifact);
     }

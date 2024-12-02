@@ -1,16 +1,17 @@
+// views/linear_board.dart
+
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart'; // Import the LinearBoardButton widget
+import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import '../../../controllers/linear_board_controller.dart';
 
 class LinearBoard extends StatefulWidget {
-  final List<BoardArtefact?>? artifacts;
-  final int? fieldCount;
   final Color? backgroundColor;
+  final LinearBoardController linearBoardController;
 
   const LinearBoard({
     super.key,
-    this.artifacts,
-    this.fieldCount,
     this.backgroundColor,
+    required this.linearBoardController,
   });
 
   @override
@@ -18,8 +19,7 @@ class LinearBoard extends StatefulWidget {
 }
 
 class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin {
-  late List<BoardArtefact?> artifacts;
-  late int fieldCount;
+  late LinearBoardController _linearBoardController;
 
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
@@ -29,9 +29,11 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
-    fieldCount = widget.fieldCount!;
-    // Initialize with a fixed number spots in the map
-    artifacts = widget.artifacts ?? List<BoardArtefact?>.filled(fieldCount, null, growable: false);
+    _linearBoardController = widget.linearBoardController;
+
+    _linearBoardController.addListener(() {
+      setState(() {});
+    });
 
     _animationController = AnimationController(
       vsync: this,
@@ -45,115 +47,15 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
       parent: _animationController,
       curve: Curves.easeIn,
     ));
+
+    print("Creating linearBoardView");
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
-  }
-
-  /// Function for adding an artifact to the board. An index of location can be provided, if available
-  void addArtifact(BoardArtefact artifact, {int? index}) {
-    int indexOfLocation = -1;
-
-    if (index == null) {
-      // We should find the first available null spot within the current range of artifacts
-      for (int i = 0; i < artifacts.length; i++) {
-        if (artifacts[i] == null) {
-          indexOfLocation = i;
-          break;
-        }
-      }
-    } else {
-      // If the index is empty, we can pass it
-      if (artifacts[index] == null) {
-        indexOfLocation = index;
-      } else {
-        // If the index was not empty, try and make room
-        if (_shiftArtifactsToMakeRoom(index)) {
-          indexOfLocation = index;
-        }
-      }
-    }
-
-    // If no location was found for the artifact, let the user know and return
-    if (indexOfLocation == -1) {
-      showBoardFullDialog();
-      return;
-    }
-
-    // Set the new artifact at the specified index, if a location was found
-    setState(() {
-      artifacts[indexOfLocation] = artifact;
-    });
-  }
-
-  /// Function to move artifacts.
-  void _moveArtifact(int currentId, int newId) {
-    // Return early if user is trying to place it in the same field
-    if (currentId == newId) {
-      return;
-    }
-
-    // Find a spot
-    if (artifacts[newId] == null) {
-      // If the new index is empty, simply move the artifact there
-      artifacts[newId] = artifacts[currentId];
-      artifacts[currentId] = null;
-    } else {
-      // If not, attempt to shift artifacts to make room at the new index
-      if (_shiftArtifactsToMakeRoom(newId)) {
-        artifacts[newId] = artifacts[currentId];
-        artifacts[currentId] = null;
-      } else {
-        // If shifting is not possible, perform a swap
-        _swapArtifacts(currentId, newId);
-      }
-    }
-    setState(() {});
-  }
-
-  /// Function to attempt shifting the artifacts, to make room.
-  bool _shiftArtifactsToMakeRoom(int index) {
-    // Check if shifting right is possible and needed
-    if (index < artifacts.length - 1 && artifacts[index + 1] == null) {
-      // Shift the artifact from index to index + 1
-      artifacts[index + 1] = artifacts[index];
-      artifacts[index] = null;
-      return true;
-    }
-    
-    // Check if shifting left is possible and needed
-    if (index > 0 && artifacts[index - 1] == null) {
-      // Shift the artifact from index to index - 1
-      artifacts[index - 1] = artifacts[index];
-      artifacts[index] = null;
-      return true;
-    }
-
-    // Return false if no shifting occurred
-    return false;
-  }
-
-  /// Function to swap artifacts locations
-  void _swapArtifacts(int id1, int id2) {
-    BoardArtefact? temp = artifacts[id1];
-    artifacts[id1] = artifacts[id2];
-    artifacts[id2] = temp;
-  }
-
-  /// Remove an artifact
-  void removeArtifact(int index) {
-    artifacts[index] = null;
-    setState(() {});
-  }
-
-  /// Remove all artifacts
-  void removeAllArtifacts() {
-    for (int i = artifacts.length - 1; i >= 0; i--) {
-      removeArtifact(i);
-    }
+    print("Disposing LinearBoardView");
   }
 
   /// Confirmation dialog for removing all artifacts on the board
@@ -174,7 +76,7 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
             TextButton(
               child: Text("Yes"),
               onPressed: () {
-                removeAllArtifacts();
+                _linearBoardController.removeAllArtifacts();
                 Navigator.of(context).pop(); // Close the dialog
               },
             ),
@@ -254,22 +156,25 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
             .size
             .height * 0.5,
         decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 255, 255, 255),
-            borderRadius: BorderRadius.circular(10.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                spreadRadius: 2,
-                blurRadius: 2,
-                offset: const Offset(0, 4),
-              )
-            ]),
+          color: widget.backgroundColor ??
+              const Color.fromARGB(255, 255, 255, 255),
+          borderRadius: BorderRadius.circular(10.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 2,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            for (int i = 0; i < fieldCount; i++) ...[
-              _buildBox(context, artifacts[i], i),
-              if (i < fieldCount - 1) _buildVerticalDivider(context),
+            for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
+              _buildBox(context, _linearBoardController.artifacts[i], i),
+              if (i < _linearBoardController.fieldCount - 1) _buildVerticalDivider(
+                  context),
             ]
           ],
         ),
@@ -284,9 +189,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     return Expanded(
       child: DragTarget<BoardArtefact>(
         onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-          int currentIndex = artifacts.indexOf(details.data);
+          int currentIndex = _linearBoardController.artifacts.indexOf(details.data);
           if (currentIndex != -1) {
-            _moveArtifact(currentIndex, index);
+            _linearBoardController.moveArtifact(currentIndex, index);
           }
         },
         builder: (BuildContext context, List<BoardArtefact?> candidateData,
@@ -314,7 +219,7 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
         child: Opacity(
           opacity: 0.5,
           child: SizedBox(
-            width: artifactWidth / (fieldCount / 4),
+            width: artifactWidth / (_linearBoardController.fieldCount / 4),
             height: artifactHeight,
             child: artifact.content,
           ),
@@ -347,25 +252,29 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
 
   Widget _buildInteractiveTrashcan(BuildContext context) {
     return Align(
-        alignment: Alignment.bottomCenter,
-        child: Stack(alignment: Alignment.center, children: [
+      alignment: Alignment.bottomCenter,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
           SlideTransition(
-              position: _offsetAnimation,
-              child: _showDeleteHover
-                  ? buildTrashCan(
-                  height: 30,
-                  width: 30,
-                  color: const Color.fromARGB(255, 235, 32, 18))
-                  : null),
+            position: _offsetAnimation,
+            child: _showDeleteHover
+                ? buildTrashCan(
+              height: 30,
+              width: 30,
+              color: const Color.fromARGB(255, 235, 32, 18),
+            )
+                : SizedBox.shrink(),
+          ),
           GestureDetector(
             onTap: () {
               confirmRemoveAllArtifacts();
             },
             child: DragTarget<BoardArtefact>(
               onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-                int artifactIndex = artifacts.indexOf(details.data);
+                int artifactIndex = _linearBoardController.artifacts.indexOf(details.data);
                 if (artifactIndex != -1) {
-                  removeArtifact(artifactIndex);
+                  _linearBoardController.removeArtifact(artifactIndex);
                 }
                 _disableTrashcanAnimation();
               },
