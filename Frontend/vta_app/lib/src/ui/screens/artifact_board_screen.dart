@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/functions/auth.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
@@ -12,8 +14,10 @@ import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
 class ArtifactBoardScreen extends StatefulWidget {
-  const ArtifactBoardScreen({super.key});
+  const ArtifactBoardScreen({super.key, required this.artifactController});
   static const String routeName = "/boardview";
+
+  final ArtifactController artifactController;
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
@@ -38,18 +42,56 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var artifactController = widget.artifactController;
+    var categories = artifactController.categories;
+
+    if (categories == null) {
+      return FutureBuilder(
+        future: artifactController.updateArtifacts(context: context),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Show loading spinner while waiting
+            return Center(
+              child: CircularProgressIndicator(
+                backgroundColor: Colors.white,
+              ),
+            );
+          } else if (snapshot.connectionState == ConnectionState.done) {
+            if (artifactController.categories == null) {
+              // Show retry message with button if artifacts are still null
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Failed to load artifacts. Please try again.'),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {});
+                      },
+                      child: Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return _buildPage(context);
+            }
+          }
+          return SizedBox.shrink(); // Fallback widget
+        },
+      );
+    }
+    return _buildPage(context);
+  }
+
+  Scaffold _buildPage(BuildContext context) {
     double padding = 5;
     double screenHeight = MediaQuery.of(context).size.height;
     double categoriesWidgetHeight = 60;
     double dividerHeight = 5;
-
-    var categories = context.watch<ArtifactState>().categories;
-
-    if (categories == null) {
-      return Center(
-        child: Text('Something went wrong with fetching the artifacts'),
-      );
-    }
+    var artifactController = widget.artifactController;
+    var categories = artifactController.categories;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -150,7 +192,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       height: categoriesWidgetHeight,
                       child: categories_widget.CategoriesWidget(
                         // Use the aliased widget here
-                        categories: categories,
+                        categories: categories!,
                         widgetHeight: categoriesWidgetHeight,
                         talkingMatKey: talkingMatKey,
                       )))

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
@@ -15,15 +16,17 @@ import 'functions/auth.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
-  const MyApp({
-    super.key,
-    required this.settingsController,
-    required this.authController,
-  });
+  const MyApp(
+      {super.key,
+      required this.settingsController,
+      required this.authController,
+      required this.artifactController});
 
   final SettingsController settingsController;
 
   final AuthController authController;
+
+  final ArtifactController artifactController;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +89,9 @@ class MyApp extends StatelessWidget {
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
                   case ArtifactBoardScreen.routeName:
-                    return ArtifactBoardScreen();
+                    return ArtifactBoardScreen(
+                      artifactController: artifactController,
+                    );
                   default:
                     return SplashView(controller: authController);
                 }

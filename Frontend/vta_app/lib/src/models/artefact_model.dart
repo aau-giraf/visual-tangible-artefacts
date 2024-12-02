@@ -7,24 +7,26 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 
 class ArtifactModel {
-  List<Category> _categories = [];
+  List<Category>? categories;
   final ApiProvider apiProvider;
 
   ArtifactModel(this.apiProvider);
 
-  Future<void> fetchCategories({required String token}) async {
+  Future<void> fetchAndUpdateCategories({required String token}) async {
     try {
-      var response = await apiProvider.fetchAsJson("Categories", headers: {
+      var response =
+          await apiProvider.fetchAsJson("Users/Categories", headers: {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
         var jsonResponse = json.decode(response.body) as List;
-        var categories = jsonResponse
+        var newCategories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
             .toList();
-        categories.sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
-        _categories = categories;
+        newCategories
+            .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+        categories = newCategories;
       } else {
         throw ArtifactException(
             message:
@@ -43,11 +45,18 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newCategory = Category.fromJson(jsonResponse);
-        _categories.add(newCategory);
-        _categories
+        categories!.add(newCategory);
+        categories!
             .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      } else {
+        throw ArtifactException(
+            message:
+                'Failed to post category, status code: ${response?.statusCode}');
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('$e');
+      rethrow;
+    }
   }
 }
 

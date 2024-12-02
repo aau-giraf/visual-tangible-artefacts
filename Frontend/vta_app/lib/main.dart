@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/models/artefact_model.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -43,6 +45,9 @@ void main() async {
   final AuthController authController =
       AuthController(AuthModel(apiProvider, token));
 
+  final ArtifactController artifactController =
+      ArtifactController(ArtifactModel(apiProvider));
+
   // Initialize the CameraManager
   if (Platform.isAndroid || Platform.isIOS) {
     CameraManager().initialize();
@@ -63,6 +68,8 @@ void main() async {
         Provider(create: (context) => apiProvider),
       ],
       child: MyApp(
-          settingsController: settingsController,
-          authController: authController)));
+        settingsController: settingsController,
+        authController: authController,
+        artifactController: artifactController,
+      )));
 }

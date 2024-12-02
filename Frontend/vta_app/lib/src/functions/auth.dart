@@ -35,7 +35,7 @@ class _AuthPageState extends State<AuthPage> {
                     await artifactState.loadCategories(authState.token!);
               },
             ],
-            child: ArtifactBoardScreen(),
+            child: Placeholder() /*ArtifactBoardScreen()*/,
           ),
         ),
       );
