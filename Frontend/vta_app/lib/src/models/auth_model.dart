@@ -4,13 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/singletons/token.dart';
 
 /// Model for handling authentication and storing authentication data
 class AuthModel {
-  String? token;
+  Token token;
   final ApiProvider apiProvider;
 
-  AuthModel(this.apiProvider);
+  AuthModel(this.apiProvider, this.token);
 
   /// Checks if a valid token is stored in the device
   Future<bool> checkAuth() async {
@@ -27,7 +28,7 @@ class AuthModel {
       if (response != null && response.ok) {
         var jsonData = jsonDecode(response.body);
         var model = LoginResponse.fromJson(jsonData);
-        token = model.token;
+        token.value = model.token;
       } else {
         _throwAuthException(response?.statusCode);
       }
@@ -51,7 +52,7 @@ class AuthModel {
       if (response != null && response.ok) {
         var jsonData = jsonDecode(response.body);
         var model = LoginResponse.fromJson(jsonData);
-        token = model.token;
+        token.value = model.token;
       } else {
         throw Exception(
             'Signup failed with status code: ${response?.statusCode}');

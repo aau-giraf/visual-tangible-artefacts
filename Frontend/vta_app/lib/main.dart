@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
 import 'package:global_configuration/global_configuration.dart';
+import 'package:get_it/get_it.dart';
 
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -26,6 +28,10 @@ void main() async {
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 
+  // Set up global token with GetIt
+  GetIt.I.registerSingleton<Token>(Token());
+  var token = GetIt.I.get<Token>();
+
   // Set up the providers
   final apiProvider = ApiProvider(
       baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
@@ -34,7 +40,8 @@ void main() async {
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());
 
-  final AuthController authController = AuthController(AuthModel(apiProvider));
+  final AuthController authController =
+      AuthController(AuthModel(apiProvider, token));
 
   // Initialize the CameraManager
   if (Platform.isAndroid || Platform.isIOS) {

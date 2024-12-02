@@ -7,7 +7,6 @@ import 'package:vta_app/src/views/login_view.dart';
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
   final AuthModel _model;
-
   AuthController(this._model);
 
   // Checks if a valid token is stored in the device
