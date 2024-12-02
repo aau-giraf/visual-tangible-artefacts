@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/controllers/board_controller.dart';
 import 'package:vta_app/src/functions/loading_page.dart';
-import 'package:vta_app/src/models/board_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import '../ui/screens/login_screen.dart';
 import '../ui/screens/artifact_board_screen.dart';
@@ -25,8 +23,6 @@ class _AuthPageState extends State<AuthPage> {
     final authState = Provider.of<AuthState>(context, listen: false);
     final artifactState = Provider.of<ArtifactState>(context, listen: false);
     final userState = Provider.of<UserState>(context, listen: false);
-    BoardModel boardModel = BoardModel();
-    BoardController boardController = BoardController(boardModel);
     if (await authState.loadTokenFromCache() &&
         await authState.loadUserIdFromCache()) {
       // Token is valid, navigate to user page
@@ -36,10 +32,10 @@ class _AuthPageState extends State<AuthPage> {
             awaitCallbacks: [
               () async {
                 return await userState.loadUser(authState.token!) &&
-                    await boardController.loadCategories(authState.token!);
+                    await artifactState.loadCategories(authState.token!);
               },
             ],
-            child: ArtifactBoardScreen(boardController: boardController),
+            child: ArtifactBoardScreen(),
           ),
         ),
       );

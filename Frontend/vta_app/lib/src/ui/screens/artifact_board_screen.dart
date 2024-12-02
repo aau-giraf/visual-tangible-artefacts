@@ -3,9 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
-import 'package:vta_app/src/ui/widgets/board/artefact.dart';
+import 'package:vta_app/src/ui/widgets/board/artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
-import '../../controllers/board_controller.dart';
 import '../widgets/board/relational_board_button.dart';
 // import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
@@ -13,9 +12,7 @@ import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
 class ArtifactBoardScreen extends StatefulWidget {
-  static const String routeName = "/ArtefactBoardScreen";
-  final BoardController boardController;
-  const ArtifactBoardScreen({super.key, required this.boardController});
+  const ArtifactBoardScreen({super.key});
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
@@ -33,8 +30,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     talkingMatKey = GlobalKey<TalkingMatState>();
     talkingMat = TalkingMat(
       key: talkingMatKey,
-      boardController: widget.boardController
-
+      artifacts: [],
     );
     // linearBoard = LinearBoard();
   }
