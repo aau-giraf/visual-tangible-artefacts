@@ -21,39 +21,36 @@ class _SignupPageState extends State<SignupPage> {
   final ApiProvider apiProvider =
       ApiProvider(baseUrl: 'https://api.giraf.live/api');
 
-  // Future<void> _signup() async {
-  //   if (_formKey.currentState!.validate()) {
-  //     try {
-  //       var signupForm = SignupForm(
-  //           username: _usernameController.text,
-  //           password: _passwordController.text);
+  Future<void> _signup() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        var signupForm = SignupForm(
+            username: _usernameController.text,
+            password: _passwordController.text);
 
-  //       final response = await apiProvider.postAsJson('/Users/SignUp',
-  //           body: signupForm.toJson());
+        final response = await apiProvider.postAsJson('/Users/SignUp',
+            body: signupForm.toJson());
 
-  //       if (response != null && response.statusCode == 200) {
-  //         var signupResponse =
-  //             SignupResponse.fromJson(json.decode(response.body));
-  //         String token = signupResponse.token ?? "";
-  //         SharedPreferences prefs = await SharedPreferences.getInstance();
-  //         await prefs.setString('jwt_token', token);
-
-  //         // Navigate to user page
-  //         Navigator.of(context).pushReplacement(
-  //           MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),
-  //         );
-  //       } else {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(content: Text('Signup failed')),
-  //         );
-  //       }
-  //     } catch (e) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('An error occurred: $e')),
-  //       );
-  //     }
-  //   }
-  // }
+        if (response != null && response.statusCode == 200) {
+          var signupResponse =
+              SignupResponse.fromJson(json.decode(response.body));
+          String token = signupResponse.token ?? "";
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('jwt_token', token);
+          // Navigate to user page
+          Navigator.of(context).pushReplacementNamed(ArtifactBoardScreen.routeName);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Signup failed')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

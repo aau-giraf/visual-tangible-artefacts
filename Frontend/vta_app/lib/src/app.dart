@@ -6,6 +6,10 @@ import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/views/splash_view.dart';
 import 'package:vta_app/theme/app_theme.dart';
+import 'package:vta_app/src/controllers/board_controller.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/ui/widgets/board/artefact.dart';
 import 'sample_feature/sample_item_details_view.dart';
 import 'sample_feature/sample_item_list_view.dart';
 import 'settings/settings_controller.dart';
@@ -18,9 +22,11 @@ class MyApp extends StatelessWidget {
     super.key,
     required this.settingsController,
     required this.authController,
+    required this.boardController
   });
 
   final SettingsController settingsController;
+  final BoardController boardController;
 
   final AuthController authController;
 
@@ -84,6 +90,9 @@ class MyApp extends StatelessWidget {
                     return LoginView(controller: authController);
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
+                  case ArtifactBoardScreen.routeName:
+                    return ArtifactBoardScreen(boardController: boardController,);
+                  case SampleItemListView.routeName:
                   default:
                     return SplashView(controller: authController);
                 }

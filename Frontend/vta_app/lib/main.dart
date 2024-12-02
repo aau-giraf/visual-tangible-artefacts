@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
+import 'package:vta_app/src/controllers/board_controller.dart';
+import 'package:vta_app/src/models/board_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
@@ -42,6 +44,7 @@ void main() async {
 
   final AuthController authController =
       AuthController(AuthModel(apiProvider, token));
+  final boardController = BoardController(BoardModel());
 
   // Initialize the CameraManager
   if (Platform.isAndroid || Platform.isIOS) {
@@ -64,5 +67,5 @@ void main() async {
       ],
       child: MyApp(
           settingsController: settingsController,
-          authController: authController)));
+          authController: authController, boardController: boardController,)));
 }
