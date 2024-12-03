@@ -18,7 +18,8 @@ class LinearBoard extends StatefulWidget {
   createState() => LinearBoardState();
 }
 
-class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin {
+class LinearBoardState extends State<LinearBoard>
+    with TickerProviderStateMixin {
   late LinearBoardController _linearBoardController;
 
   late AnimationController _animationController;
@@ -32,7 +33,9 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     _linearBoardController = widget.linearBoardController;
 
     _linearBoardController.addListener(() {
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     });
 
     _animationController = AnimationController(
@@ -147,14 +150,8 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
   Widget _buildGrid(BuildContext context) {
     return Center(
       child: Container(
-        width: MediaQuery
-            .of(context)
-            .size
-            .width * 0.85,
-        height: MediaQuery
-            .of(context)
-            .size
-            .height * 0.5,
+        width: MediaQuery.of(context).size.width * 0.85,
+        height: MediaQuery.of(context).size.height * 0.5,
         decoration: BoxDecoration(
           color: widget.backgroundColor ??
               const Color.fromARGB(255, 255, 255, 255),
@@ -173,8 +170,8 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
           children: [
             for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
               _buildBox(context, _linearBoardController.artifacts[i], i),
-              if (i < _linearBoardController.fieldCount - 1) _buildVerticalDivider(
-                  context),
+              if (i < _linearBoardController.fieldCount - 1)
+                _buildVerticalDivider(context),
             ]
           ],
         ),
@@ -189,7 +186,8 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
     return Expanded(
       child: DragTarget<BoardArtefact>(
         onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-          int currentIndex = _linearBoardController.artifacts.indexOf(details.data);
+          int currentIndex =
+              _linearBoardController.artifacts.indexOf(details.data);
           if (currentIndex != -1) {
             _linearBoardController.moveArtifact(currentIndex, index);
           }
@@ -201,8 +199,10 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
             child: SizedBox(
               width: artifactWidth,
               height: artifactHeight,
-              child: artifact == null ? null : _buildDraggableArtifact(
-                  context, artifact, index, artifactWidth, artifactHeight),
+              child: artifact == null
+                  ? null
+                  : _buildDraggableArtifact(
+                      context, artifact, index, artifactWidth, artifactHeight),
             ),
           );
         },
@@ -241,10 +241,7 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
 
   Widget _buildVerticalDivider(BuildContext context) {
     return Container(
-      height: MediaQuery
-          .of(context)
-          .size
-          .height * 0.44,
+      height: MediaQuery.of(context).size.height * 0.44,
       width: 1,
       color: Colors.grey,
     );
@@ -252,18 +249,16 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
 
   Widget _buildInteractiveTrashcan(BuildContext context) {
     return Align(
-      alignment: Alignment.bottomCenter,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
+        alignment: Alignment.bottomCenter,
+        child: Stack(alignment: Alignment.center, children: [
           SlideTransition(
             position: _offsetAnimation,
             child: _showDeleteHover
                 ? buildTrashCan(
-              height: 30,
-              width: 30,
-              color: const Color.fromARGB(255, 235, 32, 18),
-            )
+                    height: 30,
+                    width: 30,
+                    color: const Color.fromARGB(255, 235, 32, 18),
+                  )
                 : SizedBox.shrink(),
           ),
           GestureDetector(
@@ -272,7 +267,8 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
             },
             child: DragTarget<BoardArtefact>(
               onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-                int artifactIndex = _linearBoardController.artifacts.indexOf(details.data);
+                int artifactIndex =
+                    _linearBoardController.artifacts.indexOf(details.data);
                 if (artifactIndex != -1) {
                   _linearBoardController.removeArtifact(artifactIndex);
                 }
@@ -302,15 +298,13 @@ class LinearBoardState extends State<LinearBoard> with TickerProviderStateMixin 
               },
             ),
           ),
-        ]
-        )
-    );
+        ]));
   }
 
   Widget buildTrashCan(
       {double width = 50,
-        double height = 50,
-        Color color = const Color(0xFFF0F2D9)}) {
+      double height = 50,
+      Color color = const Color(0xFFF0F2D9)}) {
     return Stack(children: [
       Container(
         width: width,
