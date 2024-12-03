@@ -9,6 +9,7 @@ import 'package:vta_app/src/models/artefact_model.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'src/app.dart';
@@ -32,7 +33,9 @@ void main() async {
 
   // Set up global token with GetIt
   GetIt.I.registerSingleton<Token>(Token());
+  GetIt.I.registerSingleton<UserInfo>(UserInfo());
   var token = GetIt.I.get<Token>();
+  var userInfo = GetIt.I.get<UserInfo>();
 
   // Set up the providers
   final apiProvider = ApiProvider(
@@ -43,10 +46,10 @@ void main() async {
   final settingsController = SettingsController(SettingsService());
 
   final AuthController authController =
-      AuthController(AuthModel(apiProvider, token));
+      AuthController(AuthModel(apiProvider, token, userInfo));
 
-  final ArtifactController artifactController =
-      ArtifactController(ArtifactModel(apiProvider));
+  final ArtefactController artifactController =
+      ArtefactController(ArtifactModel(apiProvider));
 
   // Initialize the CameraManager
   if (Platform.isAndroid || Platform.isIOS) {

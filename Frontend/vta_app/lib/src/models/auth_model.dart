@@ -3,21 +3,30 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart';
+import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 
 /// Model for handling authentication and storing authentication data
 class AuthModel {
   Token token;
+  UserInfo userInfo;
   final ApiProvider apiProvider;
 
-  AuthModel(this.apiProvider, this.token);
+  AuthModel(this.apiProvider, this.token, this.userInfo);
 
   /// Checks if a valid token is stored in the device
   Future<bool> checkAuth() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwtToken');
     return token != null && token.isNotEmpty;
+  }
+
+  Future<void> loadCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    token.value = prefs.getString('jwtToken');
+    userInfo.userId = prefs.getString('userId');
   }
 
   /// Logs in the user with the provided [username] and [password]
@@ -29,6 +38,7 @@ class AuthModel {
         var jsonData = jsonDecode(response.body);
         var model = LoginResponse.fromJson(jsonData);
         token.value = model.token;
+        userInfo.userId = model.userId;
       } else {
         _throwAuthException(response?.statusCode);
       }

@@ -1,32 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
-import 'package:vta_app/src/functions/auth.dart';
-import 'package:vta_app/src/modelsDTOs/category.dart';
-import 'package:vta_app/src/notifiers/vta_notifiers.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
-import '../widgets/board/relational_board_button.dart';
 // import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
 class ArtifactBoardScreen extends StatefulWidget {
-  const ArtifactBoardScreen({super.key, required this.artifactController});
+  const ArtifactBoardScreen(
+      {super.key,
+      required this.artifactController,
+      required this.authController});
   static const String routeName = "/boardview";
 
-  final ArtifactController artifactController;
+  final ArtefactController artifactController;
+  final AuthController authController;
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
 }
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
-  bool _showDirectional = false;
+  // bool _showDirectional = false;
   late TalkingMat talkingMat;
   late GlobalKey<TalkingMatState> talkingMatKey;
+  final TalkingmatController talkingmatController = TalkingmatController();
   // late LinearBoard linearBoard;
 
   @override
@@ -36,6 +36,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     talkingMat = TalkingMat(
       key: talkingMatKey,
       artifacts: [],
+      controller: talkingmatController,
     );
     // linearBoard = LinearBoard();
   }
@@ -58,25 +59,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
             );
           } else if (snapshot.connectionState == ConnectionState.done) {
             if (artifactController.categories == null) {
-              // Show retry message with button if artifacts are still null
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Failed to load artifacts. Please try again.'),
-                    SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {});
-                      },
-                      child: Text('Retry'),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              return _buildPage(context);
+              categories = [];
             }
+            return _buildPage(context);
           }
           return SizedBox.shrink(); // Fallback widget
         },
@@ -147,11 +132,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                       leading: Icon(Icons.logout, size: 20),
                                       title: const Text('Log ud'),
                                       onTap: () {
-                                        context.read<AuthState>().logout();
-                                        Navigator.of(context)
-                                            .pushNamedAndRemoveUntil(
-                                                AuthPage.routeName,
-                                                (route) => false);
+                                        widget.authController.logout(context);
                                       },
                                     ),
                                   ),
@@ -195,6 +176,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                         categories: categories!,
                         widgetHeight: categoriesWidgetHeight,
                         talkingMatKey: talkingMatKey,
+                        talkingmatController: talkingmatController,
+                        artefactController: artifactController,
                       )))
             ],
           ),

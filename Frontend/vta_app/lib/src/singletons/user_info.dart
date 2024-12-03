@@ -1,0 +1,3 @@
+class UserInfo {
+  String? userId;
+}

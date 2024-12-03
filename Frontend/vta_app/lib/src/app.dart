@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
 
   final AuthController authController;
 
-  final ArtifactController artifactController;
+  final ArtefactController artifactController;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +91,7 @@ class MyApp extends StatelessWidget {
                   case ArtifactBoardScreen.routeName:
                     return ArtifactBoardScreen(
                       artifactController: artifactController,
+                      authController: authController,
                     );
                   default:
                     return SplashView(controller: authController);
