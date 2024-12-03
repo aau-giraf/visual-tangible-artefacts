@@ -16,7 +16,6 @@ class LinearBoardController extends ChangeNotifier {
   @override
   void dispose() {
     super.dispose();
-    print("Disposing LinearBoardController");
   }
 
   /// Function for adding an artifact to the board. An index of location can be provided, if available

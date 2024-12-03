@@ -50,15 +50,12 @@ class LinearBoardState extends State<LinearBoard>
       parent: _animationController,
       curve: Curves.easeIn,
     ));
-
-    print("Creating linearBoardView");
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
-    print("Disposing LinearBoardView");
   }
 
   /// Confirmation dialog for removing all artifacts on the board

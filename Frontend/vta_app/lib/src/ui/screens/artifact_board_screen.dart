@@ -61,9 +61,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   /// Function for setting up the linear board
   void _setupLinearBoardController() async {
     // Get the count of fields from settings
-    int? count = await SettingsService().linearArtifactCount();
-    // If count is set and not current count, go ahead
-    if (count != null && count != _linearBoardFieldCount) {
+    int? count = await SettingsService().linearArtifactCount() ?? 4;
+    // If count is not current count, go ahead
+    if (count != _linearBoardFieldCount) {
       setState(() {
         _linearBoardFieldCount = count;
         // Update the controller with new artifact list and field count
