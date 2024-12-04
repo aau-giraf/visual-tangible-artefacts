@@ -10,7 +10,7 @@ using VTA.API.Utilities;
 namespace VTA.API.Controllers;
 
 [Authorize]
-[Route("api/Users/Categories")]
+[Route("api/Users/Categories")]//We designed the route so that *Users* OWNS *Categories* and this route reflects it
 [ApiController]
 public class CategoriesController : ControllerBase
 {
@@ -22,6 +22,10 @@ public class CategoriesController : ControllerBase
     }
 
     // GET: api/Categories
+    /// <summary>
+    /// Gets all categories (and artefacts within them) that a user owns
+    /// </summary>
+    /// <returns>An IEnumerable of Categories</returns>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories()
     {
@@ -38,6 +42,11 @@ public class CategoriesController : ControllerBase
     }
 
     // GET: api/Categories/5
+    /// <summary>
+    /// Gets a specific category (and it's artefacts)
+    /// </summary>
+    /// <param name="categoryId">The category to get</param>
+    /// <returns>The specified category</returns>
     [HttpGet("{categoryId}")]
     public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId)
     {
@@ -58,6 +67,11 @@ public class CategoriesController : ControllerBase
 
     // PATCH: api/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    /// <summary>
+    /// Patches a category (there is a nuget package to do this, I, however find it... weird, so I haven't used it yet :( )
+    /// </summary>
+    /// <param name="dto">A category with the fields that should be altered</param>
+    /// <returns>Status code 204 (No content) to the client on success</returns>
     [HttpPatch]
     public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
@@ -69,15 +83,17 @@ public class CategoriesController : ControllerBase
         {
             return BadRequest();
         }
-
+        //If the index is not null, and not the same as the existing one, update it
         if (dto.CategoryIndex != null && category.CategoryIndex != dto.CategoryIndex)
         {
             category.CategoryIndex = dto.CategoryIndex;
         }
+        //If the name is not null, or empty, and not the same as the existing name, updat eit
         if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name)
         {
             category.Name = dto.Name;
         }
+        //if the image is not null, replace it. (I considered creating/adding an algorithm that checks if it's the same image, but i chose not to bother (it should be simple enough though))
         if (dto.Image != null)
         {
             ImageUtilities.DeleteImage(category.CategoryId, "Categories");
@@ -107,6 +123,14 @@ public class CategoriesController : ControllerBase
 
     // POST: api/Categories
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    /// <summary>
+    /// Creates a new category
+    /// </summary>
+    /// <param name="categoryPostDTO">An object with all category info</param>
+    /// <returns>
+    /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
+    /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
+    /// </returns>
     [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
     public async Task<ActionResult<CategoryGetDTO>> PostCategory([FromForm] CategoryPostDTO categoryPostDTO)
@@ -117,7 +141,6 @@ public class CategoriesController : ControllerBase
         {
             return Forbid();
         }
-
 
         string id = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories");

@@ -9,7 +9,7 @@ using VTA.API.Utilities;
 namespace VTA.API.Controllers;
 
 [Authorize]//Lock all endpoints behind JWT
-[Route("api/Users/Artefacts")]//We designed the route so taht *Users* OWNS *Artefacts* and this route reflects it
+[Route("api/Users/Artefacts")]//We designed the route so that *Users* OWNS *Artefacts* and this route reflects it
 [ApiController]
 public class ArtefactsController : ControllerBase
 {
@@ -114,11 +114,9 @@ public class ArtefactsController : ControllerBase
     /// <summary>
     /// Creates a new artefact
     /// </summary>
-    /// <remarks>
-    /// </remarks>
-    /// <param name="userSignUp">An object with all user info</param>
+    /// <param name="ArtefactPostDTO">An object with all artefact info</param>
     /// <returns>
-    /// /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
+    /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
     /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
     /// </returns>
     [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 

@@ -244,9 +244,9 @@ public class UsersController : ControllerBase
         {
             return NotFound();
         }
+        
         /*Categories and artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
-        * Therefore we remove all the images from the filesystem before we loose the refs
-        */
+        * Therefore we remove all the images from the filesystem before we loose the refs*/
         foreach (var category in user.Categories)
         {
             foreach (var artefact in category.Artefacts)
