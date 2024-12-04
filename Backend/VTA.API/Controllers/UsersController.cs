@@ -13,20 +13,16 @@ using VTA.API.Utilities;
 namespace VTA.API.Controllers;
 //Mark the entire controller to require a valid token
 [Authorize]
-[Route("api/Users")]
+[Route("api/Users")]//Define where all endpoints are
 [ApiController]
 public class UsersController : ControllerBase
 {
     private readonly UserContext _context;
-
-    private readonly SecretsProvider _secretsSingleton;
-
     private readonly IConfiguration _config;
 
-    public UsersController(UserContext context, SecretsProvider secretSingleton, IConfiguration config)
+    public UsersController(UserContext context, IConfiguration config)
     {
         _context = context;
-        _secretsSingleton = secretSingleton;
         _config = config;
     }
 
@@ -35,7 +31,7 @@ public class UsersController : ControllerBase
     /// </summary>
     /// <param name="userLoginForm">username and password</param>
     /// <returns>A login object</returns>
-    [AllowAnonymous]
+    [AllowAnonymous]//Allows a user to not have a JWT
     [Route("Login")] // = api/Users/Login
     [HttpPost]
     public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
@@ -75,12 +71,11 @@ public class UsersController : ControllerBase
     /// </remarks>
     /// <param name="userSignUp">An object with all user info</param>
     /// <returns>A Login Object</returns>
-    [AllowAnonymous]
+    [AllowAnonymous]//Allows a user to not have a JWT
     [Route("SignUp")] // = api/Users/SignUp
     [HttpPost]
     public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
     {
-        /*dotnet tests this before we */
         if (userSignUp == null)
         {
             return BadRequest();
@@ -117,6 +112,7 @@ public class UsersController : ControllerBase
 
         return await AutoSignIn(user);
     }
+    
     /// <summary>
     /// Requested by the front-end. The intended functionality is pretty clear.
     /// </summary>
@@ -232,7 +228,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// We could remove the Id != id test (probably also the null check, since it *should* be impossible to get a null)
     /// </remarks>
-    [HttpDelete("{id}")]
+    [HttpDelete("{id}")]//{} allows us to extract that part of the url as a variable
     public async Task<IActionResult> DeleteUser(string id)
     {
         var Id = User.FindFirst("id")?.Value;//Extract the id from the JWT (Dotnet infers that we are talking about the JWT)
@@ -248,7 +244,9 @@ public class UsersController : ControllerBase
         {
             return NotFound();
         }
-
+        /*Categories and artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
+        * Therefore we remove all the images from the filesystem before we loose the refs
+        */
         foreach (var category in user.Categories)
         {
             foreach (var artefact in category.Artefacts)
@@ -272,6 +270,7 @@ public class UsersController : ControllerBase
     {
         return _context.Users.Any(e => e.Username == username);//Returns true if any username column within the *Users* table contains the username
     }
+
     /// <summary>
     /// Generates a Json Web Token used for granting access to the API endpoints marked with [Authorize]
     /// </summary>

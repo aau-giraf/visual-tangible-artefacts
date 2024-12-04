@@ -8,8 +8,8 @@ using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
 
-[Authorize]
-[Route("api/Users/Artefacts")]
+[Authorize]//Lock all endpoints behind JWT
+[Route("api/Users/Artefacts")]//We designed the route so taht *Users* OWNS *Artefacts* and this route reflects it
 [ApiController]
 public class ArtefactsController : ControllerBase
 {
@@ -21,6 +21,10 @@ public class ArtefactsController : ControllerBase
     }
 
     // GET: api/Artefacts
+    /// <summary>
+    /// Gets all artefacts that a user owns
+    /// </summary>
+    /// <returns>An IEnumerable of artefacts</returns>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
     {
@@ -36,6 +40,11 @@ public class ArtefactsController : ControllerBase
     }
 
     // GET: api/Artefacts/5
+    /// <summary>
+    /// Gets a specific artefact
+    /// </summary>
+    /// <param name="artefactId">The artefact to get</param>
+    /// <returns>The specified artefact</returns>
     [HttpGet("{artefactId}")]
     public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
     {
@@ -56,6 +65,15 @@ public class ArtefactsController : ControllerBase
 
     // PUT: api/Artefacts/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    /// <summary>
+    /// Updates an artefacts information (PUT HAS to have all fields in the User object filled out. A PATCH can have null values (which then aren't updated))
+    /// </summary>
+    /// <remarks>
+    /// We should ALWAYS use DTO's as parameter & return in order to avoid circular dependecies and exposing data we shouldn't we however aren't using this method, so it has not been changed
+    /// </remarks>
+    /// <param name="artefactId"></param>
+    /// <param name="artefact"></param>
+    /// <returns></returns>
     [HttpPut("{artefactId}")]
     public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
     {
@@ -93,6 +111,16 @@ public class ArtefactsController : ControllerBase
 
     // POST: api/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    /// <summary>
+    /// Creates a new artefact
+    /// </summary>
+    /// <remarks>
+    /// </remarks>
+    /// <param name="userSignUp">An object with all user info</param>
+    /// <returns>
+    /// /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
+    /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
+    /// </returns>
     [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
@@ -131,14 +159,21 @@ public class ArtefactsController : ControllerBase
             }
         }
 
-        var artefacts = await _context.Artefacts.FindAsync(artefactId);
-
         ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
 
         return Ok(artefactGetDTO);
     }
 
     // DELETE: api/Artefacts/5
+    /// <summary>
+    /// Deletes an artefact using its ID
+    /// </summary>
+    /// <param name="artefactId">The artefacts ID</param>
+    /// <returns>
+    /// Status code 204 (No content) to the client on success<br />
+    /// Status code 403 (Forbidden) if a client tries to delete an artefact that they do not own<br />
+    /// Status code 404 (Not Found) if the artefact does not exist
+    /// </returns>
     [HttpDelete("{artefactId}")]
     public async Task<IActionResult> DeleteArtefact(string artefactId)
     {
