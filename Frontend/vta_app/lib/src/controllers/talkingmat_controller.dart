@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 
 class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
   TalkingmatController({List<BoardArtefact>? initialArtifacts})

@@ -41,8 +41,9 @@ class ArtifactModel {
 
   Future<void> postCategory(Category category, {required String token}) async {
     try {
-      var response = await apiProvider.postAsJson("Users/Categories",
-          body: category.toJson(), headers: {'Authorization': token});
+      var response = await apiProvider.sendAsMultiPart(
+          'POST', "Users/Categories",
+          body: category.toJson(), headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newCategory = Category.fromJson(jsonResponse);
@@ -60,11 +61,31 @@ class ArtifactModel {
     }
   }
 
+  Future<void> deleteCategory(Category category,
+      {required String token}) async {
+    try {
+      var response = await apiProvider.delete(
+          'Users/Categories/${category.categoryId}',
+          headers: {'Authorization': 'Bearer $token'});
+      if (response != null && response.ok) {
+        categories
+            ?.removeWhere((item) => item.categoryId == category.categoryId);
+      } else {
+        throw ArtifactException(
+            message:
+                'Kunne ikke slette artefact, status kode: ${response?.statusCode}');
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+      rethrow;
+    }
+  }
+
   Future<void> postArtefact(Artefact artefact, {required String token}) async {
     try {
       var response = await apiProvider.sendAsMultiPart(
           'POST', "Users/Artefacts",
-          body: artefact.toJson(), headers: {'Authorization': token});
+          body: artefact.toJson(), headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);

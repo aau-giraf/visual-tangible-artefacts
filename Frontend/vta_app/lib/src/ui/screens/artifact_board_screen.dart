@@ -173,7 +173,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       height: categoriesWidgetHeight,
                       child: categories_widget.CategoriesWidget(
                         // Use the aliased widget here
-                        categories: categories!,
                         widgetHeight: categoriesWidgetHeight,
                         talkingMatKey: talkingMatKey,
                         talkingmatController: talkingmatController,

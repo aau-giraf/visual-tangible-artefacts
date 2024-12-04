@@ -10,7 +10,7 @@ class BoardArtefact {
 
   BoardArtefact({
     required this.content,
-    this.position = Offset.zero,
+    this.position,
     this.baseArtefact,
   }) : key = GlobalKey();
 

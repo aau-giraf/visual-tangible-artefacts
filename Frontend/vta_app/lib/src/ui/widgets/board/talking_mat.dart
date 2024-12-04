@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
-import 'artifact.dart';
+import 'board_artifact.dart';
 
 class TalkingMat extends StatefulWidget {
   final List<BoardArtefact>? artifacts;
@@ -171,8 +171,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
 
                   // If artifact is newly added (no position), center it on the mat
                   artefact.position ??= Offset(
-                      widget.width ?? constraints.maxWidth,
-                      widget.height ?? constraints.maxHeight);
+                    (widget.width ?? constraints.maxWidth) / 2,
+                    (widget.height ?? constraints.maxHeight) / 2,
+                  );
                   return Positioned(
                     left: artefact.position?.dx,
                     top: artefact.position?.dy,
