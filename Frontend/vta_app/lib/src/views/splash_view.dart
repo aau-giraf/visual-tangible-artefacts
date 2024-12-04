@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 
 /// Just a functional placeholder for now.
@@ -29,8 +30,8 @@ class SplashView extends StatelessWidget {
         } else if (snapshot.hasData) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (snapshot.data == true) {
-              Navigator.of(context)
-                  .pushReplacementNamed('/home'); // not inplemented yet
+              Navigator.of(context).pushReplacementNamed(
+                  ArtifactBoardScreen.routeName); // not inplemented yet
             } else {
               Navigator.of(context).pushReplacementNamed(LoginView.routeName);
             }

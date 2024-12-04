@@ -26,7 +26,7 @@ Future<void> clearSharedPreferences() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
-  await clearSharedPreferences();
+  // await clearSharedPreferences();
 
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");

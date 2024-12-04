@@ -39,12 +39,23 @@ class AuthModel {
         var model = LoginResponse.fromJson(jsonData);
         token.value = model.token;
         userInfo.userId = model.userId;
+        await cacheData(token: token.value, userId: userInfo.userId);
       } else {
         _throwAuthException(response?.statusCode);
       }
     } catch (e) {
       debugPrint('$e');
       rethrow;
+    }
+  }
+
+  Future<void> cacheData({String? token, String? userId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (token != null) {
+      prefs.setString('jwtToken', token);
+    }
+    if (userId != null) {
+      prefs.setString('userId', userId);
     }
   }
 
@@ -63,6 +74,8 @@ class AuthModel {
         var jsonData = jsonDecode(response.body);
         var model = LoginResponse.fromJson(jsonData);
         token.value = model.token;
+        userInfo.userId = model.userId;
+        cacheData(token: token.value, userId: userInfo.userId);
       } else {
         throw Exception(
             'Signup failed with status code: ${response?.statusCode}');

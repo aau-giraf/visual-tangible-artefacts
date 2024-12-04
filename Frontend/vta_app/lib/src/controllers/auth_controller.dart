@@ -12,7 +12,11 @@ class AuthController extends ChangeNotifier {
 
   // Checks if a valid token is stored in the device
   Future<bool> checkAuth({BuildContext? context}) async {
-    return await _model.checkAuth();
+    var status = await _model.checkAuth();
+    if (status) {
+      await _model.loadCache();
+    }
+    return status;
   }
 
   /// Logs in the user with the provided [username] and [password]
