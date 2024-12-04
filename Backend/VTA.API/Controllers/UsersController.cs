@@ -30,8 +30,13 @@ public class UsersController : ControllerBase
         _config = config;
     }
 
+    /// <summary>
+    /// Login the user
+    /// </summary>
+    /// <param name="userLoginForm">username and password</param>
+    /// <returns>A login object</returns>
     [AllowAnonymous]
-    [Route("Login")]
+    [Route("Login")] // = api/Users/Login
     [HttpPost]
     public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
     {
@@ -39,15 +44,17 @@ public class UsersController : ControllerBase
         {
             return BadRequest();
         }
-        User? user = await _context.Users.
-            FirstOrDefaultAsync(
-            u => u.Username == userLoginForm.Username);
-        if (user == null)
+        
+        User? user = await _context.Users. //_context.Users (In the users table)
+            FirstOrDefaultAsync( //find the first user
+            u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
+        
+        if (user == null)//If user not found
         {
             return NotFound();
         }
 
-        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password))
+        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password)) //If the encrypted password is not found
         {
             return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
         }
@@ -60,12 +67,20 @@ public class UsersController : ControllerBase
         };
     }
 
-    /**/
+    /// <summary>
+    /// Creates a new user
+    /// </summary>
+    /// <remarks>
+    /// For more info on the Hashing algorithm see: <see cref="https://en.wikipedia.org/wiki/Bcrypt"/>
+    /// </remarks>
+    /// <param name="userSignUp">An object with all user info</param>
+    /// <returns>A Login Object</returns>
     [AllowAnonymous]
-    [Route("SignUp")]
+    [Route("SignUp")] // = api/Users/SignUp
     [HttpPost]
     public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
     {
+        /*dotnet tests this before we */
         if (userSignUp == null)
         {
             return BadRequest();
@@ -102,7 +117,15 @@ public class UsersController : ControllerBase
 
         return await AutoSignIn(user);
     }
-
+    /// <summary>
+    /// Requested by the front-end. The intended functionality is pretty clear.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="UsersController.SignUp"/>Refer to the SignUp method for user registration details.
+    /// See <see cref="VTA.API.DTOs.UserLoginResponseDTO"/>Refer to the UserLoginResponseDTO for details on the login response format.
+    /// </remarks>
+    /// <param name="user">The user that was just created in SignUp.</param>
+    /// <returns>A Login object containing authentication details.</returns>
     private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
     {
         var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
@@ -115,6 +138,13 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/Users
+    /// <summary>
+    /// Get all users in the DB (I thought i had removed this?)
+    /// </summary>
+    /// <remarks>
+    /// This could be alted to get all users tied to a parent/pedagogue/teacher
+    /// </remarks>
+    /// <returns>A list of users</returns>
     [HttpGet("Users")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
     {
@@ -128,6 +158,10 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/Users/5
+    /// <summary>
+    /// Get information about a specific user
+    /// </summary>
+    /// <returns>A user</returns>
     [HttpGet]
     public async Task<ActionResult<UserGetDTO>> GetUser()
     {
@@ -147,6 +181,15 @@ public class UsersController : ControllerBase
 
     // PUT: api/Users/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    /// <summary>
+    /// Updates a users information (PUT HAS to have all fields in the User object filled out. A PATCH can have null values (which then aren't updated))
+    /// </summary>
+    /// <remarks>
+    /// We should ALWAYS use DTO's as parameter & return in order to avoid circular dependecies and exposing data we shouldn't we however aren't using this method, so it has not been changed
+    /// </remarks>
+    /// <param name="id"></param>
+    /// <param name="user"></param>
+    /// <returns></returns>
     [HttpPut("{id}")]
     public async Task<IActionResult> PutUser(string id, User user)
     {
@@ -198,7 +241,7 @@ public class UsersController : ControllerBase
         {
             return Forbid();
         }
-        
+
         var user = await _context.Users.FindAsync(id);//Find user with 
 
         if (user == null)
@@ -244,6 +287,8 @@ public class UsersController : ControllerBase
         var validIssuer = "api.vta.com";
         var validAudience = "user.vta.com";
 
+        //Here we add our "secret". The secret is encoded in all tokens, if you leak this, everyone can create valid keys for the API.
+        //This key is created using a symmetric approach, you could make it assymetric, for more security
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); // secure enough for this project
 
