@@ -1,4 +1,3 @@
-using Azure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +11,7 @@ using VTA.API.Models;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
-
+//Mark the entire controller to require a valid token
 [Authorize]
 [Route("api/Users")]
 [ApiController]
@@ -61,6 +60,7 @@ public class UsersController : ControllerBase
         };
     }
 
+    /**/
     [AllowAnonymous]
     [Route("SignUp")]
     [HttpPost]
@@ -70,7 +70,7 @@ public class UsersController : ControllerBase
         {
             return BadRequest();
         }
-        if (UserNameExists(userSignUp.Username))
+        if (UsernameExists(userSignUp.Username))
         {
             return Conflict("Username already exists");
         }
@@ -177,22 +177,36 @@ public class UsersController : ControllerBase
     }
 
     // DELETE: api/Users/5
+    /// <summary>
+    /// Deletes a user using their ID. Also removes any artefact or category images from the filesystem
+    /// </summary>
+    /// <param name="id">The users ID</param>
+    /// <returns>
+    /// Status code 204 (No content) to the client on success<br />
+    /// Status code 403 (Forbidden) if a client specifies any other ID than their own<br />
+    /// Status code 404 (Not Found) if the user does not exist
+    /// </returns>
+    /// <remarks>
+    /// We could remove the Id != id test (probably also the null check, since it *should* be impossible to get a null)
+    /// </remarks>
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
-        var Id = User.FindFirst("id")?.Value;
+        var Id = User.FindFirst("id")?.Value;//Extract the id from the JWT (Dotnet infers that we are talking about the JWT)
 
-        if (Id != id)
+        if (Id != id)//We are assuming users can be malicious and try to delete someone else, so Id's have to match
         {
             return Forbid();
         }
-        var user = await _context.Users.FindAsync(id);
+        
+        var user = await _context.Users.FindAsync(id);//Find user with 
+
         if (user == null)
         {
             return NotFound();
         }
 
-        foreach (var category in user.Categories)//We should remove all artefacts referenced by the user, therfore I've designed it like this 
+        foreach (var category in user.Categories)
         {
             foreach (var artefact in category.Artefacts)
             {
@@ -209,18 +223,24 @@ public class UsersController : ControllerBase
 
     private bool UserIdExists(string id)
     {
-        return _context.Users.Any(e => e.Id == id);
+        return _context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID 
     }
-    private bool UserNameExists(string username)
+    private bool UsernameExists(string username)
     {
-        return _context.Users.Any(e => e.Username == username);
+        return _context.Users.Any(e => e.Username == username);//Returns true if any username column within the *Users* table contains the username
     }
-
+    /// <summary>
+    /// Generates a Json Web Token used for granting access to the API endpoints marked with [Authorize]
+    /// </summary>
+    /// <param name="userId">The users ID, used within the encoded within the webtoken, both to create uniqueness but also to extract in functions</param>
+    /// <param name="name">Only used to create more uniqueness</param>
+    /// <returns>A valid JWT for this user</returns>
+    /// <exception cref="InvalidOperationException"></exception>
     private string GenerateJwt(string userId, string name)
     {
         var secretKey = _config.GetValue<string>("Secret:SecretKey")
-                        ?? Environment.GetEnvironmentVariable("JWT_SECRET")
-                        ?? throw new InvalidOperationException("A JWT secret is required for token generation.");
+                        ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables 
+                        ?? throw new InvalidOperationException("A JWT secret is required for token generation."); //Throw if no secret is found
         var validIssuer = "api.vta.com";
         var validAudience = "user.vta.com";
 
@@ -238,7 +258,7 @@ public class UsersController : ControllerBase
             issuer: validIssuer,
             audience: validAudience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
+            expires: DateTime.UtcNow.AddDays(30),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
