@@ -79,7 +79,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       child: ListenableBuilder(
         listenable: widget.artefactController,
         builder: (context, child) {
-          categories = widget.artefactController.categories!;
+          categories = widget.artefactController.categories ?? [];
           return ReorderableListView.builder(
             scrollDirection: Axis.horizontal,
             buildDefaultDragHandles: false,
