@@ -12,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+
+/*Register our DB contexts. They could have just been one big one, but that would worsen concurrency!*/
 builder.WrapDbContext<ArtefactContext>();
 builder.WrapDbContext<CategoryContext>();
 builder.WrapDbContext<UserContext>();
@@ -19,9 +21,9 @@ builder.WrapDbContext<UserContext>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+//register our singleton
 builder.Services.AddSingleton(provider =>
     {
-
         var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;
@@ -34,14 +36,14 @@ var config = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")
-                   ?? config["Secret:SecretKey"];
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET") //I still do not know why this was added, we are reading the Secretkey from appsettings, not the OS env variables
+                   ?? config["Secret:SecretKey"];//load our secret
 
 if (string.IsNullOrEmpty(jwtSecretKey))
 {
     throw new ArgumentNullException("JWT_SECRET_KEY environment variable or SecretKey in appsettings.json is required.");
 }
-
+/*Configure Json Web Tokens*/
 var jwtIssuer = "api.vta.com";
 var jwtAudience = "user.vta.com";
 
@@ -67,8 +69,8 @@ builder.Services.AddAuthentication(options =>
             });
 
 builder.Services.AddAuthorization();
-// Check if Assets directory exists
-// Create Assets directory if it does not exist
+
+// Check if Assets directories exists and create them if not
 var assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
 if (!Directory.Exists(assetsDirs))
 {
@@ -86,6 +88,7 @@ if (!Directory.Exists(assetsDirs))
 }
 
 builder.Services.AddEndpointsApiExplorer();
+//Swagger ui stuff
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
