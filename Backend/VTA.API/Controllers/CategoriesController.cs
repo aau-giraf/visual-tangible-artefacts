@@ -177,6 +177,15 @@ public class CategoriesController : ControllerBase
     }
 
     // DELETE: api/Categories/5
+    /// <summary>
+    /// Deletes a category using its ID
+    /// </summary>
+    /// <param name="categoryId">The category ID</param>
+    /// <returns>
+    /// Status code 204 (No content) to the client on success<br />
+    /// Status code 403 (Forbidden) if a client tries to delete a category that they do not own<br />
+    /// Status code 404 (Not Found) if the category does not exist
+    /// </returns>
     [HttpDelete("{categoryId}")]
     public async Task<IActionResult> DeleteCategory(string categoryId)
     {
@@ -192,6 +201,8 @@ public class CategoriesController : ControllerBase
         {
             return Forbid();
         }
+        /*Artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
+        * Therefore we remove all the images from the filesystem before we loose the refs*/
         foreach (var artefact in category.Artefacts)
         {
             ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
