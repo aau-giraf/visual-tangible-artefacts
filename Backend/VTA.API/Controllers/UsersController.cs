@@ -50,7 +50,7 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password)) //If the encrypted password is not found
+        if (!BCrypt.Net.BCrypt.Verify(userLoginForm.Password, user.Password)) //If the hashed password is not found
         {
             return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
         }
