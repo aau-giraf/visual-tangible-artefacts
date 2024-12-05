@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:vta_app/src/models/artefact.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
 class Category implements JsonSerializable {

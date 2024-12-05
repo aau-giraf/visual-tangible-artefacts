@@ -3,32 +3,37 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
-import 'package:vta_app/src/models/artefact.dart';
-import 'package:vta_app/src/models/category.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:vta_app/src/controllers/talkingmat_controller.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:http/http.dart' as http;
 
 class CategoriesWidget extends StatefulWidget {
-  final List<Category> categories;
   final double widgetHeight;
+  final GlobalKey<TalkingMatState> talkingMatKey;
+  final TalkingmatController? talkingmatController;
+  final ArtefactController artefactController;
   final Function(BoardArtefact) onArtifactAdded;
 
-  const CategoriesWidget({
-    super.key,
-    required this.categories,
-    required this.widgetHeight,
-    required this.onArtifactAdded,
-  });
+  const CategoriesWidget(
+      {super.key,
+      required this.widgetHeight,
+      required this.talkingMatKey,
+      this.talkingmatController,
+      required this.artefactController});
 
   @override
   State<StatefulWidget> createState() => _CategoriesWidgetState();
@@ -43,9 +48,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   @override
   void initState() {
     super.initState();
-    artifactState = Provider.of<ArtifactState>(context, listen: false);
-    authState = Provider.of<AuthState>(context, listen: false);
-    categories = widget.categories;
   }
 
   @override
@@ -62,51 +64,64 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         child: _buildCategoryList());
   }
 
+  void _addArtifactToMat(BoardArtefact artefact) {
+    var controller = widget.talkingmatController;
+    if (controller != null) {
+      controller.addArtifact(artefact);
+    }
+  }
+
   Widget _buildCategoryList() {
     return Theme(
       data: ThemeData(
         canvasColor: Colors.transparent,
         shadowColor: Colors.transparent,
       ),
-      child: ReorderableListView.builder(
-        scrollDirection: Axis.horizontal,
-        buildDefaultDragHandles: false,
-        itemCount: categories.length + 1, //+1 room for add button
-        itemBuilder: (context, index) {
-          if (index == categories.length) {
-            return _buildAddCategoryButton(key: ValueKey('add_button'));
-          }
-          if (moveCategoriesMode) {
-            return Material(
-              key: ValueKey(categories[index].categoryId),
-              elevation: 2,
-              child: _buildCategoryItem(context, index),
-            );
-          }
-          return _buildCategoryItem(context, index,
-              key: ValueKey(categories[index].categoryId));
-        },
-        onReorder: (int oldIndex, int newIndex) {
-          setState(() {
-            if (oldIndex < newIndex) {
-              newIndex -= 1;
-            }
-            newIndex = min(newIndex, categories.length - 1);
+      child: ListenableBuilder(
+        listenable: widget.artefactController,
+        builder: (context, child) {
+          categories = widget.artefactController.categories ?? [];
+          return ReorderableListView.builder(
+            scrollDirection: Axis.horizontal,
+            buildDefaultDragHandles: false,
+            itemCount: categories.length + 1, //+1 room for add button
+            itemBuilder: (context, index) {
+              if (index == categories.length) {
+                return _buildAddCategoryButton(key: ValueKey('add_button'));
+              }
+              if (moveCategoriesMode) {
+                return Material(
+                  key: ValueKey(categories[index].categoryId),
+                  elevation: 2,
+                  child: _buildCategoryItem(context, index),
+                );
+              }
+              return _buildCategoryItem(context, index,
+                  key: ValueKey(categories[index].categoryId));
+            },
+            onReorder: (int oldIndex, int newIndex) {
+              setState(() {
+                if (oldIndex < newIndex) {
+                  newIndex -= 1;
+                }
+                newIndex = min(newIndex, categories.length - 1);
 
-            final Category movedCategory = categories.removeAt(oldIndex);
-            categories.insert(newIndex, movedCategory);
+                final Category movedCategory = categories.removeAt(oldIndex);
+                categories.insert(newIndex, movedCategory);
 
-            for (int i = min(oldIndex, newIndex);
-                i <= max(oldIndex, newIndex);
-                i++) {
-              categories[i].categoryIndex = i;
-              categories[i].userId = authState.userId;
-              artifactState.updateCategory(
-                categories[i],
-                token: authState.token!,
-              );
-            }
-          });
+                for (int i = min(oldIndex, newIndex);
+                    i <= max(oldIndex, newIndex);
+                    i++) {
+                  categories[i].categoryIndex = i;
+                  categories[i].userId = authState.userId;
+                  artifactState.updateCategory(
+                    categories[i],
+                    token: GetIt.instance.get<Token>().value!,
+                  );
+                }
+              });
+            },
+          );
         },
       ),
     );
@@ -119,7 +134,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       width: widget.widgetHeight * 2,
       child: TextButton(
         onPressed: () {
-          _showAddCategoryPopup(context);
+          widget.artefactController.newCategory(context);
         },
         child: _buildAddCategoryContainer(),
       ),
@@ -175,9 +190,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildCategoryContainer(Category item) {
-    var authState = Provider.of<AuthState>(context);
     var headers = <String, String>{
-      'Authorization': 'Bearer ${authState.token}'
+      'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
     };
 
     return Container(
@@ -266,7 +280,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                     const Text('Delete', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context); // Close the modal
-                  categoriesEdit.showDeleteConfirmationDialog(context);
+                  widget.artefactController.deleteCategory(category, context);
                 },
               ),
               ListTile(
@@ -363,7 +377,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     var authState = Provider.of<AuthState>(context);
     var artifactState = Provider.of<ArtifactState>(context, listen: false);
     var headers = <String, String>{
-      'Authorization': 'Bearer ${authState.token}'
+      'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
     };
 
     if (index >= category.artefacts!.length) {
@@ -385,8 +399,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
               onPressed: isInDeletionMode
                   ? null
                   : () {
+                      _addArtifactToMat(boardArtefacts[index]);
                       Navigator.pop(context);
-                      widget.onArtifactAdded(boardArtefacts[index]);
                     },
               child: boardArtefacts[index].content,
             ),
@@ -511,7 +525,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   Widget _buildAddArtifactButton(Category category) {
     return TextButton(
       onPressed: () {
-        _showAddArtifactPopup(context, category);
+        widget.artefactController.newArtifact(context, category.categoryId!);
+        // _showAddArtifactPopup(context, category);
       },
       child: Icon(
         Icons.add_circle,
@@ -783,6 +798,13 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 SizedBox(width: 16),
                 _buildButton('Lav med AI', 'assets/images/ai_file.png',
                     onClick: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AIPage(
+                        onImageProcessed: setGeneratedImage,
+                      ),
+                    ),
+                  );
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {

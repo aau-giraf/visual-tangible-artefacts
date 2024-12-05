@@ -1,0 +1,3 @@
+class Token {
+  String? value;
+}
