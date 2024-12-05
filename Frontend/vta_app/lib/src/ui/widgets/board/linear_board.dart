@@ -1,7 +1,7 @@
 // views/linear_board.dart
 
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import '../../../controllers/linear_board_controller.dart';
 
 class LinearBoard extends StatefulWidget {

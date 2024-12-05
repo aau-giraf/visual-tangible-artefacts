@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../ui/widgets/board/artifact.dart';
+import '../ui/widgets/board/board_artifact.dart';
 
 class LinearBoardController extends ChangeNotifier {
   List<BoardArtefact?> artifacts;

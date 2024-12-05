@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
-import 'package:vta_app/src/controllers/talkingmat_controller.dart';
-import 'package:provider/provider.dart';
-import 'package:vta_app/src/controllers/linear_board_controller.dart';
-import 'package:vta_app/src/functions/auth.dart';
-import 'package:vta_app/src/notifiers/vta_notifiers.dart';
-import 'package:vta_app/src/settings/settings_service.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
-import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
-import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
-// import '../widgets/board/linear_board.dart';
+import 'package:vta_app/src/controllers/artifact_board_controller.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/categories/categories_widget.dart'
@@ -31,94 +23,22 @@ class ArtifactBoardScreen extends StatefulWidget {
 }
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
-  bool _showDirectional = false;
-  late TalkingMat talkingMat;
-  late LinearBoard linearBoard;
-  late GlobalKey<TalkingMatState> talkingMatKey;
-  final TalkingmatController talkingmatController = TalkingmatController();
-  late GlobalKey<LinearBoardState> linearBoardKey;
-  late LinearBoardController linearBoardController;
-  int? _linearBoardFieldCount;
+  late ArtifactBoardController controller;
+  List<Category>? categories;
 
   @override
   void initState() {
     super.initState();
-    // Initialize talkingMatKey and linearBoardKey
-    talkingMatKey = GlobalKey<TalkingMatState>();
-    linearBoardKey = GlobalKey<LinearBoardState>();
-
-    // Synchronously initialize linearBoardController controller with an empty list and zero field count
-    linearBoardController = LinearBoardController(
-      artifacts: [],
-      fieldCount: 0,
-    );
-
-    // Setup TalkingMat and LinearBoard
-    talkingMat = TalkingMat(
-      key: talkingMatKey,
-      artifacts: [],
-      controller: talkingmatController,
-    );
-    linearBoard = LinearBoard(
-      key: linearBoardKey,
-      linearBoardController: linearBoardController,
-    );
-
-    // Fetch and setup the linear board configuration
-    _setupLinearBoardController();
-
-    // Fetch current board status
-    getCurrentBoardStatus();
-  }
-
-  /// Function for setting up the linear board
-  void _setupLinearBoardController() async {
-    // Get the count of fields from settings
-    int? count = await SettingsService().linearArtifactCount() ?? 4;
-    // If count is not current count, go ahead
-    if (count != _linearBoardFieldCount) {
-      setState(() {
-        _linearBoardFieldCount = count;
-        // Update the controller with new artifact list and field count
-        linearBoardController.artifacts = List<BoardArtefact?>.filled(_linearBoardFieldCount!, null, growable: false);
-        linearBoardController.fieldCount = _linearBoardFieldCount!;
-      });
-    }
-  }
-
-  /// Get the current status of whether the board is at talking mat or directional
-  void getCurrentBoardStatus() async {
-    // Get status from settings
-    bool? showDirectionalBoard = await SettingsService().showDirectionalBoard();
-    // If the bool is not null or not equal to current, go ahead
-    if (showDirectionalBoard != null && showDirectionalBoard != _showDirectional) {
-      _showDirectional = showDirectionalBoard;
-    }
-  }
-
-  /// Switch the status of whether the board is at talking mat or directional
-  void switchCurrentBoard() async {
-    bool newStatus = !_showDirectional;
-    // Update the setting with SettingsService
-    await SettingsService().updateShowDirectionalBoard(newStatus);
-    setState(() {
-      _showDirectional = newStatus;
+    // Initialize the controller with a callback to setState
+    controller = ArtifactBoardController(notifyView: () {
+      setState(() {});
     });
-  }
-
-  /// Add an artifact to the currently active board
-  void addArtifactToCurrentBoard(BoardArtefact artifact) {
-    if (_showDirectional) {
-      linearBoardController.addArtifact(artifact);
-    } else {
-      talkingMatKey.currentState?.addArtifact(artifact);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     var artifactController = widget.artifactController;
-    var categories = artifactController.categories;
+    categories = artifactController.categories;
 
     if (categories == null) {
       return FutureBuilder(
@@ -150,7 +70,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     double categoriesWidgetHeight = 60;
     double dividerHeight = 5;
     var artifactController = widget.artifactController;
-    var categories = artifactController.categories;
+    categories = artifactController.categories;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -178,7 +99,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: padding),
                         child: Center(
-                          child: _showDirectional ? linearBoard : talkingMat,
+                          child: controller.showDirectional
+                              ? controller.linearBoard!
+                              : controller.talkingMat!,
                         ),
                       ),
                       Positioned(
@@ -217,9 +140,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                           padding: EdgeInsets.only(left: 20),
                           child: RelationalBoardButton(
                             onPressed: () {
-                              switchCurrentBoard();
+                              controller.switchCurrentBoard();
                             },
-                            icon: _showDirectional
+                            icon: controller.showDirectional
                                 ? const Icon(
                               IconData(0xf685, fontFamily: 'MaterialIcons'),
                               size: 24.0,
@@ -247,10 +170,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       child: categories_widget.CategoriesWidget(
                         // Use the aliased widget here
                         widgetHeight: categoriesWidgetHeight,
-                        talkingMatKey: talkingMatKey,
-                        talkingmatController: talkingmatController,
+                        onArtifactAdded: controller.addArtifactToCurrentBoard,
                         artefactController: artifactController,
-                        // we are missing callback for controller with func addArtifactToCurrentBoard
                       )))
             ],
           ),

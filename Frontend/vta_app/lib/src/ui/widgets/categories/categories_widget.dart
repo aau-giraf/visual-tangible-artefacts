@@ -6,14 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
-import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
-import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
@@ -23,17 +21,15 @@ import 'package:http/http.dart' as http;
 
 class CategoriesWidget extends StatefulWidget {
   final double widgetHeight;
-  final GlobalKey<TalkingMatState> talkingMatKey;
-  final TalkingmatController? talkingmatController;
   final ArtefactController artefactController;
   final Function(BoardArtefact) onArtifactAdded;
 
   const CategoriesWidget(
       {super.key,
       required this.widgetHeight,
-      required this.talkingMatKey,
-      this.talkingmatController,
-      required this.artefactController});
+      required this.artefactController,
+      required this.onArtifactAdded,
+      });
 
   @override
   State<StatefulWidget> createState() => _CategoriesWidgetState();
@@ -62,13 +58,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 }
             },
         child: _buildCategoryList());
-  }
-
-  void _addArtifactToMat(BoardArtefact artefact) {
-    var controller = widget.talkingmatController;
-    if (controller != null) {
-      controller.addArtifact(artefact);
-    }
   }
 
   Widget _buildCategoryList() {
@@ -399,7 +388,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
               onPressed: isInDeletionMode
                   ? null
                   : () {
-                      _addArtifactToMat(boardArtefacts[index]);
+                      widget.onArtifactAdded(boardArtefacts[index]);
                       Navigator.pop(context);
                     },
               child: boardArtefacts[index].content,
