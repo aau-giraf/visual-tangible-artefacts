@@ -18,12 +18,10 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         _utilities = new Utilities(_client);
     }
 
-    private string GenerateUniqueUsername() => $"testuser_{Guid.NewGuid()}";
-
     [Fact]
     public async Task TestGetCategoriesReturnsOk()
     {
-        var username = GenerateUniqueUsername();
+        var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
@@ -40,7 +38,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestPostCategoryReturnsOk()
     {
-        var username = GenerateUniqueUsername();
+        var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
@@ -69,7 +67,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestDeleteCategoryReturnsNoContent()
     {
-        var username = GenerateUniqueUsername();
+        var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
@@ -106,7 +104,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestGetCategoryReturnsNotFound()
     {
-        var username = GenerateUniqueUsername();
+        var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
@@ -123,7 +121,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestPatchCategoryReturnsNoContent()
     {
-        var username = GenerateUniqueUsername();
+        var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
@@ -171,7 +169,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestPatchCategoryReturnsBadRequest()
     {
-        var username = GenerateUniqueUsername();
+        var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
@@ -199,13 +197,13 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestDeleteCategoryReturnsForbidden()
     {
-        var username1 = GenerateUniqueUsername();
+        var username1 = _utilities.GenerateUniqueUsername();
         var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
         Assert.Equal(HttpStatusCode.OK, signUpStatus1);
         var token1 = signUpResult1?.Token;
         var userId1 = signUpResult1?.userId;
 
-        var username2 = GenerateUniqueUsername();
+        var username2 = _utilities.GenerateUniqueUsername();
         var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
         Assert.Equal(HttpStatusCode.OK, signUpStatus2);
         var token2 = signUpResult2?.Token;

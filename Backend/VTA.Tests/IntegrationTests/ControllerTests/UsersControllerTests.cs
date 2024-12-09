@@ -20,7 +20,8 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestUserSignUp()
         {
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            var username = _utilities.GenerateUniqueUsername();
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
 
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
             Assert.Equal(HttpStatusCode.OK, signUpStatus);
@@ -33,12 +34,13 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestUserLogin()
         {
+            var username = _utilities.GenerateUniqueUsername();
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
             Assert.Equal(HttpStatusCode.OK, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
-            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync(username, "testpassword");
 
             Assert.Equal(HttpStatusCode.OK, loginStatus);
             Assert.NotNull(loginResult?.Token);
@@ -50,12 +52,13 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestUserDeletion()
         {
+            var username = _utilities.GenerateUniqueUsername();
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
             Assert.Equal(HttpStatusCode.OK, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
-            var (loginStatus, loginResult) = await _utilities.LoginUserAsync("testuser", "testpassword");
+            var (loginStatus, loginResult) = await _utilities.LoginUserAsync(username, "testpassword");
             Assert.Equal(HttpStatusCode.OK, loginStatus);
             Assert.NotNull(loginResult?.Token);
 
@@ -88,8 +91,9 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestLoginWithIncorrectPasswordReturnsNotFound()
         {
+            var username = _utilities.GenerateUniqueUsername();
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "correctpassword", "Test User");
+            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "correctpassword", "Test User");
             Assert.Equal(HttpStatusCode.OK, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
@@ -125,13 +129,15 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestForbiddenUserDeletionByAnotherUser()
         {
+            var username1 = _utilities.GenerateUniqueUsername();
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-            var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync("user1", "password1", "User One");
+            var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
             Assert.Equal(HttpStatusCode.OK, signUpStatus1);
             Assert.NotNull(signUpResult1?.Token);
 
+            var username2 = _utilities.GenerateUniqueUsername();
             // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-            var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync("user2", "password2", "User Two");
+            var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
             Assert.Equal(HttpStatusCode.OK, signUpStatus2);
             Assert.NotNull(signUpResult2?.Token);
 

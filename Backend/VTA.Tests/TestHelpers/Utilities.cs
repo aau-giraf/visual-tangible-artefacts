@@ -23,6 +23,8 @@ namespace VTA.Tests.TestHelpers
             _client = client;
         }
 
+        public string GenerateUniqueUsername() => $"testuser_{Guid.NewGuid()}";
+
         public async Task<(HttpStatusCode StatusCode, UserLoginResponseDTO? Data)> SignUpUserAsync(string username, string password, string name)
         {
             var userDto = new UserSignupDTO
@@ -33,6 +35,8 @@ namespace VTA.Tests.TestHelpers
             };
 
             var response = await _client.PostAsJsonAsync("/api/Users/SignUp", userDto);
+            response.EnsureSuccessStatusCode(); // Ensure the response status code is successful
+
             var data = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>() : null;
             return (response.StatusCode, data);
         }
