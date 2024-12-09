@@ -7,7 +7,7 @@ public partial class CategoryPostDTO
     public required string UserId { get; set; }
 
     public string? Name { get; set; }
-    public required IFormFile Image { get; set; }
+    public IFormFile? Image { get; set; }
 }
 
 public partial class CategoryPatchDTO
