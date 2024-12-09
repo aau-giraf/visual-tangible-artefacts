@@ -33,7 +33,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var content = new MultipartFormDataContent();
 
-        var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("testImage"));
+        var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
         content.Add(imageContent, "Image");
         content.Add(new StringContent(loginData.userId), "UserId");
 
