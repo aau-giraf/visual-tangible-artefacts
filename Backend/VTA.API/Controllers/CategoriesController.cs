@@ -56,8 +56,10 @@ public class CategoriesController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var categories = await _context.Categories.Where(c => c.CategoryId == categoryId).Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
-        var category = categories.First();
+        var category = await _context.Categories
+            .Where(c => c.CategoryId == categoryId && c.UserId == userId)
+            .Include(c => c.Artefacts)
+            .FirstOrDefaultAsync();
 
         if (category == null)
         {
