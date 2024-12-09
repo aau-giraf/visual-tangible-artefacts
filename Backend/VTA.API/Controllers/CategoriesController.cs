@@ -27,7 +27,11 @@ public class CategoriesController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Category> categories = await _context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
+        List<Category>? categories = await _context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
+        if (categories == null)
+        {
+            return NotFound();
+        }
         List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
         foreach (Category category in categories)
         {
