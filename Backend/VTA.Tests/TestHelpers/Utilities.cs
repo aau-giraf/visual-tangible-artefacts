@@ -70,6 +70,16 @@ namespace VTA.Tests.TestHelpers
             return null;
         }
 
+        public async Task<UserLoginResponseDTO?> CreateUserAndReturnLoginDataAsync()
+        {
+            var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
+            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
+            {
+                return signUpResult;
+            }
+            return null;
+        }
+
         public async Task<HttpStatusCode> DeleteUserWithTokenAsync()
         {
             var (loginStatus, loginResult) = await LoginUserAsync(DefaultUsername, DefaultPassword);
