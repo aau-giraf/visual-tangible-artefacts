@@ -12,7 +12,7 @@ public class AssetsController : ControllerBase
     //All endpoints in here simply serves the image to the client. We have not done a test on if a user is allowed to access this image (it could be sensetive info or people in pictures you know), we probably should do this though 
     // GET: api/Assets/Artefacts/image
     /// <summary>
-    /// Displayes/Serves an image
+    /// Displayes/Serves an artefact image
     /// </summary>
     /// <param name="filepath">The "imagePath" returned from the artefact</param>
     /// <returns>
@@ -31,7 +31,7 @@ public class AssetsController : ControllerBase
         return File(fileBytes, "image/jpeg");
     }
     /// <summary>
-    /// Displayes/Serves an image
+    /// Displayes/Serves a Category image
     /// </summary>
     /// <param name="filepath">The "imagePath" returned from the artefact</param>
     /// <returns>
