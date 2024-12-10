@@ -75,6 +75,7 @@ public class ArtefactsController : ControllerBase
     /// <param name="artefact"></param>
     /// <returns></returns>
     [HttpPut("{artefactId}")]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -119,8 +120,8 @@ public class ArtefactsController : ControllerBase
     /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
     /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
     /// </returns>
-    [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;

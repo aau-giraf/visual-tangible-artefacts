@@ -79,6 +79,7 @@ public class CategoriesController : ControllerBase
     /// <param name="dto">A category with the fields that should be altered</param>
     /// <returns>Status code 204 (No content) to the client on success</returns>
     [HttpPatch]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -137,8 +138,8 @@ public class CategoriesController : ControllerBase
     /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
     /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
     /// </returns>
-    [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
     [HttpPost]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<CategoryGetDTO>> PostCategory([FromForm] CategoryPostDTO categoryPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
