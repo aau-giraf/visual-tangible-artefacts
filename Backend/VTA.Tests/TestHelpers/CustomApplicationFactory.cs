@@ -79,11 +79,16 @@ namespace VTA.Tests.TestHelpers
         {
             builder.ConfigureServices(services =>
             {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<UserContext>));
-                services.Remove(descriptor);
+                var descriptors = services.Where(
+                    d => d.ServiceType == typeof(DbContextOptions<UserContext>) || d.ServiceType == typeof(DbContextOptions<ArtefactContext>));
+                foreach (var descriptor in descriptors)
+                {
+                    services.Remove(descriptor);
+                }
 
                 services.AddDbContext<UserContext>(options =>
+                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
+                services.AddDbContext<ArtefactContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
             });
 
