@@ -21,14 +21,12 @@ import 'package:http/http.dart' as http;
 class CategoriesWidget extends StatefulWidget {
   final List<Category> categories;
   final double widgetHeight;
-  final Function(bool isMatrixVisible) isMatrixVisible;
   final GlobalKey<TalkingMatState> talkingMatKey;
 
   const CategoriesWidget({
     super.key,
     required this.categories,
     required this.widgetHeight,
-    required this.isMatrixVisible,
     required this.talkingMatKey,
   });
 
@@ -37,10 +35,10 @@ class CategoriesWidget extends StatefulWidget {
 }
 
 class _CategoriesWidgetState extends State<CategoriesWidget> {
-  bool _isMatrixVisible = false;
   late List<Category> categories;
   late ArtifactState artifactState;
   late AuthState authState;
+  bool moveCategoriesMode = false;
 
   @override
   void initState() {
@@ -52,20 +50,16 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.widgetHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length + 1, // +1 for Add button
-        itemBuilder: (context, index) {
-          if (index == categories.length) {
-            return _buildAddCategoryButton();
-          }
-          return _buildCategoryItem(context, index);
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
-      ),
-    );
+    return TapRegion(
+        onTapOutside: (event) => {
+              if (moveCategoriesMode)
+                {
+                  setState(() {
+                    moveCategoriesMode = false;
+                  })
+                }
+            },
+        child: _buildCategoryList());
   }
 
   Widget _buildCategoryList() {
@@ -82,16 +76,22 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
           if (index == categories.length) {
             return _buildAddCategoryButton(key: ValueKey('add_button'));
           }
+          if (moveCategoriesMode) {
+            return Material(
+              key: ValueKey(categories[index].categoryId),
+              elevation: 2,
+              child: _buildCategoryItem(context, index),
+            );
+          }
           return _buildCategoryItem(context, index,
               key: ValueKey(categories[index].categoryId));
         },
         onReorder: (int oldIndex, int newIndex) {
           setState(() {
-            if (newIndex > categories.length) return;
-
             if (oldIndex < newIndex) {
               newIndex -= 1;
             }
+            newIndex = min(newIndex, categories.length - 1);
 
             final Category movedCategory = categories.removeAt(oldIndex);
             categories.insert(newIndex, movedCategory);
@@ -147,20 +147,30 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
     final item = categories[index];
-    return CustomDelayDragStartListener(
-      key: key,
-      index: index,
-      delay: 200,
-      child: GestureDetector(
+    if (moveCategoriesMode) {
+      return CustomDelayDragStartListener(
+        delay: 200,
+        key: key,
+        index: index,
+        child: _buildCategoryButton(key, context, index, item),
+      );
+    } else {
+      return GestureDetector(
+        key: key,
         onLongPress: () {
           _showCategoryEditModal(context, item); // Show modal on long press
         },
-        child: TextButton(
-          key: key,
-          onPressed: () => _showCategoryModal(context, categories[index]),
-          child: _buildCategoryContainer(item),
-        ),
-      ),
+        child: _buildCategoryButton(key, context, index, item),
+      );
+    }
+  }
+
+  TextButton _buildCategoryButton(
+      Key? key, BuildContext context, int index, Category item) {
+    return TextButton(
+      key: key,
+      onPressed: () => _showCategoryModal(context, categories[index]),
+      child: _buildCategoryContainer(item),
     );
   }
 
@@ -216,8 +226,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
           );
         },
       );
-      widget.isMatrixVisible(!_isMatrixVisible);
-      _isMatrixVisible = !_isMatrixVisible;
     });
   }
 
@@ -259,6 +267,17 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                 onTap: () {
                   Navigator.pop(context); // Close the modal
                   categoriesEdit.showDeleteConfirmationDialog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.move_down, color: Colors.green),
+                title:
+                    const Text('Move', style: TextStyle(color: Colors.green)),
+                onTap: () {
+                  setState(() {
+                    moveCategoriesMode = true;
+                    Navigator.pop(context); // Close the modal
+                  });
                 },
               ),
               TextButton(
@@ -416,33 +435,69 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                       },
                     );
 
+                    print(confirmed);
+
                     if (confirmed) {
                       try {
+                        print('Attempting to delete artifact...');
+
                         await artifactState.deleteArtifact(
                           category.artefacts![index].artefactId!,
                           token: authState.token!,
                         );
 
-                        category.artefacts!.removeAt(index);
-                        onDelete(); // Trigger parent rebuild
+                        print('Server deletion successful');
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Artifact deleted successfully'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        if (mounted) {
+                          bool wasLastItem = category.artefacts!.length == 1;
 
-                        if (category.artefacts!.isEmpty) {
-                          Navigator.pop(context);
+                          setState(() {
+                            if (index >= 0 &&
+                                index < category.artefacts!.length) {
+                              category.artefacts!.removeAt(index);
+                            }
+                          });
+
+                          // UI updates after state change
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              context.mounted
+                                  ? ScaffoldMessenger.of(context
+                                          .findRootAncestorStateOfType<
+                                              NavigatorState>()!
+                                          .context)
+                                      .showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Artifact deleted successfully'),
+                                        backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
+                                        elevation: 24,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    )
+                                  : null;
+
+                              if (wasLastItem && category.artefacts!.isEmpty) {
+                                Navigator.of(context).pop();
+                              }
+                            }
+                          });
+
+                          onDelete();
                         }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to delete artifact'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        print('Error during deletion: $e');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to delete artifact'),
+                              backgroundColor: Colors.red,
+                              elevation: 24,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       }
                     }
                   },
@@ -610,7 +665,6 @@ class _AddItemPopupState extends State<AddItemPopup> {
     var screenSize = MediaQuery.of(context).size;
     var minHeight = screenSize.height * 0.8;
     var minWidth = screenSize.width * 0.6;
-    final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
     return Dialog(
       child: Container(
@@ -632,67 +686,35 @@ class _AddItemPopupState extends State<AddItemPopup> {
             ),
           ],
         ),
-        child: Navigator(
-          key: navigatorKey,
-          onGenerateRoute: (RouteSettings settings) {
-            Widget page;
-            switch (settings.name) {
-              case '/ai':
-                page = Padding(
-                  padding: EdgeInsets.all(20),
-                  child: AIPage(onImageProcessed: setGeneratedImage),
-                );
-                break;
-              default:
-                page = SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildForm(
-                        minWidth, formKey, nameController, navigatorKey),
-                  ),
-                );
-            }
-            return PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => page,
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                const begin = Offset(-1.0, 0.0);
-                const end = Offset.zero;
-                const curve = Curves.easeInOut;
-                var tween = Tween(begin: begin, end: end)
-                    .chain(CurveTween(curve: curve));
-                var offsetAnimation = animation.drive(tween);
-                return SlideTransition(position: offsetAnimation, child: child);
-              },
-            );
-          },
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _buildForm(minWidth, formKey, nameController),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildForm(
-      double minWidth,
-      GlobalKey<FormState> formKey,
-      TextEditingController nameController,
-      GlobalKey<NavigatorState> navigatorKey) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          widget.title,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 28,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w400,
+  Widget _buildForm(double minWidth, GlobalKey<FormState> formKey,
+      TextEditingController nameController) {
+    return Form(
+      key: formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            widget.title,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 28,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w400,
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        SizedBox(
-          width: minWidth * 0.8,
-          child: Form(
-            key: formKey,
+          SizedBox(height: 16),
+          SizedBox(
+            width: minWidth * 0.8,
             child: Column(
               children: [
                 TextFormField(
@@ -737,11 +759,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ],
             ),
           ),
-        ),
-        SizedBox(height: 16),
-        Flexible(
-          fit: FlexFit.loose,
-          child: SingleChildScrollView(
+          SizedBox(height: 16),
+          SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -765,40 +784,55 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 SizedBox(width: 16),
                 _buildButton('Lav med AI', 'assets/images/ai_file.png',
                     onClick: () {
-                  navigatorKey.currentState?.pushNamed('/ai');
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Container(
+                          color: Colors.white,
+                          width: 760,
+                          height: 500,
+                          child: AIPage(onImageProcessed: setGeneratedImage),
+                        ),
+                      );
+                    },
+                  );
                 }),
               ],
             ),
           ),
-        ),
-        SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFBADFB5),
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFBADFB5),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    widget.onSubmit(nameController.text, imageBytes);
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: Text(
+                  widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  widget.onSubmit(nameController.text, imageBytes);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text(
-                widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
-                style: TextStyle(color: Colors.white),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Luk'),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Luk'),
-            ),
-          ],
-        ),
-        SizedBox(height: 16),
-      ],
+            ],
+          ),
+          SizedBox(height: 16),
+        ],
+      ),
     );
   }
 

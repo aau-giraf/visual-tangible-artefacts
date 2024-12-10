@@ -3,6 +3,9 @@ using VTA.API.Models;
 
 namespace VTA.API.DTOs;
 
+/// <summary>
+/// This class contains all the functions we use to convert a PostDTO to a model, and model to GetDTO it's pretty self explanatory what they do
+/// </summary>
 public static class DTOConverter
 {
     public static ArtefactGetDTO MapArtefactToArtefactGetDTO(Artefact artefact, string scheme, string host)
