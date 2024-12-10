@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
@@ -34,6 +35,7 @@ void main() async {
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 
+  await Settings.init(cacheProvider: SharePreferenceCache());
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the
   // SettingsView.

@@ -6,6 +6,8 @@ import '../ui/screens/artifact_board_screen.dart';
 import 'package:provider/provider.dart';
 
 class AuthPage extends StatefulWidget {
+  static const routeName = '/auth';
+
   @override
   _AuthPageState createState() => _AuthPageState();
 }

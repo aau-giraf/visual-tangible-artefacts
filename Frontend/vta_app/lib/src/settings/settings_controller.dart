@@ -13,38 +13,54 @@ class SettingsController with ChangeNotifier {
   // Make SettingsService a private variable so it is not used directly.
   final SettingsService _settingsService;
 
-  // Make ThemeMode a private variable so it is not updated directly without
-  // also persisting the changes with the SettingsService.
-  late ThemeMode _themeMode;
+  bool _textUnderImages = false;
 
-  // Allow Widgets to read the user's preferred ThemeMode.
-  ThemeMode get themeMode => _themeMode;
+  Localization _localization = Localization.danish;
+
+  bool get textUnderImages => _textUnderImages;
+
+  Localization get localization => _localization;
 
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the
   /// settings from the service.
   Future<void> loadSettings() async {
-    _themeMode = await _settingsService.themeMode();
-
+    // Load textUnderImages
+    var textUnderImages = await _settingsService.textUnderImages();
+    if (textUnderImages != null) {
+      _textUnderImages = textUnderImages;
+    }
+    // Load localization
+    //var localization = await _settingsService.localization();
+    if (localization != null) {
+      //_localization = Localization.values[localization];
+    }
     // Important! Inform listeners a change has occurred.
     notifyListeners();
   }
 
-  /// Update and persist the ThemeMode based on the user's selection.
-  Future<void> updateThemeMode(ThemeMode? newThemeMode) async {
-    if (newThemeMode == null) return;
+  Future<void> updateTextUnderImages(bool? newValue) async {
+    if (newValue == null) return;
+    if (newValue == _textUnderImages) return;
 
-    // Do not perform any work if new and old ThemeMode are identical
-    if (newThemeMode == _themeMode) return;
+    _textUnderImages = newValue;
 
-    // Otherwise, store the new ThemeMode in memory
-    _themeMode = newThemeMode;
-
-    // Important! Inform listeners a change has occurred.
     notifyListeners();
 
-    // Persist the changes to a local database or the internet using the
-    // SettingService.
-    await _settingsService.updateThemeMode(newThemeMode);
+    await _settingsService.updateTextUnderImages(newValue);
+  }
+
+  Future<void> updateLocalization(Localization? newLocalization) async {
+    if (newLocalization == null) return;
+
+    if (newLocalization == _localization) return;
+
+    _localization = newLocalization;
+
+    notifyListeners();
+
+    await _settingsService.updateLocalization(newLocalization);
   }
 }
+
+enum Localization { english, danish }

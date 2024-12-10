@@ -15,16 +15,15 @@ class AIPage extends StatefulWidget {
 }
 
 class _AIPageState extends State<AIPage> {
-  //final aiSettings = GlobalConfiguration().appConfig['OpenAi'];
   final TextEditingController _controller = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late String apiKey;
   String? image;
   bool isLoading = false;
   double imageWidth = 150;
   double imageHeight = 150;
-  String selectedOption = 'Vælg format'; // Default selected option
-  bool showError =
-      false; // Track if the generate button was pressed without a valid selection
+  String selectedOption = 'Vælg format';
+  bool showError = false;
 
   @override
   void initState() {
@@ -46,11 +45,11 @@ class _AIPageState extends State<AIPage> {
   }
 
   Future<void> generateImage() async {
-    if (_controller.text.isNotEmpty) {
+    if (_formKey.currentState!.validate()) {
       setState(() {
         image = null;
         isLoading = true;
-        showError = false; // Reset the error when a valid option is selected
+        showError = false;
       });
 
       String prompt;
@@ -62,12 +61,12 @@ class _AIPageState extends State<AIPage> {
           break;
         case 'Realistisk':
           prompt =
-              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, ingen tekst billede af " +
+              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, høj-kvalitets billede af " +
                   _controller.text;
           break;
         case 'Tegning':
           prompt =
-              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning, ingen text billede af " +
+              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning af " +
                   _controller.text;
           break;
         default:
@@ -82,24 +81,40 @@ class _AIPageState extends State<AIPage> {
         "response_format": "b64_json",
       };
 
-      var res = await http.post(
-        Uri.parse("https://api.openai.com/v1/images/generations"),
-        headers: {
-          "Authorization": "Bearer $apiKey",
-          "Content-Type": "application/json"
-        },
-        body: jsonEncode(data),
-      );
+      try {
+        var res = await http.post(
+          Uri.parse("https://api.openai.com/v1/images/generations"),
+          headers: {
+            "Authorization": "Bearer $apiKey",
+            "Content-Type": "application/json"
+          },
+          body: jsonEncode(data),
+        );
 
-      var jsonResponse = jsonDecode(res.body) as Map<String, dynamic>;
+        var jsonResponse = jsonDecode(res.body) as Map<String, dynamic>;
 
-      setState(() {
-        image = jsonResponse['data'][0]['b64_json'];
-        isLoading = false;
-      });
+        if (jsonResponse.containsKey('data') && jsonResponse['data'] != null) {
+          setState(() {
+            image = jsonResponse['data'][0]['b64_json'];
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            showError = true;
+          });
+          print('Unexpected response format: $jsonResponse');
+        }
+      } catch (e) {
+        setState(() {
+          isLoading = false;
+          showError = true;
+        });
+        print('Error generating image: $e');
+      }
     } else {
       setState(() {
-        showError = true; // Show error if the prompt is empty
+        showError = true;
       });
       print('Prompt is empty or format not chosen');
     }
@@ -107,151 +122,193 @@ class _AIPageState extends State<AIPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent, // Make the background transparent
-      appBar: AppBar(
-        backgroundColor:
-            const Color(0xFFF5F2E7), // Use a contrasting color for the app bar
-        iconTheme: const IconThemeData(
-            color: Colors.black), // Set the back arrow color to black
+    var screenSize = MediaQuery.of(context).size;
+    var minHeight = screenSize.height * 0.8;
+    var minWidth = screenSize.width * 0.6;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(50.0),
-          width: MediaQuery.of(context).size.width * 0.9, // Responsive width
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F2E7), // Main background color
-            borderRadius: BorderRadius.circular(20), // Rounded corners
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment: Alignment.center,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        decoration: BoxDecoration(
-                          color: showError && selectedOption == 'Vælg format'
-                              ? Colors.red
-                              : const Color(0xFFF5F2E7),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.black),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedOption,
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                selectedOption = newValue!;
-                                showError =
-                                    false; // Reset the error when a valid option is selected
-                              });
-                            },
-                            items: <String>[
-                              'Vælg format',
-                              'Piktogram',
-                              'Realistisk',
-                              'Tegning'
-                            ].map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: const TextStyle(
-                                      color: Colors.black), // Black text
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: minHeight,
+          maxWidth: minWidth,
+          minHeight: 0,
+          minWidth: 0,
+        ),
+        decoration: BoxDecoration(
+          color: Color(0xFFF5F2E7),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(4, 4),
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Generer billede med AI',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 28,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12.0),
+                            decoration: BoxDecoration(
+                              color:
+                                  showError && selectedOption == 'Vælg format'
+                                      ? Colors.red
+                                      : const Color(0xFFF5F2E7),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(color: Colors.black),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: selectedOption,
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    selectedOption = newValue!;
+                                    showError = false;
+                                  });
+                                },
+                                items: <String>[
+                                  'Vælg format',
+                                  'Piktogram',
+                                  'Realistisk',
+                                  'Tegning'
+                                ].map<DropdownMenuItem<String>>((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      value,
+                                      style:
+                                          const TextStyle(color: Colors.black),
+                                    ),
+                                  );
+                                }).toList(),
+                                dropdownColor: Colors.white,
+                                icon: const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Colors.black,
                                 ),
-                              );
-                            }).toList(),
-                            dropdownColor: Colors
-                                .white, // Set the background color of the dropdown menu to white
-                            icon: const Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.black, // Black arrow icon
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(
-                        width:
-                            15), // Add some spacing between the dropdown and the text field
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: const InputDecoration(
-                          hintText: 'Skriv her',
-                          hintStyle: TextStyle(
-                              color: Color.fromARGB(255, 136, 136, 136)),
-                          focusedBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                                color: Colors
-                                    .black), // Black underline when focused
-                          ),
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                                color: Colors
-                                    .black), // Black underline when not focused
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Focus(
+                            onFocusChange: (hasFocus) {
+                              if (hasFocus) {
+                                setState(() {
+                                  showError = false;
+                                });
+                              }
+                            },
+                            child: TextFormField(
+                              controller: _controller,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Dette felt er påkrævet';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                hintText: 'Skriv her',
+                                hintStyle: TextStyle(
+                                    color: Color.fromARGB(255, 136, 136, 136)),
+                                focusedBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.black),
+                                ),
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.black),
+                                ),
+                              ),
+                              style: const TextStyle(color: Colors.black),
+                            ),
                           ),
                         ),
-                        style: const TextStyle(
-                            color: Colors.black), // Black input text
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (selectedOption == 'Vælg format') {
-                    setState(() {
-                      showError =
-                          true; // Show error if no valid option is selected
-                    });
-                  } else {
-                    generateImage();
-                  }
-                },
-                child: const Text(
-                  'Generer billede',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              isLoading
-                  ? const CircularProgressIndicator() // Display loading icon
-                  : Column(
-                      children: [
-                        image != null
-                            ? Image.memory(base64Decode(image!),
-                                width: imageWidth, height: imageHeight)
-                            : const Text(
-                                'Intet billede genereret',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                        const SizedBox(height: 20),
-                        image != null
-                            ? ElevatedButton(
-                                onPressed: () {
-                                  if (widget.onImageProcessed != null) {
-                                    widget.onImageProcessed!(image!);
-                                  }
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text(
-                                  'Gem billede',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              )
-                            : Container(), // Empty container if no image is generated
                       ],
                     ),
-            ],
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (selectedOption == 'Vælg format') {
+                        setState(() {
+                          showError = true;
+                        });
+                      } else {
+                        generateImage();
+                      }
+                    },
+                    child: const Text(
+                      'Generer billede',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  isLoading
+                      ? const CircularProgressIndicator()
+                      : Column(
+                          children: [
+                            image != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.memory(
+                                      base64Decode(image!),
+                                      width: imageWidth,
+                                      height: imageHeight,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Intet billede genereret',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                            const SizedBox(height: 20),
+                            image != null
+                                ? ElevatedButton(
+                                    onPressed: () {
+                                      if (widget.onImageProcessed != null) {
+                                        widget.onImageProcessed!(image!);
+                                      }
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text(
+                                      'Gem billede',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  )
+                                : Container(),
+                          ],
+                        ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -265,29 +322,26 @@ class AddPicturePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, // Make the background transparent
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           ModalBarrier(
             dismissible: false,
-            color:
-                Colors.black.withOpacity(0.5), // Grey out the rest of the app
+            color: Colors.black.withOpacity(0.5),
           ),
           Center(
             child: Container(
-              width: MediaQuery.of(context).size.width *
-                  0.8, // Set width based on screen size
-              padding: const EdgeInsets.all(45.0), // Reduced padding
+              width: MediaQuery.of(context).size.width * 0.8,
+              padding: const EdgeInsets.all(45.0),
               decoration: BoxDecoration(
-                color:
-                    Colors.white, // Set the background color of the container
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
                     spreadRadius: 5,
                     blurRadius: 7,
-                    offset: Offset(0, 3), // changes position of shadow
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
@@ -306,7 +360,7 @@ class AddPicturePage extends StatelessWidget {
                             ?.copyWith(color: Colors.black),
                       ),
                     ),
-                    SizedBox(height: 20), // Add some spacing
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -318,10 +372,10 @@ class AddPicturePage extends StatelessWidget {
                               File file = File(result.files.single.path!);
                             } else {
                               print("Ingen fil valgt");
-                            } // Button 1 action
+                            }
                           },
                           tooltip: 'Upload fra galleri',
-                          child: Icon(Icons.add),
+                          child: const Icon(Icons.add),
                         ),
                         FloatingActionButton(
                           onPressed: () {
@@ -334,17 +388,16 @@ class AddPicturePage extends StatelessWidget {
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760, // Set your desired width here
-                                    height: 500, // Set your desired height here
-                                    child: const AIPage(), // The AIPage widget
-                                    // Button 2 action
+                                    width: 760,
+                                    height: 500,
+                                    child: const AIPage(),
                                   ),
                                 );
                               },
                             );
                           },
                           tooltip: 'Tag ny billede',
-                          child: Icon(Icons.camera_alt),
+                          child: const Icon(Icons.camera_alt),
                         ),
                         FloatingActionButton(
                           onPressed: () {
@@ -357,9 +410,9 @@ class AddPicturePage extends StatelessWidget {
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760, // Set your desired width here
-                                    height: 500, // Set your desired height here
-                                    child: const AIPage(), // The AIPage widget
+                                    width: 760,
+                                    height: 500,
+                                    child: const AIPage(),
                                   ),
                                 );
                               },
