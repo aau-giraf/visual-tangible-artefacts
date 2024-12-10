@@ -13,6 +13,10 @@ public class Category
 
     public DateTime? ModifiedDate { get; set; }
 
+    public string? ImagePath { get; set; }
+    
+    public DateTime? ModifiedDate { get; set; }
+
     public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
 
     public virtual User User { get; set; } = null!;

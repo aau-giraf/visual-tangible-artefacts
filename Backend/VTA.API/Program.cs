@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.Utilities;
@@ -98,9 +99,8 @@ builder.Services.AddSwaggerGen(options =>
         Title = "Visual Tangible Artefacts API",
         Description = "An ASP.NET Core API for interfacing with the database",
     });
-
-    options.EnableAnnotations();
-    // https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
+    options.IncludeXmlComments(Assembly.GetExecutingAssembly());//For XML comments to be included in the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/?tab=readme-ov-file#include-descriptions-from-xml-comments
+    //options.EnableAnnotations();// For using Attributes to document the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
 });
 
 builder.WebHost.ConfigureKestrel(options =>
