@@ -43,7 +43,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts") 
         { 
-            Content = content 
+            Content = content
         };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
@@ -81,15 +81,12 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(artefact.ArtefactId, retrievedArtefact.ArtefactId);
         Assert.Equal(loginData.userId, retrievedArtefact.UserId);
 
-        // Use the correct path relative to the test project directory
-        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", artefact.ArtefactId);
+        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", $"{artefact.ArtefactId}.jpg");
         
-        // Wait a bit longer to ensure file is written
         await Task.Delay(1000); // Increased delay for slower systems
         
         Assert.True(File.Exists(assetsPath), $"File not found at: {assetsPath}");
 
-        // Clean up the file and directory after test
         if (File.Exists(assetsPath))
         {
             File.Delete(assetsPath);
