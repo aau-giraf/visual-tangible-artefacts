@@ -62,6 +62,10 @@ namespace VTA.Tests.TestHelpers
         {
             await _mySqlContainer.StartAsync();
 
+            // Create Assets directory
+            var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Artefacts");
+            Directory.CreateDirectory(assetsPath);
+
             var options = new DbContextOptionsBuilder<UserContext>()
                 .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
                 .Options;
@@ -77,6 +81,11 @@ namespace VTA.Tests.TestHelpers
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            var projectDir = Directory.GetCurrentDirectory();
+            var assetsPath = Path.Combine(projectDir, "Assets");
+            
+            builder.UseContentRoot(projectDir);
+
             builder.ConfigureServices(services =>
             {
                 var descriptorUserContext = services.SingleOrDefault(
@@ -92,6 +101,13 @@ namespace VTA.Tests.TestHelpers
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
                 services.AddDbContext<ArtefactContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
+
+                // Configure the assets path for the test environment
+                services.Configure<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>(env =>
+                {
+                    env.ContentRootPath = projectDir;
+                    env.WebRootPath = assetsPath;
+                });
             });
 
             builder.ConfigureAppConfiguration((context, config) =>
@@ -100,6 +116,9 @@ namespace VTA.Tests.TestHelpers
                     .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
                     .AddJsonFile("appsettings.json", optional: true)
                     .AddEnvironmentVariables();
+
+                // Ensure the Assets directory exists
+                Directory.CreateDirectory(Path.Combine(projectDir, "Assets", "Artefacts"));
             });
         }
 

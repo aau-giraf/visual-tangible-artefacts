@@ -30,14 +30,18 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     public async Task TestAddArtefact()
     {
         var loginData = await _utilities.CreateUserAndReturnLoginDataAsync();
+        Assert.NotNull(loginData); // Ensure we have valid login data
 
         var content = new MultipartFormDataContent();
 
         var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
-        content.Add(imageContent, "Image");
+        imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
+        content.Add(imageContent, "Image", "testImage.jpg");
         content.Add(new StringContent(loginData.userId), "UserId");
+        content.Add(new StringContent("0"), "ArtefactIndex");  // Add missing required field
+        content.Add(new StringContent("Test Name"), "Name");   // Optional but good to test
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "api/Artefacts") 
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts") 
         { 
             Content = content 
         };
@@ -47,18 +51,49 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        ArtefactGetDTO? artefact = await JsonSerializer.DeserializeAsync<ArtefactGetDTO>(await response.Content.ReadAsStreamAsync());
-        Assert.NotNull(artefact);
+        // Debug the response content
+        var responseContent = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Response Content: {responseContent}");
 
-        var getArtefactResponse = await _client.GetAsync($"/api/Artefacts/{artefact.ArtefactId}");
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        ArtefactGetDTO? artefact = await JsonSerializer.DeserializeAsync<ArtefactGetDTO>(
+            await response.Content.ReadAsStreamAsync(),
+            options
+        );
+
+        var getArtefactRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+        getArtefactRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
+        var getArtefactResponse = await _client.SendAsync(getArtefactRequest);
+        
         Assert.Equal(HttpStatusCode.OK, getArtefactResponse.StatusCode);
 
-        var retrievedArtefact = await JsonSerializer.DeserializeAsync<ArtefactGetDTO>(await getArtefactResponse.Content.ReadAsStreamAsync());
+        var retrievedArtefact = await JsonSerializer.DeserializeAsync<ArtefactGetDTO>(
+            await getArtefactResponse.Content.ReadAsStreamAsync(),
+            options
+        );
+        
         Assert.NotNull(retrievedArtefact);
         Assert.Equal(artefact.ArtefactId, retrievedArtefact.ArtefactId);
         Assert.Equal(loginData.userId, retrievedArtefact.UserId);
 
-        Assert.True(File.Exists($"/api/Assets/Artefact/{artefact.ArtefactId}"));
+        // Use the correct path relative to the test project directory
+        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", artefact.ArtefactId);
+        
+        // Wait a bit longer to ensure file is written
+        await Task.Delay(1000); // Increased delay for slower systems
+        
+        Assert.True(File.Exists(assetsPath), $"File not found at: {assetsPath}");
+
+        // Clean up the file and directory after test
+        if (File.Exists(assetsPath))
+        {
+            File.Delete(assetsPath);
+        }
 
         await _utilities.DeleteUserWithTokenAsync();
     }
