@@ -225,6 +225,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             content.Add(imageContent, "Image", "testImage.jpg");
             content.Add(new StringContent(loginData.userId), "UserId");
             content.Add(new StringContent(i.ToString()), "ArtefactIndex");
+            content.Add(new StringContent(i), "CategoryId");
             content.Add(new StringContent($"Test Artefact {i}"), "Name");
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
