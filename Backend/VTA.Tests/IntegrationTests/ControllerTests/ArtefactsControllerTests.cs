@@ -141,17 +141,18 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var artefact = artefacts[0];
 
         // Update the artefact
+        var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
+        imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
+        
         var content = new MultipartFormDataContent
         {
-            // var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
-            // imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-            // content.Add(imageContent, "Image", "testImage.jpg");
+            { imageContent, "Image", "testImage.jpg" },
             { new StringContent(loginData.userId), "UserId" },
             { new StringContent("1"), "ArtefactIndex" },  // Changed index
             { new StringContent("Updated Name"), "Name" }
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/Users/Artefacts/{artefact.ArtefactId}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         request.Content = content;
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
@@ -52,6 +53,54 @@ public class ArtefactsController : ControllerBase
         ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
 
         return artefactGetDTO;
+    }
+
+    // PATCH: api/Artefacts/5
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPatch]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
+    public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
+    {
+        var artefact = _context.Artefacts.Find(dto.ArtefactId);
+
+        if (artefact == null)
+        {
+            return BadRequest();
+        }
+
+        if (dto.ArtefactIndex != null && artefact.ArtefactIndex != dto.ArtefactIndex)
+        {
+            artefact.ArtefactIndex = dto.ArtefactIndex.Value;
+        }
+        if (!dto.Name.IsNullOrEmpty() && artefact.Name != dto.Name)
+        {
+            artefact.Name = dto.Name;
+        }
+        if (dto.Image != null)
+        {
+            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
+            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
+        }
+
+        _context.Entry(artefact).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!ArtefactExists(artefact.CategoryId))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
     }
 
     // PUT: api/Artefacts/5

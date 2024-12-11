@@ -8,7 +8,7 @@ public class Artefact
 
     public required string UserId { get; set; }
 
-    public string? CategoryId { get; set; }
+    public string CategoryId { get; set; }
 
     public string? ImagePath { get; set; } = null!;
     public DateTime? ModifiedDate { get; set; }
