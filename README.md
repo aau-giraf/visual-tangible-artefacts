@@ -1,157 +1,160 @@
-# Visual tangible artefacts
+# Visual Tangible Artefacts
 
-- [Contributing to Visual tangible artefacts](#contributing-to-visual-tangible-artefacts)
-  - [Feature Contributions](#feature-contributions)
-    - [Branching](#feature-contributions)
-    - [Database Approach](#db-first-approach)
-- [Naming Conventions](#naming-conventions)
-  - [App Naming Conventions (Dart)](#app-naming-conventions-dart)
-    - [Types](#types)
-    - [Extensions](#extensions)
-    - [Variables, Functions, Parameters](#variables-functions-parameters)
-    - [Directories and Files](#directories-and-files)
-    - [Import Prefixes](#import-prefixes)
-    - [Acronyms and Abbreviations](#acronyms-and-abbreviations)
-    - [Formatting](#formatting-your-dart-code)
-    - [Document Your Dart Code](#formatting-your-dart-code)
-  - [API Naming Conventions (C#)](#api-naming-conventions-c)
-    - [Types CSharp](#types-csharp)
-    - [Methods, Properties, Events](#methods-properties-events)
-    - [Variables, Parameters](#variables-parameters)
-    - [Constants](#constants)
-    - [Interfaces](#interfaces)
-    - [Namespaces](#namespaces)
-    - [Files](#files)
-    - [Acronyms](#acronyms)
-    - [Formatting your CSharp](#formatting-your-csharp-code)
-    - [Document Your CSharp Code](#document-your-csharp-code)
+This repository is a monorepo containing both frontend and backend code for the VTA (Visual Tangible Artefacts) project. It is part of the GIRAF ecosystem.
+
+## Quick Overview
+
+- **Monorepo Structure:**  
+  All frontend, backend, and tests reside in one repository.
+  
+- **Development Branches:**  
+  - `dev-main`: Main integration branch. Features should be merged here first and tested.
+  - `main`: Production branch. Code from `dev-main` is merged here after passing CI and review.
+
+- **CI/CD Setup:**  
+  - **CI** runs on GitHub-hosted runners for all pushes/PRs to `dev-main` or `main`.
+  - **CD** runs on a self-hosted runner when changes are merged into `main`.
+  - Workflows are defined in `.github/workflows/`.
+  - Automated test runs use Docker and Testcontainers to create a clean MySQL environment for integration tests.
+
+- **GitHub Projects & Issues:**  
+  Task management uses GitHub Projects.  
+  - Opening a new issue triggers a workflow that sets a start date.
+  - Closing an issue triggers a workflow that sets an end date.
+  - These workflows require a `GIT_TOKEN` secret in GitHub Actions.
+
+- **Protected Branches & Reviews:**  
+  - Direct pushes to `main` are blocked.
+  - A PR from `dev-main` to `main` requires passing tests and at least one reviewer approval.
+  - Admins can override in emergencies if needed.
+
+- **Secrets and Configurations:**  
+  - All sensitive data is stored in GitHub Secrets (`Settings -> Secrets and variables -> Actions`).
+  - Example secrets: `GIT_TOKEN`, `JWT_SECRET`, `TEST_CONNECTION_STRING`.
+  - CI/CD, Docker-based tests, and API deployments rely on these secrets.
+  
+- **Testing Environment:**  
+  - Tests run automatically via `dotnet test` in CI.
+  - `CustomApplicationFactory.cs` uses Testcontainers to spawn a temporary MySQL database.
+  - Configuration fallback for tests (in order):
+    1. `/var/www/VTA.API/appsettings.json` (VPS environment)
+    2. Local `appsettings.json` (developer machine)
+    3. Environment variables (in GitHub Actions)
+  - EF migrations are auto-generated at test runtime, so no manual SQL scripts are needed.
+
+- **VPS & Deployment Details:**  
+  - The API is deployed to `/var/www/VTA.API/` on the VPS.
+  - Deployment uses `rsync` to update files and `systemctl restart vtaapi.service` to restart the API.
+  - VPS-side configuration changes (like `sudo visudo` edits) may be required for runner permissions.
+
+## Contributing to Visual Tangible Artefacts
+
+### General Guidelines
+Contributions typically follow a feature-branch-based workflow:
+1. **Create an issue:** Start by opening an issue on GitHub to describe the feature, improvement, or bug fix.
+2. **Branch off from `dev-main`:** Create a new branch named after the issue (e.g., `feature/issue-123-new-ui`).
+3. **Implement and Test:** Develop your changes locally, add tests where applicable, and ensure all tests pass.
+4. **Pull Request and Review:** Open a pull request (PR) from your feature branch into `dev-main`. If you’re uncertain about the correctness, request a code review.
+5. **Merge to `main`:** After your code is tested and approved, it will be merged from `dev-main` into `main` for deployment.
+
+**Tip:** Sometimes it helps to merge `main` into your feature branch first to test against production-ready code, then finalize your changes and open a PR to merge into `main`.
+
+**Branching Strategy Overview:**
+  
+![Branching strategy](https://github.com/aau-giraf/visual-tangible-artefacts/blob/dev-main/Resources/Branching.png)
+
+### Database-First Approach
+We follow a **DB-first approach**, meaning the database schema is the source of truth, and code models are generated from it.
+
+**Workflow:**
+1. **Design the database schema:** Define tables, relationships, and constraints in the database directly.
+2. **Generate models from DB:**  
+   Use `dotnet ef` scaffold commands to generate or update model classes:
+   ```bash
+   dotnet ef dbcontext scaffold "server=[server];port=[port];user=[user];password=[password];database=VTA" \
+   Pomelo.EntityFrameworkCore.MySql -o scaffold -f
+   ```
+   This regenerates the entire DB context and model classes. For partial updates (only certain tables):
+   ```bash
+   dotnet ef dbcontext scaffold "server=[server];port=[port];user=[user];password=[password];database=VTA" \
+   Pomelo.EntityFrameworkCore.MySql -o scaffold --table [Table1] --table [Table2] -f
+   ```
+3. **Auto-Generated DB Contexts:**  
+   The DB context includes all tables. If concurrency or complexity is an issue, consider splitting your context into multiple smaller ones. Refer to existing contexts for examples.
+4. **Regenerate after schema changes:**  
+   Whenever the schema changes, regenerate the models to keep code and database aligned.
+
 ---
 
-# Contributing to Visual tangible artefacts
+## Naming Conventions
 
-## Feature Contributions
-### Feature Contributions
-- **Issue Creation and Branching:**
-  1. When adding new features, **create an issue** on GitHub to track the feature or bug fix.
-  2. Create a new **branch** from the issue and use that branch for development.
-  3. Once development is complete, submit a **pull request** and pull it to main*.
-  4. If unsure about code validity, assign a **code reviewer**.
-     
-     *It might be easier for you to pull main, into the feature branch, testing it, and then pulling feature to main
-     
-     ![Branching strategy](https://github.com/aau-giraf/visual-tangible-artefacts/blob/dev-main/Resources/Branching.png)
-### Database Approach
-
-#### DB-First Approach
-
-We follow a **DB-first approach** for this project. This means that the database schema is designed first, and the code is generated based on that schema. Changes to the database structure are reflected in the API via code generation tools (e.g., Entity Framework for C# or other ORM frameworks, like dapper).
-
-- **Workflow:**
-  1. **Database schema design**: Define tables, columns, relationships, and constraints in the database.
-  2. **Generate models**: Use dotnets tools to generate model classes and mappings based on the existing database using `dotnet ef dbcontext scaffold "server=[server];port=[port];user=[user];password=[password];database=VTA" Pomelo.EntityFrameworkCore.MySql -o scaffold -f` for the entire database.
-  3. **Migrations**: When changes to the schema are required, update the database first, then regenerate the models using `dotnet ef dbcontext scaffold "server=[server];port=[port];user=[user];password=[password];database=VTA" Pomelo.EntityFrameworkCore.MySql -o scaffold --table [Table1] --table [Table2] -f` for only specific tables.
-  4. **Code generation**: Ensure consistency between the database and the code by regenerating models after every schema update.
-     *These commands are configured to output to the folder `scaffold`.
-     
-     **The autogenerated DBContext contains every single "table" from the DBcontext, this however, can impact concurrency, therefore we split it up, if you are unsure about how to, reffer to the existing DBContexts 
-### Naming Conventions
-## App Naming Conventions (Dart)
-### Types
-- **Classes, Enums, Typedefs, and Type Parameters**: Use `PascalCase/UpperCamelCase`.
+### Dart (Frontend) Naming Conventions
+- **Classes, Enums, Typedefs, Type Parameters:** `PascalCase` (UpperCamelCase)
   ```dart
   class SliderMenu { ... }
   typedef Predicate<T> = bool Function(T value);
   ```
-### Extensions
-- **Extensions:** Use `PascalCase/UpperCamelCase`.
+- **Extensions:** `PascalCase` (UpperCamelCase)
   ```dart
   extension MyFancyList<T> on List<T> { ... }
   ```
-### Variables, Functions, Parameters
-- **Variables, Functions, Parameters, and Named Constants:** Use `camelCase/lowerCamelCase`.
+- **Variables, Functions, Parameters, Named Constants:** `camelCase` (lowerCamelCase)
   ```dart
   var itemCount = 3;
   void alignItems(bool clearItems) { ... }
   ```
-### Directories and Files
-- **Directories and Files:** Use `lowercase_with_underscores`.
+- **Directories and Files:** `lowercase_with_underscores`
   ```
   lib/
   my_widget.dart
   utils/
     string_helpers.dart
   ```
-### Import Prefixes
-- **Import Prefixes:** Use `lowercase_with_underscores`.
-### Acronyms and Abbreviations
-- **Acronyms and Abbreviations:** Capitalize acronyms and abbreviations longer than two letters like words.
+- **Import Prefixes:** `lowercase_with_underscores`
+- **Acronyms:** Capitalize as words. For acronyms longer than two letters, `PascalCase`.
   ```dart
   class HttpRequest { ... }
-  ``
-### Formatting your dart code
-Use ``dart format`` to format your code 
-For other formatting guidlines refer to [dart.dev styling guidlines](https://dart.dev/effective-dart/style)
-# [DOCUMENT YOUR CODE!](https://dart.dev/effective-dart/documentation)
-## API Naming Conventions (C#)
-### Types CSharp
-- **Classes, Enums, and Structs**: Use `PascalCase`.
+  ```
+- **Formatting:** Use `dart format` to format code.  
+  Refer to [Dart style guidelines](https://dart.dev/effective-dart/style) for more details.
+- **Documentation:** Document your code! Refer to [Dart documentation guidelines](https://dart.dev/effective-dart/documentation).
+
+### C# (API) Naming Conventions
+- **Classes, Enums, Structs:** `PascalCase`
   ```csharp
   class MyClass { ... }
   enum Colors { Red, Green, Blue }
   ```
-
-### Methods, Properties, Events
-- **Methods, Properties, and Events**: Use `PascalCase`.
+- **Methods, Properties, Events:** `PascalCase`
   ```csharp
   public void FetchData() { ... }
   public string Name { get; set; }
   ```
-
-### Variables, Parameters
-- **Variables and Parameters**: Use `camelCase`.
+- **Variables, Parameters:** `camelCase`
   ```csharp
   int itemCount = 3;
   void SetItemCount(int itemCount) { ... }
   ```
-
-### Constants
-- **Constants**: Use `PascalCase` with the `const` modifier.
+- **Constants:** `PascalCase` with `const`
   ```csharp
   const int MaxItems = 10;
   ```
-
-### Interfaces
-- **Interfaces**: Prefix with an "I" and use `PascalCase`.
+- **Interfaces:** Prefix with `I` + `PascalCase`
   ```csharp
   public interface IMyInterface { ... }
   ```
-
-### Namespaces
-- **Namespaces**: Use `PascalCase`.
+- **Namespaces:** `PascalCase`
   ```csharp
-  namespace MyApplication.Data
-  {
-    // ...
-  }
+  namespace MyApplication.Data { ... }
   ```
-
-### Files
-- **Files**: Each file should contain a single class, interface, or enum, named after the type it contains. Use `PascalCase` for file names.
+- **Files:** One type per file, named after the type (`PascalCase`)
   ```
   MyClass.cs
   IMyInterface.cs
   Colors.cs
   ```
+- **Acronyms:** Treat acronyms as words (`HttpRequest`, `IOHandler`)
+- **Formatting:** Follow [C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions).
+- **Documentation:** Use XML comments (`///`) and follow [Microsoft documentation guidelines](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/xmldoc/).
 
-### Acronyms
-- **Acronyms**: Capitalize acronyms. For longer acronyms, use `PascalCase`.
-  ```csharp
-  class IOHandler { ... }
-  class HttpRequest { ... }
-  ```
-  
-### Formatting your CSharp code
-- Use a consistent style for code formatting. Refer to the official [C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions).
-
-### Document Your CSharp Code
-- Document your code using comments (`///`). Refer to [Microsoft documentation guidelines](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/xmldoc/).
+---
