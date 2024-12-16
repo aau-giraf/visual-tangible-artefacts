@@ -10,6 +10,9 @@ This repository is a monorepo containing both frontend and backend code for the 
 - [Naming Conventions](#naming-conventions)
   - [Dart (Frontend) Naming Conventions](#dart-frontend-naming-conventions)
   - [C# (API) Naming Conventions](#c-api-naming-conventions)
+ 
+## Questions and appsettings handover
+For any questions or request for appsettings handover, contact rkrage22@student.aau.dk
 
 ## Quick Overview
 
