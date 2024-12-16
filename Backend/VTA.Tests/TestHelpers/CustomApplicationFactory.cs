@@ -76,6 +76,12 @@ namespace VTA.Tests.TestHelpers
 
             using var categoryContext = new CategoryContext(categoryOptions);
             await categoryContext.Database.EnsureCreatedAsync();
+
+            var artefactContextOptions = new DbContextOptionsBuilder<ArtefactContext>()
+                .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
+                .Options;
+            using var artefactContext = new ArtefactContext(artefactContextOptions);
+            await artefactContext.Database.EnsureCreatedAsync();
         }
 
         public async Task DisposeAsync()
@@ -95,10 +101,17 @@ namespace VTA.Tests.TestHelpers
                     d => d.ServiceType == typeof(DbContextOptions<CategoryContext>));
                 services.Remove(descriptor2);
 
+                var descriptorArtefactContext = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(DbContextOptions<ArtefactContext>));
+                services.Remove(descriptorArtefactContext);
+
                 services.AddDbContext<UserContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
 
                 services.AddDbContext<CategoryContext>(options =>
+                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
+
+                services.AddDbContext<ArtefactContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
             });
 
