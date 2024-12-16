@@ -30,7 +30,11 @@ public class ArtefactsController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
+        List<Artefact>? artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
+        if (artefacts == null)
+        {
+            return NotFound();
+        }
         List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
         foreach (Artefact artefact in artefacts)
         {
@@ -50,9 +54,7 @@ public class ArtefactsController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var artefacts = await _context.Artefacts.Where(a => a.ArtefactId == artefactId).Where(a => a.UserId == userId).ToListAsync();
-        var artefact = artefacts.First();
-
+        var artefact = await _context.Artefacts.Where(a => a.UserId == userId).FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
         if (artefact == null)
         {
             return NotFound();
@@ -63,30 +65,36 @@ public class ArtefactsController : ControllerBase
         return artefactGetDTO;
     }
 
-    // PUT: api/Artefacts/5
+    // PATCH: api/Artefacts/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     /// <summary>
-    /// Updates an artefacts information (PUT HAS to have all fields in the User object filled out. A PATCH can have null values (which then aren't updated))
+    /// Updates an artefacts information
     /// </summary>
-    /// <remarks>
-    /// We should ALWAYS use DTO's as parameter & return in order to avoid circular dependecies and exposing data we shouldn't we however aren't using this method, so it has not been changed
-    /// </remarks>
-    /// <param name="artefactId"></param>
-    /// <param name="artefact"></param>
+    /// <param name="dto"></param>
     /// <returns></returns>
-    [HttpPut("{artefactId}")]
+    [HttpPatch]
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
-    public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
+    public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
-        var userId = User.FindFirst("id")?.Value;
+        var artefact = _context.Artefacts.Find(dto.ArtefactId);
 
-        if (userId != artefact.UserId)
-        {
-            return Forbid();
-        }
-        if (artefactId != artefact.ArtefactId)
+        if (artefact == null)
         {
             return BadRequest();
+        }
+
+        if (dto.ArtefactIndex != null && artefact.ArtefactIndex != dto.ArtefactIndex)
+        {
+            artefact.ArtefactIndex = dto.ArtefactIndex.Value;
+        }
+        if (!string.IsNullOrEmpty(dto.Name) && artefact.Name != dto.Name)
+        {
+            artefact.Name = dto.Name;
+        }
+        if (dto.Image != null)
+        {
+            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
+            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
         }
 
         _context.Entry(artefact).State = EntityState.Modified;
@@ -97,7 +105,7 @@ public class ArtefactsController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!ArtefactExists(artefactId))
+            if (!ArtefactExists(artefact.CategoryId))
             {
                 return NotFound();
             }
