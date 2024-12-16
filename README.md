@@ -2,6 +2,15 @@
 
 This repository is a monorepo containing both frontend and backend code for the VTA (Visual Tangible Artefacts) project. It is part of the GIRAF ecosystem.
 
+**Table of Contents**  
+- [Quick Overview](#quick-overview)
+- [Contributing to Visual Tangible Artefacts](#contributing-to-visual-tangible-artefacts)
+  - [General Guidelines](#general-guidelines)
+  - [Database-First Approach](#database-first-approach)
+- [Naming Conventions](#naming-conventions)
+  - [Dart (Frontend) Naming Conventions](#dart-frontend-naming-conventions)
+  - [C# (API) Naming Conventions](#c-api-naming-conventions)
+
 ## Quick Overview
 
 - **Monorepo Structure:**  
