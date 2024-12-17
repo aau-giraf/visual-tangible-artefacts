@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
 using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
 
@@ -32,6 +33,9 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
+        var categories = await response.Content.ReadFromJsonAsync<List<CategoryGetDTO>>();
+        Assert.NotNull(categories);
+
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
@@ -60,6 +64,10 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var category = await response.Content.ReadFromJsonAsync<CategoryGetDTO>();
+        Assert.NotNull(category);
+        Assert.Equal("Test Category", category.Name);
 
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
@@ -98,6 +106,11 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var deleteResponse = await _client.SendAsync(deleteRequest);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var getResponse = await _client.SendAsync(getRequest);
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
@@ -114,6 +127,9 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var errorResponse = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(errorResponse);
 
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
@@ -133,9 +149,11 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
             Name = "Test Category"
         };
 
-        var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-        content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+        var content = new MultipartFormDataContent
+        {
+            { new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId) },
+            { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
+        };
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -152,9 +170,11 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
             Name = "Updated Category"
         };
 
-        var patchContent = new MultipartFormDataContent();
-        patchContent.Add(new StringContent(patchDTO.CategoryId), nameof(CategoryPatchDTO.CategoryId));
-        patchContent.Add(new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name));
+        var patchContent = new MultipartFormDataContent
+        {
+            { new StringContent(patchDTO.CategoryId), nameof(CategoryPatchDTO.CategoryId) },
+            { new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name) }
+        };
 
         var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Categories");
         patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -162,6 +182,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var patchResponse = await _client.SendAsync(patchRequest);
         Assert.Equal(HttpStatusCode.NoContent, patchResponse.StatusCode);
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var getResponse = await _client.SendAsync(getRequest);
+        var updatedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
+        Assert.Equal("Updated Category", updatedCategory.Name);
 
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
