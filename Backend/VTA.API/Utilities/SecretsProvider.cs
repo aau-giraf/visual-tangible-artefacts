@@ -2,8 +2,10 @@
 
 namespace VTA.API.Utilities;
 
+/// <summary>
+/// Don't ask me, I know this is a singleton, however I'm not quite sure, why the person who made it, did not finish implementing it (It holds our secret key for JWT, but we are extracting it from the _config anyways cause it's built in)
+/// </summary>
 public class SecretsProvider
-
 {
     // Lazy initialization for singleton instance
     private static readonly Lazy<SecretsProvider> _instance = new Lazy<SecretsProvider>(() => new SecretsProvider());

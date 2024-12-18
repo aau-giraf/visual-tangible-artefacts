@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 
-namespace VTA.Tests.IntegrationTests.BaiscTests;
+namespace VTA.Tests.IntegrationTests.BasicTests;
 
 public class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
 {

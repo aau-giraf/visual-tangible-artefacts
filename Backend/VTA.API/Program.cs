@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Text;
 using VTA.API.DbContexts;
 using VTA.API.Utilities;
@@ -12,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+
+/*Register our DB contexts. They could have just been one big one, but that would worsen concurrency!*/
 builder.WrapDbContext<ArtefactContext>();
 builder.WrapDbContext<CategoryContext>();
 builder.WrapDbContext<UserContext>();
@@ -19,9 +23,9 @@ builder.WrapDbContext<UserContext>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+//register our singleton
 builder.Services.AddSingleton(provider =>
     {
-
         var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;
@@ -34,14 +38,14 @@ var config = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")
-                   ?? config["Secret:SecretKey"];
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET") //I still do not know why this was added, we are reading the Secretkey from appsettings, not the OS env variables
+                   ?? config["Secret:SecretKey"];//load our secret
 
 if (string.IsNullOrEmpty(jwtSecretKey))
 {
     throw new ArgumentNullException("JWT_SECRET_KEY environment variable or SecretKey in appsettings.json is required.");
 }
-
+/*Configure Json Web Tokens*/
 var jwtIssuer = "api.vta.com";
 var jwtAudience = "user.vta.com";
 
@@ -67,8 +71,8 @@ builder.Services.AddAuthentication(options =>
             });
 
 builder.Services.AddAuthorization();
-// Check if Assets directory exists
-// Create Assets directory if it does not exist
+
+// Check if Assets directories exists and create them if not
 var assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
 if (!Directory.Exists(assetsDirs))
 {
@@ -86,6 +90,7 @@ if (!Directory.Exists(assetsDirs))
 }
 
 builder.Services.AddEndpointsApiExplorer();
+//Swagger ui stuff
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -94,9 +99,18 @@ builder.Services.AddSwaggerGen(options =>
         Title = "Visual Tangible Artefacts API",
         Description = "An ASP.NET Core API for interfacing with the database",
     });
+    options.IncludeXmlComments(Assembly.GetExecutingAssembly());//For XML comments to be included in the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/?tab=readme-ov-file#include-descriptions-from-xml-comments
+    //options.EnableAnnotations();// For using Attributes to document the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
+});
 
-    options.EnableAnnotations();
-    // https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 150 * 1024 * 1024; // 150 MB
+});
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 150 * 1024 * 1024; // 150 MB
 });
 
 var app = builder.Build();

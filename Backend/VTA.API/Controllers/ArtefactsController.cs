@@ -8,8 +8,8 @@ using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
 
-[Authorize]
-[Route("api/Users/Artefacts")]
+[Authorize]//Lock all endpoints behind JWT
+[Route("api/Users/Artefacts")]//We designed the route so that *Users* OWNS *Artefacts* and this route reflects it
 [ApiController]
 public class ArtefactsController : ControllerBase
 {
@@ -21,12 +21,20 @@ public class ArtefactsController : ControllerBase
     }
 
     // GET: api/Artefacts
+    /// <summary>
+    /// Gets all artefacts that a user owns
+    /// </summary>
+    /// <returns>An IEnumerable of artefacts</returns>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Artefact> artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
+        List<Artefact>? artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
+        if (artefacts == null)
+        {
+            return NotFound();
+        }
         List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
         foreach (Artefact artefact in artefacts)
         {
@@ -36,14 +44,17 @@ public class ArtefactsController : ControllerBase
     }
 
     // GET: api/Artefacts/5
+    /// <summary>
+    /// Gets a specific artefact
+    /// </summary>
+    /// <param name="artefactId">The artefact to get</param>
+    /// <returns>The specified artefact</returns>
     [HttpGet("{artefactId}")]
     public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var artefacts = await _context.Artefacts.Where(a => a.ArtefactId == artefactId).Where(a => a.UserId == userId).ToListAsync();
-        var artefact = artefacts.First();
-
+        var artefact = await _context.Artefacts.Where(a => a.UserId == userId).FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
         if (artefact == null)
         {
             return NotFound();
@@ -54,20 +65,36 @@ public class ArtefactsController : ControllerBase
         return artefactGetDTO;
     }
 
-    // PUT: api/Artefacts/5
+    // PATCH: api/Artefacts/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{artefactId}")]
-    public async Task<IActionResult> PutArtefact(string artefactId, Artefact artefact)
+    /// <summary>
+    /// Updates an artefacts information
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPatch]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
+    public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
-        var userId = User.FindFirst("id")?.Value;
+        var artefact = _context.Artefacts.Find(dto.ArtefactId);
 
-        if (userId != artefact.UserId)
-        {
-            return Forbid();
-        }
-        if (artefactId != artefact.ArtefactId)
+        if (artefact == null)
         {
             return BadRequest();
+        }
+
+        if (dto.ArtefactIndex != null && artefact.ArtefactIndex != dto.ArtefactIndex)
+        {
+            artefact.ArtefactIndex = dto.ArtefactIndex.Value;
+        }
+        if (!string.IsNullOrEmpty(dto.Name) && artefact.Name != dto.Name)
+        {
+            artefact.Name = dto.Name;
+        }
+        if (dto.Image != null)
+        {
+            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
+            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
         }
 
         _context.Entry(artefact).State = EntityState.Modified;
@@ -78,7 +105,7 @@ public class ArtefactsController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!ArtefactExists(artefactId))
+            if (!ArtefactExists(artefact.CategoryId))
             {
                 return NotFound();
             }
@@ -93,8 +120,16 @@ public class ArtefactsController : ControllerBase
 
     // POST: api/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [RequestSizeLimit(20000000)]//20mb (Greater than an 8K image) 
+    /// <summary>
+    /// Creates a new artefact
+    /// </summary>
+    /// <param name="ArtefactPostDTO">An object with all artefact info</param>
+    /// <returns>
+    /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
+    /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
+    /// </returns>
     [HttpPost]
+    [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -131,14 +166,21 @@ public class ArtefactsController : ControllerBase
             }
         }
 
-        var artefacts = await _context.Artefacts.FindAsync(artefactId);
-
         ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
 
         return Ok(artefactGetDTO);
     }
 
     // DELETE: api/Artefacts/5
+    /// <summary>
+    /// Deletes an artefact using its ID
+    /// </summary>
+    /// <param name="artefactId">The artefacts ID</param>
+    /// <returns>
+    /// Status code 204 (No content) to the client on success<br />
+    /// Status code 403 (Forbidden) if a client tries to delete an artefact that they do not own<br />
+    /// Status code 404 (Not Found) if the artefact does not exist
+    /// </returns>
     [HttpDelete("{artefactId}")]
     public async Task<IActionResult> DeleteArtefact(string artefactId)
     {

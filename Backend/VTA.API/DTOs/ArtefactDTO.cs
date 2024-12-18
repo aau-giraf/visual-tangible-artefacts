@@ -11,6 +11,21 @@ public partial class ArtefactPostDTO
     public required IFormFile Image { get; set; }
 }
 
+public partial class ArtefactPatchDTO
+{
+    public string ArtefactId { get; set; }
+
+    public ushort? ArtefactIndex { get; set; }
+
+    public required string UserId { get; set; }
+
+    public string? CategoryId { get; set; }
+
+    public string? Name { get; set; }
+
+    public IFormFile? Image { get; set; }
+}
+
 public partial class ArtefactGetDTO
 {
     public string ArtefactId { get; set; } = null!;

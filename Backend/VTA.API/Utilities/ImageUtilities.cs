@@ -6,7 +6,13 @@ public static class ImageUtilities
 {
     //private static string _APIEndpoint = "";
     private static string _Dir = "";
-
+    /// <summary>
+    /// Adds the uploaded image to the file system
+    /// </summary>
+    /// <param name="image">The uploaded IFormFile</param>
+    /// <param name="artefactId">The artefacts ID</param>
+    /// <param name="dir">The dir to upload it (Artefact or Category image)</param>
+    /// <returns>null if nothing image is null <br/>The file path for the image that was</returns>
     public static string? AddImage(IFormFile? image, string artefactId, string dir)
     {
         _Dir = dir;
@@ -25,6 +31,13 @@ public static class ImageUtilities
         }
         return null;
     }
+
+    /// <summary>
+    /// Deletes an image
+    /// </summary>
+    /// <param name="imgName">The image name (always the GUID) of the owning entity</param>
+    /// <param name="dir">Artefact or category dir</param>
+    /// <returns>true on sucess, null if image wasn't found</returns>
     public static bool? DeleteImage(string imgName, string dir)
     {
         _Dir = dir;
@@ -37,13 +50,17 @@ public static class ImageUtilities
 
         return true;
     }
-
+    /// <summary>
+    /// Locates an image in the filesystem, and returns only the file name (without the extension)
+    /// </summary>
+    /// <param name="fileName"></param>
+    /// <returns></returns>
     private static string? FindFile(string fileName)
     {
         string? file = "";
         try
         {
-            string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir);
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir);//Path.Combine makes the code compatible with all Operating systems (Some OS's uses / for path seperation, while some use \ for path seperation)
             var tempfile = Directory.EnumerateFiles(path)
                         .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(fileName, StringComparison.OrdinalIgnoreCase));
 
@@ -58,6 +75,9 @@ public static class ImageUtilities
         return file != null ? file : null;
     }
 
+    /// <summary>
+    /// Someone from the frontend added this code, the same yee-yee ass frontend person made it so this wouldn't work because they aren't sending this info in the post requests
+    /// </summary>
     private static string? GetFileType(IFormFile file)
     {
         if (file == null)
