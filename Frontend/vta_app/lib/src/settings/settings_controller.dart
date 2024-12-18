@@ -15,9 +15,13 @@ class SettingsController with ChangeNotifier {
 
   bool _textUnderImages = false;
 
+  int _linearArtifactCount = 4;
+
   Localization _localization = Localization.danish;
 
   bool get textUnderImages => _textUnderImages;
+
+  int get linearArtifactCount => _linearArtifactCount;
 
   Localization get localization => _localization;
 
@@ -29,6 +33,11 @@ class SettingsController with ChangeNotifier {
     var textUnderImages = await _settingsService.textUnderImages();
     if (textUnderImages != null) {
       _textUnderImages = textUnderImages;
+    }
+    // Load linearArtifactCount
+    var tempLinearArtifactCount = await _settingsService.linearArtifactCount();
+    if (tempLinearArtifactCount != null) {
+      _linearArtifactCount = tempLinearArtifactCount;
     }
     // Load localization
     //var localization = await _settingsService.localization();
@@ -48,6 +57,17 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
 
     await _settingsService.updateTextUnderImages(newValue);
+  }
+
+  Future<void> updateLinearArtifactCount(int? newValue) async {
+    if (newValue == null) return;
+    if (newValue == _linearArtifactCount) return;
+
+    _linearArtifactCount = newValue;
+
+    notifyListeners();
+
+    await _settingsService.updateLinearArtifactCount(newValue);
   }
 
   Future<void> updateLocalization(Localization? newLocalization) async {

@@ -21,12 +21,17 @@ class SettingsView extends StatelessWidget {
           title: const Text('Settings'),
         ),
         body: ListView(
-          children: [buildTextUnderImages()/*, buildLanguage()*/],
+          children: [buildTextUnderImages(), buildLinearArtifactCount()/*, buildLanguage()*/],
         ));
   }
 
   Future<void> _onToggleTextUnderImages(bool value) async {
     await controller.updateTextUnderImages(value);
+  }
+
+  Future<void> _onChangeLinearArtifactCount(int value) async {
+    int linearArtifactCount = value;
+    await controller.updateLinearArtifactCount(linearArtifactCount);
   }
 
   Future<void> _onToggleLocalization(int? value) async {
@@ -42,6 +47,24 @@ class SettingsView extends StatelessWidget {
       onChange: _onToggleTextUnderImages,
     );
   }
+
+  Widget buildLinearArtifactCount() {
+    return DropDownSettingsTile(
+      settingKey: 'linearArtifactCount',
+      title: 'Antal lineære artifakter',
+      subtitle: 'Mængde af artifakter i lineær board',
+      selected: 4, // Default value
+      values: <int, String>{
+        2: '2',
+        4: '4',
+        6: '6',
+        8: '8',
+      },
+      leading: Icon(IconData(0xf601, fontFamily: 'MaterialIcons')),
+      onChange: _onChangeLinearArtifactCount,
+    );
+  }
+
 /*
   Widget buildLanguage() {
     return DropDownSettingsTile(

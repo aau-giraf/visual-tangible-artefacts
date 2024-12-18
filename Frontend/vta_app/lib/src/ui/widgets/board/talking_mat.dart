@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'artifact.dart';
+import 'package:vta_app/src/controllers/talkingmat_controller.dart';
+import 'board_artifact.dart';
 
 class TalkingMat extends StatefulWidget {
   final List<BoardArtefact>? artifacts;
+  final TalkingmatController controller;
   final double? width;
   final double? height;
   final Color? backgroundColor;
 
-  const TalkingMat({
+  TalkingMat({
     super.key,
     this.artifacts,
+    TalkingmatController? controller, // Optional parameter
     this.width,
     this.height,
     this.backgroundColor,
-  });
+  }) : controller = controller ?? TalkingmatController();
 
   @override
   createState() => TalkingMatState();
@@ -157,111 +160,120 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
               ),
             ],
           ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ...artifacts.map((artifact) {
-                _loadArtifactSize(
-                    artifact); // Ensure the artifact size is captured
-                return Positioned(
-                  left: artifact.position?.dx,
-                  top: artifact.position?.dy,
-                  child: Draggable<BoardArtefact>(
-                    data: artifact,
-                    feedback: Transform.scale(
-                      scale: 1.2,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              blurRadius: 15,
-                              spreadRadius: 5,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Opacity(
-                          opacity: 0.5,
-                          child: artifact.content,
+          child: ValueListenableBuilder<List<BoardArtefact>>(
+            valueListenable: widget.controller,
+            builder: (context, artefacts, child) => Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ...artefacts.map((artefact) {
+                  _loadArtifactSize(
+                      artefact); // Ensure the artifact size is captured
+
+                  // If artifact is newly added (no position), center it on the mat
+                  artefact.position ??= Offset(
+                    (widget.width ?? constraints.maxWidth) / 2,
+                    (widget.height ?? constraints.maxHeight) / 2,
+                  );
+                  return Positioned(
+                    left: artefact.position?.dx,
+                    top: artefact.position?.dy,
+                    child: Draggable<BoardArtefact>(
+                      data: artefact,
+                      feedback: Transform.scale(
+                        scale: 1.2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                blurRadius: 15,
+                                spreadRadius: 5,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Opacity(
+                            opacity: 0.5,
+                            child: artefact.content,
+                          ),
                         ),
                       ),
-                    ),
-                    childWhenDragging: Container(),
-                    child:
-                        Container(key: artifact.key, child: artifact.content),
-                    onDragEnd: (details) {
-                      if (_isInsideMat(details.offset)) {
-                        _updateArtifactPosition(artifact, details.offset);
-                      }
-                    },
-                  ),
-                );
-              }),
-              Align(
-                alignment: Alignment.lerp(
-                        Alignment.bottomCenter, Alignment.center, 0.1) ??
-                    Alignment.bottomCenter,
-                child: Stack(alignment: Alignment.center, children: [
-                  SlideTransition(
-                      position: _offsetAnimation,
-                      child: _showDeleteHover
-                          ? buildTrashCan(
-                              height: 30,
-                              width: 30,
-                              color: const Color.fromARGB(255, 235, 32, 18))
-                          : null),
-                  GestureDetector(
-                    onTap: () {
-                      removeAllArtifacts();
-                    },
-                    child: DragTarget<BoardArtefact>(
-                      builder: (context, data, rejectedData) {
-                        return buildTrashCan(
-                          height: _isDraggingOverTrashCan ? 120 : 50,
-                          width: _isDraggingOverTrashCan ? 120 : 50,
-                        );
-                      },
-                      onAcceptWithDetails: (details) {
-                        var artifactKey = details.data.key;
-                        removeArtifact(artifactKey);
-                        _animationController.reverse();
-                        // Listen for the animation status
-                        _animationController.addStatusListener((status) {
-                          if (status == AnimationStatus.dismissed) {
-                            // Wait until animation is fully reversed
-                            setState(() {
-                              _showDeleteHover = false;
-                            });
-                          }
-                        });
-                      },
-                      onWillAcceptWithDetails: (details) {
-                        setState(() {
-                          _showDeleteHover = true;
-                          _isDraggingOverTrashCan = true;
-                        });
-                        _animationController.forward();
-                        return true;
-                      },
-                      onLeave: (details) {
-                        _animationController.reverse();
-                        _isDraggingOverTrashCan = false;
-                        // Listen for the animation status
-                        _animationController.addStatusListener((status) {
-                          if (status == AnimationStatus.dismissed) {
-                            // Wait until animation is fully reversed
-                            setState(() {
-                              _showDeleteHover = false;
-                            });
-                          }
-                        });
+                      childWhenDragging: Container(),
+                      child:
+                          Container(key: artefact.key, child: artefact.content),
+                      onDragEnd: (details) {
+                        if (_isInsideMat(details.offset)) {
+                          _updateArtifactPosition(artefact, details.offset);
+                        }
                       },
                     ),
-                  ),
-                ]),
-              ),
-            ],
+                  );
+                }),
+                Align(
+                  alignment: Alignment.lerp(
+                          Alignment.bottomCenter, Alignment.center, 0.1) ??
+                      Alignment.bottomCenter,
+                  child: Stack(alignment: Alignment.center, children: [
+                    SlideTransition(
+                        position: _offsetAnimation,
+                        child: _showDeleteHover
+                            ? buildTrashCan(
+                                height: 30,
+                                width: 30,
+                                color: const Color.fromARGB(255, 235, 32, 18))
+                            : null),
+                    GestureDetector(
+                      onTap: () {
+                        widget.controller.removeAllArtifacts(context: context);
+                      },
+                      child: DragTarget<BoardArtefact>(
+                        builder: (context, data, rejectedData) {
+                          return buildTrashCan(
+                            height: _isDraggingOverTrashCan ? 120 : 50,
+                            width: _isDraggingOverTrashCan ? 120 : 50,
+                          );
+                        },
+                        onAcceptWithDetails: (details) {
+                          var artefact = details.data;
+                          widget.controller.removeArtifact(artefact);
+                          _animationController.reverse();
+                          // Listen for the animation status
+                          _animationController.addStatusListener((status) {
+                            if (status == AnimationStatus.dismissed) {
+                              // Wait until animation is fully reversed
+                              setState(() {
+                                _showDeleteHover = false;
+                              });
+                            }
+                          });
+                        },
+                        onWillAcceptWithDetails: (details) {
+                          setState(() {
+                            _showDeleteHover = true;
+                            _isDraggingOverTrashCan = true;
+                          });
+                          _animationController.forward();
+                          return true;
+                        },
+                        onLeave: (details) {
+                          _animationController.reverse();
+                          _isDraggingOverTrashCan = false;
+                          // Listen for the animation status
+                          _animationController.addStatusListener((status) {
+                            if (status == AnimationStatus.dismissed) {
+                              // Wait until animation is fully reversed
+                              setState(() {
+                                _showDeleteHover = false;
+                              });
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+            ),
           ),
         );
       },

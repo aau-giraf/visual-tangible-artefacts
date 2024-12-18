@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/models/auth_model.dart';
+import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/views/login_view.dart';
+import 'package:vta_app/src/views/splash_view.dart';
+import 'package:vta_app/theme/app_theme.dart';
 import 'sample_feature/sample_item_details_view.dart';
 import 'sample_feature/sample_item_list_view.dart';
 import 'settings/settings_controller.dart';
@@ -9,12 +16,17 @@ import 'functions/auth.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
-  const MyApp({
-    super.key,
-    required this.settingsController,
-  });
+  const MyApp(
+      {super.key,
+      required this.settingsController,
+      required this.authController,
+      required this.artifactController});
 
   final SettingsController settingsController;
+
+  final AuthController authController;
+
+  final ArtefactController artifactController;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +38,9 @@ class MyApp extends StatelessWidget {
       listenable: settingsController,
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
+          theme: ThemeData(
+            inputDecorationTheme: AppTheme.inputDecorationTheme,
+          ),
           // Providing a restorationScopeId allows the Navigator built by the
           // MaterialApp to restore the navigation stack when a user leaves and
           // returns to the app after it has been killed while running in the
@@ -67,15 +82,19 @@ class MyApp extends StatelessWidget {
               settings: routeSettings,
               builder: (BuildContext context) {
                 switch (routeSettings.name) {
-                  case '/':
-                    return AuthPage();
+                  case SplashView.routeName:
+                    return SplashView(controller: authController);
+                  case LoginView.routeName:
+                    return LoginView(controller: authController);
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
-                  case SampleItemDetailsView.routeName:
-                    return const SampleItemDetailsView();
-                  case SampleItemListView.routeName:
+                  case ArtifactBoardScreen.routeName:
+                    return ArtifactBoardScreen(
+                      artifactController: artifactController,
+                      authController: authController,
+                    );
                   default:
-                    return AuthPage();
+                    return SplashView(controller: authController);
                 }
               },
             );
