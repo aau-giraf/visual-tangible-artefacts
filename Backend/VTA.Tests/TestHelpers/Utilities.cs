@@ -14,9 +14,9 @@ namespace VTA.Tests.TestHelpers
 
         private readonly HttpClient _client;
 
-        private const string DefaultUsername = "tokenuser";
-        private const string DefaultPassword = "tokenpassword";
-        private const string DefaultName = "Token User";
+        private const string DefaultUsername = "testinguser";
+        private const string DefaultPassword = "testingpassword";
+        private const string DefaultName = "Testing User";
 
         public Utilities(HttpClient client)
         {
@@ -70,6 +70,16 @@ namespace VTA.Tests.TestHelpers
             if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
             {
                 return signUpResult.Token;
+            }
+            return null;
+        }
+
+        public async Task<UserLoginResponseDTO?> CreateUserAndReturnLoginDataAsync()
+        {
+            var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
+            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
+            {
+                return signUpResult;
             }
             return null;
         }

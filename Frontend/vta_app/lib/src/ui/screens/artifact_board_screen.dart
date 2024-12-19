@@ -1,54 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
-import 'package:vta_app/src/functions/auth.dart';
-import 'package:vta_app/src/notifiers/vta_notifiers.dart';
-import 'package:vta_app/src/ui/widgets/board/artifact.dart';
-import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/controllers/artifact_board_controller.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
 import '../widgets/board/relational_board_button.dart';
-// import '../widgets/board/linear_board.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
 class ArtifactBoardScreen extends StatefulWidget {
-  const ArtifactBoardScreen({super.key});
+  const ArtifactBoardScreen(
+      {super.key,
+      required this.artifactController,
+      required this.authController});
+  static const String routeName = "/boardview";
+
+  final ArtefactController artifactController;
+  final AuthController authController;
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
 }
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
-  bool _showDirectional = false;
-  late TalkingMat talkingMat;
-  late GlobalKey<TalkingMatState> talkingMatKey;
-  // late LinearBoard linearBoard;
+  late ArtifactBoardController controller;
+  List<Category>? categories;
 
   @override
   void initState() {
     super.initState();
-    talkingMatKey = GlobalKey<TalkingMatState>();
-    talkingMat = TalkingMat(
-      key: talkingMatKey,
-      artifacts: [],
-    );
-    // linearBoard = LinearBoard();
+    // Initialize the controller with a callback to setState
+    controller = ArtifactBoardController(notifyView: () {
+      setState(() {});
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    var artifactController = widget.artifactController;
+    categories = artifactController.categories;
+
+    if (categories == null) {
+      return FutureBuilder(
+        future: artifactController.updateArtifacts(context: context),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Show loading spinner while waiting
+            return Center(
+              child: CircularProgressIndicator(
+                backgroundColor: Colors.white,
+              ),
+            );
+          } else if (snapshot.connectionState == ConnectionState.done) {
+            if (artifactController.categories == null) {
+              categories = [];
+            }
+            return _buildPage(context);
+          }
+          return SizedBox.shrink(); // Fallback widget
+        },
+      );
+    }
+    return _buildPage(context);
+  }
+
+  Scaffold _buildPage(BuildContext context) {
     double padding = 5;
     double screenHeight = MediaQuery.of(context).size.height;
     double categoriesWidgetHeight = 60;
     double dividerHeight = 5;
+    var artifactController = widget.artifactController;
+    categories = artifactController.categories;
 
-    var categories = context.watch<ArtifactState>().categories;
-
-    if (categories == null) {
-      return Center(
-        child: Text('Something went wrong with fetching the artifacts'),
-      );
-    }
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -76,8 +99,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: padding),
                         child: Center(
-                          child: /*_showDirectional ? linearBoard :*/
-                              talkingMat,
+                          child: controller.showDirectional
+                              ? controller.linearBoard!
+                              : controller.talkingMat!,
                         ),
                       ),
                       Positioned(
@@ -104,36 +128,32 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                       leading: Icon(Icons.logout, size: 20),
                                       title: const Text('Log ud'),
                                       onTap: () {
-                                        context.read<AuthState>().logout();
-                                        Navigator.of(context)
-                                            .pushNamedAndRemoveUntil(
-                                                AuthPage.routeName,
-                                                (route) => false);
+                                        widget.authController.logout(context);
                                       },
                                     ),
                                   ),
                                 ]),
                       ),
-                      // Positioned(
-                      //   top: 30,
-                      //   left: 30,
-                      //   child: RelationalBoardButton(
-                      //     onPressed: () {
-                      //       setState(() {
-                      //         _showDirectional = !_showDirectional;
-                      //       });
-                      //     },
-                      //     icon: _showDirectional
-                      //         ? const Icon(
-                      //             IconData(0xf685, fontFamily: 'MaterialIcons'),
-                      //             size: 24.0,
-                      //           )
-                      //         : const Icon(
-                      //             IconData(0xf601, fontFamily: 'MaterialIcons'),
-                      //             size: 24.0,
-                      //           ),
-                      //   ),
-                      // ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 20),
+                          child: RelationalBoardButton(
+                            onPressed: () {
+                              controller.switchCurrentBoard();
+                            },
+                            icon: controller.showDirectional
+                                ? const Icon(
+                              IconData(0xf685, fontFamily: 'MaterialIcons'),
+                              size: 24.0,
+                            )
+                                : const Icon(
+                              IconData(0xf601, fontFamily: 'MaterialIcons'),
+                              size: 24.0,
+                            ),
+                          ),
+                        ),
+                      ),
                       const QuickChatButton(),
                     ],
                   ),
@@ -149,9 +169,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       height: categoriesWidgetHeight,
                       child: categories_widget.CategoriesWidget(
                         // Use the aliased widget here
-                        categories: categories,
                         widgetHeight: categoriesWidgetHeight,
-                        talkingMatKey: talkingMatKey,
+                        onArtifactAdded: controller.addArtifactToCurrentBoard,
+                        artefactController: artifactController,
                       )))
             ],
           ),

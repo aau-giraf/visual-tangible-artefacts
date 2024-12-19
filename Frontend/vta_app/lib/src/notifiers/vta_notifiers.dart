@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vta_app/src/models/artefact.dart';
-import 'package:vta_app/src/models/category.dart';
-import 'package:vta_app/src/models/user.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/modelsDTOs/category.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 
 class AuthState with ChangeNotifier {

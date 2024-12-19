@@ -1,4 +1,4 @@
-import 'package:vta_app/src/models/user.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart';
 
 class SignupResponse {
   User? user;

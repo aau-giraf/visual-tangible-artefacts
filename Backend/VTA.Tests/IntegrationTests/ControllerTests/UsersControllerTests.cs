@@ -129,26 +129,32 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         [Fact]
         public async Task TestForbiddenUserDeletionByAnotherUser()
         {
+            // Arrange
             var username1 = _utilities.GenerateUniqueUsername();
-            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
+            var username2 = _utilities.GenerateUniqueUsername();
+
+            // Act
+            // User One Signup
             var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
+            var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
+
+            // Assert - Ensure both users signed up successfully
             Assert.Equal(HttpStatusCode.OK, signUpStatus1);
             Assert.NotNull(signUpResult1?.Token);
-
-            var username2 = _utilities.GenerateUniqueUsername();
-            // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-            var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
             Assert.Equal(HttpStatusCode.OK, signUpStatus2);
             Assert.NotNull(signUpResult2?.Token);
 
-            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult1!.userId, signUpResult2!.Token);
-            Assert.Equal(HttpStatusCode.Forbidden, deleteStatus);
+            // Act - Unauthorized delete attempt
+            var deleteStatusForbidden = await _utilities.DeleteUserAsync(signUpResult1!.userId, signUpResult2!.Token);
 
-            var deleteStatus1 = await _utilities.DeleteUserAsync(signUpResult1!.userId, signUpResult1.Token);
-            var deleteStatus2 = await _utilities.DeleteUserAsync(signUpResult2!.userId, signUpResult2.Token);
-            Assert.Equal(HttpStatusCode.NoContent, deleteStatus1);
-            Assert.Equal(HttpStatusCode.NoContent, deleteStatus2);
+            // Act - Authorized deletes
+            var deleteStatusUser1 = await _utilities.DeleteUserAsync(signUpResult1.userId, signUpResult1.Token);
+            var deleteStatusUser2 = await _utilities.DeleteUserAsync(signUpResult2.userId, signUpResult2.Token);
+
+            // Assert - Verify outcomes
+            Assert.Equal(HttpStatusCode.Forbidden, deleteStatusForbidden); // Unauthorized delete attempt
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatusUser1);     // Successful delete for User One
+            Assert.Equal(HttpStatusCode.NoContent, deleteStatusUser2);     // Successful delete for User Two
         }
-
     }
 }
