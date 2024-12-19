@@ -69,7 +69,7 @@ Contributions typically follow a feature-branch-based workflow:
 4. **Pull Request and Review:** Open a pull request (PR) from your feature branch into `dev-main`. If you’re uncertain about the correctness, request a code review.
 5. **Merge to `main`:** After your code is tested and approved, it will be merged from `dev-main` into `main` for deployment.
 
-**Tip:** Sometimes it helps to merge `main` into your feature branch first to test against production-ready code, then finalize your changes and open a PR to merge into `main`.
+**Tip:** Sometimes it helps to merge `dev-main` into your feature branch first to test against production-ready code, then finalize your changes and open a PR to merge into `main` (once the group agrees `dev-main` should enter `main`.)
 
 **Branching Strategy Overview:**
   
