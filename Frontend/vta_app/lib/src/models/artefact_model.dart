@@ -103,6 +103,29 @@ class ArtifactModel {
       rethrow;
     }
   }
+
+  Future<void> deleteArtefact(Artefact artefact,
+      {required String token}) async {
+    try {
+      var response = await apiProvider.delete(
+          "Users/Artefacts/${artefact.artefactId}",
+          headers: {'Authorization': 'Bearer $token'});
+      if (response != null && response.ok) {
+        categories
+            ?.firstWhere(
+                (category) => category.categoryId == artefact.categoryId)
+            .artefacts
+            ?.removeWhere((a) => a.artefactId == artefact.artefactId);
+      } else {
+        throw ArtifactException(
+            message:
+                'Failed to delete artefact, status code: ${response?.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('$e');
+      rethrow;
+    }
+  }
 }
 
 class ArtifactException implements Exception {

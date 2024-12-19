@@ -100,6 +100,21 @@ class ArtefactController extends ChangeNotifier {
         });
   }
 
+  Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
+    try {
+      await _showDeleteConfirmationDialog(context, onDelete: () async {
+        _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+      });
+      if (context.mounted) {
+        _showSuccessActionSnackBar(context, "Artefact slettet");
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+    }
+  }
+
   void _showSuccessActionSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     GlobalSnackbar.show(context, message,

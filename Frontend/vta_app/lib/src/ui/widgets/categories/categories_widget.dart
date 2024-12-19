@@ -24,12 +24,12 @@ class CategoriesWidget extends StatefulWidget {
   final ArtefactController artefactController;
   final Function(BoardArtefact) onArtifactAdded;
 
-  const CategoriesWidget(
-      {super.key,
-      required this.widgetHeight,
-      required this.artefactController,
-      required this.onArtifactAdded,
-      });
+  const CategoriesWidget({
+    super.key,
+    required this.widgetHeight,
+    required this.artefactController,
+    required this.onArtifactAdded,
+  });
 
   @override
   State<StatefulWidget> createState() => _CategoriesWidgetState();
@@ -413,95 +413,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                     ),
                   ),
                   onPressed: () async {
-                    final bool confirmed = await showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('Delete Artifact'),
-                          content: Text(
-                              'Are you sure you want to delete this artifact?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-                    print(confirmed);
-
-                    if (confirmed) {
-                      try {
-                        print('Attempting to delete artifact...');
-
-                        await artifactState.deleteArtifact(
-                          category.artefacts![index].artefactId!,
-                          token: authState.token!,
-                        );
-
-                        print('Server deletion successful');
-
-                        if (mounted) {
-                          bool wasLastItem = category.artefacts!.length == 1;
-
-                          setState(() {
-                            if (index >= 0 &&
-                                index < category.artefacts!.length) {
-                              category.artefacts!.removeAt(index);
-                            }
-                          });
-
-                          // UI updates after state change
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) {
-                              context.mounted
-                                  ? ScaffoldMessenger.of(context
-                                          .findRootAncestorStateOfType<
-                                              NavigatorState>()!
-                                          .context)
-                                      .showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Artifact deleted successfully'),
-                                        backgroundColor: Colors.green,
-                                        duration: Duration(seconds: 2),
-                                        elevation: 24,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    )
-                                  : null;
-
-                              if (wasLastItem && category.artefacts!.isEmpty) {
-                                Navigator.of(context).pop();
-                              }
-                            }
-                          });
-
-                          onDelete();
-                        }
-                      } catch (e) {
-                        print('Error during deletion: $e');
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Failed to delete artifact'),
-                              backgroundColor: Colors.red,
-                              elevation: 24,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      }
-                    }
+                    await widget.artefactController
+                        .deleteArtefact(context, category.artefacts![index]);
                   },
                 ),
               ),
