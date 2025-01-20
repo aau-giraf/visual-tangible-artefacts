@@ -44,10 +44,25 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   @override
   void initState() {
     super.initState();
+    // Initialize states
+    authState = Provider.of<AuthState>(context, listen: false);
+    artifactState = Provider.of<ArtifactState>(context, listen: false);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Update states when dependencies change
+    authState = Provider.of<AuthState>(context, listen: false);
+    artifactState = Provider.of<ArtifactState>(context, listen: false);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get latest state in build method
+    authState = Provider.of<AuthState>(context, listen: false);
+    artifactState = Provider.of<ArtifactState>(context, listen: false);
+
     return TapRegion(
         onTapOutside: (event) => {
               if (moveCategoriesMode)
@@ -66,49 +81,54 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         canvasColor: Colors.transparent,
         shadowColor: Colors.transparent,
       ),
-      child: ListenableBuilder(
-        listenable: widget.artefactController,
-        builder: (context, child) {
-          categories = widget.artefactController.categories ?? [];
-          return ReorderableListView.builder(
-            scrollDirection: Axis.horizontal,
-            buildDefaultDragHandles: false,
-            itemCount: categories.length + 1, //+1 room for add button
-            itemBuilder: (context, index) {
-              if (index == categories.length) {
-                return _buildAddCategoryButton(key: ValueKey('add_button'));
-              }
-              if (moveCategoriesMode) {
-                return Material(
-                  key: ValueKey(categories[index].categoryId),
-                  elevation: 2,
-                  child: _buildCategoryItem(context, index),
-                );
-              }
-              return _buildCategoryItem(context, index,
-                  key: ValueKey(categories[index].categoryId));
-            },
-            onReorder: (int oldIndex, int newIndex) {
-              setState(() {
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                newIndex = min(newIndex, categories.length - 1);
+      child: Consumer<AuthState>(
+        builder: (context, auth, _) {
+          return ListenableBuilder(
+            listenable: widget.artefactController,
+            builder: (context, child) {
+              categories = widget.artefactController.categories ?? [];
+              return ReorderableListView.builder(
+                scrollDirection: Axis.horizontal,
+                buildDefaultDragHandles: false,
+                itemCount: categories.length + 1, //+1 room for add button
+                itemBuilder: (context, index) {
+                  if (index == categories.length) {
+                    return _buildAddCategoryButton(key: ValueKey('add_button'));
+                  }
+                  if (moveCategoriesMode) {
+                    return Material(
+                      key: ValueKey(categories[index].categoryId),
+                      elevation: 2,
+                      child: _buildCategoryItem(context, index),
+                    );
+                  }
+                  return _buildCategoryItem(context, index,
+                      key: ValueKey(categories[index].categoryId));
+                },
+                onReorder: (int oldIndex, int newIndex) {
+                  setState(() {
+                    if (oldIndex < newIndex) {
+                      newIndex -= 1;
+                    }
+                    newIndex = min(newIndex, categories.length - 1);
 
-                final Category movedCategory = categories.removeAt(oldIndex);
-                categories.insert(newIndex, movedCategory);
+                    final Category movedCategory =
+                        categories.removeAt(oldIndex);
+                    categories.insert(newIndex, movedCategory);
 
-                for (int i = min(oldIndex, newIndex);
-                    i <= max(oldIndex, newIndex);
-                    i++) {
-                  categories[i].categoryIndex = i;
-                  categories[i].userId = authState.userId;
-                  artifactState.updateCategory(
-                    categories[i],
-                    token: GetIt.instance.get<Token>().value!,
-                  );
-                }
-              });
+                    for (int i = min(oldIndex, newIndex);
+                        i <= max(oldIndex, newIndex);
+                        i++) {
+                      categories[i].categoryIndex = i;
+                      categories[i].userId = auth.userId;
+                      artifactState.updateCategory(
+                        categories[i],
+                        token: GetIt.instance.get<Token>().value!,
+                      );
+                    }
+                  });
+                },
+              );
             },
           );
         },

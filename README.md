@@ -17,6 +17,9 @@ For any questions or request for appsettings handover, contact rkrage22@student.
   Updating to latest dotnet version will *likely* [break the package responsible](https://github.com/dotnet/aspnetcore/issues/54599) for creating our swagger documentation!
   
 
+## Important note:
+  Updating to latest dotnet version will *likely* [break the package responsible](https://github.com/dotnet/aspnetcore/issues/54599) for creating our swagger documentation!  
+
 ## Quick Overview
 
 - **Monorepo Structure:**  
