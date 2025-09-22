@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
@@ -52,7 +53,7 @@ void main() async {
       ArtefactController(ArtifactModel(apiProvider));
 
   // Initialize the CameraManager
-  if (Platform.isAndroid || Platform.isIOS) {
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     CameraManager().initialize();
   }
   // Load the user's preferred theme while the splash screen is displayed.

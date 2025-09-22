@@ -29,6 +29,7 @@ dependencies:
   flutter_settings_screens: ^0.3.4
   get_it: ^8.0.2
 dev_dependencies:
+  flutter_gen:
   flutter_test:
     sdk: flutter
 
@@ -46,4 +47,3 @@ flutter:
     - assets/icons/
     - assets/sound/
     - assets/cfg/
-    - assets/sound/
