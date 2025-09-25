@@ -397,7 +397,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-Backend/VTA.API/appsettings.json
 Frontend/vta_app/lib/appsettings.json
 Frontend/vta_app/linux/flutter/generated_plugin_registrant.cc
 Frontend/vta_app/linux/flutter/generated_plugin_registrant.h
@@ -408,8 +407,6 @@ Frontend/vta_app/windows/flutter/generated_plugin_registrant.h
 Frontend/vta_app/windows/flutter/generated_plugins.cmake
 Frontend/vta_app/assets/cfg/app_settings.json
 
-Frontend/vta_app/assets/cfg/appsettings.json
-Frontend/vta_app/assets/cfg/appsettings.json
-Frontend/vta_app/assets/cfg/appsettings.json
-Frontend/vta_app/assets/cfg/appsettings.json
-Frontend/vta_app/assets/cfg/appsettings.json
+Frontend/vta_app/assets/cfg/app_settings.json
+Backend/VTA.API/appsettings.json
+Backend/VTA.API/appsettings.Development.json

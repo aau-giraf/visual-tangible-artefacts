@@ -71,6 +71,15 @@ builder.Services.AddAuthentication(options =>
             });
 
 builder.Services.AddAuthorization();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFlutterApp", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // Check if Assets directories exists and create them if not
 var assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
@@ -122,10 +131,12 @@ app.UseSwagger();
 app.UseSwaggerUI();
 //}
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("AllowFlutterApp");
+
 
 app.MapControllers();
 
