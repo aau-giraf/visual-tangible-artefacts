@@ -17,7 +17,8 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
-            ImageUrl = scheme + "://" + host + artefact.ImagePath
+            ImageUrl = scheme + "://" + host + artefact.ImagePath,
+            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
         };
     }
 

@@ -96,6 +96,18 @@ public class ArtefactsController : ControllerBase
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
             ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
         }
+        if (dto.Sound != null)
+        {
+            // Delete any existing sound for this artefact
+            try
+            {
+                ImageUtilities.DeleteImage(artefact.ArtefactId, "Sounds");
+            }
+            catch { }
+            // Save sound file using same pattern: ArtefactId + extension in Assets/Sounds
+            var soundPath = ImageUtilities.AddImage(dto.Sound, artefact.ArtefactId, "Sounds");
+            artefact.SoundPath = soundPath;
+        }
 
         _context.Entry(artefact).State = EntityState.Modified;
 
@@ -141,7 +153,13 @@ public class ArtefactsController : ControllerBase
 
         string artefactId = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
+        string? soundUrl = null;
+        if (artefactPostDTO.Sound != null)
+        {
+            soundUrl = ImageUtilities.AddImage(artefactPostDTO.Sound, artefactId, "Sounds");
+        }
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
+        artefact.SoundPath = soundUrl;
         artefact.UserId = userId;
 
         _context.Artefacts.Add(artefact);

@@ -97,6 +97,11 @@ if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);
 }
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
+if (!Directory.Exists(assetsDirs))
+{
+    Directory.CreateDirectory(assetsDirs);
+}
 
 builder.Services.AddEndpointsApiExplorer();
 //Swagger ui stuff

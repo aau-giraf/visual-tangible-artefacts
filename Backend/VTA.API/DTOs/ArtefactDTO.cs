@@ -9,6 +9,7 @@ public partial class ArtefactPostDTO
     public string? CategoryId { get; set; }
     public string? Name {get; set; }
     public required IFormFile Image { get; set; }
+    public IFormFile? Sound { get; set; }
 }
 
 public partial class ArtefactPatchDTO
@@ -24,6 +25,7 @@ public partial class ArtefactPatchDTO
     public string? Name { get; set; }
 
     public IFormFile? Image { get; set; }
+    public IFormFile? Sound { get; set; }
 }
 
 public partial class ArtefactGetDTO
@@ -38,4 +40,5 @@ public partial class ArtefactGetDTO
     public string? Name {get; set; }
 
     public string? ImageUrl { get; set; }
+    public string? SoundUrl { get; set; }
 }

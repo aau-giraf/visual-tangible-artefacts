@@ -52,6 +52,7 @@ CREATE TABLE artefact (
   userID         VARCHAR(36)   NOT NULL,
   categoryId     VARCHAR(36)   NULL,
   imagePath      VARCHAR(255)  NULL,
+  soundPath      VARCHAR(255)  NULL,
   modifiedDate   DATETIME      NULL,
   name           VARCHAR(255)  NULL,
   PRIMARY KEY (artefactId),
