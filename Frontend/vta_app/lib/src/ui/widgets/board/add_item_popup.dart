@@ -10,11 +10,13 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
+import 'package:record/record.dart';
+import 'package:just_audio/just_audio.dart';
 
 class AddItemPopup extends StatefulWidget {
   Category? category;
   final bool isCategory;
-  final void Function(String name, Uint8List? imageBytes) onSubmit;
+  final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes) onSubmit;
   final String title;
 
   AddItemPopup({
@@ -31,6 +33,14 @@ class AddItemPopup extends StatefulWidget {
 
 class _AddItemPopupState extends State<AddItemPopup> {
   Uint8List? imageBytes;
+  Uint8List? soundBytes;
+  bool _isRecording = false;
+  // Record is implemented via platform interface; the analyzer may report
+  // instantiate_abstract_class for the package's Record type. Suppress it
+  // and use dynamic calls for methods to avoid static errors.
+  // ignore: instantiate_abstract_class
+  final Record _recorder = Record();
+  final AudioPlayer _player = AudioPlayer();
   final formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
 
@@ -53,6 +63,13 @@ class _AddItemPopupState extends State<AddItemPopup> {
   @override
   void dispose() {
     nameController.dispose();
+    try {
+      _player.dispose();
+    } catch (_) {}
+    try {
+      // Best-effort stop recorder on dispose
+      (_recorder as dynamic).stop();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -179,7 +196,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ],
             ),
           ),
-          SizedBox(height: 16),
+                SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -221,6 +238,26 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     },
                   );
                 }),
+                SizedBox(width: 16),
+                _buildButton('Tilføj lyd', 'assets/images/sound_icon.png', onClick: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Container(
+                          color: Colors.white,
+                          width: 560,
+                          height: 300,
+                          padding: EdgeInsets.all(16),
+                          child: _buildSoundModal(),
+                        ),
+                      );
+                    },
+                  );
+                }),
               ],
             ),
           ),
@@ -235,7 +272,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 ),
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
-                    widget.onSubmit(nameController.text, imageBytes);
+                    widget.onSubmit(nameController.text, imageBytes, soundBytes);
                     Navigator.of(context).pop();
                   }
                 },
@@ -276,6 +313,96 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 },
               )));
     }
+  }
+
+  Widget _buildSoundModal() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text('Tilføj lyd', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton(
+              onPressed: () async {
+                var result = await FilePicker.platform.pickFiles(
+                    type: FileType.audio, allowMultiple: false, withData: true);
+                if (result != null && result.files.single.bytes != null) {
+                  setState(() {
+                    soundBytes = result.files.single.bytes;
+                  });
+                  // keep the dialog open so user can preview
+                }
+              },
+              child: Text('Upload lyd'),
+            ),
+            Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      if (!_isRecording) {
+                        bool hasPermission = await (_recorder as dynamic).hasPermission();
+                        if (!hasPermission) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Mangler mikrofon tilladelse')));
+                          return;
+                        }
+                        final tmpPath = '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
+                        await (_recorder as dynamic).start(path: tmpPath, encoder: AudioEncoder.aacLc);
+                        setState(() {
+                          _isRecording = true;
+                        });
+                      } else {
+                        final path = await (_recorder as dynamic).stop();
+                        setState(() {
+                          _isRecording = false;
+                        });
+                        if (path != null) {
+                          final file = File(path);
+                          if (await file.exists()) {
+                            final bytes = await file.readAsBytes();
+                            setState(() {
+                              soundBytes = bytes;
+                            });
+                          }
+                        }
+                        // keep dialog open so user can preview or re-record
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Optagelse fejlede: $e')));
+                    }
+                  },
+                  child: Text(_isRecording ? 'Stop optagelse' : 'Start optagelse'),
+                ),
+                SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: soundBytes == null
+                      ? null
+                      : () async {
+                          try {
+                            // Use data URI for in-memory bytes
+                            final uri = Uri.dataFromBytes(soundBytes!, mimeType: 'audio/m4a');
+                            await _player.setAudioSource(AudioSource.uri(uri));
+                            _player.play();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Afspilning fejlede: $e')));
+                          }
+                        },
+                  child: Text('Afspil lyd'),
+                ),
+              ],
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Generer lyd med AI - ikke implementeret')));
+              },
+              child: Text('Generer lyd (AI)'),
+            ),
+          ],
+        )
+      ],
+    );
   }
 
   Widget _buildButton(String label, String imageUrl,

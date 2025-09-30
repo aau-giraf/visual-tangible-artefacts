@@ -25,7 +25,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 //register our singleton
 builder.Services.AddSingleton(provider =>
-    {
+    { 
         var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;

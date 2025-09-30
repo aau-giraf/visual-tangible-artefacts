@@ -9,14 +9,15 @@ class Artefact implements JsonSerializable {
   String? categoryId;
   String? imageUrl;
   Uint8List? image;
-
+  Uint8List? sound;
   Artefact(
-      {this.artefactIndex,
-      this.artefactId,
-      this.categoryId,
-      this.imageUrl,
-      this.userId,
-      this.image});
+    {this.artefactIndex,
+    this.artefactId,
+    this.categoryId,
+    this.imageUrl,
+    this.userId,
+    this.image,
+    this.sound});
   factory Artefact.fromJson(Map<String, dynamic> json) {
     return Artefact(
         artefactId: json['artefactId'] as String?,
@@ -24,9 +25,16 @@ class Artefact implements JsonSerializable {
         userId: json['userId'] as String?,
         categoryId: json['categoryId'] as String?,
         imageUrl: json['imageUrl'] as String?,
-        image: json['image'] != null
-            ? Uint8List.fromList(json['image'].cast<int>())
-            : null);
+    image: json['image'] != null
+      ? Uint8List.fromList(json['image'].cast<int>())
+      : null,
+    sound: json['sound'] != null
+      ? Uint8List.fromList(json['sound'].cast<int>())
+      : null);
+    // handle sound bytes if provided
+  // Note: some endpoints may return soundUrl instead of raw bytes; this keeps raw bytes support
+  // and preserves backwards compatibility.
+  // (No direct assignment from JSON for sound unless the endpoint includes the bytes.)
   }
 
   @override
@@ -38,6 +46,7 @@ class Artefact implements JsonSerializable {
       'categoryId': categoryId,
       'imageUrl': imageUrl,
       'image': image,
+      'sound': sound,
     };
   }
 }
