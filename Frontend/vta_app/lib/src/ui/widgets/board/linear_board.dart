@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import '../../../controllers/linear_board_controller.dart';
+import '../../../utilities/audio/artefact_sound_player.dart';
 
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
@@ -19,7 +20,7 @@ class LinearBoard extends StatefulWidget {
 }
 
 class LinearBoardState extends State<LinearBoard>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ArtefactSoundPlayer {
   late LinearBoardController _linearBoardController;
 
   late AnimationController _animationController;
@@ -55,6 +56,7 @@ class LinearBoardState extends State<LinearBoard>
   @override
   void dispose() {
     _animationController.dispose();
+    disposeArtefactSounds();
     super.dispose();
   }
 
@@ -136,9 +138,40 @@ class LinearBoardState extends State<LinearBoard>
     return Stack(
       children: [
         _buildGrid(context),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: _buildInteractiveTrashcan(context),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Play sounds for all artifacts in order
+                    final artifacts = _linearBoardController.artifacts
+                        .where((a) => a != null && a.baseArtefact != null)
+                        .map((a) => a!.baseArtefact!)
+                        .toList();
+                    print('Found ${artifacts.length} artifacts to play');
+                    for (var artifact in artifacts) {
+                      print('Artifact ${artifact.artefactId}: soundUrl=${artifact.soundUrl}');
+                    }
+                    playArtefactSoundsInOrder(artifacts);
+                  },
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play All Sounds'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            _buildInteractiveTrashcan(context),
+          ],
         ),
       ],
     );
@@ -226,12 +259,37 @@ class LinearBoardState extends State<LinearBoard>
         opacity: 0.1,
         child: artifact.content,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: artifact.content,
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: artifact.content,
+          ),
+          if (artifact.baseArtefact != null)
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.8),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.volume_up, color: Colors.white),
+                  onPressed: () {
+                    if (artifact.baseArtefact != null) {
+                      playArtefactSound(artifact.baseArtefact!);
+                    }
+                  },
+                  iconSize: 20,
+                  padding: const EdgeInsets.all(8),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

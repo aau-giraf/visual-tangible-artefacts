@@ -16,6 +16,7 @@ class BoardArtefact {
 
   factory BoardArtefact.fromArtefact(Artefact artefact,
       {Map<String, String>? headers}) {
+    print('Creating BoardArtefact from Artefact: id=${artefact.artefactId}, soundUrl=${artefact.soundUrl}');
     return BoardArtefact(
         content: SizedBox(
           width: 200,

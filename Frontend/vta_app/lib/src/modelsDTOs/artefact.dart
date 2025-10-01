@@ -8,33 +8,37 @@ class Artefact implements JsonSerializable {
   String? userId;
   String? categoryId;
   String? imageUrl;
+  String? soundUrl;
   Uint8List? image;
   Uint8List? sound;
-  Artefact(
-    {this.artefactIndex,
+  
+  Artefact({
+    this.artefactIndex,
     this.artefactId,
     this.categoryId,
     this.imageUrl,
+    this.soundUrl,
     this.userId,
     this.image,
-    this.sound});
+    this.sound,
+  });
+
   factory Artefact.fromJson(Map<String, dynamic> json) {
+    print('Received JSON for artefact: $json');  // Debug print
     return Artefact(
-        artefactId: json['artefactId'] as String?,
-        artefactIndex: json['artefactIndex'] as int?,
-        userId: json['userId'] as String?,
-        categoryId: json['categoryId'] as String?,
-        imageUrl: json['imageUrl'] as String?,
-    image: json['image'] != null
-      ? Uint8List.fromList(json['image'].cast<int>())
-      : null,
-    sound: json['sound'] != null
-      ? Uint8List.fromList(json['sound'].cast<int>())
-      : null);
-    // handle sound bytes if provided
-  // Note: some endpoints may return soundUrl instead of raw bytes; this keeps raw bytes support
-  // and preserves backwards compatibility.
-  // (No direct assignment from JSON for sound unless the endpoint includes the bytes.)
+      artefactId: json['artefactId'] as String?,
+      artefactIndex: json['artefactIndex'] as int?,
+      userId: json['userId'] as String?,
+      categoryId: json['categoryId'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      soundUrl: json['soundUrl'] as String?, // Changed to match the backend's field name
+      image: json['image'] != null
+          ? Uint8List.fromList(json['image'].cast<int>())
+          : null,
+      sound: json['sound'] != null
+          ? Uint8List.fromList(json['sound'].cast<int>())
+          : null,
+    );
   }
 
   @override
@@ -45,6 +49,7 @@ class Artefact implements JsonSerializable {
       'userId': userId,
       'categoryId': categoryId,
       'imageUrl': imageUrl,
+      'soundUrl': soundUrl, // Changed to match the backend's field name
       'image': image,
       'sound': sound,
     };
