@@ -132,6 +132,9 @@ public class ArtefactsController : ControllerBase
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
+
+        Console.WriteLine("----------------------------------------" + artefactPostDTO.Name);
+        Console.WriteLine("----------------------------------------");
         var userId = User.FindFirst("id")?.Value;
 
         if (userId != artefactPostDTO.UserId)
@@ -139,10 +142,14 @@ public class ArtefactsController : ControllerBase
             return Forbid();
         }
 
+        
+
         string artefactId = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
         artefact.UserId = userId;
+        artefact.Name = artefactPostDTO.Name;
+        
 
         _context.Artefacts.Add(artefact);
         try

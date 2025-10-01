@@ -54,6 +54,7 @@ CREATE TABLE artefact (
   imagePath      VARCHAR(255)  NULL,
   modifiedDate   DATETIME      NULL,
   name           VARCHAR(255)  NULL,
+  nameShown     TINYINT(1)    NOT NULL DEFAULT 1,
   PRIMARY KEY (artefactId),
   KEY categoryId (categoryId),
   KEY userId (userID),
