@@ -255,37 +255,12 @@ class LinearBoardState extends State<LinearBoard>
         opacity: 0.1,
         child: artifact.content,
       ),
-      child: Stack(
-        children: [
-          Container(
+      child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
             ),
             child: artifact.content,
-          ),
-          if (artifact.baseArtefact != null)
-            Positioned(
-              right: 8,
-              bottom: 8,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.8),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.volume_up, color: Colors.white),
-                  onPressed: () {
-                    if (artifact.baseArtefact != null) {
-                      playArtefactSound(artifact.baseArtefact!);
-                    }
-                  },
-                  iconSize: 20,
-                  padding: const EdgeInsets.all(8),
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
