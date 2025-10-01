@@ -8,6 +8,7 @@ class Artefact implements JsonSerializable {
   String? userId;
   String? categoryId;
   String? imageUrl;
+  String? soundUrl;
   Uint8List? image;
   Uint8List? sound;
   Artefact(
@@ -15,6 +16,7 @@ class Artefact implements JsonSerializable {
     this.artefactId,
     this.categoryId,
     this.imageUrl,
+    this.soundUrl,
     this.userId,
     this.image,
     this.sound});
@@ -25,6 +27,7 @@ class Artefact implements JsonSerializable {
         userId: json['userId'] as String?,
         categoryId: json['categoryId'] as String?,
         imageUrl: json['imageUrl'] as String?,
+        soundUrl: json['soundUrl'] as String?,
     image: json['image'] != null
       ? Uint8List.fromList(json['image'].cast<int>())
       : null,
@@ -45,6 +48,7 @@ class Artefact implements JsonSerializable {
       'userId': userId,
       'categoryId': categoryId,
       'imageUrl': imageUrl,
+      'soundUrl': soundUrl,
       'image': image,
       'sound': sound,
     };

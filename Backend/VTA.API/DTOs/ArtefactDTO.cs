@@ -119,6 +119,22 @@ public partial class ArtefactGetDTO
 }
 
 /// <summary>
+/// Simple DTO for generating text-to-speech without requiring an existing artefact
+/// </summary>
+public partial class SimpleTtsRequest
+{
+    /// <summary>
+    /// The text to convert to speech
+    /// </summary>
+    public required string Text { get; set; }
+    
+    /// <summary>
+    /// The ElevenLabs voice ID to use (optional)
+    /// </summary>
+    public string? VoiceId { get; set; }
+}
+
+/// <summary>
 /// DTO for generating text-to-speech for an artefact
 /// </summary>
 public partial class ArtefactTextToSpeechDTO

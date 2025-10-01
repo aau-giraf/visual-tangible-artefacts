@@ -6,7 +6,7 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 /// Service class for interacting with ElevenLabs API
 class ElevenLabsService {
   static const String _baseUrl = 'https://api.elevenlabs.io/v1';
-  static const String _defaultVoiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
+  static const String _defaultVoiceId = 'Bj9UqZbhQsanLzgalpEG'; // Custom selected voice
   
   final String apiKey;
   final ApiProvider _apiProvider;

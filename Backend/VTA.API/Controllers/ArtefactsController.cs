@@ -229,6 +229,62 @@ public class ArtefactsController : ControllerBase
     }
 
     /// <summary>
+    /// Generate speech from text using ElevenLabs API (simple version for new artefacts)
+    /// </summary>
+    /// <param name="request">Simple text-to-speech request</param>
+    /// <returns>
+    /// Status code 200 (Ok) with audio data on success<br />
+    /// Status code 400 (Bad Request) if the request is invalid<br />
+    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
+    /// </returns>
+    [HttpPost("generate-speech-simple")]
+    public async Task<IActionResult> GenerateSpeechSimple([FromBody] SimpleTtsRequest request)
+    {
+        // Validate text input
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            return BadRequest("Text cannot be empty");
+        }
+
+        try
+        {
+            // Get ElevenLabs API key from configuration
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = configuration["ElevenLabs:ApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, "ElevenLabs API key not configured");
+            }
+
+            // Create ElevenLabs service
+            var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
+
+            // Generate speech with default settings
+            var audioData = await elevenLabsService.GenerateSpeechAsync(
+                text: request.Text,
+                voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
+                modelId: "eleven_monolingual_v1"
+            );
+
+            if (audioData == null)
+            {
+                return StatusCode(500, "Failed to generate speech from ElevenLabs API");
+            }
+
+            // Return audio data directly
+            return File(audioData, "audio/mpeg", "generated_speech.mp3");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating speech: {ex.Message}");
+            return StatusCode(500, "Internal server error while generating speech");
+        }
+    }
+
+    /// <summary>
     /// Generate speech from text for an artefact using ElevenLabs API
     /// </summary>
     /// <param name="ttsDto">Text-to-speech request data</param>
