@@ -17,39 +17,76 @@ class LongPressOptionWheel extends StatefulWidget {
 }
 
 class LongPressOptionWheelState extends State<LongPressOptionWheel> {
-  bool _showWheel = false;
+  OverlayEntry? _overlayEntry;
+  Offset? _artifactCenterGlobal;
+  Size? _wheelSize;
+  final GlobalKey _optionWheelKey = GlobalKey();
 
+  // Finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
-    setState(() {
-      _showWheel = true;
-    });
-  }
-
-  void _onLongPressEnd(LongPressEndDetails details) {
-    setState(() {
-      _showWheel = false;
-    });
+    _showPersistentWheel();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPressStart: _onLongPressStart,
-      onLongPressEnd: _onLongPressEnd,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          widget.child,
-          if (_showWheel)
-              Positioned(
-                left: 0,
-              top: -90,
-              child: OptionWheel(
-                onPressed: () {},
-              ),
-            ),
-        ],
-      ),
+      child: widget.child,
     );
+  }
+
+  void _showPersistentWheel() {
+    final artifactContext = widget.artifact.key.currentContext;
+    if (artifactContext == null) return;
+
+    final RenderBox artifactBox = artifactContext.findRenderObject() as RenderBox;
+    _artifactCenterGlobal = artifactBox.localToGlobal(artifactBox.size.center(Offset.zero));
+
+    // Create overlay
+    _overlayEntry = OverlayEntry(builder: (context) {
+      // Fallback sizes (if this happens... fix it)
+      final double fallbackWidth = (150 + 90 / 2 + 30) * 2;
+      final Size ws = _wheelSize ?? Size(fallbackWidth, fallbackWidth);
+  final double left = _artifactCenterGlobal!.dx - ws.width / 2;
+  final double top = _artifactCenterGlobal!.dy - ws.height / 2;
+      return Stack(children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _hidePersistentWheel,
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: top - 40,
+          child: Material(
+            color: Colors.transparent,
+            child: OptionWheel(
+              key: _optionWheelKey,
+              onPressed: _hidePersistentWheel,
+            ),
+          ),
+        ),
+      ]);
+    });
+  Overlay.of(context).insert(_overlayEntry!);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final optionContext = _optionWheelKey.currentContext;
+      if (optionContext != null) {
+        final RenderBox optionBox = optionContext.findRenderObject() as RenderBox;
+        final Size measured = optionBox.size;
+        if (measured != _wheelSize) {
+          _wheelSize = measured;
+          _overlayEntry?.markNeedsBuild();
+        }
+      }
+    });
+  }
+  // Remove the overlay wheel
+  void _hidePersistentWheel() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _wheelSize = null;
   }
 }
