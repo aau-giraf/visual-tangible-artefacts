@@ -52,7 +52,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                 left: 0,
               top: -90,
               child: OptionWheel(
-                artefactName: artefactName,
                 onPressed: () {},
               ),
             ),

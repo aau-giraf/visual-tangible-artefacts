@@ -2,11 +2,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class OptionWheel extends StatefulWidget {
-  final String artefactName;
   final VoidCallback? onPressed;
   const OptionWheel({
     Key? key,
-    required this.artefactName,
     this.onPressed,
   }) : super(key: key);
 
@@ -48,7 +46,7 @@ class _OptionWheelState extends State<OptionWheel> {
     ];
     final int buttonCount = options.length;
 
-    final double baseRadius = 150;
+    final double baseRadius = 120;
     final double radius = baseRadius;
     final double centerSize = 5;
     final double angleStep = 2 * math.pi / buttonCount;
@@ -69,23 +67,6 @@ class _OptionWheelState extends State<OptionWheel> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Artefact name position
-            Positioned(
-              top: 10 + wheelOffsetTop,
-              left: 0 + wheelOffsetLeft,
-              right: 0,
-              child: Center(
-                child: SizedBox(
-                  width: 140,
-                  child: Text(
-                    widget.artefactName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                ),
-              ),
-            ),
             // Option buttons in a circle
             for (int i = 0; i < buttonCount; i++)
               Positioned(
