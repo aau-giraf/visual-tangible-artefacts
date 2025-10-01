@@ -18,13 +18,6 @@ class LongPressOptionWheel extends StatefulWidget {
 
 class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   bool _showWheel = false;
-  late final String artefactName;
-  @override
-  void initState() {
-    super.initState();
-    // fallback if name is not available
-  artefactName = widget.artifact.baseArtefact?.displayName ?? widget.artifact.baseArtefact?.toString() ?? "Artefact";
-  }
 
   void _onLongPressStart(LongPressStartDetails details) {
     setState(() {
