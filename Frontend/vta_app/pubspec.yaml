@@ -26,7 +26,9 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.0
   just_audio: ^0.9.42 # Replaced audioplayers
-  record: ^5.0.0
+  # Use record 4.x to match existing instantiation usage in the codebase
+  # Record 5.x introduced an abstract API that prevents direct instantiation
+  record: ^4.4.4
   flutter_settings_screens: ^0.3.4
   get_it: ^8.0.2
 dev_dependencies:
