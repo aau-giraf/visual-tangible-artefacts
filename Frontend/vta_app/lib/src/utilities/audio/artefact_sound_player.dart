@@ -1,32 +1,36 @@
+import 'dart:async';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/utilities/audio/network_audio.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter/foundation.dart';
+import 'package:just_audio/just_audio.dart';
 
 mixin ArtefactSoundPlayer {
   final Map<String, NetworkAudio> _audioCache = {};
 
   Future<void> playArtefactSound(Artefact artefact) async {
-    print('Attempting to play sound for artefact: ${artefact.artefactId}');
-    print('Artefact properties: soundUrl=${artefact.soundUrl}, imageUrl=${artefact.imageUrl}');
-    
     if (artefact.soundUrl == null) {
-      print('No sound URL available for artefact');
       return;
     }
-
-    print('Raw sound URL: ${artefact.soundUrl}');
     
     // Ensure URL is properly formed with scheme and host
     final soundUrl = artefact.soundUrl!.startsWith('http')
         ? artefact.soundUrl!
         : 'http://localhost:5192${artefact.soundUrl}';  // Using the correct port number (5192)
 
-    print('Attempting to play sound from URL: $soundUrl');
-
     try {
       // Get or create NetworkAudio instance
-      final audio = _audioCache.putIfAbsent(
+      var audio = _audioCache[soundUrl];
+      
+      // If audio exists but was disposed, create a new instance
+      if (audio != null && !audio.isInitialized) {
+        _audioCache.remove(soundUrl);
+        audio = null;
+      }
+      
+      // Create new instance if needed
+      audio ??= _audioCache.putIfAbsent(
         soundUrl,
         () => NetworkAudio(
           soundUrl,
@@ -35,9 +39,9 @@ mixin ArtefactSoundPlayer {
       );
 
       // Play the sound
-      await audio.playAudio();
+      await audio.play();
     } catch (e) {
-      print('Error playing artefact sound: $e');
+      rethrow;
     }
   }
 
@@ -48,25 +52,37 @@ mixin ArtefactSoundPlayer {
       // Get the NetworkAudio instance from cache
       final audio = _audioCache[artefact.soundUrl];
       if (audio != null && audio.isInitialized) {
-        // Wait for the sound to finish playing
-        while (audio.isPlaying) {
-          await Future.delayed(const Duration(milliseconds: 100));
+        // Create a completer to track when the audio finishes
+        final completer = Completer<void>();
+        
+        // Subscribe to player state changes
+        final subscription = audio.playerStateStream.listen((state) {
+          if (state.processingState == ProcessingState.completed) {
+            completer.complete();
+          }
+        });
+        
+        // Wait for the audio to complete
+        try {
+          await completer.future.timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              audio.stop();
+            },
+          );
+        } finally {
+          await subscription.cancel();
         }
       }
     }
   }
 
   Future<void> cleanupArtefactSounds() async {
-    for (final audio in _audioCache.values) {
-      await audio.disposeAudio();
-    }
-    _audioCache.clear();
-  }
-
-  Future<void> disposeArtefactSounds() async {
+    debugPrint('Cleaning up artefact sounds...');
     for (final audio in _audioCache.values) {
       await audio.dispose();
     }
     _audioCache.clear();
+    debugPrint('Artefact sounds cleaned up');
   }
 }

@@ -24,7 +24,6 @@ class Artefact implements JsonSerializable {
   });
 
   factory Artefact.fromJson(Map<String, dynamic> json) {
-    print('Received JSON for artefact: $json');  // Debug print
     return Artefact(
       artefactId: json['artefactId'] as String?,
       artefactIndex: json['artefactIndex'] as int?,

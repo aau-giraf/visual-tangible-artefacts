@@ -56,7 +56,7 @@ class LinearBoardState extends State<LinearBoard>
   @override
   void dispose() {
     _animationController.dispose();
-    disposeArtefactSounds();
+    cleanupArtefactSounds();
     super.dispose();
   }
 
@@ -151,10 +151,6 @@ class LinearBoardState extends State<LinearBoard>
                         .where((a) => a != null && a.baseArtefact != null)
                         .map((a) => a!.baseArtefact!)
                         .toList();
-                    print('Found ${artifacts.length} artifacts to play');
-                    for (var artifact in artifacts) {
-                      print('Artifact ${artifact.artefactId}: soundUrl=${artifact.soundUrl}');
-                    }
                     playArtefactSoundsInOrder(artifacts);
                   },
                   icon: const Icon(Icons.play_arrow),
