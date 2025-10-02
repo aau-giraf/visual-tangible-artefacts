@@ -43,6 +43,7 @@ void main() async {
   final apiProvider = ApiProvider(
       baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
           ['Remote']);
+  GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());

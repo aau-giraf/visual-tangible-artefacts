@@ -30,7 +30,7 @@ class Artefact implements JsonSerializable {
       userId: json['userId'] as String?,
       categoryId: json['categoryId'] as String?,
       imageUrl: json['imageUrl'] as String?,
-      soundUrl: json['soundUrl'] as String?, // Changed to match the backend's field name
+      soundUrl: json['soundUrl'] as String?,
       image: json['image'] != null
           ? Uint8List.fromList(json['image'].cast<int>())
           : null,
@@ -48,7 +48,7 @@ class Artefact implements JsonSerializable {
       'userId': userId,
       'categoryId': categoryId,
       'imageUrl': imageUrl,
-      'soundUrl': soundUrl, // Changed to match the backend's field name
+      'soundUrl': soundUrl,
       'image': image,
       'sound': sound,
     };

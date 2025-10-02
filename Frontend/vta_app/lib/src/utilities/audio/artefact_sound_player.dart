@@ -5,9 +5,11 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
 
 mixin ArtefactSoundPlayer {
   final Map<String, NetworkAudio> _audioCache = {};
+  late final ApiProvider _apiProvider = GetIt.instance.get<ApiProvider>();
 
   Future<void> playArtefactSound(Artefact artefact) async {
     if (artefact.soundUrl == null) {
@@ -17,7 +19,7 @@ mixin ArtefactSoundPlayer {
     // Ensure URL is properly formed with scheme and host
     final soundUrl = artefact.soundUrl!.startsWith('http')
         ? artefact.soundUrl!
-        : 'http://localhost:5192${artefact.soundUrl}';  // Using the correct port number (5192)
+        : '${_apiProvider.baseUrl}..${artefact.soundUrl}';
 
     try {
       // Get or create NetworkAudio instance
