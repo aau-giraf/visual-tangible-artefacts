@@ -1,3 +1,4 @@
+  // Removed duplicate displayName getter
 import 'dart:typed_data';
 
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
@@ -22,6 +23,8 @@ class Artefact implements JsonSerializable {
     this.image,
     this.sound,
   });
+
+    String get displayName => artefactId ?? 'Artefact #${artefactIndex ?? ''}';
 
   factory Artefact.fromJson(Map<String, dynamic> json) {
     return Artefact(

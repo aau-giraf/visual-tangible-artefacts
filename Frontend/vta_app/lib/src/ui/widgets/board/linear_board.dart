@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import '../../../controllers/linear_board_controller.dart';
+import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
+
 
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
@@ -191,9 +193,19 @@ class LinearBoardState extends State<LinearBoard>
             )
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
+                  _buildBox(context, _linearBoardController.artifacts[i], i),
+                  if (i < _linearBoardController.fieldCount - 1)
+                    _buildVerticalDivider(context),
+                ]
+              ],
+            ),
             for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
               _buildBox(context, _linearBoardController.artifacts[i], i),
               if (i < _linearBoardController.fieldCount - 1)
@@ -238,29 +250,30 @@ class LinearBoardState extends State<LinearBoard>
 
   Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
       int index, double artifactWidth, double artifactHeight) {
-    return Draggable<BoardArtefact>(
-      data: artifact,
-      feedback: Material(
-        type: MaterialType.transparency,
-        child: Opacity(
-          opacity: 0.5,
-          child: SizedBox(
-            width: artifactWidth / (_linearBoardController.fieldCount / 4),
-            height: artifactHeight,
-            child: artifact.content,
+  return LongPressOptionWheel(
+      artifact: artifact,
+      child: Draggable<BoardArtefact>(
+        data: artifact,
+        feedback: Material(
+          type: MaterialType.transparency,
+          child: Opacity(
+            opacity: 0.5,
+            child: SizedBox(
+              child: artifact.content,
+            ),
           ),
         ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.1,
-        child: artifact.content,
-      ),
-      child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: artifact.content,
+        childWhenDragging: Opacity(
+          opacity: 0.1,
+          child: artifact.content,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: artifact.content,
+        ),
       ),
     );
   }
