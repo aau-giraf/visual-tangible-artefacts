@@ -22,7 +22,7 @@ public static class DTOConverter
         };
     }
 
-    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl)
+    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl, string? soundUrl = null)
     {
         return new Artefact
         {
@@ -31,7 +31,8 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
-            ImagePath = imageUrl
+            ImagePath = imageUrl,
+            SoundPath = soundUrl
         };
     }
 

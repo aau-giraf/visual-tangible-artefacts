@@ -535,7 +535,12 @@ class _AddItemPopupState extends State<AddItemPopup> {
                         TextField(
                           controller: _textToSpeechController,
                           maxLines: 3,
-                          maxLength: 90,
+                          maxLength: 30,
+                          onChanged: (text) {
+                            // Trigger rebuild when text changes to enable/disable button
+                            setDialogState(() {});
+                            print('Debug: Text field changed: "$text", isEmpty: ${text.trim().isEmpty}');
+                          },
                           decoration: InputDecoration(
                             hintText: 'Skriv den tekst du vil konvertere til lyd...',
                             border: OutlineInputBorder(),
@@ -552,7 +557,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                 onPressed: _isGeneratingSpeech || _textToSpeechController.text.trim().isEmpty
                                     ? null
                                     : () async {
-                                        await _generateSpeechFromText();
+                                        await _generateSpeechFromText(setDialogState);
                                       },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
@@ -631,13 +636,19 @@ class _AddItemPopupState extends State<AddItemPopup> {
     return '$min:$sec';
   }
 
-  Future<void> _generateSpeechFromText() async {
+  Future<void> _generateSpeechFromText([StateSetter? setDialogState]) async {
     final text = _textToSpeechController.text.trim();
     if (text.isEmpty) return;
 
+    // Update both dialog state and main popup state
     setState(() {
       _isGeneratingSpeech = true;
     });
+    if (setDialogState != null) {
+      setDialogState(() {
+        _isGeneratingSpeech = true;
+      });
+    }
 
     try {
       print('Debug: Generating speech for text: "${text.substring(0, text.length > 50 ? 50 : text.length)}..."');
@@ -647,26 +658,46 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
       print('Debug: Audio data received: ${audioData != null ? '${audioData.length} bytes' : 'null'}');
 
-      if (audioData != null) {
-        setState(() {
-          soundBytes = audioData;
+      // Audio is now saved on backend, we don't need to store bytes in frontend
+      // Update dialog state to show success
+      if (setDialogState != null) {
+        setDialogState(() {
           _showTextToSpeechField = false;
           _textToSpeechController.clear();
         });
-        _showSuccessMessage('Lyd genereret succesfuldt! Tilføj nu artefaktet.');
-        // Close the sound modal dialog
-        Navigator.of(context).pop();
-      } else {
-        _showErrorMessage('Kunne ikke generere lyd fra backend API');
       }
+      setState(() {
+        _showTextToSpeechField = false;
+        _textToSpeechController.clear();
+      });
+      
+      _showSuccessMessage('Lyd genereret og gemt på serveren! Andre udviklere kan nu afspille den via API.');
+      // Close the sound modal dialog - the audio is saved on the backend
+      Navigator.of(context).pop();
     } catch (e, stackTrace) {
       print('Debug: Exception in _generateSpeechFromText: $e');
       print('Debug: Stack trace: $stackTrace');
-      _showErrorMessage('Fejl ved generering af lyd: ${e.toString()}');
+      
+      String errorMessage = 'Fejl ved generering af lyd';
+      if (e.toString().contains('Authentication failed')) {
+        errorMessage = 'Du skal logge ind igen for at bruge denne funktion';
+      } else if (e.toString().contains('Connection refused')) {
+        errorMessage = 'Backend serveren kører ikke - kontakt support';
+      } else {
+        errorMessage = 'Fejl ved generering af lyd: ${e.toString()}';
+      }
+      
+      _showErrorMessage(errorMessage);
     } finally {
+      // Update both states
       setState(() {
         _isGeneratingSpeech = false;
       });
+      if (setDialogState != null) {
+        setDialogState(() {
+          _isGeneratingSpeech = false;
+        });
+      }
     }
   }
 
@@ -697,8 +728,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
         throw Exception('User not authenticated');
       }
 
-      // Call backend API to generate speech
-      final url = Uri.parse('http://localhost:5192/api/artefacts/generate-speech-simple');
+      print('Debug: Using token: ${token.substring(0, 20)}...');
+
+      // Call backend API to generate and save speech
+      final url = Uri.parse('http://localhost:5192/api/Users/Artefacts/generate-and-save-speech');
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -709,17 +742,33 @@ class _AddItemPopupState extends State<AddItemPopup> {
         'voiceId': 'Bj9UqZbhQsanLzgalpEG', // Your specific voice
       });
 
+      print('Debug: Making request to: $url');
+      print('Debug: Request body: $body');
+
       final response = await http.post(url, headers: headers, body: body);
 
+      print('Debug: Response status: ${response.statusCode}');
+      print('Debug: Response body: ${response.body}');
+      
       if (response.statusCode == 200) {
-        return response.bodyBytes;
+        final responseData = json.decode(response.body);
+        print('Debug: Success! Sound saved to: ${responseData['soundUrl']}');
+        print('Debug: Sound ID: ${responseData['soundId']}');
+        print('Debug: Audio size: ${responseData['audioSize']} bytes');
+        
+        // For now, return null since we're not storing audio bytes in frontend anymore
+        // The audio is saved on the backend and can be accessed via the soundUrl
+        return null;
+      } else if (response.statusCode == 401) {
+        print('Debug: Authentication failed - token might be expired or invalid');
+        throw Exception('Authentication failed. Please log in again.');
       } else {
         print('Backend API error: ${response.statusCode} ${response.body}');
-        return null;
+        throw Exception('Backend API error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error calling backend API: $e');
-      return null;
+      rethrow;
     }
   }
 

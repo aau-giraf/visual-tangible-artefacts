@@ -25,7 +25,7 @@ public class ElevenLabsService
         _httpClient = httpClient;
         _apiKey = apiKey;
         
-        _httpClient.BaseAddress = new Uri(BaseUrl);
+        // Don't set BaseAddress, use absolute URLs instead
         _httpClient.DefaultRequestHeaders.Add("xi-api-key", _apiKey);
     }
 
@@ -67,7 +67,7 @@ public class ElevenLabsService
             var json = JsonSerializer.Serialize(requestBody);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/text-to-speech/{effectiveVoiceId}", content);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/text-to-speech/{effectiveVoiceId}", content);
 
             if (response.IsSuccessStatusCode)
             {
