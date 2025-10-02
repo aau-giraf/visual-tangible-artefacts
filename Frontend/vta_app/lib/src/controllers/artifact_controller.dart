@@ -31,7 +31,7 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newCategory(BuildContext context) async {
     var popup = AddItemPopup(
       isCategory: true,
-      onSubmit: (name, imageBytes) async {
+      onSubmit: (name, imageBytes, soundBytes) async {
         try {
           var newCategory = Category(
             categoryIndex: 0,
@@ -76,13 +76,14 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
-        onSubmit: (name, imageBytes) {
+        onSubmit: (name, imageBytes, soundBytes) {
           try {
             var newArtefact = Artefact(
                 categoryId: categoryId,
                 artefactIndex: 0,
                 userId: GetIt.I.get<UserInfo>().userId,
-                image: imageBytes);
+                image: imageBytes,
+                sound: soundBytes);
             _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
             _showSuccessActionSnackBar(context, 'Artefact tilføjet');

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '_long_press_option_wheel.dart';
+import '../../../utilities/audio/artefact_sound_player.dart';
+
 
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
@@ -20,7 +22,7 @@ class LinearBoard extends StatefulWidget {
 }
 
 class LinearBoardState extends State<LinearBoard>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ArtefactSoundPlayer {
   late LinearBoardController _linearBoardController;
 
   late AnimationController _animationController;
@@ -56,6 +58,7 @@ class LinearBoardState extends State<LinearBoard>
   @override
   void dispose() {
     _animationController.dispose();
+    cleanupArtefactSounds();
     super.dispose();
   }
 
@@ -137,9 +140,36 @@ class LinearBoardState extends State<LinearBoard>
     return Stack(
       children: [
         _buildGrid(context),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: _buildInteractiveTrashcan(context),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Play sounds for all artifacts in order
+                    final artifacts = _linearBoardController.artifacts
+                        .where((a) => a != null && a.baseArtefact != null)
+                        .map((a) => a!.baseArtefact!)
+                        .toList();
+                    playArtefactSoundsInOrder(artifacts);
+                  },
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play All Sounds'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            _buildInteractiveTrashcan(context),
+          ],
         ),
       ],
     );

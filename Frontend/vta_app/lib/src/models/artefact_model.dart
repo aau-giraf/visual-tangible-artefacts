@@ -83,9 +83,15 @@ class ArtifactModel {
 
   Future<void> postArtefact(Artefact artefact, {required String token}) async {
     try {
+      // Ensure we pass the sound bytes with the key 'Sound' to match backend IFormFile binding
+      var body = artefact.toJson();
+      if (artefact.sound != null) {
+        // the API provider will convert Uint8List values into multipart files
+        body['Sound'] = artefact.sound;
+      }
       var response = await apiProvider.sendAsMultiPart(
           'POST', "Users/Artefacts",
-          body: artefact.toJson(), headers: {'Authorization': 'Bearer $token'});
+          body: body, headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);

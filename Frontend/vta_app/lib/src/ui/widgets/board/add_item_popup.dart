@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
@@ -10,11 +12,13 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
+import 'package:record/record.dart';
+import 'package:just_audio/just_audio.dart';
 
 class AddItemPopup extends StatefulWidget {
   Category? category;
   final bool isCategory;
-  final void Function(String name, Uint8List? imageBytes) onSubmit;
+  final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes) onSubmit;
   final String title;
 
   AddItemPopup({
@@ -29,10 +33,54 @@ class AddItemPopup extends StatefulWidget {
   State<AddItemPopup> createState() => _AddItemPopupState();
 }
 
+class _LevelBar extends StatelessWidget {
+  final double level; // 0.0 - 1.0
+  const _LevelBar({Key? key, required this.level}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 180,
+      height: 12,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: level.clamp(0.0, 1.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.greenAccent.shade400,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddItemPopupState extends State<AddItemPopup> {
   Uint8List? imageBytes;
+  Uint8List? soundBytes;
+  bool _isRecording = false;
+  // Record is implemented via platform interface; the analyzer may report
+  // instantiate_abstract_class for the package's Record type. Suppress it
+  // and use dynamic calls for methods to avoid static errors.
+  // ignore: instantiate_abstract_class
+  final Record _recorder = Record();
+  final AudioPlayer _player = AudioPlayer();
   final formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
+  // Recording UI state
+  Duration _recordingDuration = Duration.zero;
+  Timer? _recordTimer;
+  Timer? _amplitudeTimer;
+  double _currentLevel = 0.0; // 0.0 - 1.0
+  bool _amplitudeSupported = true;
+  double _levelPhase = 0.0;
 
   void setGeneratedImage(String bytes) {
     final decodedBytes = base64Decode(bytes);
@@ -48,12 +96,47 @@ class _AddItemPopupState extends State<AddItemPopup> {
       nameController.text = widget.category!.name ?? '';
       _loadImageBytes();
     }
+    // listen for name changes to update submit button state
+    nameController.addListener(_onFormChanged);
   }
 
   @override
   void dispose() {
     nameController.dispose();
+    try {
+      _player.dispose();
+    } catch (_) {}
+    try {
+      // Best-effort stop recorder on dispose, but only if we are currently recording
+      if (_isRecording) {
+        (_recorder as dynamic).stop();
+      }
+    } catch (_) {}
+    // cancel timers
+    try {
+      _recordTimer?.cancel();
+    } catch (_) {}
+    try {
+      _amplitudeTimer?.cancel();
+    } catch (_) {}
+    nameController.removeListener(_onFormChanged);
     super.dispose();
+  }
+
+  void _onFormChanged() {
+    // Trigger a rebuild when the name changes so submit button updates
+    setState(() {});
+  }
+
+  bool _canSubmit() {
+    final hasName = nameController.text.trim().isNotEmpty;
+    final hasImage = imageBytes != null;
+    if (widget.isCategory) {
+      return hasName && hasImage;
+    } else {
+      final hasSound = soundBytes != null;
+      return hasName && hasImage && hasSound;
+    }
   }
 
   Future<void> _loadImageBytes() async {
@@ -179,7 +262,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ],
             ),
           ),
-          SizedBox(height: 16),
+                SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -221,6 +304,28 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     },
                   );
                 }),
+                SizedBox(width: 16),
+                // Only show the sound button when adding an artefact, not a category
+                if (!widget.isCategory)
+                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png', onClick: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return Dialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Container(
+                            color: Colors.white,
+                            width: 560,
+                            height: 300,
+                            padding: EdgeInsets.all(16),
+                            child: _buildSoundModal(),
+                          ),
+                        );
+                      },
+                    );
+                  }),
               ],
             ),
           ),
@@ -230,15 +335,18 @@ class _AddItemPopupState extends State<AddItemPopup> {
             children: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFBADFB5),
+                  // 0xFF2E7D32 = dark green, 0xFFBADFB5 = light green
+                  backgroundColor: _canSubmit() ? Color(0xFF2E7D32) : Color(0xFFBADFB5),
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                onPressed: () {
-                  if (formKey.currentState!.validate()) {
-                    widget.onSubmit(nameController.text, imageBytes);
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: _canSubmit()
+                    ? () {
+                        if (formKey.currentState!.validate()) {
+                          widget.onSubmit(nameController.text, imageBytes, soundBytes);
+                          Navigator.of(context).pop();
+                        }
+                      }
+                    : null,
                 child: Text(
                   widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
                   style: TextStyle(color: Colors.white),
@@ -276,6 +384,175 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 },
               )));
     }
+  }
+
+  Widget _buildSoundModal() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/speaker_icon.png'),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Tilføj lyd til artefakt', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        SizedBox(height: 12),
+        SizedBox(height: 12),
+        Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    var result = await FilePicker.platform.pickFiles(
+                        type: FileType.audio, allowMultiple: false, withData: true);
+                    if (result != null && result.files.single.bytes != null) {
+                      setState(() {
+                        soundBytes = result.files.single.bytes;
+                      });
+                      // keep the dialog open so user can preview
+                    }
+                  },
+                  child: Text('Upload lyd'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    // recording handler (same as before)
+                    try {
+                      if (!_isRecording) {
+                        final bool hasPermission = await (_recorder as dynamic).hasPermission();
+                        if (!hasPermission) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Mangler mikrofon tilladelse')));
+                          return;
+                        }
+                        setState(() {
+                          _isRecording = true;
+                          _recordingDuration = Duration.zero;
+                          _currentLevel = 0.0;
+                          _amplitudeSupported = true;
+                          _levelPhase = 0.0;
+                        });
+                        final tmpPath = '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
+                        await (_recorder as dynamic).start(path: tmpPath, encoder: AudioEncoder.aacLc);
+                        _recordTimer?.cancel();
+                        _recordTimer = Timer.periodic(Duration(seconds: 1), (_) {
+                          setState(() {
+                            _recordingDuration = _recordingDuration + Duration(seconds: 1);
+                          });
+                        });
+                        _amplitudeTimer?.cancel();
+                        _amplitudeTimer = Timer.periodic(Duration(milliseconds: 200), (_) async {
+                          try {
+                            final amp = await (_recorder as dynamic).getAmplitude();
+                            double level = 0.0;
+                            if (amp != null) {
+                              if (amp is Map && amp.containsKey('current')) {
+                                level = (amp['current'] as num).toDouble();
+                              } else if (amp is num) {
+                                level = (amp as num).toDouble();
+                              }
+                            }
+                            final normalized = (level <= 0) ? 0.0 : (level / 32768.0).clamp(0.0, 1.0);
+                            setState(() {
+                              _currentLevel = normalized;
+                            });
+                          } catch (_) {
+                            _amplitudeSupported = false;
+                            _levelPhase += 0.3;
+                            final pulse = (0.3 + 0.7 * (0.5 + 0.5 * (sin(_levelPhase))).abs()).clamp(0.0, 1.0);
+                            setState(() {
+                              _currentLevel = pulse;
+                            });
+                          }
+                        });
+                      } else {
+                        final path = await (_recorder as dynamic).stop();
+                        _recordTimer?.cancel();
+                        _amplitudeTimer?.cancel();
+                        setState(() {
+                          _isRecording = false;
+                          _currentLevel = 0.0;
+                          _amplitudeSupported = true;
+                          _levelPhase = 0.0;
+                        });
+                        if (path != null) {
+                          final file = File(path);
+                          if (await file.exists()) {
+                            final bytes = await file.readAsBytes();
+                            setState(() {
+                              soundBytes = bytes;
+                            });
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Optagelse fejlede: $e')));
+                      _recordTimer?.cancel();
+                      _amplitudeTimer?.cancel();
+                      setState(() {
+                        _isRecording = false;
+                        _currentLevel = 0.0;
+                      });
+                    }
+                  },
+                  child: Text(_isRecording ? 'Stop optagelse' : 'Start optagelse'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Generer lyd med AI - ikke implementeret')));
+                  },
+                  child: Text('Generer lyd (AI)'),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            // timer, level bar and play button below the main buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_formatDuration(_recordingDuration)),
+                SizedBox(width: 12),
+                _LevelBar(level: _currentLevel),
+                SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: soundBytes == null
+                      ? null
+                      : () async {
+                          try {
+                            final uri = Uri.dataFromBytes(soundBytes!, mimeType: 'audio/m4a');
+                            await _player.setAudioSource(AudioSource.uri(uri));
+                            _player.play();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Afspilning fejlede: $e')));
+                          }
+                        },
+                  child: Text('Afspil lyd'),
+                ),
+              ],
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final min = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final sec = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$min:$sec';
   }
 
   Widget _buildButton(String label, String imageUrl,
