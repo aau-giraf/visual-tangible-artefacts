@@ -206,11 +206,9 @@ class LinearBoardState extends State<LinearBoard>
                 ]
               ],
             ),
-            for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
-              _buildBox(context, _linearBoardController.artifacts[i], i),
-              if (i < _linearBoardController.fieldCount - 1)
-                _buildVerticalDivider(context),
-            ]
+            // NOTE: boxes are already added inside the Row above. Avoid
+            // duplicating them here, which would place Expanded widgets
+            // directly under a Stack (invalid ParentData usage).
           ],
         ),
       ),
@@ -248,32 +246,31 @@ class LinearBoardState extends State<LinearBoard>
     );
   }
 
-  Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
+   Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
       int index, double artifactWidth, double artifactHeight) {
-  return LongPressOptionWheel(
-      artifact: artifact,
-      child: Draggable<BoardArtefact>(
-        data: artifact,
-        feedback: Material(
-          type: MaterialType.transparency,
-          child: Opacity(
-            opacity: 0.5,
-            child: SizedBox(
-              child: artifact.content,
-            ),
+    return Draggable<BoardArtefact>(
+      data: artifact,
+      feedback: Material(
+        type: MaterialType.transparency,
+        child: Opacity(
+          opacity: 0.5,
+          child: SizedBox(
+            width: artifactWidth / (_linearBoardController.fieldCount / 4),
+            height: artifactHeight,
+            child: artifact.content,
           ),
         ),
-        childWhenDragging: Opacity(
-          opacity: 0.1,
-          child: artifact.content,
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.1,
+        child: artifact.content,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: artifact.content,
-        ),
+        child: artifact.content,
       ),
     );
   }
