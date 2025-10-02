@@ -87,6 +87,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
   // AI Text-to-Speech state
   bool _showTextToSpeechField = false;
   bool _isGeneratingSpeech = false;
+  Uint8List? _generatedTtsAudio; // Store generated TTS audio separately
 
   void setGeneratedImage(String bytes) {
     final decodedBytes = base64Decode(bytes);
@@ -335,6 +336,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 ),
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
+                    print('Debug: Creating artefact with soundBytes: ${soundBytes != null ? '${soundBytes!.length} bytes' : 'null'}');
                     widget.onSubmit(nameController.text, imageBytes, soundBytes);
                     Navigator.of(context).pop();
                   }
@@ -658,22 +660,32 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
       print('Debug: Audio data received: ${audioData != null ? '${audioData.length} bytes' : 'null'}');
 
-      // Audio is now saved on backend, we don't need to store bytes in frontend
-      // Update dialog state to show success
-      if (setDialogState != null) {
-        setDialogState(() {
+      if (audioData != null) {
+        // Store the generated TTS audio in both the main state and dialog state
+        _generatedTtsAudio = audioData;
+        
+        // Update main popup state
+        setState(() {
+          soundBytes = audioData; // This is what gets sent when creating artefact
           _showTextToSpeechField = false;
           _textToSpeechController.clear();
         });
+        
+        // Update dialog state to hide TTS field and show success
+        if (setDialogState != null) {
+          setDialogState(() {
+            soundBytes = audioData; // Update dialog's view of soundBytes too
+            _showTextToSpeechField = false;
+            _textToSpeechController.clear();
+          });
+        }
+        
+        _showSuccessMessage('Lyd genereret succesfuldt! Nu kan du tilføje artefaktet med lyden.');
+        // Close the sound modal dialog - the audio is now saved in soundBytes
+        Navigator.of(context).pop();
+      } else {
+        _showErrorMessage('Kunne ikke generere lyd fra backend API');
       }
-      setState(() {
-        _showTextToSpeechField = false;
-        _textToSpeechController.clear();
-      });
-      
-      _showSuccessMessage('Lyd genereret og gemt på serveren! Andre udviklere kan nu afspille den via API.');
-      // Close the sound modal dialog - the audio is saved on the backend
-      Navigator.of(context).pop();
     } catch (e, stackTrace) {
       print('Debug: Exception in _generateSpeechFromText: $e');
       print('Debug: Stack trace: $stackTrace');
@@ -730,8 +742,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
       print('Debug: Using token: ${token.substring(0, 20)}...');
 
-      // Call backend API to generate and save speech
-      final url = Uri.parse('http://localhost:5192/api/Users/Artefacts/generate-and-save-speech');
+      // Call backend API to generate speech
+      final url = Uri.parse('http://localhost:5192/api/Users/Artefacts/generate-speech-simple');
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -748,17 +760,11 @@ class _AddItemPopupState extends State<AddItemPopup> {
       final response = await http.post(url, headers: headers, body: body);
 
       print('Debug: Response status: ${response.statusCode}');
-      print('Debug: Response body: ${response.body}');
+      print('Debug: Response headers: ${response.headers}');
       
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        print('Debug: Success! Sound saved to: ${responseData['soundUrl']}');
-        print('Debug: Sound ID: ${responseData['soundId']}');
-        print('Debug: Audio size: ${responseData['audioSize']} bytes');
-        
-        // For now, return null since we're not storing audio bytes in frontend anymore
-        // The audio is saved on the backend and can be accessed via the soundUrl
-        return null;
+        print('Debug: Success! Audio data length: ${response.bodyBytes.length}');
+        return response.bodyBytes;
       } else if (response.statusCode == 401) {
         print('Debug: Authentication failed - token might be expired or invalid');
         throw Exception('Authentication failed. Please log in again.');

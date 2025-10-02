@@ -1,7 +1,11 @@
 // views/linear_board.dart
 
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:vta_app/src/singletons/token.dart';
 import '../../../controllers/linear_board_controller.dart';
 
 class LinearBoard extends StatefulWidget {
@@ -26,6 +30,7 @@ class LinearBoardState extends State<LinearBoard>
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -55,7 +60,36 @@ class LinearBoardState extends State<LinearBoard>
   @override
   void dispose() {
     _animationController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
+  }
+
+  /// Play audio for artefact if it has sound attached
+  Future<void> _playArtefactAudio(BoardArtefact artefact) async {
+    if (artefact.baseArtefact?.artefactId == null) return;
+    
+    try {
+      final token = GetIt.instance.get<Token>().value;
+      if (token == null) return;
+
+      final artefactId = artefact.baseArtefact!.artefactId!;
+      final audioUrl = 'http://localhost:5192/api/Users/Artefacts/$artefactId/play-audio';
+      
+      print('Debug: Playing audio for artefact $artefactId');
+      
+      // Set the audio source to the backend endpoint
+      await _audioPlayer.setUrl(audioUrl, headers: {
+        'Authorization': 'Bearer $token',
+      });
+      
+      // Play the audio
+      await _audioPlayer.play();
+      print('Debug: Audio playback started successfully');
+      
+    } catch (e) {
+      print('Debug: Error playing artefact audio: $e');
+      // Don't show error to user, just log it - this is optional functionality
+    }
   }
 
   /// Confirmation dialog for removing all artifacts on the board
@@ -188,6 +222,8 @@ class LinearBoardState extends State<LinearBoard>
           if (currentIndex != -1) {
             _linearBoardController.moveArtifact(currentIndex, index);
           }
+          // Play audio when artefact is placed on the board
+          _playArtefactAudio(details.data);
         },
         builder: (BuildContext context, List<BoardArtefact?> candidateData,
             List<dynamic> rejectedData) {
