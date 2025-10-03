@@ -22,6 +22,10 @@ class ArtifactBoardController {
   late LinearBoardController linearBoardController;
   int? linearBoardFieldCount;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlayingAllSounds = false;
+
+  // Getter for playing state
+  bool get isPlayingAllSounds => _isPlayingAllSounds;
 
   // Callback to notify the view to update UI
   final VoidCallback notifyView;
@@ -129,6 +133,107 @@ class ArtifactBoardController {
       talkingmatController.addArtifact(artifact);
     }
     notifyView();
+  }
+
+  /// Play all artefact sounds on the current board sequentially
+  Future<void> playAllArtefactSounds() async {
+    if (_isPlayingAllSounds) {
+      // If already playing, stop the current playback
+      await _audioPlayer.stop();
+      _isPlayingAllSounds = false;
+      notifyView();
+      return;
+    }
+
+    _isPlayingAllSounds = true;
+    notifyView();
+
+    try {
+      List<BoardArtefact> artefacts;
+      
+      // Get artefacts from the current board
+      if (showDirectional) {
+        // Linear board
+        print('Debug: ArtifactBoardController - Total artefacts on linear board: ${linearBoardController.artifacts.length}');
+        
+        // Debug each artefact
+        for (var artifact in linearBoardController.artifacts) {
+          if (artifact != null) {
+            print('Debug: ArtifactBoardController - Linear Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
+          }
+        }
+        
+        artefacts = linearBoardController.artifacts
+            .where((artifact) => artifact?.baseArtefact?.soundUrl?.isNotEmpty == true)
+            .cast<BoardArtefact>()
+            .toList();
+      } else {
+        // Talking mat
+        print('Debug: ArtifactBoardController - Total artefacts on talking mat: ${talkingmatController.value.length}');
+        
+        // Debug each artefact
+        for (var artifact in talkingmatController.value) {
+          print('Debug: ArtifactBoardController - TalkingMat Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
+        }
+        
+        artefacts = talkingmatController.value
+            .where((artifact) => artifact.baseArtefact?.soundUrl?.isNotEmpty == true)
+            .toList();
+      }
+
+      if (artefacts.isEmpty) {
+        print('Debug: ArtifactBoardController - No artefacts with sound found on the board');
+        _isPlayingAllSounds = false;
+        notifyView();
+        return;
+      }
+
+      print('Debug: ArtifactBoardController - Playing ${artefacts.length} artefact sounds sequentially');
+
+      for (var boardArtefact in artefacts) {
+        if (_isPlayingAllSounds) {
+          try {
+            final token = GetIt.instance.get<Token>().value;
+            
+            if (token != null) {
+              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              print('Debug: ArtifactBoardController - Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+              
+              // Fetch the audio data
+              final response = await http.get(
+                Uri.parse(audioUrl),
+                headers: {
+                  'Authorization': 'Bearer $token',
+                },
+              );
+              
+              if (response.statusCode == 200) {
+                // Set and play the audio
+                await _audioPlayer.setAudioSource(
+                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
+                );
+                
+                await _audioPlayer.play();
+                
+                // Wait for the audio to complete before playing the next one
+                await _audioPlayer.playerStateStream
+                    .firstWhere((state) => state.processingState == ProcessingState.completed);
+                
+                print('Debug: ArtifactBoardController - Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+              }
+            }
+          } catch (e) {
+            print('Debug: ArtifactBoardController - Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
+            // Continue to next artefact even if this one fails
+          }
+        }
+      }
+    } finally {
+      _isPlayingAllSounds = false;
+      notifyView();
+    }
+    
+    print('Debug: ArtifactBoardController - Finished playing all artefact sounds');
   }
 
   /// Dispose of resources

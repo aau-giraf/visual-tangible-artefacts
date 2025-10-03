@@ -30,6 +30,7 @@ class LinearBoardState extends State<LinearBoard>
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -90,6 +91,94 @@ class LinearBoardState extends State<LinearBoard>
       print('Debug: Error playing artefact audio: $e');
       // Don't show error to user, just log it - this is optional functionality
     }
+  }
+
+  /// Play all artefact sounds on the board sequentially
+  Future<void> _playAllArtefactSounds() async {
+    if (_isPlayingAllSounds) {
+      // If already playing, stop the current playback
+      await _audioPlayer.stop();
+      setState(() {
+        _isPlayingAllSounds = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isPlayingAllSounds = true;
+    });
+
+    print('Debug: LinearBoard - Total artefacts on board: ${_linearBoardController.artifacts.length}');
+    
+    // Debug each artefact
+    for (var artifact in _linearBoardController.artifacts) {
+      if (artifact != null) {
+        print('Debug: LinearBoard - Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
+      }
+    }
+    
+    final artefacts = _linearBoardController.artifacts
+        .where((artifact) => artifact?.baseArtefact?.soundUrl?.isNotEmpty == true)
+        .toList();
+
+    if (artefacts.isEmpty) {
+      print('Debug: LinearBoard - No artefacts with sound found on the board');
+      setState(() {
+        _isPlayingAllSounds = false;
+      });
+      return;
+    }
+
+    print('Debug: Playing ${artefacts.length} artefact sounds sequentially');
+
+    try {
+      for (var boardArtefact in artefacts) {
+        if (boardArtefact != null && _isPlayingAllSounds) {
+          try {
+            final token = GetIt.instance.get<Token>().value;
+            
+            if (token != null) {
+              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+              
+              // Fetch audio data with proper authentication
+              final response = await http.get(
+                Uri.parse(audioUrl),
+                headers: {
+                  'Authorization': 'Bearer $token',
+                },
+              );
+              
+              if (response.statusCode == 200) {
+                // Set audio source from bytes and play
+                await _audioPlayer.setAudioSource(
+                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
+                );
+                await _audioPlayer.play();
+              } else {
+                print('Debug: Failed to fetch audio - Status: ${response.statusCode}');
+                continue; // Skip to next artefact
+              }
+              
+              // Wait for the audio to complete before playing the next one
+              await _audioPlayer.playerStateStream
+                  .firstWhere((state) => state.processingState == ProcessingState.completed);
+              
+              print('Debug: Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+            }
+          } catch (e) {
+            print('Debug: Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
+            // Continue to next artefact even if this one fails
+          }
+        }
+      }
+    } finally {
+      setState(() {
+        _isPlayingAllSounds = false;
+      });
+    }
+    
+    print('Debug: Finished playing all artefact sounds');
   }
 
   /// Confirmation dialog for removing all artifacts on the board
@@ -174,6 +263,7 @@ class LinearBoardState extends State<LinearBoard>
           alignment: Alignment.bottomCenter,
           child: _buildInteractiveTrashcan(context),
         ),
+
       ],
     );
   }
