@@ -76,16 +76,18 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
-        onSubmit: (name, imageBytes) {
+        onSubmit: (name, imageBytes) async {
           try {
             var newArtefact = Artefact(
                 categoryId: categoryId,
                 artefactIndex: 0,
                 userId: GetIt.I.get<UserInfo>().userId,
                 image: imageBytes);
-            _model.postArtefact(newArtefact,
+            await _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
-            _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+            if (context.mounted) {
+              _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+            }
             notifyListeners();
           } catch (e) {
             if (context.mounted) {
@@ -103,7 +105,8 @@ class ArtefactController extends ChangeNotifier {
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
-        _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+        await _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+        notifyListeners();
       });
       if (context.mounted) {
         _showSuccessActionSnackBar(context, "Artefact slettet");
