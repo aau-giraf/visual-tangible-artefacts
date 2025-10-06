@@ -22,7 +22,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
 
-  // Finding artifact center and showing wheel
+  // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
     _showPersistentWheel();
   }
@@ -42,13 +42,49 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     final RenderBox artifactBox = artifactContext.findRenderObject() as RenderBox;
     _artifactCenterGlobal = artifactBox.localToGlobal(artifactBox.size.center(Offset.zero));
 
-    // Create overlay
+    // create overlay
     _overlayEntry = OverlayEntry(builder: (context) {
-      // Fallback sizes (if this happens... fix it)
+
+      // fallback sizes (if this happens... fix it)
       final double fallbackWidth = (150 + 90 / 2 + 30) * 2;
       final Size ws = _wheelSize ?? Size(fallbackWidth, fallbackWidth);
   final double left = _artifactCenterGlobal!.dx - ws.width / 2;
   final double top = _artifactCenterGlobal!.dy - ws.height / 2;
+
+      // decides orientation for overflow
+      final media = MediaQuery.of(context).size;
+      final double candidateLeft = _artifactCenterGlobal!.dx - ws.width / 2;
+      final double candidateTop = _artifactCenterGlobal!.dy - ws.height / 2;
+
+  final bool overflowLeft = candidateLeft < -50;
+  final bool overflowRight = candidateLeft + ws.width > media.width;
+  final bool overflowTop = candidateTop < -80;
+  final bool overflowBottom = candidateTop + ws.height > media.height;
+      // Default
+      double centerAngleDeg = 0;
+
+      // board edge overflow
+      if (overflowLeft && overflowTop) {
+        centerAngleDeg = 135; // top-left board edge
+      } else if (overflowRight && overflowTop) {
+        centerAngleDeg = -135; // top-right board edge
+      } else if (overflowLeft && overflowBottom) {
+        centerAngleDeg = 45; // bottom-left board edge
+      } else if (overflowRight && overflowBottom) {
+        centerAngleDeg = -45; // bottom-right board edge
+      } else if (overflowLeft) {
+        centerAngleDeg = 90; // right board edge
+      } else if (overflowRight) {
+        centerAngleDeg = -90; // left board edge
+      } else if (overflowTop) {
+        centerAngleDeg = 180; // bottom board edge
+      }
+
+      // uses a semicircle and adjust by the angledeg based on border overflow
+      final double arcHalf = 90.0;
+      final double startDegrees = centerAngleDeg - arcHalf;
+      final double endDegrees = centerAngleDeg + arcHalf;
+
       return Stack(children: [
         Positioned.fill(
           child: GestureDetector(
@@ -65,6 +101,8 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             child: OptionWheel(
               key: _optionWheelKey,
               onPressed: _hidePersistentWheel,
+              startDegrees: startDegrees,
+              endDegrees: endDegrees,
             ),
           ),
         ),
@@ -83,7 +121,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
       }
     });
   }
-  // Remove the overlay wheel
+  // removes the overlay wheel
   void _hidePersistentWheel() {
     _overlayEntry?.remove();
     _overlayEntry = null;
