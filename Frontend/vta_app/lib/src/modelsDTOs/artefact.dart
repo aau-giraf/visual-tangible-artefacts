@@ -12,6 +12,7 @@ class Artefact implements JsonSerializable {
   String? soundUrl;
   Uint8List? image;
   Uint8List? sound;
+  String? name;
   
   Artefact({
     this.artefactIndex,
@@ -22,6 +23,7 @@ class Artefact implements JsonSerializable {
     this.userId,
     this.image,
     this.sound,
+    this.name,
   });
 
     String get displayName => artefactId ?? 'Artefact #${artefactIndex ?? ''}';
@@ -40,7 +42,9 @@ class Artefact implements JsonSerializable {
       sound: json['sound'] != null
           ? Uint8List.fromList(json['sound'].cast<int>())
           : null,
+      name: json['name'] as String?
     );
+
   }
 
   @override
@@ -54,6 +58,7 @@ class Artefact implements JsonSerializable {
       'soundUrl': soundUrl,
       'image': image,
       'sound': sound,
+      'name': name,
     };
   }
 }

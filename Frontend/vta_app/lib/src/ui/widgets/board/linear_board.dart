@@ -6,7 +6,6 @@ import '../../../controllers/linear_board_controller.dart';
 import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
-
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
   final LinearBoardController linearBoardController;

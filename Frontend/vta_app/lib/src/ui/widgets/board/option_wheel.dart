@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:get_it/get_it.dart';
 
 class OptionWheel extends StatefulWidget {
   final VoidCallback? onPressed;
@@ -73,7 +75,10 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     _OptionWheelButton(
       icon: Icons.radio_button_checked,
       label: 'Test',
-      onPressed: () {},
+      onPressed: () async {
+          final controller = GetIt.I.get<ArtefactController>();
+          String artefactName = await controller.getArtifactName(widget.artefactId);
+          print(artefactName),
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(
@@ -207,6 +212,7 @@ class _OptionWheelButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final double? preferredWidth;
+
   const _OptionWheelButton({
     required this.icon,
     required this.label,
@@ -259,5 +265,3 @@ class _OptionWheelButtonState extends State<_OptionWheelButton> {
     );
   }
 }
-
-
