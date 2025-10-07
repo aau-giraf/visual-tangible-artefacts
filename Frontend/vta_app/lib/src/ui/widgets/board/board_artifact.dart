@@ -14,6 +14,8 @@ class BoardArtefact {
     this.baseArtefact,
   }) : key = GlobalKey();
 
+  String get artefactId => baseArtefact?.artefactId ?? '';
+
   factory BoardArtefact.fromArtefact(Artefact artefact,
       {Map<String, String>? headers}) {
     return BoardArtefact(

@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:get_it/get_it.dart';
 
+
+
 class OptionWheel extends StatefulWidget {
+  final String artefactId;
   final VoidCallback? onPressed;
   final double startDegrees;
   final double endDegrees;
   final double baseRadius;
   final double verticalNudge;
 
-// wheel nudge
+  // wheel nudge
   const OptionWheel({
     Key? key,
+    required this.artefactId,
     this.onPressed,
     this.startDegrees = -80,
     this.endDegrees = 80,
@@ -78,7 +82,8 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
       onPressed: () async {
           final controller = GetIt.I.get<ArtefactController>();
           String artefactName = await controller.getArtifactName(widget.artefactId);
-          print(artefactName),
+          print(artefactName);
+      },
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(

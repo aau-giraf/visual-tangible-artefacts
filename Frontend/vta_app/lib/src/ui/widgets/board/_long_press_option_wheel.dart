@@ -100,6 +100,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             color: Colors.transparent,
             child: OptionWheel(
               key: _optionWheelKey,
+              artefactId: widget.artifact.artefactId,
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
               endDegrees: endDegrees,
