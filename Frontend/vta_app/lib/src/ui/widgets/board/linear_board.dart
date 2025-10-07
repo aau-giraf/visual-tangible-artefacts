@@ -205,11 +205,6 @@ class LinearBoardState extends State<LinearBoard>
                 ]
               ],
             ),
-            for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
-              _buildBox(context, _linearBoardController.artifacts[i], i),
-              if (i < _linearBoardController.fieldCount - 1)
-                _buildVerticalDivider(context),
-            ]
           ],
         ),
       ),
@@ -267,6 +262,7 @@ class LinearBoardState extends State<LinearBoard>
           child: artifact.content,
         ),
         child: Container(
+          key: artifact.key,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),

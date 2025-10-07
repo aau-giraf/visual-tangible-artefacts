@@ -16,7 +16,7 @@ class OptionWheel extends StatefulWidget {
     this.onPressed,
     this.startDegrees = -80,
     this.endDegrees = 80,
-    this.baseRadius = 180,
+    this.baseRadius = 165,
     this.verticalNudge = 0,
   }) : super(key: key);
 
@@ -44,16 +44,16 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
 
-  // radius and center marker
+  // radius and center marker (this is for seeing if wheel is centered, put larger than 0 to see)
   final double baseRadius = widget.baseRadius;
   double radius = baseRadius;
-  final double centerSize = 5;
+  final double centerSize = 0;
   final double startDegrees = widget.startDegrees;
   final double endDegrees = widget.endDegrees;
 
   // wheel nudge from center
   final double wheelOffsetLeft = 0;
-  final double wheelOffsetTop = 40;
+  final double wheelOffsetTop = 70;
 
   // button size (width)
   final double buttonSize = 90;
@@ -75,10 +75,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     _OptionWheelButton(
       icon: Icons.radio_button_checked,
       label: 'Test',
-      onPressed: () async {
-          final controller = GetIt.I.get<ArtefactController>();
-          String artefactName = await controller.getArtifactName(widget.artefactId);
-          print(artefactName),
+      onPressed: () {},
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(
@@ -117,11 +114,11 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
             for (int i = 0; i < buttonCount; i++) {
               final double angleDeg = startDegrees + degreesStep * i;
               final double leftPos = (WheelWidth / 2) + animatedRadius * math.cos(angleDeg * math.pi / 180 - math.pi / 2) - buttonSize / 2 + wheelOffsetLeft;
-              double topPos = (WheelHeight / 2) + animatedRadius * math.sin(angleDeg * math.pi / 180 - math.pi / 2) + widget.verticalNudge + wheelOffsetTop;
-              // If the button is near the wheel's left or right edge, nudge it up
+              double topPos = (WheelHeight / 2) + animatedRadius * math.sin(angleDeg * math.pi / 180 - math.pi / 2) + widget.verticalNudge + wheelOffsetTop + 5;
+              // if the button is near the wheel's left or right edge, nudge it up
               // slightly to avoid visual clipping with the board edge.
-              const double horizontalEdgeThreshold = 20.0;
-              const double upwardNudge = -15.0; // negative to move up
+              const double horizontalEdgeThreshold = 300;
+              const double upwardNudge = -40.0; // negative to move up
               final bool nearLeftEdge = leftPos < horizontalEdgeThreshold;
               final bool nearRightEdge = leftPos + buttonSize > WheelWidth - horizontalEdgeThreshold;
               if (nearLeftEdge || nearRightEdge) {
@@ -161,6 +158,22 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
             }
             _entries.sort((a, b) => (a['top'] as double).compareTo(b['top'] as double));
             final List<Widget> childrenWidgets = _entries.map<Widget>((e) => e['widget'] as Widget).toList();
+
+            // background arc
+              childrenWidgets.insert(
+                0,
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _ArcBackgroundPainter(
+                      radius: animatedRadius,
+                      startDegrees: startDegrees,
+                      endDegrees: endDegrees,
+                      wheelOffsetLeft: wheelOffsetLeft,
+                      wheelOffsetTop: wheelOffsetTop - 20,
+                    ),
+                  ),
+                ),
+              );
 
             // Center artefact for centering (remove when not needed)
             childrenWidgets.add(
@@ -203,6 +216,46 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
         ),
       ),
     );
+  }
+}
+// background arc painter
+class _ArcBackgroundPainter extends CustomPainter {
+  final double radius;
+  final double startDegrees;
+  final double endDegrees;
+  final double wheelOffsetLeft;
+  final double wheelOffsetTop;
+
+  _ArcBackgroundPainter({
+    required this.radius,
+    required this.startDegrees,
+    required this.endDegrees,
+    required this.wheelOffsetLeft,
+    required this.wheelOffsetTop,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = const Color.fromARGB(80, 0, 0, 0) 
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 45
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2 + wheelOffsetLeft, size.height / 2 + wheelOffsetTop);
+    final Rect rect = Rect.fromCircle(center: center, radius: radius);
+
+    final double startRad = (startDegrees - 90) * math.pi / 180;
+    final double sweepRad = (endDegrees - startDegrees) * math.pi / 180;
+
+    canvas.drawArc(rect, startRad, sweepRad, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(_ArcBackgroundPainter oldDelegate) {
+    return oldDelegate.radius != radius ||
+        oldDelegate.startDegrees != startDegrees ||
+        oldDelegate.endDegrees != endDegrees;
   }
 }
 
