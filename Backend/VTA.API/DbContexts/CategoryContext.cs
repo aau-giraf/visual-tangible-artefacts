@@ -18,6 +18,8 @@ public partial class CategoryContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; }
 
+    // ...existing code...
+
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -122,6 +124,5 @@ public partial class CategoryContext : DbContext
 
         OnModelCreatingPartial(modelBuilder);
     }
-
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

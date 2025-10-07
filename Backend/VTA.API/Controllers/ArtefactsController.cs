@@ -96,6 +96,18 @@ public class ArtefactsController : ControllerBase
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
             ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
         }
+        if (dto.Sound != null)
+        {
+            // Delete any existing sound for this artefact
+            try
+            {
+                SoundUtilities.DeleteSound(artefact.ArtefactId);
+            }
+            catch { }
+            // Save sound file using SoundUtilities: ArtefactId + extension in Assets/Sounds
+            var soundPath = SoundUtilities.AddSound(dto.Sound, artefact.ArtefactId);
+            artefact.SoundPath = soundPath;
+        }
 
         _context.Entry(artefact).State = EntityState.Modified;
 
@@ -146,7 +158,13 @@ public class ArtefactsController : ControllerBase
 
         string artefactId = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
+        string? soundUrl = null;
+        if (artefactPostDTO.Sound != null)
+        {
+            soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId);
+        }
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
+        artefact.SoundPath = soundUrl;
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
         
@@ -204,11 +222,131 @@ public class ArtefactsController : ControllerBase
             return Forbid();
         }
         ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+        // Also remove associated sound file if present
+        try
+        {
+            SoundUtilities.DeleteSound(artefact.ArtefactId);
+        }
+        catch { }
 
         _context.Artefacts.Remove(artefact);
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Generate speech from text for an artefact using ElevenLabs API
+    /// </summary>
+    /// <param name="ttsDto">Text-to-speech request data</param>
+    /// <returns>
+    /// Status code 200 (Ok) with the updated artefact on success<br />
+    /// Status code 400 (Bad Request) if the request is invalid<br />
+    /// Status code 403 (Forbidden) if the user doesn't own the artefact<br />
+    /// Status code 404 (Not Found) if the artefact doesn't exist<br />
+    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
+    /// </returns>
+    [HttpPost("generate-speech")]
+    public async Task<ActionResult<ArtefactGetDTO>> GenerateSpeech(ArtefactTextToSpeechDTO ttsDto)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        // Find the artefact
+        var artefact = await _context.Artefacts.FindAsync(ttsDto.ArtefactId);
+        if (artefact == null)
+        {
+            return NotFound("Artefact not found");
+        }
+
+        // Check ownership
+        if (userId != artefact.UserId)
+        {
+            return Forbid();
+        }
+
+        // Validate text input
+        if (string.IsNullOrWhiteSpace(ttsDto.Text))
+        {
+            return BadRequest("Text cannot be empty");
+        }
+
+        try
+        {
+            // Get ElevenLabs API key from configuration
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = configuration["ElevenLabs:ApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, "ElevenLabs API key not configured");
+            }
+
+            // Create ElevenLabs service
+            var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
+
+            // Generate speech
+            var audioData = await elevenLabsService.GenerateSpeechAsync(
+                text: ttsDto.Text,
+                voiceId: ttsDto.VoiceId,
+                modelId: ttsDto.ModelId,
+                stability: ttsDto.Stability,
+                similarityBoost: ttsDto.SimilarityBoost,
+                useSpeakerBoost: ttsDto.UseSpeakerBoost
+            );
+
+            if (audioData == null)
+            {
+                return StatusCode(500, "Failed to generate speech from ElevenLabs API");
+            }
+
+            // Delete any existing sound for this artefact
+            try
+            {
+                SoundUtilities.DeleteSound(artefact.ArtefactId);
+            }
+            catch { }
+
+            // Save the generated audio as a temporary file
+            var tempFileName = $"{artefact.ArtefactId}.mp3";
+            var tempFilePath = Path.GetTempFileName();
+            await System.IO.File.WriteAllBytesAsync(tempFilePath, audioData);
+
+            // Create a form file from the audio data
+            using var stream = new MemoryStream(audioData);
+            var formFile = new FormFile(stream, 0, audioData.Length, "sound", tempFileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "audio/mpeg"
+            };
+
+            // Save using existing sound utilities
+            var soundPath = SoundUtilities.AddSound(formFile, artefact.ArtefactId);
+            if (soundPath != null)
+            {
+                artefact.SoundPath = soundPath;
+                artefact.ModifiedDate = DateTime.UtcNow;
+                
+                _context.Entry(artefact).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+            }
+
+            // Clean up temp file
+            try
+            {
+                System.IO.File.Delete(tempFilePath);
+            }
+            catch { }
+
+            // Return updated artefact
+            var updatedArtefactDto = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
+            return Ok(updatedArtefactDto);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred while generating speech: {ex.Message}");
+        }
     }
 
     private bool ArtefactExists(string id)

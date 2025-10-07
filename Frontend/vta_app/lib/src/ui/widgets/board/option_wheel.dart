@@ -3,122 +3,228 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:get_it/get_it.dart';
 
-
 class OptionWheel extends StatefulWidget {
-  final String artefactId;
   final VoidCallback? onPressed;
+  final double startDegrees;
+  final double endDegrees;
+  final double baseRadius;
+  final double verticalNudge;
+
+// wheel nudge
   const OptionWheel({
     Key? key,
-    required this.artefactId,
     this.onPressed,
+    this.startDegrees = -80,
+    this.endDegrees = 80,
+    this.baseRadius = 180,
+    this.verticalNudge = 0,
   }) : super(key: key);
 
   @override
   _OptionWheelState createState() => _OptionWheelState();
 }
 
-class _OptionWheelState extends State<OptionWheel> {
+// states for the option wheel
+class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 360));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Buttons for the wheel
-    final options = [
-      _OptionWheelButton(
-        icon: Icons.radio_button_checked,
-        label: 'Audio',
-        onPressed: () {},
-      ),
-      _OptionWheelButton(
-        icon: Icons.radio_button_checked,
-        label: 'Random',
-        onPressed: () {},
-      ),
-      _OptionWheelButton(
-        icon: Icons.radio_button_checked,
-        label: 'Vis Artefakt Navn',
-        onPressed: () async {
+
+  // radius and center marker
+  final double baseRadius = widget.baseRadius;
+  double radius = baseRadius;
+  final double centerSize = 5;
+  final double startDegrees = widget.startDegrees;
+  final double endDegrees = widget.endDegrees;
+
+  // wheel nudge from center
+  final double wheelOffsetLeft = 0;
+  final double wheelOffsetTop = 40;
+
+  // button size (width)
+  final double buttonSize = 90;
+
+  // buttons for the wheel
+  final options = [
+    _OptionWheelButton(
+      icon: Icons.radio_button_checked,
+      label: 'Audio',
+      onPressed: () {},
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.radio_button_checked,
+      label: 'Random',
+      onPressed: () {},
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.radio_button_checked,
+      label: 'Test',
+      onPressed: () async {
           final controller = GetIt.I.get<ArtefactController>();
           String artefactName = await controller.getArtifactName(widget.artefactId);
-          print(artefactName);
-        },
-      ),
-      _OptionWheelButton(
-        icon: Icons.radio_button_checked,
-        label: 'Remove',
-        onPressed: () {},
-      ),
-      _OptionWheelButton(
-        icon: Icons.radio_button_checked,
-        label: 'Combine',
-        onPressed: () {},
-      ),
-    ];
-    final int buttonCount = options.length;
+          print(artefactName),
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.radio_button_checked,
+      label: 'Remove',
+      onPressed: () {},
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.radio_button_checked,
+      label: 'Combine',
+      onPressed: () {},
+      preferredWidth: buttonSize,
+    ),
+  ];
+  final int buttonCount = options.length;
+  final double degreesStep = buttonCount > 1 ? (endDegrees - startDegrees) / (buttonCount - 1) : 0.0;
 
-    final double baseRadius = 120;
-    final double radius = baseRadius;
-    final double centerSize = 5;
-    final double angleStep = 2 * math.pi / buttonCount;
+  // wheel dimensions
+  final double WheelWidth = ((radius + buttonSize / 2 + 30) * 2);
+    final double WheelHeight = WheelWidth;
 
-    // Wheel offset to center
-    final double wheelOffsetLeft = -120;
-    final double wheelOffsetTop = -30;
-
-    final double buttonSize = 90;
-  final double wheelWidth = ((radius + buttonSize / 2 + 30) * 2);
-    final double wheelHeight = ((radius + buttonSize / 2 + 30) * 2);
-
+    // animation for buttons (go from center to radius) vibe
     return Material(
       color: Colors.transparent,
       child: SizedBox(
-        width: wheelWidth,
-        height: wheelHeight,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Option buttons in a circle
-            for (int i = 0; i < buttonCount; i++)
+        width: WheelWidth,
+        height: WheelHeight,
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (context, _) {
+            final double t = Curves.easeOut.transform(_ctrl.value);
+            final double animatedRadius = radius * t;
+
+            final List<Map<String, dynamic>> _entries = [];
+            for (int i = 0; i < buttonCount; i++) {
+              final double angleDeg = startDegrees + degreesStep * i;
+              final double leftPos = (WheelWidth / 2) + animatedRadius * math.cos(angleDeg * math.pi / 180 - math.pi / 2) - buttonSize / 2 + wheelOffsetLeft;
+              double topPos = (WheelHeight / 2) + animatedRadius * math.sin(angleDeg * math.pi / 180 - math.pi / 2) + widget.verticalNudge + wheelOffsetTop;
+              // If the button is near the wheel's left or right edge, nudge it up
+              // slightly to avoid visual clipping with the board edge.
+              const double horizontalEdgeThreshold = 20.0;
+              const double upwardNudge = -15.0; // negative to move up
+              final bool nearLeftEdge = leftPos < horizontalEdgeThreshold;
+              final bool nearRightEdge = leftPos + buttonSize > WheelWidth - horizontalEdgeThreshold;
+              if (nearLeftEdge || nearRightEdge) {
+                topPos += upwardNudge;
+              }
+
+              // per-button staggered scale + opacity
+              final double startInterval = (i * 0.08).clamp(0.0, 0.8);
+              final double endInterval = (startInterval + 0.45).clamp(0.0, 1.0);
+              final Animatable<double> scaleTween = Tween(begin: 0.6, end: 1.0)
+                  .chain(CurveTween(curve: Interval(startInterval, endInterval, curve: Curves.easeOut)));
+              final Animatable<double> opacityTween = Tween(begin: 0.0, end: 1.0)
+                  .chain(CurveTween(curve: Interval(startInterval, endInterval, curve: Curves.easeOut)));
+
+              final Animation<double> scaleAnim = _ctrl.drive(scaleTween);
+              final Animation<double> opacityAnim = _ctrl.drive(opacityTween);
+
+              final Widget positionedWidget = Positioned(
+                left: leftPos,
+                top: topPos,
+                width: buttonSize,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: 60, maxWidth: buttonSize),
+                    child: FadeTransition(
+                      opacity: opacityAnim,
+                      child: ScaleTransition(
+                        scale: scaleAnim,
+                        child: options[i],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              _entries.add({'left': leftPos, 'top': topPos, 'widget': positionedWidget});
+            }
+            _entries.sort((a, b) => (a['top'] as double).compareTo(b['top'] as double));
+            final List<Widget> childrenWidgets = _entries.map<Widget>((e) => e['widget'] as Widget).toList();
+
+            // Center artefact for centering (remove when not needed)
+            childrenWidgets.add(
               Positioned(
-                left: (wheelWidth / 2) + radius * math.cos(angleStep * i - math.pi / 2) - buttonSize / 2 + wheelOffsetLeft,
-                top: (wheelHeight / 2) + radius * math.sin(angleStep * i - math.pi / 2) - 22 + wheelOffsetTop,
-                child: options[i],
-              ),
-            // Center artefact for centering for now (no shadow)
-            Positioned(
-              left: (wheelWidth / 2) - centerSize / 2 + wheelOffsetLeft,
-              top: (wheelHeight / 2) - centerSize / 2 + wheelOffsetTop,
-              child: Container(
-                width: centerSize,
-                height: centerSize,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
+                left: (WheelWidth / 2) - centerSize / 2 + wheelOffsetLeft,
+                top: (WheelHeight / 2) - centerSize / 2 + wheelOffsetTop,
+                child: Container(
+                  width: centerSize,
+                  height: centerSize,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
-          ],
+            );
+
+            // button hit rects (to dismiss wheel)
+            final List<Rect> _buttonRects = _entries.map((e) {
+              final double left = e['left'] as double;
+              final double top = e['top'] as double;
+              return Rect.fromLTWH(left, top, buttonSize, buttonSize);
+            }).toList();
+
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (details) {
+                final local = details.localPosition;
+                final bool tappedOnButton = _buttonRects.any((r) => r.contains(local));
+                if (!tappedOnButton) {
+                  widget.onPressed?.call();
+                }
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: childrenWidgets,
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-
+// button option in the wheel requrements, else throws error
 class _OptionWheelButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+  final double? preferredWidth;
 
   const _OptionWheelButton({
     required this.icon,
     required this.label,
     this.onPressed,
+    this.preferredWidth,
   });
 
   @override
   State<_OptionWheelButton> createState() => _OptionWheelButtonState();
 }
 
+// button style
 class _OptionWheelButtonState extends State<_OptionWheelButton> {
   @override
   Widget build(BuildContext context) {
@@ -159,4 +265,3 @@ class _OptionWheelButtonState extends State<_OptionWheelButton> {
     );
   }
 }
-

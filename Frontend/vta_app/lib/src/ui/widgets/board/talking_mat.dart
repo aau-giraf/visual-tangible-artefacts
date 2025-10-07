@@ -186,11 +186,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           scale: 1.2,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.2),
+                              color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
                               boxShadow: [
                                 BoxShadow(
-                                  blurRadius: 15,
-                                  spreadRadius: 5,
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  spreadRadius: 0,
                                   offset: const Offset(0, 4),
                                 ),
                               ],

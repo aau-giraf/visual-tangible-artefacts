@@ -49,6 +49,20 @@ public class AssetsController : ControllerBase
         var fileBytes = System.IO.File.ReadAllBytes(imagePath);
         return File(fileBytes, "image/jpeg");
     }
+
+    // GET: api/Assets/Sounds/file
+    [HttpGet("Sounds/{filepath}")]
+    public IActionResult GetSoundFile(string filepath)
+    {
+        var soundPath = $"Assets/Sounds/{filepath}";
+        if (!System.IO.File.Exists(soundPath))
+        {
+            return NotFound();
+        }
+        var fileBytes = System.IO.File.ReadAllBytes(soundPath);
+        // set a generic audio content type; the frontend can handle playback
+        return File(fileBytes, "audio/mpeg");
+    }
     
 
 }
