@@ -27,7 +27,7 @@ class AddItemPopup extends StatefulWidget {
     required this.isCategory,
     required this.onSubmit,
     this.category,
-    this.title = 'Tilføj kategori',
+    required this.title,
   });
 
   @override
@@ -277,7 +277,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildButton(
-                    'Tag nyt billede', 'assets/images/camera_icon_filled.png',
+                    'Tag billede', 'assets/images/camera_icon_filled.png',
                     onClick: _onTakePictureButtonPressed),
                 SizedBox(width: 16),
                 _buildButton('Upload', 'assets/images/folder_icon.png',
