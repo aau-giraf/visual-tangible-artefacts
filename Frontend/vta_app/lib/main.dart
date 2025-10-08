@@ -52,7 +52,8 @@ void main() async {
       AuthController(AuthModel(apiProvider, token, userInfo));
 
   final ArtefactController artifactController =
-      ArtefactController(ArtifactModel(apiProvider));
+    ArtefactController(ArtifactModel(apiProvider));
+  GetIt.I.registerSingleton<ArtefactController>(artifactController);
     
   final ElevenLabsController elevenLabsController = ElevenLabsController();
   

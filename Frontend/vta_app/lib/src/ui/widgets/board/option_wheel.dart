@@ -7,7 +7,10 @@ import 'package:get_it/get_it.dart';
 
 class OptionWheel extends StatefulWidget {
   final String artefactId;
+  final String artefactName;
   final VoidCallback? onPressed;
+  final bool showName;
+  final ValueChanged<bool>? onToggleName;
   final double startDegrees;
   final double endDegrees;
   final double baseRadius;
@@ -17,6 +20,9 @@ class OptionWheel extends StatefulWidget {
   const OptionWheel({
     Key? key,
     required this.artefactId,
+    required this.artefactName,
+    required this.showName,
+    this.onToggleName,
     this.onPressed,
     this.startDegrees = -80,
     this.endDegrees = 80,
@@ -37,6 +43,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 360));
     _ctrl.forward();
+    // No need to fetch artefact name, it's passed in
   }
 
   @override
@@ -78,11 +85,9 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     ),
     _OptionWheelButton(
       icon: Icons.radio_button_checked,
-      label: 'Test',
-      onPressed: () async {
-          final controller = GetIt.I.get<ArtefactController>();
-          String artefactName = await controller.getArtifactName(widget.artefactId);
-          print(artefactName);
+      label: widget.showName ? 'Skjul Navn' : 'Vis Navn',
+      onPressed: () {
+        widget.onToggleName?.call(!widget.showName);
       },
       preferredWidth: buttonSize,
     ),
@@ -166,6 +171,8 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
             }
             _entries.sort((a, b) => (a['top'] as double).compareTo(b['top'] as double));
             final List<Widget> childrenWidgets = _entries.map<Widget>((e) => e['widget'] as Widget).toList();
+            
+            // Name display is now handled by parent
 
             // Center artefact for centering (remove when not needed)
             childrenWidgets.add(

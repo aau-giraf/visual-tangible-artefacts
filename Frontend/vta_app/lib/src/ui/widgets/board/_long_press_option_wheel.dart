@@ -21,17 +21,62 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
+  bool _showName = false;
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
+    // Print the artefact name to the console as an example
+    final artefactName = widget.artifact.baseArtefact?.name ?? 'Unknown';
+    debugPrint('Long pressed artefact: $artefactName');
+    _showPersistentWheel();
     _showPersistentWheel();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPressStart: _onLongPressStart,
-      child: widget.child,
+    return Stack(
+      children: [
+        GestureDetector(
+          onLongPressStart: _onLongPressStart,
+          child: widget.child,
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: AnimatedOpacity(
+            opacity: _showName ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: Container(
+              alignment: Alignment.topCenter,
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                widget.artifact.baseArtefact?.name ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -101,6 +146,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             child: OptionWheel(
               key: _optionWheelKey,
               artefactId: widget.artifact.artefactId,
+              artefactName: widget.artifact.baseArtefact?.name ?? '',
+              showName: _showName,
+              onToggleName: (val) {
+                setState(() {
+                  _showName = val;
+                });
+              },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
               endDegrees: endDegrees,
@@ -127,5 +179,8 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _wheelSize = null;
+    setState(() {
+      _showName = false;
+    });
   }
 }
