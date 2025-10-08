@@ -350,7 +350,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 onPressed: _canSubmit()
                     ? () {
                         if (formKey.currentState!.validate()) {
-                          widget.onSubmit(nameController.text, imageBytes, soundBytes);
+                          // Categories shouldn't include soundBytes
+                          final Uint8List? sendSound = widget.isCategory ? null : soundBytes;
+                          widget.onSubmit(nameController.text, imageBytes, sendSound);
                           Navigator.of(context).pop();
                         }
                       }
