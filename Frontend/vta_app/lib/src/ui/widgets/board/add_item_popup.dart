@@ -592,7 +592,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                         TextField(
                           controller: _textToSpeechController,
                           maxLines: 3,
-                          maxLength: 30,
+                          maxLength: 50,
                           onChanged: (text) {
                             // Trigger rebuild when text changes to enable/disable button
                             setDialogState(() {});
