@@ -13,10 +13,6 @@ class LinearBoardController extends ChangeNotifier {
     required this.fieldCount,
   });
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   /// Function for adding an artifact to the board. An index of location can be provided, if available
   void addArtifact(BoardArtefact artifact, {int? index}) {

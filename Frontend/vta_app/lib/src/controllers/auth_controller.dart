@@ -61,6 +61,11 @@ class AuthController extends ChangeNotifier {
           name: name,
           guardianKey: guardianKey);
       await _model.signup(form);
+      if (context != null && context.mounted) {
+        _showSuccessSnackBar(context, 'Bruger oprettet succesfuldt! Du kan nu logge ind.');
+        // Switch back to login form
+        Navigator.of(context).pushReplacementNamed(LoginView.routeName);
+      }
     } catch (e) {
       if (context != null && context.mounted) {
         _showErrorSnackBar(context, e.toString());
@@ -70,8 +75,8 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Shows a dialog to confirm the logout action
-  /// redirects to the login page given by [LoginView.routeName]
+  /// Viser en dialog for at bekræfte udlogningen
+  /// Omdirigerer til login siden givet af [LoginView.routeName]
   Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
     await showDialog(
       context: context,
@@ -99,10 +104,17 @@ class AuthController extends ChangeNotifier {
     );
   }
 
-  /// Shows a snackbar with an error message
+  /// Viser en snackbar med en fejl meddelelse
   void _showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     GlobalSnackbar.show(context, message,
         color: Colors.white, iconColor: Colors.red);
+  }
+
+  /// Viser en snackbar med en succes meddelelse
+  void _showSuccessSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    GlobalSnackbar.show(context, message,
+        color: Colors.white, iconColor: Colors.green);
   }
 }

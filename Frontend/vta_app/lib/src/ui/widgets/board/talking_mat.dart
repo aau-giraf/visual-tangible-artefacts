@@ -218,19 +218,22 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         position: _offsetAnimation,
                         child: _showDeleteHover
                             ? buildTrashCan(
-                                height: 30,
-                                width: 30,
+                                height: MediaQuery.of(context).size.width > 600 ? 30 : 25,
+                                width: MediaQuery.of(context).size.width > 600 ? 30 : 25,
                                 color: const Color.fromARGB(255, 235, 32, 18))
                             : null),
                     GestureDetector(
                       onTap: () {
                         widget.controller.removeAllArtifacts(context: context);
                       },
-                      child: DragTarget<BoardArtefact>(
+                        child: DragTarget<BoardArtefact>(
                         builder: (context, data, rejectedData) {
+                          double screenWidth = MediaQuery.of(context).size.width;
+                          double baseSize = screenWidth > 600 ? 50 : 35;
+                          double expandedSize = screenWidth > 600 ? 120 : 80;
                           return buildTrashCan(
-                            height: _isDraggingOverTrashCan ? 120 : 50,
-                            width: _isDraggingOverTrashCan ? 120 : 50,
+                            height: _isDraggingOverTrashCan ? expandedSize : baseSize,
+                            width: _isDraggingOverTrashCan ? expandedSize : baseSize,
                           );
                         },
                         onAcceptWithDetails: (details) {

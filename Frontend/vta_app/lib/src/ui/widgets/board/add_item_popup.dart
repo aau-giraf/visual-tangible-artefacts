@@ -22,7 +22,7 @@ class AddItemPopup extends StatefulWidget {
     required this.isCategory,
     required this.onSubmit,
     this.category,
-    this.title = 'Tilføj kategori',
+    this.title = 'Tilføj ',
   });
 
   @override
@@ -124,7 +124,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            widget.title,
+            widget.title + (widget.isCategory ? 'Kategori' : 'Artefakt'),
             style: TextStyle(
               color: Colors.black,
               fontSize: 28,
@@ -230,7 +230,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
             children: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFBADFB5),
+                  backgroundColor: imageBytes != null 
+                      ? Color(0xFF4CAF50) // Deeper green when image is uploaded
+                      : Color(0xFFBADFB5), // Original light green when no image
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 onPressed: () {

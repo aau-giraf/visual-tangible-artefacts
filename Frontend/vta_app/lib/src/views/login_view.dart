@@ -34,9 +34,18 @@ class _LoginViewState extends State<LoginView> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: Container(
-              width: 400, // Set a fixed width for the box
-              padding: EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+                minWidth: 300,
+              ),
+              child: Container(
+                width: MediaQuery.of(context).size.width > 600 
+                    ? 400 
+                    : MediaQuery.of(context).size.width * 0.85,
+                padding: EdgeInsets.all(
+                  MediaQuery.of(context).size.width > 600 ? 32 : 24
+                ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -51,6 +60,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               child:
                   _isLogin ? _loginForm(controller) : _signupForm(controller),
+              ),
             ),
           ),
         ),
@@ -66,10 +76,12 @@ class _LoginViewState extends State<LoginView> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Log in',
-            style: Theme.of(context).textTheme.headlineMedium,
+            'Log ind',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontSize: MediaQuery.of(context).size.width > 600 ? 28 : 24,
+            ),
           ),
-          SizedBox(height: 32),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 32 : 24),
           TextFormField(
             controller: sharedUsernameController,
             decoration: InputDecoration(
@@ -82,7 +94,7 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 16),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
           TextFormField(
             controller: sharedPasswordController,
             decoration: InputDecoration(
@@ -96,7 +108,7 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 32),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 32 : 24),
           ElevatedButton(
             onPressed: _isLoading
                 ? null
@@ -133,7 +145,7 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(fontSize: 16),
                   ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
           TextButton(
             onPressed: () {
               setState(() {
@@ -161,9 +173,11 @@ class _LoginViewState extends State<LoginView> {
         children: [
           Text(
             'Opret bruger',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontSize: MediaQuery.of(context).size.width > 600 ? 28 : 24,
+            ),
           ),
-          SizedBox(height: 32),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 32 : 24),
           TextFormField(
             controller: sharedUsernameController,
             decoration: InputDecoration(
@@ -176,7 +190,7 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 16),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
           TextFormField(
             controller: sharedPasswordController,
             decoration: InputDecoration(
@@ -190,7 +204,7 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 16),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
           TextFormField(
             controller: nameController,
             decoration: InputDecoration(
@@ -203,7 +217,7 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 16),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
           TextFormField(
             controller: guardianKeyController,
             decoration: InputDecoration(
@@ -216,7 +230,7 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 32),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 32 : 24),
           ElevatedButton(
             onPressed: _isLoading
                 ? null
@@ -256,7 +270,7 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(fontSize: 16),
                   ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
           TextButton(
             onPressed: () {
               setState(() {

@@ -56,18 +56,15 @@ class _AIPageState extends State<AIPage> {
       switch (selectedOption) {
         case 'Piktogram':
           prompt =
-              "Hvid baggrund, et enkelt ikon med ingen unødvendige detajler, børne venligt, kontinuert line art ingen mellemrum, ingen tekst, simpelt ikon af " +
-                  _controller.text;
+              "Hvid baggrund, et enkelt ikon med ingen unødvendige detajler, børne venligt, kontinuert line art ingen mellemrum, ingen tekst, simpelt ikon af ${_controller.text}";
           break;
         case 'Realistisk':
           prompt =
-              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, høj-kvalitets billede af " +
-                  _controller.text;
+              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, høj-kvalitets billede af ${_controller.text}";
           break;
         case 'Tegning':
           prompt =
-              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning af " +
-                  _controller.text;
+              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning af ${_controller.text}";
           break;
         default:
           prompt = _controller.text;
@@ -317,7 +314,7 @@ class _AIPageState extends State<AIPage> {
 }
 
 class AddPicturePage extends StatelessWidget {
-  const AddPicturePage({Key? key}) : super(key: key);
+  const AddPicturePage({super.key});
 
   @override
   Widget build(BuildContext context) {

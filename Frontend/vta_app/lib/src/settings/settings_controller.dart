@@ -41,10 +41,8 @@ class SettingsController with ChangeNotifier {
     }
     // Load localization
     //var localization = await _settingsService.localization();
-    if (localization != null) {
-      //_localization = Localization.values[localization];
-    }
-    // Important! Inform listeners a change has occurred.
+    //_localization = Localization.values[localization];
+      // Important! Inform listeners a change has occurred.
     notifyListeners();
   }
 

@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 class AuthPage extends StatefulWidget {
   static const routeName = '/auth';
 
+  const AuthPage({super.key});
+
   @override
   _AuthPageState createState() => _AuthPageState();
 }

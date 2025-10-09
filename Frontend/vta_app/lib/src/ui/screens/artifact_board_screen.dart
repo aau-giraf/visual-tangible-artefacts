@@ -65,10 +65,11 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   }
 
   Scaffold _buildPage(BuildContext context) {
-    double padding = 5;
+    double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 60;
-    double dividerHeight = 5;
+    double padding = screenWidth > 600 ? 5 : 2;
+    double categoriesWidgetHeight = screenWidth > 600 ? 60 : 50;
+    double dividerHeight = screenWidth > 600 ? 5 : 3;
     var artifactController = widget.artifactController;
     categories = artifactController.categories;
 
@@ -105,18 +106,18 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                         ),
                       ),
                       Positioned(
-                        top: 30,
-                        left: 30,
+                        top: screenWidth > 600 ? 30 : 15,
+                        left: screenWidth > 600 ? 30 : 15,
                         child: PopupMenuButton(
                             tooltip: "Brugerindstillinger",
-                            offset: const Offset(0, 60),
+                            offset: Offset(0, screenWidth > 600 ? 60 : 40),
                             icon: Icon(Icons.supervised_user_circle_outlined,
-                                size: 50),
+                                size: screenWidth > 600 ? 50 : 35),
                             itemBuilder: (context) => [
                                   PopupMenuItem(
                                     child: ListTile(
-                                      leading: Icon(Icons.settings, size: 20),
-                                      title: const Text('Instillinger'),
+                                      leading: Icon(Icons.settings, size: screenWidth > 600 ? 20 : 16),
+                                      title: Text('Instillinger', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
                                       onTap: () {
                                         Navigator.of(context)
                                             .pushNamed('/settings');
@@ -125,8 +126,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                   PopupMenuItem(
                                     child: ListTile(
-                                      leading: Icon(Icons.logout, size: 20),
-                                      title: const Text('Log ud'),
+                                      leading: Icon(Icons.logout, size: screenWidth > 600 ? 20 : 16),
+                                      title: Text('Log ud', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
                                       onTap: () {
                                         widget.authController.logout(context);
                                       },
@@ -137,19 +138,19 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
-                          padding: EdgeInsets.only(left: 20),
+                          padding: EdgeInsets.only(left: screenWidth > 600 ? 20 : 10),
                           child: RelationalBoardButton(
                             onPressed: () {
                               controller.switchCurrentBoard();
                             },
                             icon: controller.showDirectional
-                                ? const Icon(
+                                ? Icon(
                               IconData(0xf685, fontFamily: 'MaterialIcons'),
-                              size: 24.0,
+                              size: screenWidth > 600 ? 24.0 : 20.0,
                             )
-                                : const Icon(
+                                : Icon(
                               IconData(0xf601, fontFamily: 'MaterialIcons'),
-                              size: 24.0,
+                              size: screenWidth > 600 ? 24.0 : 20.0,
                             ),
                           ),
                         ),

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
-import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -94,7 +93,7 @@ class AuthModel {
     } else if (statusCode == 409) {
       message = 'This username already exists, please choose another';
     } else if (statusCode == 404) {
-      message = 'Invalid username or password';
+      message = 'Forkert brugernavn eller kodeord';
     } else if (statusCode <= 500) {
       message = 'A server error occured';
     } else {
