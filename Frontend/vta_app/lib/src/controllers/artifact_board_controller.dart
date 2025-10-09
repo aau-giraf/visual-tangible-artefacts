@@ -70,7 +70,7 @@ class ArtifactBoardController {
         
         if (token != null) {
           final response = await http.get(
-            Uri.parse('${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio'),
+            Uri.parse('${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio'),
             headers: {
               'Authorization': 'Bearer $token',
             },
@@ -199,7 +199,7 @@ class ArtifactBoardController {
             final apiProvider = GetIt.instance.get<ApiProvider>();
             
             if (token != null) {
-              final audioUrl = '${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              final audioUrl = '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               print('Debug: ArtifactBoardController - Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch the audio data

@@ -802,7 +802,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
       final baseUrl = apiProvider.baseUrl;
 
       // Call backend API to generate speech
-      final url = Uri.parse('$baseUrl/Artefacts/generate-speech-simple');
+      final url = Uri.parse('${baseUrl}Users/Artefacts/generate-speech-simple');
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

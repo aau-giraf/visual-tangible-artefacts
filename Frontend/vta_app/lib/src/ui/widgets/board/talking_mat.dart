@@ -166,7 +166,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
             final apiProvider = GetIt.instance.get<ApiProvider>();
             
             if (token != null) {
-              final audioUrl = '${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              final audioUrl = '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch audio data with proper authentication
