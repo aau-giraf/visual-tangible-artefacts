@@ -1,4 +1,5 @@
 {
   "dotnet.defaultSolution": "VTA.sln",
-  "cmake.ignoreCMakeListsMissing": true
+  "cmake.ignoreCMakeListsMissing": true,
+  "java.configuration.updateBuildConfiguration": "automatic"
 }

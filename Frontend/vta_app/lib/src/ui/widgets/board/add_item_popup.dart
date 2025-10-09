@@ -13,8 +13,8 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
-
-import 'package:record/record.dart';
+import 'package:record/record.dart' show AudioEncoder, RecordConfig;
+import '../../../utilities/audio/recorder.dart';
 import 'package:just_audio/just_audio.dart';
 
 class AddItemPopup extends StatefulWidget {
@@ -28,7 +28,7 @@ class AddItemPopup extends StatefulWidget {
     required this.isCategory,
     required this.onSubmit,
     this.category,
-    this.title = 'Tilføj kategori',
+    required this.title,
   });
 
   @override
@@ -68,11 +68,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
   Uint8List? imageBytes;
   Uint8List? soundBytes;
   bool _isRecording = false;
-  // Record is implemented via platform interface; the analyzer may report
-  // instantiate_abstract_class for the package's Record type. Suppress it
-  // and use dynamic calls for methods to avoid static errors.
-  // ignore: instantiate_abstract_class
-  final Record _recorder = Record();
+  // Record is implemented via platform interface. Lazily instantiate at
+  // runtime inside initState so web/unsupported platforms don't attempt to
+  // instantiate an abstract implementation at compile time.
+  dynamic? _recorder;
   final AudioPlayer _player = AudioPlayer();
   final formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
@@ -103,6 +102,12 @@ class _AddItemPopupState extends State<AddItemPopup> {
       nameController.text = widget.category!.name ?? '';
       _loadImageBytes();
     }
+    // Lazily create the recorder via platform factory (may return null on web)
+    try {
+      _recorder = createRecorder();
+    } catch (_) {
+      _recorder = null;
+    }
     // listen for name changes to update submit button state
     nameController.addListener(_onFormChanged);
   }
@@ -116,8 +121,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
     } catch (_) {}
     try {
       // Best-effort stop recorder on dispose, but only if we are currently recording
-      if (_isRecording) {
-        (_recorder as dynamic).stop();
+      if (_isRecording && _recorder != null) {
+        try {
+          (_recorder as dynamic).stop();
+        } catch (_) {}
       }
     } catch (_) {}
     // cancel timers
@@ -277,7 +284,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildButton(
-                    'Tag nyt billede', 'assets/images/camera_icon_filled.png',
+                    'Tag billede', 'assets/images/camera_icon_filled.png',
                     onClick: _onTakePictureButtonPressed),
                 SizedBox(width: 16),
                 _buildButton('Upload', 'assets/images/folder_icon.png',
@@ -359,7 +366,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 onPressed: _canSubmit()
                     ? () {
                         if (formKey.currentState!.validate()) {
-                          widget.onSubmit(nameController.text, imageBytes, soundBytes);
+                          // Categories shouldn't include soundBytes
+                          final Uint8List? sendSound = widget.isCategory ? null : soundBytes;
+                          widget.onSubmit(nameController.text, imageBytes, sendSound);
                           Navigator.of(context).pop();
                         }
                       }
@@ -447,23 +456,46 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 ElevatedButton(
                   onPressed: () async {
                     // recording handler (same as before)
-                    try {
+                      try {
+                      if (_recorder == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Optager ikke tilgængelig på denne platform')));
+                        return;
+                      }
+
                       if (!_isRecording) {
+                        debugPrint('Permission 1');
                         final bool hasPermission = await (_recorder as dynamic).hasPermission();
                         if (!hasPermission) {
                           ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Mangler mikrofon tilladelse')));
                           return;
                         }
-                        setDialogState(() {
-                          _isRecording = true;
-                          _recordingDuration = Duration.zero;
-                          _currentLevel = 0.0;
-                          _amplitudeSupported = true;
-                          _levelPhase = 0.0;
-                        });
                         final tmpPath = '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
-                        await (_recorder as dynamic).start(path: tmpPath, encoder: AudioEncoder.aacLc);
+                        debugPrint('TEMP PATH: $tmpPath');
+                        
+                        try {
+                          // Use the correct API for AudioRecorder in record 6.x
+                          await (_recorder as dynamic).start(RecordConfig(
+                            encoder: AudioEncoder.aacLc,
+                          ), path: tmpPath);
+                          debugPrint('Recording started successfully');
+                          
+                          // Only set recording state to true if start was successful
+                          setState(() {
+                            _isRecording = true;
+                            _recordingDuration = Duration.zero;
+                            _currentLevel = 0.0;
+                            _amplitudeSupported = true;
+                            _levelPhase = 0.0;
+                          });
+                          debugPrint('UI state updated to recording');
+                          
+                        } catch (startError) {
+                          debugPrint('Failed to start recording: $startError');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Kunne ikke starte optagelse: $startError')));
+                          return;
+                        }
                         _recordTimer?.cancel();
                         _recordTimer = Timer.periodic(Duration(seconds: 1), (_) {
                           setDialogState(() {

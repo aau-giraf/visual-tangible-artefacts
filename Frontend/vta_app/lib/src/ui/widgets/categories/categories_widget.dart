@@ -464,6 +464,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
+          title: 'Tilføj kategori',
           onSubmit: (name, imageBytes, soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
@@ -486,6 +487,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
+          title: 'Rediger kategori',
           category: category,
           onSubmit: (name, imageBytes, soundBytes) {
             var artifactState =
@@ -523,7 +525,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
             await artifactState.addArtifact(newArtifact,
                 token: authState.token!);
           },
-          title: "Tilføj Artifact",
+          title: "Tilføj Artifakt",
         );
       },
     );
