@@ -11,7 +11,7 @@ class ElevenLabsConfig {
   static const String _enabledKey = 'elevenlabs_enabled';
 
   // Default values
-  static const String defaultVoiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam
+  static const String defaultVoiceId = 'Bj9UqZbhQsanLzgalpEG'; // Custom selected voice
   static const String defaultModelId = 'eleven_monolingual_v1';
   static const double defaultStability = 0.5;
   static const double defaultSimilarityBoost = 0.75;

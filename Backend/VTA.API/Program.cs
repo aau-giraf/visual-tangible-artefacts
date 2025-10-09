@@ -14,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add HttpClient services for ElevenLabs API integration
+builder.Services.AddHttpClient();
 
 /*Register our DB contexts. They could have just been one big one, but that would worsen concurrency!*/
 builder.WrapDbContext<ArtefactContext>();

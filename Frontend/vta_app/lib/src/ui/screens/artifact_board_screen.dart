@@ -134,6 +134,25 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ]),
                       ),
+                      // Play All Sounds Button - positioned next to Brugerindstillinger button
+                      Positioned(
+                        top: 41, // Fine-tuned to perfectly align with the settings button
+                        left: 100, // 30 (left position) + 50 (icon size) + 15 (spacing)
+                        child: FloatingActionButton(
+                          mini: true,
+                          onPressed: () {
+                            controller.playAllArtefactSounds();
+                          },
+                          backgroundColor: controller.isPlayingAllSounds 
+                              ? Colors.red.withOpacity(0.8) 
+                              : Colors.blue.withOpacity(0.8),
+                          child: Icon(
+                            controller.isPlayingAllSounds ? Icons.stop : Icons.play_arrow,
+                            color: Colors.white,
+                          ),
+                          tooltip: controller.isPlayingAllSounds ? 'Stop afspilning' : 'Afspil alle lyde',
+                        ),
+                      ),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
