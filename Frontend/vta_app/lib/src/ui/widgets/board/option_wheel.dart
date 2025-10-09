@@ -67,7 +67,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
   final double wheelOffsetTop = 70;
 
   // button size (width)
-  final double buttonSize = 90;
+  final double buttonSize = 100;
 
   // buttons for the wheel
   final options = [

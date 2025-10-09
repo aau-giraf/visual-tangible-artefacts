@@ -6,10 +6,10 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
+
 
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
@@ -78,10 +78,9 @@ class LinearBoardState extends State<LinearBoard>
       if (token == null) return;
 
       final artefactId = artefact.baseArtefact!.artefactId!;
-      final apiProvider = GetIt.instance.get<ApiProvider>();
-      final audioUrl = '${apiProvider.baseUrl}/Artefacts/$artefactId/play-audio';
+      final audioUrl = 'Remote/Users/Artefacts/$artefactId/play-audio';
       
-      
+      print('Debug: Playing audio for artefact $artefactId');
       
       // Set the audio source to the backend endpoint
       await _audioPlayer.setUrl(audioUrl, headers: {
@@ -143,8 +142,7 @@ class LinearBoardState extends State<LinearBoard>
             final token = GetIt.instance.get<Token>().value;
             
             if (token != null) {
-              final apiProvider = GetIt.instance.get<ApiProvider>();
-              final audioUrl = '${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch audio data with proper authentication
@@ -332,6 +330,9 @@ class LinearBoardState extends State<LinearBoard>
                 ]
               ],
             ),
+            // NOTE: boxes are already added inside the Row above. Avoid
+            // duplicating them here, which would place Expanded widgets
+            // directly under a Stack (invalid ParentData usage).
           ],
         ),
       ),
@@ -385,18 +386,17 @@ class LinearBoardState extends State<LinearBoard>
             child: artifact.content,
           ),
         ),
-        childWhenDragging: Opacity(
-          opacity: 0.1,
-          child: artifact.content,
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.1,
+        child: artifact.content,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Container(
-          key: artifact.key,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: artifact.content,
-        ),
+        child: artifact.content,
       ),
     );
   }
