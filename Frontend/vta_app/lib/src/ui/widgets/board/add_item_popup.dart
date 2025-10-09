@@ -12,7 +12,7 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
-import 'package:record/record.dart' show AudioEncoder;
+import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import '../../../utilities/audio/recorder.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -455,18 +455,33 @@ class _AddItemPopupState extends State<AddItemPopup> {
                           return;
                         }
                         debugPrint('Permission 2');
-                        setState(() {
-                          _isRecording = true;
-                          _recordingDuration = Duration.zero;
-                          _currentLevel = 0.0;
-                          _amplitudeSupported = true;
-                          _levelPhase = 0.0;
-                        });
-                        debugPrint('Set state true');
+                        
                         final tmpPath = '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
                         debugPrint('TEMP PATH: $tmpPath');
-                        await (_recorder as dynamic).start(path: tmpPath, encoder: AudioEncoder.aacLc);
-                        debugPrint('Set temp path');
+                        
+                        try {
+                          // Use the correct API for AudioRecorder in record 6.x
+                          await (_recorder as dynamic).start(RecordConfig(
+                            encoder: AudioEncoder.aacLc,
+                          ), path: tmpPath);
+                          debugPrint('Recording started successfully');
+                          
+                          // Only set recording state to true if start was successful
+                          setState(() {
+                            _isRecording = true;
+                            _recordingDuration = Duration.zero;
+                            _currentLevel = 0.0;
+                            _amplitudeSupported = true;
+                            _levelPhase = 0.0;
+                          });
+                          debugPrint('UI state updated to recording');
+                          
+                        } catch (startError) {
+                          debugPrint('Failed to start recording: $startError');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Kunne ikke starte optagelse: $startError')));
+                          return;
+                        }
                         _recordTimer?.cancel();
                         _recordTimer = Timer.periodic(Duration(seconds: 1), (_) {
                           setState(() {

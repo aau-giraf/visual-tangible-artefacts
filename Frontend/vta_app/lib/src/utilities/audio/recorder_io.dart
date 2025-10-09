@@ -1,7 +1,13 @@
-// Temporary: return null to avoid instantiating Record (some plugin versions
-// define Record as abstract which causes compile-time errors). The UI is
-// already guarded to handle a null recorder. To re-enable recording, update
-// this factory to construct a concrete recorder instance from the plugin.
+// Create a recorder implementation for Android/iOS platforms.
+// Using the public API with AudioRecorder which is the concrete implementation in v6.x
+import 'package:record/record.dart';
+
 dynamic createRecorder() {
-  return null;
+  try {
+    // In record 6.x, use AudioRecorder which is the concrete implementation
+    return AudioRecorder();
+  } catch (e) {
+    // If instantiation fails, return null and the UI will show appropriate message
+    return null;
+  }
 }
