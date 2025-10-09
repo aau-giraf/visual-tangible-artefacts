@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 
@@ -162,9 +163,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         if (_isPlayingAllSounds) {
           try {
             final token = GetIt.instance.get<Token>().value;
+            final apiProvider = GetIt.instance.get<ApiProvider>();
             
             if (token != null) {
-              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              final audioUrl = '${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch audio data with proper authentication

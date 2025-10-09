@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
@@ -78,9 +79,10 @@ class LinearBoardState extends State<LinearBoard>
       if (token == null) return;
 
       final artefactId = artefact.baseArtefact!.artefactId!;
-      final audioUrl = 'http://localhost:5192/api/Users/Artefacts/$artefactId/play-audio';
+      final apiProvider = GetIt.instance.get<ApiProvider>();
+      final audioUrl = '${apiProvider.baseUrl}/Artefacts/$artefactId/play-audio';
       
-      print('Debug: Playing audio for artefact $artefactId');
+      
       
       // Set the audio source to the backend endpoint
       await _audioPlayer.setUrl(audioUrl, headers: {
@@ -142,7 +144,8 @@ class LinearBoardState extends State<LinearBoard>
             final token = GetIt.instance.get<Token>().value;
             
             if (token != null) {
-              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              final apiProvider = GetIt.instance.get<ApiProvider>();
+              final audioUrl = '${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch audio data with proper authentication

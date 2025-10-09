@@ -13,6 +13,7 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import '../../../utilities/audio/recorder.dart';
 import 'package:just_audio/just_audio.dart';
@@ -796,8 +797,12 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
       print('Debug: Using token: ${token.substring(0, 20)}...');
 
+      // Get API base URL from configuration
+      final apiProvider = GetIt.instance.get<ApiProvider>();
+      final baseUrl = apiProvider.baseUrl;
+
       // Call backend API to generate speech
-      final url = Uri.parse('http://localhost:5192/api/Users/Artefacts/generate-speech-simple');
+      final url = Uri.parse('$baseUrl/Artefacts/generate-speech-simple');
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

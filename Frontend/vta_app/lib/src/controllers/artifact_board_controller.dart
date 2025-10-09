@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/linear_board_controller.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/settings/settings_service.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
@@ -65,10 +66,11 @@ class ArtifactBoardController {
     if (boardArtefact.baseArtefact?.soundUrl?.isNotEmpty == true) {
       try {
         final token = GetIt.instance.get<Token>().value;
+        final apiProvider = GetIt.instance.get<ApiProvider>();
         
         if (token != null) {
           final response = await http.get(
-            Uri.parse('http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio'),
+            Uri.parse('${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio'),
             headers: {
               'Authorization': 'Bearer $token',
             },
@@ -194,9 +196,10 @@ class ArtifactBoardController {
         if (_isPlayingAllSounds) {
           try {
             final token = GetIt.instance.get<Token>().value;
+            final apiProvider = GetIt.instance.get<ApiProvider>();
             
             if (token != null) {
-              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              final audioUrl = '${apiProvider.baseUrl}/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               print('Debug: ArtifactBoardController - Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch the audio data
