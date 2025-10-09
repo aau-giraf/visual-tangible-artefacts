@@ -11,7 +11,6 @@ import '../../../controllers/linear_board_controller.dart';
 import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
-
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
   final LinearBoardController linearBoardController;
@@ -333,9 +332,6 @@ class LinearBoardState extends State<LinearBoard>
                 ]
               ],
             ),
-            // NOTE: boxes are already added inside the Row above. Avoid
-            // duplicating them here, which would place Expanded widgets
-            // directly under a Stack (invalid ParentData usage).
           ],
         ),
       ),
@@ -389,17 +385,18 @@ class LinearBoardState extends State<LinearBoard>
             child: artifact.content,
           ),
         ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.1,
-        child: artifact.content,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+        childWhenDragging: Opacity(
+          opacity: 0.1,
+          child: artifact.content,
         ),
-        child: artifact.content,
+        child: Container(
+          key: artifact.key,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: artifact.content,
+        ),
       ),
     );
   }

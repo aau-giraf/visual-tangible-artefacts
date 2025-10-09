@@ -75,6 +75,7 @@ public partial class ArtefactPatchDTO
     /// The sound file for the artefact
     /// </summary>
     public IFormFile? Sound { get; set; }
+
 }
 
 /// <summary>

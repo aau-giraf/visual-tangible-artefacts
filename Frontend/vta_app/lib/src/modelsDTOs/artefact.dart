@@ -12,6 +12,7 @@ class Artefact implements JsonSerializable {
   String? soundUrl;
   Uint8List? image;
   Uint8List? sound;
+  String? name;
   
   Artefact({
     this.artefactIndex,
@@ -22,28 +23,32 @@ class Artefact implements JsonSerializable {
     this.userId,
     this.image,
     this.sound,
+    this.name,
   });
 
     String get displayName => artefactId ?? 'Artefact #${artefactIndex ?? ''}';
 
   factory Artefact.fromJson(Map<String, dynamic> json) {
     return Artefact(
-        artefactId: json['artefactId'] as String?,
-        artefactIndex: json['artefactIndex'] as int?,
-        userId: json['userId'] as String?,
-        categoryId: json['categoryId'] as String?,
-        imageUrl: json['imageUrl'] as String?,
-        soundUrl: json['soundUrl'] as String?,
-    image: json['image'] != null
-      ? Uint8List.fromList(json['image'].cast<int>())
-      : null,
-    sound: json['sound'] != null
-      ? Uint8List.fromList(json['sound'].cast<int>())
-      : null);
+      artefactId: json['artefactId'] as String?,
+      artefactIndex: json['artefactIndex'] as int?,
+      userId: json['userId'] as String?,
+      categoryId: json['categoryId'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      soundUrl: json['soundUrl'] as String?,
+      image: json['image'] != null
+          ? Uint8List.fromList(json['image'].cast<int>())
+          : null,
+      sound: json['sound'] != null
+          ? Uint8List.fromList(json['sound'].cast<int>())
+          : null,
+      name: json['name'] as String?
+    );
     // handle sound bytes if provided
   // Note: some endpoints may return soundUrl instead of raw bytes; this keeps raw bytes support
   // and preserves backwards compatibility.
   // (No direct assignment from JSON for sound unless the endpoint includes the bytes.)
+
   }
 
   @override
@@ -57,6 +62,7 @@ class Artefact implements JsonSerializable {
       'soundUrl': soundUrl,
       'image': image,
       'sound': sound,
+      'name': name,
     };
   }
 }

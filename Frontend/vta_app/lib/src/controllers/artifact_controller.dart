@@ -16,6 +16,7 @@ class ArtefactController extends ChangeNotifier {
   List<Category>? get categories => _model.categories;
 
   ArtefactController(this._model);
+  
 
   Future<void> updateArtifacts({BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();
@@ -85,7 +86,8 @@ class ArtefactController extends ChangeNotifier {
                 artefactIndex: 0,
                 userId: GetIt.I.get<UserInfo>().userId,
                 image: imageBytes,
-                sound: soundBytes);
+                sound: soundBytes,
+                name: name);
             _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
             _showSuccessActionSnackBar(context, 'Artefact tilføjet');
@@ -101,6 +103,10 @@ class ArtefactController extends ChangeNotifier {
         builder: (context) {
           return popup;
         });
+  }
+
+  Future<String> getArtifactName(String artefactId) async {
+    return "Test: artefactId is $artefactId";
   }
 
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
