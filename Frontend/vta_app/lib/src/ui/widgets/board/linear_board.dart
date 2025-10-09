@@ -205,11 +205,6 @@ class LinearBoardState extends State<LinearBoard>
                 ]
               ],
             ),
-            for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
-              _buildBox(context, _linearBoardController.artifacts[i], i),
-              if (i < _linearBoardController.fieldCount - 1)
-                _buildVerticalDivider(context),
-            ]
           ],
         ),
       ),

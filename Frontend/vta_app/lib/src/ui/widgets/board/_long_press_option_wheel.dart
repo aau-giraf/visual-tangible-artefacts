@@ -25,10 +25,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
-    // Print the artefact name to the console as an example
-    final artefactName = widget.artifact.baseArtefact?.name ?? 'Unknown';
-    debugPrint('Long pressed artefact: $artefactName');
-    _showPersistentWheel();
     _showPersistentWheel();
   }
 
@@ -49,23 +45,16 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             duration: const Duration(milliseconds: 300),
             child: Container(
               alignment: Alignment.topCenter,
-              margin: const EdgeInsets.only(top: 12),
+              // Move name up based on image height if available, else default higher
+              margin: EdgeInsets.only(top: _getNameTopMargin()),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+              decoration: const BoxDecoration(
+                color: Colors.transparent,
               ),
               child: Text(
                 widget.artifact.baseArtefact?.name ?? '',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.1,
@@ -78,6 +67,15 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
         ),
       ],
     );
+  }
+
+  double _getNameTopMargin() {
+    // TODO: Doesnt work for now, should change height depending on image size, when wheel also scales correctly on image size
+    final imageHeight = widget.artifact.baseArtefact?.image?.lengthInBytes ?? 0;
+    if (imageHeight > 0) {
+      return 100;
+    }
+    return 0;
   }
 
   void _showPersistentWheel() {
@@ -175,12 +173,9 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     });
   }
   // removes the overlay wheel
-  void _hidePersistentWheel() {
+    void _hidePersistentWheel() {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _wheelSize = null;
-    setState(() {
-      _showName = false;
-    });
   }
 }

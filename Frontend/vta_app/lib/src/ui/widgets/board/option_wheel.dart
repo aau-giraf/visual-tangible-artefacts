@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/ui/widgets/board/_long_press_option_wheel.dart';
 
 
 
@@ -43,7 +44,6 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 360));
     _ctrl.forward();
-    // No need to fetch artefact name, it's passed in
   }
 
   @override
@@ -88,6 +88,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
       label: widget.showName ? 'Skjul Navn' : 'Vis Navn',
       onPressed: () {
         widget.onToggleName?.call(!widget.showName);
+        widget.onPressed?.call();
       },
       preferredWidth: buttonSize,
     ),
@@ -171,8 +172,6 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
             }
             _entries.sort((a, b) => (a['top'] as double).compareTo(b['top'] as double));
             final List<Widget> childrenWidgets = _entries.map<Widget>((e) => e['widget'] as Widget).toList();
-            
-            // Name display is now handled by parent
 
             // Center artefact for centering (remove when not needed)
             childrenWidgets.add(
