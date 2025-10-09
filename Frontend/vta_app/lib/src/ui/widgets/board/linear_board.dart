@@ -262,6 +262,7 @@ class LinearBoardState extends State<LinearBoard>
           child: artifact.content,
         ),
         child: Container(
+          key: artifact.key,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
