@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/functions/loading_page.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import '../ui/screens/login_screen.dart';
-import '../ui/screens/artifact_board_screen.dart';
 import 'package:provider/provider.dart';
 
 class AuthPage extends StatefulWidget {

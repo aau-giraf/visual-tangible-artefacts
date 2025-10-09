@@ -29,6 +29,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _isHoveringTrashCan = false;
 
   @override
   void initState() {
@@ -222,11 +223,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                                 width: MediaQuery.of(context).size.width > 600 ? 30 : 25,
                                 color: const Color.fromARGB(255, 235, 32, 18))
                             : null),
-                    GestureDetector(
-                      onTap: () {
-                        widget.controller.removeAllArtifacts(context: context);
-                      },
-                        child: DragTarget<BoardArtefact>(
+                    DragTarget<BoardArtefact>(
                         builder: (context, data, rejectedData) {
                           double screenWidth = MediaQuery.of(context).size.width;
                           double baseSize = screenWidth > 600 ? 50 : 35;
@@ -271,7 +268,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                             }
                           });
                         },
-                      ),
                     ),
                   ]),
                 ),
@@ -287,33 +283,48 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       {double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
-    return Stack(children: [
-      Container(
-        width: width,
-        height: width,
-        decoration: ShapeDecoration(
-          color: color,
-          shape: const OvalBorder(),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        child: Center(
-          child: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/icons/trash_bin.png'),
-                fit: BoxFit.scaleDown,
-              ),
-            ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: ShapeDecoration(
+        color: color,
+        shape: const OvalBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+            spreadRadius: 0,
+          )
+        ],
+      ),
+      child: MouseRegion(
+        child: IconButton(
+          icon: Icon(
+            Icons.delete_outline,
+            color: _isHoveringTrashCan ? Colors.white : Colors.grey[600],
+            size: width * 0.5,
+          ),
+          onPressed: () {
+            widget.controller.removeAllArtifacts(context: context);
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            hoverColor: const Color.fromARGB(255, 244, 0, 0).withOpacity(0.9),
+            shape: const CircleBorder(),
           ),
         ),
+        onEnter: (_) {
+          setState(() {
+            _isHoveringTrashCan = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHoveringTrashCan = false;
+          });
+        },
       ),
-    ]);
+    );
   }
 }
