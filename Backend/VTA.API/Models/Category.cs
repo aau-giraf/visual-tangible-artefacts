@@ -8,6 +8,8 @@ public class Category
     public string? Name { get; set; }
     public string? ImagePath { get; set; }
     public DateTime? ModifiedDate { get; set; }
+    public int UsageCount { get; set; } = 0;
+    public DateTime? LastUsedDate { get; set; }
     public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
     public virtual User User { get; set; } = null!;
 }

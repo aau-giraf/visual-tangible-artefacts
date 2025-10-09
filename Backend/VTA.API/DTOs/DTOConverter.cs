@@ -47,7 +47,9 @@ public static class DTOConverter
             CategoryIndex = category.CategoryIndex,
             Name = category.Name,
             Artefacts = artefacts,
-            ImageUrl = scheme + "://" + host + category.ImagePath
+            ImageUrl = scheme + "://" + host + category.ImagePath,
+            UsageCount = category.UsageCount,
+            LastUsedDate = category.LastUsedDate
         };
     }
 
@@ -59,7 +61,9 @@ public static class DTOConverter
             CategoryIndex = category.CategoryIndex,
             UserId = category.UserId,
             Name = category.Name,
-            ImagePath = imageUrl
+            ImagePath = imageUrl,
+            UsageCount = 0,
+            LastUsedDate = null
         };
     }
     public static UserGetDTO MapUserToUserGetDTO(User user)
