@@ -32,6 +32,7 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newCategory(BuildContext context) async {
     var popup = AddItemPopup(
       isCategory: true,
+      title: 'Tilføj kategori',
       onSubmit: (name, imageBytes, soundBytes) async {
         try {
           var newCategory = Category(
@@ -77,6 +78,7 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
+        title: 'Tilføj artefakt',
         onSubmit: (name, imageBytes, soundBytes) {
           try {
             var newArtefact = Artefact(

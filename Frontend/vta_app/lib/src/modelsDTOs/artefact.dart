@@ -44,6 +44,10 @@ class Artefact implements JsonSerializable {
           : null,
       name: json['name'] as String?
     );
+    // handle sound bytes if provided
+  // Note: some endpoints may return soundUrl instead of raw bytes; this keeps raw bytes support
+  // and preserves backwards compatibility.
+  // (No direct assignment from JSON for sound unless the endpoint includes the bytes.)
 
   }
 

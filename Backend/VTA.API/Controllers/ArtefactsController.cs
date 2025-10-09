@@ -159,12 +159,17 @@ public class ArtefactsController : ControllerBase
         string artefactId = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
         string? soundUrl = null;
+        
+        // Debug logging for sound data
+        Console.WriteLine($"Debug: PostArtefact - Sound data present: {artefactPostDTO.Sound != null}");
         if (artefactPostDTO.Sound != null)
         {
+            Console.WriteLine($"Debug: PostArtefact - Sound file size: {artefactPostDTO.Sound.Length} bytes");
+            Console.WriteLine($"Debug: PostArtefact - Sound file name: {artefactPostDTO.Sound.FileName}");
             soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId);
+            Console.WriteLine($"Debug: PostArtefact - Sound saved to: {soundUrl}");
         }
-        Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl);
-        artefact.SoundPath = soundUrl;
+        Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
         
@@ -233,6 +238,279 @@ public class ArtefactsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Generate speech from text using ElevenLabs API (simple version for new artefacts)
+    /// </summary>
+    /// <param name="request">Simple text-to-speech request</param>
+    /// <returns>
+    /// Status code 200 (Ok) with audio data on success<br />
+    /// Status code 400 (Bad Request) if the request is invalid<br />
+    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
+    /// </returns>
+    [HttpPost("generate-speech-simple")]
+    public async Task<IActionResult> GenerateSpeechSimple([FromBody] SimpleTtsRequest request)
+    {
+        // Validate text input
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            return BadRequest("Text cannot be empty");
+        }
+
+        try
+        {
+            // Get ElevenLabs API key from configuration
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = configuration["ElevenLabs:ApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, "ElevenLabs API key not configured");
+            }
+
+            // Create ElevenLabs service
+            var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
+
+            // Generate speech with multilingual support for Danish
+            // Backend controls the voice - frontend doesn't specify it
+            var audioData = await elevenLabsService.GenerateSpeechAsync(
+                text: request.Text,
+                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
+                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                languageCode: "da" // Explicitly set Danish
+            );
+
+            if (audioData == null)
+            {
+                return StatusCode(500, "Failed to generate speech from ElevenLabs API");
+            }
+
+            // Return audio data directly
+            return File(audioData, "audio/mpeg", "generated_speech.mp3");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating speech: {ex.Message}");
+            return StatusCode(500, "Internal server error while generating speech");
+        }
+    }
+
+    /// <summary>
+    /// Generate speech from text and save it to an artefact using ElevenLabs API
+    /// </summary>
+    /// <param name="request">Text-to-speech request with artefact ID</param>
+    /// <returns>
+    /// Status code 200 (Ok) with the sound URL on success<br />
+    /// Status code 400 (Bad Request) if the request is invalid<br />
+    /// Status code 403 (Forbidden) if the user doesn't own the artefact<br />
+    /// Status code 404 (Not Found) if the artefact doesn't exist<br />
+    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
+    /// </returns>
+    [HttpPost("generate-speech-and-save")]
+    public async Task<IActionResult> GenerateSpeechAndSave([FromBody] ArtefactTtsRequest request)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            return BadRequest("Text cannot be empty");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ArtefactId))
+        {
+            return BadRequest("ArtefactId cannot be empty");
+        }
+
+        try
+        {
+            // Check if artefact exists and user owns it
+            var userId = User.FindFirst("id")?.Value;
+            var artefact = await _context.Artefacts
+                .Where(a => a.UserId == userId && a.ArtefactId == request.ArtefactId)
+                .FirstOrDefaultAsync();
+
+            if (artefact == null)
+            {
+                return NotFound("Artefact not found or you don't have permission to modify it");
+            }
+
+            // Get ElevenLabs API key from configuration
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = configuration["ElevenLabs:ApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, "ElevenLabs API key not configured");
+            }
+
+            // Create ElevenLabs service
+            var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
+
+            // Generate speech with multilingual support for Danish
+            // Backend controls the voice - frontend doesn't specify it
+            var audioData = await elevenLabsService.GenerateSpeechAsync(
+                text: request.Text,
+                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
+                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                languageCode: "da" // Explicitly set Danish
+            );
+
+            if (audioData == null)
+            {
+                return StatusCode(500, "Failed to generate speech from ElevenLabs API");
+            }
+
+            // Save the audio data to file system using SoundUtilities
+            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId, ".mp3");
+            
+            if (soundUrl == null)
+            {
+                return StatusCode(500, "Failed to save generated audio file");
+            }
+
+            // Update artefact with sound path
+            artefact.SoundPath = soundUrl;
+            await _context.SaveChangesAsync();
+
+            // Return the sound URL
+            return Ok(new { soundUrl = soundUrl, message = "Speech generated and saved successfully" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating and saving speech: {ex.Message}");
+            return StatusCode(500, "Internal server error while generating and saving speech");
+        }
+    }
+
+    /// <summary>
+    /// Generate speech from text and save it with a unique ID
+    /// </summary>
+    /// <param name="request">Text-to-speech request</param>
+    /// <returns>
+    /// Status code 200 (Ok) with the sound URL on success<br />
+    /// Status code 400 (Bad Request) if the request is invalid<br />
+    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
+    /// </returns>
+    [HttpPost("generate-and-save-speech")]
+    public async Task<IActionResult> GenerateAndSaveSpeech([FromBody] StandaloneTtsRequest request)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            return BadRequest("Text cannot be empty");
+        }
+
+        try
+        {
+            // Get ElevenLabs API key from configuration
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = configuration["ElevenLabs:ApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, "ElevenLabs API key not configured");
+            }
+
+            // Create ElevenLabs service
+            var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
+
+            // Generate speech
+            var audioData = await elevenLabsService.GenerateSpeechAsync(
+                text: request.Text,
+                voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
+                modelId: "eleven_monolingual_v1"
+            );
+
+            if (audioData == null)
+            {
+                return StatusCode(500, "Failed to generate speech from ElevenLabs API");
+            }
+
+            // Generate unique ID for the sound file
+            var soundId = Guid.NewGuid().ToString();
+            
+            // Save the audio data to file system using SoundUtilities
+            var soundUrl = SoundUtilities.AddSound(audioData, soundId, ".mp3");
+            
+            if (soundUrl == null)
+            {
+                return StatusCode(500, "Failed to save generated audio file");
+            }
+
+            Console.WriteLine($"Debug: GenerateAndSaveSpeech - Sound saved successfully: {soundUrl}");
+
+            // Return the sound URL and ID
+            return Ok(new { 
+                soundId = soundId,
+                soundUrl = soundUrl, 
+                message = "Speech generated and saved successfully",
+                audioSize = audioData.Length 
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating and saving speech: {ex.Message}");
+            return StatusCode(500, "Internal server error while generating and saving speech");
+        }
+    }
+
+    /// <summary>
+    /// Test endpoint to play audio for a specific artefact
+    /// </summary>
+    /// <param name="artefactId">The ID of the artefact</param>
+    /// <returns>The audio file if it exists</returns>
+    [HttpGet("{artefactId}/play-audio")]
+    public async Task<IActionResult> PlayArtefactAudio(string artefactId)
+    {
+        try
+        {
+            var userId = User.FindFirst("id")?.Value;
+            var artefact = await _context.Artefacts
+                .Where(a => a.UserId == userId && a.ArtefactId == artefactId)
+                .FirstOrDefaultAsync();
+
+            if (artefact == null)
+            {
+                return NotFound("Artefact not found or you don't have permission to access it");
+            }
+
+            if (string.IsNullOrEmpty(artefact.SoundPath))
+            {
+                return NotFound("No audio attached to this artefact");
+            }
+
+            Console.WriteLine($"Debug: PlayArtefactAudio - Artefact {artefactId} has soundPath: {artefact.SoundPath}");
+
+            // Convert the API path to file system path
+            // SoundPath is like "/api/Assets/Sounds/filename.mp3"
+            var fileName = Path.GetFileName(artefact.SoundPath);
+            var soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
+            var filePath = Path.Combine(soundFolder, fileName);
+
+            Console.WriteLine($"Debug: PlayArtefactAudio - Looking for file: {filePath}");
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                Console.WriteLine($"Debug: PlayArtefactAudio - File not found: {filePath}");
+                return NotFound("Audio file not found on disk");
+            }
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            Console.WriteLine($"Debug: PlayArtefactAudio - Serving audio file: {fileBytes.Length} bytes");
+
+            return File(fileBytes, "audio/mpeg", fileName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error playing artefact audio: {ex.Message}");
+            return StatusCode(500, "Internal server error while retrieving audio");
+        }
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
-import 'package:vta_app/src/controllers/elevenlabs_controller.dart';
+
 import 'package:vta_app/src/models/artefact_model.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
@@ -54,11 +54,6 @@ void main() async {
   final ArtefactController artifactController =
     ArtefactController(ArtifactModel(apiProvider));
   GetIt.I.registerSingleton<ArtefactController>(artifactController);
-    
-  final ElevenLabsController elevenLabsController = ElevenLabsController();
-  
-  // Initialize ElevenLabs controller
-  await elevenLabsController.initialize();
 
   // Initialize the CameraManager
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -77,7 +72,6 @@ void main() async {
         ChangeNotifierProvider(create: (context) => AuthState()),
         ChangeNotifierProvider(create: (context) => ArtifactState()),
         ChangeNotifierProvider(create: (context) => UserState()),
-        ChangeNotifierProvider.value(value: elevenLabsController),
         Provider(create: (context) => apiProvider),
       ],
       child: MyApp(
