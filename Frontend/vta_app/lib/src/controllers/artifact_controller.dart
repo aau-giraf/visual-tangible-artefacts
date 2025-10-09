@@ -57,19 +57,28 @@ class ArtefactController extends ChangeNotifier {
   }
 
   Future<void> deleteCategory(Category category, BuildContext context) async {
+    // Save ScaffoldMessenger reference before dialog
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
         await _model.deleteCategory(category,
             token: GetIt.I.get<Token>().value!);
         notifyListeners();
-        if (context.mounted) {
-          _showSuccessActionSnackBar(context, 'Categori slettet');
-        }
+
+        _showSuccessSnackBarAfterAsync(
+          scaffoldMessenger,
+          screenHeight,
+          'Categori slettet',
+        );
       });
     } catch (e) {
-      if (context.mounted) {
-        _showErrorSnackBar(context, e.toString());
-      }
+      _showErrorSnackBarAfterAsync(
+        scaffoldMessenger,
+        screenHeight,
+        e.toString(),
+      );
     }
   }
 
@@ -101,17 +110,26 @@ class ArtefactController extends ChangeNotifier {
   }
 
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
+    // Save ScaffoldMessenger reference before dialog
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
         _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+
+        _showSuccessSnackBarAfterAsync(
+          scaffoldMessenger,
+          screenHeight,
+          'Artefact slettet',
+        );
       });
-      if (context.mounted) {
-        _showSuccessActionSnackBar(context, "Artefact slettet");
-      }
     } catch (e) {
-      if (context.mounted) {
-        _showErrorSnackBar(context, e.toString());
-      }
+      _showErrorSnackBarAfterAsync(
+        scaffoldMessenger,
+        screenHeight,
+        e.toString(),
+      );
     }
   }
 
@@ -125,6 +143,41 @@ class ArtefactController extends ChangeNotifier {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     GlobalSnackbar.show(context, message,
         color: Colors.white, iconColor: Colors.red);
+  }
+
+  // Helper methods for async calls (using saved ScaffoldMessenger)
+  void _showSuccessSnackBarAfterAsync(
+    ScaffoldMessengerState messenger,
+    double screenHeight,
+    String message,
+  ) {
+    messenger.removeCurrentSnackBar();
+    GlobalSnackbar.show(
+      null, // No context available after async gap
+      message,
+      color: Colors.white,
+      iconColor: Colors.green,
+      showAtTop: true,
+      scaffoldMessenger: messenger,
+      screenHeight: screenHeight,
+    );
+  }
+
+  void _showErrorSnackBarAfterAsync(
+    ScaffoldMessengerState messenger,
+    double screenHeight,
+    String message,
+  ) {
+    messenger.removeCurrentSnackBar();
+    GlobalSnackbar.show(
+      null, // No context available after async gap
+      message,
+      color: Colors.white,
+      iconColor: Colors.red,
+      showAtTop: true,
+      scaffoldMessenger: messenger,
+      screenHeight: screenHeight,
+    );
   }
 
   // This can be used for category or artefact deletion by passing the appropriate delete action
