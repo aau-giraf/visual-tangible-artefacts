@@ -103,6 +103,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
       nameController.text = widget.category!.name ?? '';
       _loadImageBytes();
     }
+    // listen for name changes to update submit button state
+    nameController.addListener(_onFormChanged);
   }
 
   @override
@@ -113,8 +115,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
       _player.dispose();
     } catch (_) {}
     try {
-      // Best-effort stop recorder on dispose
-      (_recorder as dynamic).stop();
+      // Best-effort stop recorder on dispose, but only if we are currently recording
+      if (_isRecording) {
+        (_recorder as dynamic).stop();
+      }
     } catch (_) {}
     // cancel timers
     try {
@@ -123,7 +127,24 @@ class _AddItemPopupState extends State<AddItemPopup> {
     try {
       _amplitudeTimer?.cancel();
     } catch (_) {}
+    nameController.removeListener(_onFormChanged);
     super.dispose();
+  }
+
+  void _onFormChanged() {
+    // Trigger a rebuild when the name changes so submit button updates
+    setState(() {});
+  }
+
+  bool _canSubmit() {
+    final hasName = nameController.text.trim().isNotEmpty;
+    final hasImage = imageBytes != null;
+    if (widget.isCategory) {
+      return hasName && hasImage;
+    } else {
+      final hasSound = soundBytes != null;
+      return hasName && hasImage && hasSound;
+    }
   }
 
   Future<void> _loadImageBytes() async {
@@ -331,16 +352,18 @@ class _AddItemPopupState extends State<AddItemPopup> {
             children: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFBADFB5),
+                  // 0xFF2E7D32 = dark green, 0xFFBADFB5 = light green
+                  backgroundColor: _canSubmit() ? Color(0xFF2E7D32) : Color(0xFFBADFB5),
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                onPressed: () {
-                  if (formKey.currentState!.validate()) {
-                    print('Debug: Creating artefact with soundBytes: ${soundBytes != null ? '${soundBytes!.length} bytes' : 'null'}');
-                    widget.onSubmit(nameController.text, imageBytes, soundBytes);
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: _canSubmit()
+                    ? () {
+                        if (formKey.currentState!.validate()) {
+                          widget.onSubmit(nameController.text, imageBytes, soundBytes);
+                          Navigator.of(context).pop();
+                        }
+                      }
+                    : null,
                 child: Text(
                   widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
                   style: TextStyle(color: Colors.white),
@@ -384,7 +407,6 @@ class _AddItemPopupState extends State<AddItemPopup> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Title with image (match other buttons)
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -399,7 +421,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ),
             ),
             SizedBox(width: 12),
-            Text('Tilføj lyd', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Tilføj lyd til artefakt', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
         SizedBox(height: 12),
