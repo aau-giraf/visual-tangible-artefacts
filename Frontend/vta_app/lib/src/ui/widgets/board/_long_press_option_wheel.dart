@@ -21,6 +21,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
+  bool _showName = false;
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
@@ -29,10 +30,52 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPressStart: _onLongPressStart,
-      child: widget.child,
+    return Stack(
+      children: [
+        GestureDetector(
+          onLongPressStart: _onLongPressStart,
+          child: widget.child,
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: AnimatedOpacity(
+            opacity: _showName ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: Container(
+              alignment: Alignment.topCenter,
+              // Move name up based on image height if available, else default higher
+              margin: EdgeInsets.only(top: _getNameTopMargin()),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Colors.transparent,
+              ),
+              child: Text(
+                widget.artifact.baseArtefact?.name ?? '',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  double _getNameTopMargin() {
+    // TODO: Doesnt work for now, should change height depending on image size, when wheel also scales correctly on image size
+    final imageHeight = widget.artifact.baseArtefact?.image?.lengthInBytes ?? 0;
+    if (imageHeight > 0) {
+      return 100;
+    }
+    return 0;
   }
 
   void _showPersistentWheel() {
@@ -100,6 +143,14 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             color: Colors.transparent,
             child: OptionWheel(
               key: _optionWheelKey,
+              artefactId: widget.artifact.artefactId,
+              artefactName: widget.artifact.baseArtefact?.name ?? '',
+              showName: _showName,
+              onToggleName: (val) {
+                setState(() {
+                  _showName = val;
+                });
+              },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
               endDegrees: endDegrees,
@@ -122,7 +173,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     });
   }
   // removes the overlay wheel
-  void _hidePersistentWheel() {
+    void _hidePersistentWheel() {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _wheelSize = null;

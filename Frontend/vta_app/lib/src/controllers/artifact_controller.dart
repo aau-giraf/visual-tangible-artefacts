@@ -16,6 +16,7 @@ class ArtefactController extends ChangeNotifier {
   List<Category>? get categories => _model.categories;
 
   ArtefactController(this._model);
+  
 
   Future<void> updateArtifacts({BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();

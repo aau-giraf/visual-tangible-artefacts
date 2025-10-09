@@ -2,17 +2,28 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/ui/widgets/board/_long_press_option_wheel.dart';
+
+
 
 class OptionWheel extends StatefulWidget {
+  final String artefactId;
+  final String artefactName;
   final VoidCallback? onPressed;
+  final bool showName;
+  final ValueChanged<bool>? onToggleName;
   final double startDegrees;
   final double endDegrees;
   final double baseRadius;
   final double verticalNudge;
 
-// wheel nudge
+  // wheel nudge
   const OptionWheel({
     Key? key,
+    required this.artefactId,
+    required this.artefactName,
+    required this.showName,
+    this.onToggleName,
     this.onPressed,
     this.startDegrees = -80,
     this.endDegrees = 80,
@@ -74,8 +85,11 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     ),
     _OptionWheelButton(
       icon: Icons.radio_button_checked,
-      label: 'Test',
-      onPressed: () {},
+      label: widget.showName ? 'Skjul Navn' : 'Vis Navn',
+      onPressed: () {
+        widget.onToggleName?.call(!widget.showName);
+        widget.onPressed?.call();
+      },
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(
