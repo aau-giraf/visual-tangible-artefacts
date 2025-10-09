@@ -47,7 +47,9 @@ public static class DTOConverter
             CategoryIndex = category.CategoryIndex,
             Name = category.Name,
             Artefacts = artefacts,
-            ImageUrl = scheme + "://" + host + category.ImagePath
+            ImageUrl = scheme + "://" + host + category.ImagePath,
+            UsageCount = category.UsageCount,
+            LastUsedDate = category.LastUsedDate
         };
     }
 

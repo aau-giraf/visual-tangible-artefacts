@@ -14,6 +14,7 @@ import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
 class ArtefactController extends ChangeNotifier {
   final ArtifactModel _model;
   List<Category>? get categories => _model.categories;
+  List<Category>? get mostUsedCategories => _model.mostUsedCategories;
 
   ArtefactController(this._model);
 
@@ -21,6 +22,19 @@ class ArtefactController extends ChangeNotifier {
     var token = GetIt.instance.get<Token>();
     try {
       await _model.fetchAndUpdateCategories(token: token.value!);
+    } catch (e) {
+      if (context != null && context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+    }
+  }
+
+  Future<void> updateMostUsedCategories(
+      {BuildContext? context, int limit = 3}) async {
+    var token = GetIt.instance.get<Token>();
+    try {
+      await _model.fetchAndUpdateMostUsedCategories(
+          token: token.value!, limit: limit);
     } catch (e) {
       if (context != null && context.mounted) {
         _showErrorSnackBar(context, e.toString());
@@ -112,6 +126,29 @@ class ArtefactController extends ChangeNotifier {
       if (context.mounted) {
         _showErrorSnackBar(context, e.toString());
       }
+    }
+  }
+
+  Future<void> trackCategoryUsage(String categoryId,
+      {BuildContext? context}) async {
+    var token = GetIt.instance.get<Token>();
+
+    try {
+      var category = _model.categories?.firstWhere(
+        (cat) => cat.categoryId == categoryId,
+        orElse: () => Category(),
+      );
+
+      if (category?.categoryId == null) {
+        return;
+      }
+
+      var success =
+          await _model.trackCategoryUsage(categoryId, token: token.value!);
+      if (success) {
+        notifyListeners();
+      }
+    } catch (e) {
     }
   }
 

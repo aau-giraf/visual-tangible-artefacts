@@ -27,6 +27,8 @@ public partial class CategoryGetDTO
 
     public string? Name { get; set; }
     public string? ImageUrl { get; set; }
+    public int UsageCount { get; set; } = 0;
+    public DateTime? LastUsedDate { get; set; }
 
     public virtual ICollection<ArtefactGetDTO> Artefacts { get; set; } = new List<ArtefactGetDTO>();
 }

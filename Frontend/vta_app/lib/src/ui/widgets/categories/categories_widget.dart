@@ -47,6 +47,9 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     // Initialize states
     authState = Provider.of<AuthState>(context, listen: false);
     artifactState = Provider.of<ArtifactState>(context, listen: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.artefactController.updateMostUsedCategories(context: context);
+    });
   }
 
   @override
@@ -87,52 +90,55 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
             listenable: widget.artefactController,
             builder: (context, child) {
               categories = widget.artefactController.categories ?? [];
-              return ReorderableListView.builder(
-                scrollDirection: Axis.horizontal,
-                buildDefaultDragHandles: false,
-                itemCount: categories.length + 1, //+1 room for add button
-                itemBuilder: (context, index) {
-                  if (index == categories.length) {
-                    return _buildAddCategoryButton(key: ValueKey('add_button'));
-                  }
-                  if (moveCategoriesMode) {
-                    return Material(
-                      key: ValueKey(categories[index].categoryId),
-                      elevation: 2,
-                      child: _buildCategoryItem(context, index),
-                    );
-                  }
-                  return _buildCategoryItem(context, index,
-                      key: ValueKey(categories[index].categoryId));
-                },
-                onReorder: (int oldIndex, int newIndex) {
-                  setState(() {
-                    if (oldIndex < newIndex) {
-                      newIndex -= 1;
-                    }
-                    newIndex = min(newIndex, categories.length - 1);
+              List<Category> mostUsedCategories =
+                  widget.artefactController.mostUsedCategories ?? [];
+              List<Category> regularCategories = categories;
 
-                    final Category movedCategory =
-                        categories.removeAt(oldIndex);
-                    categories.insert(newIndex, movedCategory);
-
-                    for (int i = min(oldIndex, newIndex);
-                        i <= max(oldIndex, newIndex);
-                        i++) {
-                      categories[i].categoryIndex = i;
-                      categories[i].userId = auth.userId;
-                      artifactState.updateCategory(
-                        categories[i],
-                        token: GetIt.instance.get<Token>().value!,
-                      );
-                    }
-                  });
-                },
-              );
+              return _buildCategoriesWithMostUsed(
+                  mostUsedCategories, regularCategories, auth);
             },
           );
         },
       ),
+    );
+  }
+
+  Widget _buildCategoriesWithMostUsed(List<Category> mostUsedCategories,
+      List<Category> regularCategories, AuthState auth) {
+    List<Widget> items = [];
+
+    for (int i = 0; i < mostUsedCategories.length; i++) {
+      items.add(_buildMostUsedCategoryItem(mostUsedCategories[i], i));
+    }
+    if (mostUsedCategories.isNotEmpty &&
+        (regularCategories.isNotEmpty || true)) {
+      items.add(_buildSeparator());
+    }
+
+    for (int i = 0; i < regularCategories.length; i++) {
+      if (moveCategoriesMode) {
+        items.add(Material(
+          key: ValueKey('regular_${regularCategories[i].categoryId}'),
+          elevation: 2,
+          child: _buildRegularCategoryItem(regularCategories[i], i),
+        ));
+      } else {
+        items.add(_buildRegularCategoryItem(regularCategories[i], i,
+            key: ValueKey('regular_${regularCategories[i].categoryId}')));
+      }
+    }
+
+    items.add(_buildAddCategoryButton(key: ValueKey('add_button')));
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.0),
+          child: items[index],
+        );
+      },
     );
   }
 
@@ -169,35 +175,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, int index, {Key? key}) {
-    final item = categories[index];
-    if (moveCategoriesMode) {
-      return CustomDelayDragStartListener(
-        delay: 200,
-        key: key,
-        index: index,
-        child: _buildCategoryButton(key, context, index, item),
-      );
-    } else {
-      return GestureDetector(
-        key: key,
-        onLongPress: () {
-          _showCategoryEditModal(context, item); // Show modal on long press
-        },
-        child: _buildCategoryButton(key, context, index, item),
-      );
-    }
-  }
-
-  TextButton _buildCategoryButton(
-      Key? key, BuildContext context, int index, Category item) {
-    return TextButton(
-      key: key,
-      onPressed: () => _showCategoryModal(context, categories[index]),
-      child: _buildCategoryContainer(item),
-    );
-  }
-
   Widget _buildCategoryContainer(Category item) {
     var headers = <String, String>{
       'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
@@ -223,6 +200,74 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
               : Text(item.name!),
         ),
       ),
+    );
+  }
+
+  Widget _buildMostUsedCategoryItem(Category item, int index) {
+    return Container(
+      child: GestureDetector(
+        onLongPress: () {
+          _showCategoryEditModal(context, item);
+        },
+        child: TextButton(
+          onPressed: () {
+            widget.artefactController
+                .trackCategoryUsage(item.categoryId!, context: context);
+            _showCategoryModal(context, item);
+          },
+          child: _buildCategoryContainer(item),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeparator() {
+    return Container(
+      width: 4,
+      height: widget.widgetHeight,
+      margin: EdgeInsets.symmetric(horizontal: 8),
+      child: Center(
+        child: Container(
+          width: 2,
+          height: widget.widgetHeight * 0.6,
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 214, 11, 11),
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegularCategoryItem(Category item, int index, {Key? key}) {
+    if (moveCategoriesMode) {
+      return CustomDelayDragStartListener(
+        delay: 200,
+        key: key,
+        index: index,
+        child: _buildRegularCategoryButton(key, context, item),
+      );
+    } else {
+      return GestureDetector(
+        key: key,
+        onLongPress: () {
+          _showCategoryEditModal(context, item);
+        },
+        child: _buildRegularCategoryButton(key, context, item),
+      );
+    }
+  }
+
+  TextButton _buildRegularCategoryButton(
+      Key? key, BuildContext context, Category item) {
+    return TextButton(
+      key: key,
+      onPressed: () {
+        widget.artefactController
+            .trackCategoryUsage(item.categoryId!, context: context);
+        _showCategoryModal(context, item);
+      },
+      child: _buildCategoryContainer(item),
     );
   }
 
@@ -527,7 +572,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 }
 
 class AddItemPopup extends StatefulWidget {
-  Category? category;
+  final Category? category;
   final bool isCategory;
   final void Function(String name, Uint8List? imageBytes) onSubmit;
   final String title;
