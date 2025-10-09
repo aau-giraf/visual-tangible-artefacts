@@ -267,11 +267,13 @@ public class ArtefactsController : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
-            // Generate speech with default settings
+            // Generate speech with multilingual support for Danish
+            // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
-                modelId: "eleven_monolingual_v1"
+                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
+                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                languageCode: "da" // Explicitly set Danish
             );
 
             if (audioData == null)
@@ -341,11 +343,13 @@ public class ArtefactsController : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
-            // Generate speech
+            // Generate speech with multilingual support for Danish
+            // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
-                modelId: "eleven_monolingual_v1"
+                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
+                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                languageCode: "da" // Explicitly set Danish
             );
 
             if (audioData == null)

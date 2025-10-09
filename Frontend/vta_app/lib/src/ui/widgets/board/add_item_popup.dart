@@ -751,7 +751,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
       
       final body = json.encode({
         'text': text,
-        'voiceId': 'Bj9UqZbhQsanLzgalpEG', // Your specific voice
+        // voiceId removed - backend controls which voice to use
       });
 
       print('Debug: Making request to: $url');
