@@ -94,6 +94,12 @@ public partial class UserContext : DbContext
             entity.Property(e => e.UserId)
                 .HasMaxLength(36)
                 .HasColumnName("userId");
+            entity.Property(e => e.UsageCount)
+                .HasDefaultValue(0)
+                .HasColumnName("usageCount");
+            entity.Property(e => e.LastUsedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("lastUsedDate");
 
             entity.HasOne(d => d.User).WithMany(p => p.Categories)
                 .HasForeignKey(d => d.UserId)
