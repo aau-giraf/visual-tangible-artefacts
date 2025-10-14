@@ -17,11 +17,12 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
-            ImageUrl = scheme + "://" + host + artefact.ImagePath
+            ImageUrl = scheme + "://" + host + artefact.ImagePath,
+            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
         };
     }
 
-    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl)
+    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl, string? soundUrl = null)
     {
         return new Artefact
         {
@@ -30,7 +31,8 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
-            ImagePath = imageUrl
+            ImagePath = imageUrl,
+            SoundPath = soundUrl
         };
     }
 

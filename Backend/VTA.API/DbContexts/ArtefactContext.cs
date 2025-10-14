@@ -19,6 +19,7 @@ public partial class ArtefactContext : DbContext
 
     public virtual DbSet<Artefact> Artefacts { get; set; }
 
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -58,6 +59,9 @@ public partial class ArtefactContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
+            entity.Property(e => e.SoundPath)
+                .HasMaxLength(255)
+                .HasColumnName("soundPath");
                 
             entity.HasOne(d => d.Category).WithMany(p => p.Artefacts)
                 .HasForeignKey(d => d.CategoryId)
@@ -67,6 +71,7 @@ public partial class ArtefactContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("artefact_ibfk_1");
+
         });
 
         modelBuilder.Entity<Category>(entity =>

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 
 class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
-  TalkingmatController({List<BoardArtefact>? initialArtifacts})
+  final Function(BoardArtefact)? onArtefactAdded;
+  
+  TalkingmatController({List<BoardArtefact>? initialArtifacts, this.onArtefactAdded})
       : super(initialArtifacts ?? []);
 
   void addArtifact(BoardArtefact artefact) {
     value.add(artefact);
+    onArtefactAdded?.call(artefact);
     notifyListeners();
   }
 

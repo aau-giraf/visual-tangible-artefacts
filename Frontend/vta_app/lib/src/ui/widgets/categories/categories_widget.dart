@@ -12,6 +12,7 @@ import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
@@ -507,18 +508,20 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       context: context,
       builder: (BuildContext context) {
         return AddItemPopup(
-            isCategory: true,
-            onSubmit: (name, imageBytes) {
-              var artifactState =
-                  Provider.of<ArtifactState>(context, listen: false);
-              var authState = Provider.of<AuthState>(context, listen: false);
-              var newCategory = Category(
-                  name: name,
-                  userId: authState.userId,
-                  categoryIndex: 0,
-                  image: imageBytes);
-              artifactState.addCategory(newCategory, token: authState.token!);
-            });
+          isCategory: true,
+          title: 'Tilføj kategori',
+          onSubmit: (name, imageBytes, soundBytes) {
+            var artifactState =
+                Provider.of<ArtifactState>(context, listen: false);
+            var authState = Provider.of<AuthState>(context, listen: false);
+            var newCategory = Category(
+                name: name,
+                userId: authState.userId,
+                categoryIndex: 0,
+                image: imageBytes);
+            artifactState.addCategory(newCategory, token: authState.token!);
+          },
+        );
       },
     );
   }
@@ -528,21 +531,23 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       context: context,
       builder: (BuildContext context) {
         return AddItemPopup(
-            isCategory: true,
-            category: category,
-            onSubmit: (name, imageBytes) {
-              var artifactState =
-                  Provider.of<ArtifactState>(context, listen: false);
-              var authState = Provider.of<AuthState>(context, listen: false);
-              var newCategory = Category(
-                  categoryId: category.categoryId,
-                  name: name,
-                  userId: authState.userId,
-                  categoryIndex: category.categoryIndex,
-                  image: imageBytes);
-              artifactState.updateCategory(newCategory,
-                  token: authState.token!);
-            });
+          isCategory: true,
+          title: 'Rediger kategori',
+          category: category,
+          onSubmit: (name, imageBytes, soundBytes) {
+            var artifactState =
+                Provider.of<ArtifactState>(context, listen: false);
+            var authState = Provider.of<AuthState>(context, listen: false);
+            var newCategory = Category(
+                categoryId: category.categoryId,
+                name: name,
+                userId: authState.userId,
+                categoryIndex: category.categoryIndex,
+                image: imageBytes);
+            artifactState.updateCategory(newCategory,
+                token: authState.token!);
+          },
+        );
       },
     );
   }
@@ -553,18 +558,19 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: false,
-          onSubmit: (name, bytes) async {
+          onSubmit: (name, bytes, sound) async {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
             var newArtifact = Artefact(
                 categoryId: category.categoryId,
                 userId: authState.userId,
-                image: bytes);
+                image: bytes,
+                sound: sound);
             await artifactState.addArtifact(newArtifact,
                 token: authState.token!);
           },
-          title: "Tilføj Artifact",
+          title: "Tilføj Artifakt",
         );
       },
     );

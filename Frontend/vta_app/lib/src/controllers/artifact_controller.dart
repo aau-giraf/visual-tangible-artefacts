@@ -17,6 +17,7 @@ class ArtefactController extends ChangeNotifier {
   List<Category>? get mostUsedCategories => _model.mostUsedCategories;
 
   ArtefactController(this._model);
+  
 
   Future<void> updateArtifacts({BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();
@@ -45,7 +46,8 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newCategory(BuildContext context) async {
     var popup = AddItemPopup(
       isCategory: true,
-      onSubmit: (name, imageBytes) async {
+      title: 'Tilføj kategori',
+      onSubmit: (name, imageBytes, soundBytes) async {
         try {
           var newCategory = Category(
             categoryIndex: 0,
@@ -99,13 +101,16 @@ class ArtefactController extends ChangeNotifier {
   Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
-        onSubmit: (name, imageBytes) {
+        title: 'Tilføj artefakt',
+        onSubmit: (name, imageBytes, soundBytes) {
           try {
             var newArtefact = Artefact(
                 categoryId: categoryId,
                 artefactIndex: 0,
                 userId: GetIt.I.get<UserInfo>().userId,
-                image: imageBytes);
+                image: imageBytes,
+                sound: soundBytes,
+                name: name);
             _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
             _showSuccessActionSnackBar(context, 'Artefact tilføjet');
@@ -121,6 +126,10 @@ class ArtefactController extends ChangeNotifier {
         builder: (context) {
           return popup;
         });
+  }
+
+  Future<String> getArtifactName(String artefactId) async {
+    return "Test: artefactId is $artefactId";
   }
 
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {

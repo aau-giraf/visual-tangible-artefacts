@@ -410,3 +410,7 @@ Frontend/vta_app/assets/cfg/app_settings.json
 Frontend/vta_app/assets/cfg/app_settings.json
 Backend/VTA.API/appsettings.json
 Backend/VTA.API/appsettings.Development.json
+Backend/VTA.API/assets/Artefacts
+Backend/VTA.API/assets/Sounds
+Backend/VTA.API/assets/Categories
+

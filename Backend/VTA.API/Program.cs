@@ -14,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add HttpClient services for ElevenLabs API integration
+builder.Services.AddHttpClient();
 
 /*Register our DB contexts. They could have just been one big one, but that would worsen concurrency!*/
 builder.WrapDbContext<ArtefactContext>();
@@ -25,7 +27,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 //register our singleton
 builder.Services.AddSingleton(provider =>
-    {
+    { 
         var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;
@@ -93,6 +95,11 @@ if (!Directory.Exists(assetsDirs))
     Directory.CreateDirectory(assetsDirs);
 }
 assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts");
+if (!Directory.Exists(assetsDirs))
+{
+    Directory.CreateDirectory(assetsDirs);
+}
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
 if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);
