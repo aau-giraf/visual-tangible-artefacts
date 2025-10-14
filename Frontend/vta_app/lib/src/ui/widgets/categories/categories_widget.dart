@@ -510,7 +510,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         return AddItemPopup(
           isCategory: true,
           title: 'Tilføj kategori',
-          onSubmit: (name, imageBytes, soundBytes) {
+          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -534,7 +534,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
           isCategory: true,
           title: 'Rediger kategori',
           category: category,
-          onSubmit: (name, imageBytes, soundBytes) {
+          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -558,7 +558,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: false,
-          onSubmit: (name, bytes, sound) async {
+          onSubmit: (String name, Uint8List? bytes, Uint8List? sound) async {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -580,7 +580,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 class AddItemPopup extends StatefulWidget {
   final Category? category;
   final bool isCategory;
-  final void Function(String name, Uint8List? imageBytes) onSubmit;
+  // Updated to accept optional soundBytes as the third parameter
+  final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes) onSubmit;
   final String title;
 
   AddItemPopup({
@@ -809,7 +810,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 ),
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
-                    widget.onSubmit(nameController.text, imageBytes);
+                    // Pass null for soundBytes since this popup doesn't collect sound
+                    widget.onSubmit(nameController.text, imageBytes, null);
                     Navigator.of(context).pop();
                   }
                 },

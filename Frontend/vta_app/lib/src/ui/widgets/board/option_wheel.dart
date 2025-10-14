@@ -11,6 +11,7 @@ class OptionWheel extends StatefulWidget {
   final String artefactName;
   final VoidCallback? onPressed;
   final bool showName;
+  final VoidCallback? playSound;
   final ValueChanged<bool>? onToggleName;
   final double startDegrees;
   final double endDegrees;
@@ -23,6 +24,7 @@ class OptionWheel extends StatefulWidget {
     required this.artefactId,
     required this.artefactName,
     required this.showName,
+    required this.playSound,
     this.onToggleName,
     this.onPressed,
     this.startDegrees = -80,
@@ -74,7 +76,9 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     _OptionWheelButton(
       icon: Icons.radio_button_checked,
       label: 'Audio',
-      onPressed: () {},
+      onPressed: () {
+        widget.playSound?.call();
+      },
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(

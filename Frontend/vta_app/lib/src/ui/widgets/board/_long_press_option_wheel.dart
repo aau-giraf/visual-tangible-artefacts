@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import '../../../utilities/audio/artefact_sound_player.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -22,6 +23,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
   bool _showName = false;
+  final _soundPlayer = _ArtefactSoundPlayerImpl();
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
@@ -151,6 +153,15 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                   _showName = val;
                 });
               },
+              playSound: () {
+                final artefact = widget.artifact.baseArtefact;
+                if (artefact != null) {
+                  _soundPlayer.playArtefactSound(artefact);
+                } else {
+                  debugPrint('TODO : Add sound for artefact');
+                }
+                _hidePersistentWheel();
+              },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
               endDegrees: endDegrees,
@@ -179,3 +190,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _wheelSize = null;
   }
 }
+
+// Private implementation that mixes in the ArtefactSoundPlayer functionality
+class _ArtefactSoundPlayerImpl with ArtefactSoundPlayer {}
