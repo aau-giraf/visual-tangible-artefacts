@@ -161,7 +161,6 @@ class LinearBoardState extends State<LinearBoard>
                         .toList();
 
                     if (_isPlayingAllSounds) {
-                      // Stop playback using the mixin's cleanup
                       await cleanupArtefactSounds();
                       setState(() {
                         _isPlayingAllSounds = false;
@@ -176,11 +175,11 @@ class LinearBoardState extends State<LinearBoard>
 
                     try {
                       for (final artefact in artifacts) {
-                        if (!_isPlayingAllSounds) break; // stop requested
+                        if (!_isPlayingAllSounds) break;
                         await playArtefactSoundAndWait(artefact);
                       }
                     } catch (e) {
-                      // ignore errors during playback
+                      debugPrint('Error occurred while playing artefact sounds: $e');
                     } finally {
                       if (mounted) {
                         setState(() {
