@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 
+
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
@@ -30,24 +31,16 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
       children: [
-        GestureDetector(
-          onLongPressStart: _onLongPressStart,
-          child: widget.child,
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          child: AnimatedOpacity(
-            opacity: _showName ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
+        AnimatedOpacity(
+          opacity: _showName ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          child: IgnorePointer(
+            ignoring: true,
             child: Container(
               alignment: Alignment.topCenter,
-              // Move name up based on image height if available, else default higher
-              margin: EdgeInsets.only(top: _getNameTopMargin()),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               decoration: const BoxDecoration(
                 color: Colors.transparent,
               ),
@@ -65,17 +58,12 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             ),
           ),
         ),
+        GestureDetector(
+          onLongPressStart: _onLongPressStart,
+          child: widget.child,
+        ),
       ],
     );
-  }
-
-  double _getNameTopMargin() {
-    // TODO: Doesnt work for now, should change height depending on image size, when wheel also scales correctly on image size
-    final imageHeight = widget.artifact.baseArtefact?.image?.lengthInBytes ?? 0;
-    if (imageHeight > 0) {
-      return 100;
-    }
-    return 0;
   }
 
   void _showPersistentWheel() {
