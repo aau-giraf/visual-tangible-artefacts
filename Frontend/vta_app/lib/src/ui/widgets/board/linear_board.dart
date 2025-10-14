@@ -151,7 +151,7 @@ class LinearBoardState extends State<LinearBoard>
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.only(bottom: 8.0),
               child: Center(
                 child: ElevatedButton.icon(
                   onPressed: () async {
