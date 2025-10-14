@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
@@ -8,6 +10,8 @@ import 'package:vta_app/src/views/login_view.dart';
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
   final AuthModel _model;
+  final ArtefactController artifactController =
+      GetIt.I.get<ArtefactController>();
   AuthController(this._model);
 
   // Checks if a valid token is stored in the device
@@ -24,7 +28,12 @@ class AuthController extends ChangeNotifier {
       {BuildContext? context}) async {
     try {
       await _model.login(username, password);
+
       if (context != null && context.mounted) {
+
+        await artifactController.updateArtifacts(context: context);
+        await artifactController.updateMostUsedCategories(context: context);
+
         Navigator.of(context)
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
