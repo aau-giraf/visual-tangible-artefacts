@@ -64,45 +64,13 @@ mixin ArtefactSoundPlayer {
 
       try {
         await completer.future.timeout(
-          const Duration(seconds: 30),
+          const Duration(seconds: 15),
           onTimeout: () {
             audio.stop();
           },
         );
       } finally {
         await subscription.cancel();
-      }
-    }
-  }
-
-  Future<void> playArtefactSoundsInOrder(List<Artefact> artefacts) async {
-    for (final artefact in artefacts) {
-      await playArtefactSound(artefact);
-      
-      // Get the NetworkAudio instance from cache
-      final audio = _audioCache[artefact.soundUrl];
-      if (audio != null && audio.isInitialized) {
-        // Create a completer to track when the audio finishes
-        final completer = Completer<void>();
-        
-        // Subscribe to player state changes
-        final subscription = audio.playerStateStream.listen((state) {
-          if (state.processingState == ProcessingState.completed) {
-            completer.complete();
-          }
-        });
-        
-        // Wait for the audio to complete
-        try {
-          await completer.future.timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              audio.stop();
-            },
-          );
-        } finally {
-          await subscription.cancel();
-        }
       }
     }
   }
