@@ -154,16 +154,43 @@ class LinearBoardState extends State<LinearBoard>
               padding: const EdgeInsets.only(bottom: 16.0),
               child: Center(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Play sounds for all artifacts in order
+                  onPressed: () async {
                     final artifacts = _linearBoardController.artifacts
                         .where((a) => a != null && a.baseArtefact != null)
                         .map((a) => a!.baseArtefact!)
                         .toList();
-                    playArtefactSoundsInOrder(artifacts);
+
+                    if (_isPlayingAllSounds) {
+                      // Stop playback using the mixin's cleanup
+                      await cleanupArtefactSounds();
+                      setState(() {
+                        _isPlayingAllSounds = false;
+                      });
+                      return;
+                    }
+
+                    // Start playback
+                    setState(() {
+                      _isPlayingAllSounds = true;
+                    });
+
+                    try {
+                      for (final artefact in artifacts) {
+                        if (!_isPlayingAllSounds) break; // stop requested
+                        await playArtefactSoundAndWait(artefact);
+                      }
+                    } catch (e) {
+                      // ignore errors during playback
+                    } finally {
+                      if (mounted) {
+                        setState(() {
+                          _isPlayingAllSounds = false;
+                        });
+                      }
+                    }
                   },
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Play All Sounds'),
+                  icon: Icon(_isPlayingAllSounds ? Icons.stop : Icons.play_arrow),
+                  label: Text(_isPlayingAllSounds ? 'Stop Audio' : 'Play All Sounds'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
