@@ -153,6 +153,32 @@ class ArtifactState with ChangeNotifier {
       return false;
     }
   }
+
+  List<Category>? _mostUsedCategories = [];
+
+  List<Category>? get mostUsedCategories => _mostUsedCategories;
+
+  Future<bool> loadMostUsedCategories(String token, {int limit = 3}) async {
+    _mostUsedCategories =
+        await ArtifactRepository().fetchMostUsedCategories(token, limit: limit);
+    if (_mostUsedCategories == null) {
+      _mostUsedCategories = [];
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> trackCategoryUsage(String categoryId,
+      {required String token}) async {
+    var responseOk =
+        await ArtifactRepository().trackCategoryUsage(categoryId, token: token);
+    if (responseOk) {
+      await loadMostUsedCategories(token);
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
 class UserState with ChangeNotifier {

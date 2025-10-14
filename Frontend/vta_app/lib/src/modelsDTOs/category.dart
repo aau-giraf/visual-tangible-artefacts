@@ -11,6 +11,8 @@ class Category implements JsonSerializable {
   List<Artefact>? artefacts;
   String? imageUrl;
   Uint8List? image;
+  int? usageCount;
+  DateTime? lastUsedDate;
 
   Category(
       {this.categoryId,
@@ -19,7 +21,9 @@ class Category implements JsonSerializable {
       this.artefacts,
       this.userId,
       this.imageUrl,
-      this.image});
+      this.image,
+      this.usageCount,
+      this.lastUsedDate});
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
@@ -34,6 +38,10 @@ class Category implements JsonSerializable {
         imageUrl: json['imageUrl'] as String?,
         image: json['image'] != null
             ? Uint8List.fromList(json['image'].cast<int>())
+            : null,
+        usageCount: json['usageCount'] as int?,
+        lastUsedDate: json['lastUsedDate'] != null
+            ? DateTime.parse(json['lastUsedDate'])
             : null);
   }
 
@@ -47,6 +55,8 @@ class Category implements JsonSerializable {
       'artefacts': artefacts?.map((artefact) => artefact.toJson()).toList(),
       'imageUrl': imageUrl,
       'image': image,
+      'usageCount': usageCount,
+      'lastUsedDate': lastUsedDate?.toIso8601String(),
     };
   }
 }

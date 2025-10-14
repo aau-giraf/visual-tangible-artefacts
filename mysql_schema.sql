@@ -35,6 +35,8 @@ CREATE TABLE category (
   name           VARCHAR(50)  NULL,
   imagePath      VARCHAR(255) NULL,
   modifiedDate   DATETIME NULL,
+  usageCount     INT NOT NULL DEFAULT 0,
+  lastUsedDate   DATETIME NULL,
   PRIMARY KEY (categoryId),
   KEY userId (userId),
   CONSTRAINT category_ibfk_1

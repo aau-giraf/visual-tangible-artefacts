@@ -223,6 +223,86 @@ public class CategoriesController : ControllerBase
         return NoContent();
     }
 
+    // POST: api/Categories/{categoryId}/usage
+    /// <summary>
+    /// Tracks when a category is used by incrementing usage count and updating last used date
+    /// </summary>
+    /// <param name="categoryId">The category ID to track usage for</param>
+    /// <returns>Status code 204 (No content) on success</returns>
+    [HttpPost("{categoryId}/usage")]
+    public async Task<IActionResult> TrackCategoryUsage(string categoryId)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        var category = await _context.Categories.FindAsync(categoryId);
+
+        if (category == null)
+        {
+            return NotFound();
+        }
+
+        if (userId != category.UserId)
+        {
+            return Forbid();
+        }
+
+        category.UsageCount++;
+        category.LastUsedDate = DateTime.UtcNow;
+
+        _context.Entry(category).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!CategoryExists(category.CategoryId))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
+    }
+
+    // GET: api/Categories/most-used
+    /// <summary>
+    /// Gets the most used categories for the authenticated user
+    /// </summary>
+    /// <param name="limit">Number of most used categories to return (default: 5)</param>
+    /// <returns>A list of the most used categories</returns>
+    [HttpGet("most-used")]
+    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetMostUsedCategories(int limit = 5)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        List<Category>? categories = await _context.Categories
+            .Where(c => c.UserId == userId)
+            .Include(c => c.Artefacts)
+            .OrderByDescending(c => c.UsageCount)
+            .ThenByDescending(c => c.LastUsedDate)
+            .Take(limit)
+            .ToListAsync();
+
+        if (categories == null)
+        {
+            return NotFound();
+        }
+
+        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
+        foreach (Category category in categories)
+        {
+            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
+        }
+
+        return categoryGetDTOs;
+    }
+
     private bool CategoryExists(string id)
     {
         return _context.Categories.Any(e => e.CategoryId == id);

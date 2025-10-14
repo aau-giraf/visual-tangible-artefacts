@@ -9,6 +9,7 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 
 class ArtifactModel {
   List<Category>? categories;
+  List<Category>? mostUsedCategories;
   final ApiProvider apiProvider;
 
   ArtifactModel(this.apiProvider);
@@ -130,6 +131,50 @@ class ArtifactModel {
     } catch (e) {
       debugPrint('$e');
       rethrow;
+    }
+  }
+
+  Future<void> fetchAndUpdateMostUsedCategories(
+      {required String token, int limit = 3}) async {
+    try {
+      var response = await apiProvider
+          .fetchAsJson("Users/Categories/most-used?limit=$limit", headers: {
+        'Authorization': 'Bearer $token',
+      });
+      if (response != null && response.ok) {
+        var jsonResponse = json.decode(response.body) as List;
+        var newMostUsedCategories = jsonResponse
+            .map((jsonCategory) =>
+                Category.fromJson(jsonCategory as Map<String, dynamic>))
+            .toList();
+        mostUsedCategories = newMostUsedCategories;
+      } else {
+        throw ArtifactException(
+            message:
+                'Failed to fetch most used categories with status code: ${response?.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("$e");
+      rethrow;
+    }
+  }
+
+  Future<bool> trackCategoryUsage(String categoryId,
+      {required String token}) async {
+    try {
+      var response = await apiProvider.postAsJson(
+          "Users/Categories/$categoryId/usage",
+          headers: {'Authorization': 'Bearer $token'},
+          body: {});
+
+      if (response != null && response.ok) {
+        await fetchAndUpdateMostUsedCategories(token: token);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
     }
   }
 }
