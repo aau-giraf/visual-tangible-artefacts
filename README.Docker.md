@@ -29,6 +29,11 @@ This guide explains how to run the Visual Tangible Artefacts application using D
    ```bash
    docker-compose down -v
    ```
+   
+5. **Start and force recreate:**
+6. ```bash
+   docker-compose up -d --build --force-recreate
+   ```
 
 ## Services
 
