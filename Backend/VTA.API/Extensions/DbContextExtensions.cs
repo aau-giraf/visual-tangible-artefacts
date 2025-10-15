@@ -48,7 +48,10 @@ public static class DbContextExtensions
         try
         {
             var vtaContext = await scope.MigrateVTAContext();
-            await vtaContext.SeedTestData();
+            
+            vtaContext.SeedTestUser();
+            
+            await vtaContext.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -67,7 +70,7 @@ public static class DbContextExtensions
         return vtaContext;
     }
 
-    private static async Task<VTAContext> SeedTestData(this VTAContext context)
+    private static VTAContext SeedTestUser(this VTAContext context)
     {
         const string giraf = "giraf";
         
@@ -80,8 +83,6 @@ public static class DbContextExtensions
         };
                 
         context.Users.Add(testUser);
-        
-        await context.SaveChangesAsync();
         
         return context;
     }
