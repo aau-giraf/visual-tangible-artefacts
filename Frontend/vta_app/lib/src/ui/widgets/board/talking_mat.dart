@@ -106,13 +106,20 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       // This ensures the position is relative to the board's coordinate space
       final localPosition = renderBox.globalToLocal(offset);
 
+      // Clamp the position to keep the artifact within bounds
+      // Account for the artifact's own size to prevent it from going off-screen
+      final clampedX = localPosition.dx.clamp(0.0, renderBox.size.width - size.width);
+      final clampedY = localPosition.dy.clamp(0.0, renderBox.size.height - size.height);
+
       // Update the artifact's position in the state
       // This will trigger a rebuild with the new position
       setState(() {
-        artifact.position = localPosition;
+        artifact.position = Offset(clampedX, clampedY);
       });
     }
   }
+
+ 
 
   void _loadArtifactSize(BoardArtefact artifact) {
     // Access the size of the artifact's content after it has been rendered
@@ -134,13 +141,21 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
 
     // Get the global position of the top-left corner of the TalkingMat
     final Offset matTopLeftGlobal = renderBox.localToGlobal(Offset.zero);
+    final Size matSize = renderBox.size;
 
-    // Check if the artifact is inside the mat by comparing global coordinates
-    return globalOffset.dx - matTopLeftGlobal.dx >= 0 &&
-        globalOffset.dx + matTopLeftGlobal.dx <= renderBox.size.width &&
-        globalOffset.dy - matTopLeftGlobal.dy >= 0 &&
-        globalOffset.dy + matTopLeftGlobal.dy <= renderBox.size.height;
+    final double matRight = matTopLeftGlobal.dx + matSize.width;
+    final double matBottom = matTopLeftGlobal.dy + matSize.height;
+
+    
+     // Check if the artifact is inside the mat by comparing global coordinates
+   return globalOffset.dx >= matTopLeftGlobal.dx &&
+          globalOffset.dx <= matRight &&
+          globalOffset.dy >= matTopLeftGlobal.dy &&
+          globalOffset.dy <= matBottom;   
+          
+   
   }
+  
 
   @override
   Widget build(BuildContext context) {
