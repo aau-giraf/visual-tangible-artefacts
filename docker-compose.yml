@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: vta-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: vta_dev
+      MYSQL_USER: vta_user
+      MYSQL_PASSWORD: vta_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - vta-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: VTA.API/Dockerfile
+    container_name: vta-backend
+    restart: unless-stopped
+    ports:
+      - "5192:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=server=mysql;port=3306;database=vta_dev;user=vta_user;password=vta_password
+      - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
+      - AUTO_CREATE_DATABASE=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - backend_assets:/app/Assets
+    networks:
+      - vta-network
+
+  # frontend:
+  #   build:
+  #     context: ./Frontend/vta_app
+  #     dockerfile: Dockerfile
+  #   container_name: vta-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:80"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - vta-network
+
+networks:
+  vta-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  backend_assets:
+    driver: local
