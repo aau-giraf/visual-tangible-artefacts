@@ -1,7 +1,0 @@
-{
-    "ApiSettings": {
-        "BaseUrl": {
-            "Remote": "http://130.225.39.203:5192/api/"
-        }
-    }
-}
