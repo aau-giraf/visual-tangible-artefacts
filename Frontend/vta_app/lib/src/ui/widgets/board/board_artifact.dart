@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/ui/widgets/board/_long_press_option_wheel.dart';
 
 class BoardArtefact {
   final Widget content;
   Offset? position;
   final GlobalKey key;
+  final GlobalKey<LongPressOptionWheelState> longPressKey;
   Size? renderedSize;
   Artefact? baseArtefact;
   double scale; // Scale factor for the artefact (1.0 = normal, 0.5 = half, 2.0 = double)
@@ -15,7 +17,8 @@ class BoardArtefact {
     this.position,
     this.baseArtefact,
     this.scale = 1.0, // Default scale is normal size
-  }) : key = GlobalKey();
+  }) : key = GlobalKey(),
+       longPressKey = GlobalKey<LongPressOptionWheelState>();
 
   String get artefactId => baseArtefact?.artefactId ?? '';
 

@@ -18,6 +18,11 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
     notifyListeners();
   }
 
+  void updateArtifactScale(BoardArtefact artefact, double newScale) {
+    artefact.scale = newScale;
+    notifyListeners();
+  }
+
   void removeAllArtifacts({BuildContext? context}) {
     if (context != null && context.mounted) {
       _showRemoveAllArtifactsAlert(context);
