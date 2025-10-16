@@ -49,7 +49,7 @@ public static class DbContextExtensions
         {
             var vtaContext = await scope.MigrateVTAContext();
             
-            vtaContext.SeedTestUser();
+            await vtaContext.SeedTestUser();
             
             await vtaContext.SaveChangesAsync();
         }
@@ -70,9 +70,13 @@ public static class DbContextExtensions
         return vtaContext;
     }
 
-    private static VTAContext SeedTestUser(this VTAContext context)
+    private static async Task<VTAContext> SeedTestUser(this VTAContext context)
     {
         const string giraf = "giraf";
+        
+        var testUserExist = await context.Users.AnyAsync(u => u.Username == giraf);
+
+        if (testUserExist) return context;
         
         var testUser = new User
         {
@@ -81,6 +85,8 @@ public static class DbContextExtensions
             Password = giraf,
             Username = giraf
         };
+        
+        testUser.Password = BCrypt.Net.BCrypt.HashPassword(testUser.Password);
                 
         context.Users.Add(testUser);
         
