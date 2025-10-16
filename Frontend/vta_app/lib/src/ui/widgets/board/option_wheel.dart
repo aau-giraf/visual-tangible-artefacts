@@ -74,7 +74,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
   // buttons for the wheel
   final options = [
     _OptionWheelButton(
-      icon: Icons.radio_button_checked,
+      icon: Icons.volume_up,
       label: 'Audio',
       onPressed: () {
         widget.playSound?.call();
@@ -82,13 +82,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(
-      icon: Icons.radio_button_checked,
-      label: 'Random',
-      onPressed: () {},
-      preferredWidth: buttonSize,
-    ),
-    _OptionWheelButton(
-      icon: Icons.radio_button_checked,
+      icon: widget.showName ? Icons.closed_caption_disabled_outlined : Icons.closed_caption_off_outlined,
       label: widget.showName ? 'Skjul Navn' : 'Vis Navn',
       onPressed: () {
         widget.onToggleName?.call(!widget.showName);
@@ -97,14 +91,26 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(
-      icon: Icons.radio_button_checked,
+      icon: Icons.delete,
       label: 'Remove',
       onPressed: () {},
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(
-      icon: Icons.radio_button_checked,
-      label: 'Combine',
+      icon: Icons.open_in_full,
+      label: 'Resize',
+      onPressed: () {},
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.attach_file,
+      label: 'Audio',
+      onPressed: () {},
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.attach_file,
+      label: 'Name',
       onPressed: () {},
       preferredWidth: buttonSize,
     ),
