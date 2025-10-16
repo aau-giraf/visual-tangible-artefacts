@@ -7,10 +7,10 @@ class LongPressOptionWheel extends StatefulWidget {
   final Widget child;
 
   const LongPressOptionWheel({
-    Key? key,
+    super.key,
     required this.artifact,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   State<LongPressOptionWheel> createState() => LongPressOptionWheelState();
@@ -149,6 +149,20 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               onToggleName: (val) {
                 setState(() {
                   _showName = val;
+                });
+              },
+              onSizeChange: () {
+                // Cycle through sizes: 1.0 -> 1.5 -> 2.0 -> 0.5 -> 1.0
+                setState(() {
+                  if (widget.artifact.scale == 1.0) {
+                    widget.artifact.scale = 1.5;
+                  } else if (widget.artifact.scale == 1.5) {
+                    widget.artifact.scale = 2.0;
+                  } else if (widget.artifact.scale == 2.0) {
+                    widget.artifact.scale = 0.5;
+                  } else {
+                    widget.artifact.scale = 1.0;
+                  }
                 });
               },
               onPressed: _hidePersistentWheel,

@@ -278,7 +278,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                       child: Draggable<BoardArtefact>(
                         data: artefact,
                         feedback: Transform.scale(
-                          scale: 1.2,
+                          scale: artefact.scale * 1.2, // Slightly larger than normal when dragging
                           child: Container(
                             decoration: BoxDecoration(
                               color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
@@ -298,7 +298,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           ),
                         ),
                         childWhenDragging: Container(),
-                        child: Container(key: artefact.key, child: artefact.content),
+                        child: Transform.scale(
+                          scale: artefact.scale,
+                          child: Container(key: artefact.key, child: artefact.content),
+                        ),
                         onDragEnd: (details) {
                           if (_isInsideMat(details.offset)) {
                             _updateArtifactPosition(artefact, details.offset);

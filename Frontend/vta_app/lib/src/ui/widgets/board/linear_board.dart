@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import '../../../controllers/linear_board_controller.dart';
-import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
 
@@ -376,14 +375,17 @@ class LinearBoardState extends State<LinearBoard>
       int index, double artifactWidth, double artifactHeight) {
     return Draggable<BoardArtefact>(
       data: artifact,
-      feedback: Material(
-        type: MaterialType.transparency,
-        child: Opacity(
-          opacity: 0.5,
-          child: SizedBox(
-            width: artifactWidth / (_linearBoardController.fieldCount / 4),
-            height: artifactHeight,
-            child: artifact.content,
+      feedback: Transform.scale(
+        scale: artifact.scale,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Opacity(
+            opacity: 0.5,
+            child: SizedBox(
+              width: artifactWidth / (_linearBoardController.fieldCount / 4),
+              height: artifactHeight,
+              child: artifact.content,
+            ),
           ),
         ),
       ),
@@ -391,12 +393,15 @@ class LinearBoardState extends State<LinearBoard>
         opacity: 0.1,
         child: artifact.content,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+      child: Transform.scale(
+        scale: artifact.scale,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: artifact.content,
         ),
-        child: artifact.content,
       ),
     );
   }

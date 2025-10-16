@@ -8,11 +8,13 @@ class BoardArtefact {
   final GlobalKey key;
   Size? renderedSize;
   Artefact? baseArtefact;
+  double scale; // Scale factor for the artefact (1.0 = normal, 0.5 = half, 2.0 = double)
 
   BoardArtefact({
     required this.content,
     this.position,
     this.baseArtefact,
+    this.scale = 1.0, // Default scale is normal size
   }) : key = GlobalKey();
 
   String get artefactId => baseArtefact?.artefactId ?? '';
