@@ -12,6 +12,7 @@ class OptionWheel extends StatefulWidget {
   final VoidCallback? onPressed;
   final bool showName;
   final VoidCallback? playSound;
+  final VoidCallback? onResize;
   final ValueChanged<bool>? onToggleName;
   final double startDegrees;
   final double endDegrees;
@@ -25,6 +26,7 @@ class OptionWheel extends StatefulWidget {
     required this.artefactName,
     required this.showName,
     required this.playSound,
+    this.onResize,
     this.onToggleName,
     this.onPressed,
     this.startDegrees = -80,
@@ -99,7 +101,10 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
     _OptionWheelButton(
       icon: Icons.open_in_full,
       label: 'Resize',
-      onPressed: () {},
+      onPressed: () {
+        widget.onResize?.call();
+        widget.onPressed?.call();
+      },
       preferredWidth: buttonSize,
     ),
     _OptionWheelButton(

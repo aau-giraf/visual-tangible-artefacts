@@ -19,6 +19,8 @@ class LongPressOptionWheel extends StatefulWidget {
 
 class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   OverlayEntry? _overlayEntry;
+  OverlayEntry? _resizeCaptureEntry;
+  VoidCallback? _resizeListener;
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
@@ -28,6 +30,108 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
     _showPersistentWheel();
+  }
+
+  void _showResizeCaptureOverlay() {
+    if (_resizeCaptureEntry != null) return;
+
+    _resizeCaptureEntry = OverlayEntry(builder: (context) {
+      final RenderBox? artifactBox = widget.artifact.key.currentContext?.findRenderObject() as RenderBox?;
+      if (artifactBox == null) {
+        return const SizedBox.shrink();
+      }
+  final artifactTopLeft = artifactBox.localToGlobal(Offset.zero);
+  final artifactRect = artifactTopLeft & artifactBox.size;
+
+  const double handlePadding = 36.0;
+  final Rect inflatedRect = artifactRect.inflate(handlePadding);
+
+  final media = MediaQuery.of(context).size;
+      return Stack(children: [
+        // top
+        Positioned(
+          left: 0,
+          top: 0,
+          right: 0,
+          height: inflatedRect.top,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // left
+        Positioned(
+          left: 0,
+          top: inflatedRect.top,
+          width: inflatedRect.left,
+          height: inflatedRect.height,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // right
+        Positioned(
+          left: inflatedRect.right,
+          top: inflatedRect.top,
+          width: (media.width - inflatedRect.right),
+          height: inflatedRect.height,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // bottom
+        Positioned(
+          left: 0,
+          top: inflatedRect.bottom,
+          right: 0,
+          bottom: 0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+      ]);
+    });
+
+    Overlay.of(context).insert(_resizeCaptureEntry!);
+    _resizeListener = () {
+      _resizeCaptureEntry?.markNeedsBuild();
+    };
+    try {
+      widget.artifact.sizeNotifier.addListener(_resizeListener!);
+    } catch (_) {}
+  }
+
+  void _hideResizeCaptureOverlay() {
+    _resizeCaptureEntry?.remove();
+    _resizeCaptureEntry = null;
+    if (_resizeListener != null) {
+      try {
+        widget.artifact.sizeNotifier.removeListener(_resizeListener!);
+      } catch (_) {}
+      _resizeListener = null;
+    }
+    try {
+      widget.artifact.showResizeHandle.value = false;
+    } catch (_) {}
   }
 
   @override
@@ -161,6 +265,11 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                   debugPrint('TODO : Add sound for artefact');
                 }
                 _hidePersistentWheel();
+              },
+              onResize: () async {
+                widget.artifact.showResizeHandle.value = true;
+                _hidePersistentWheel();
+                _showResizeCaptureOverlay();
               },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,

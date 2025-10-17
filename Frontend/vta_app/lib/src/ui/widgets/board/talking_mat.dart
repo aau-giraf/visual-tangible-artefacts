@@ -188,34 +188,42 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     top: artefact.position?.dy,
                     child: LongPressOptionWheel(
                       artifact: artefact,
-                      child: Draggable<BoardArtefact>(
-                        data: artefact,
-                        feedback: Transform.scale(
-                          scale: 1.2,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  spreadRadius: 0,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Opacity(
-                              opacity: 0.5,
-                              child: artefact.content,
-                            ),
-                          ),
-                        ),
-                        childWhenDragging: Container(),
-                        child: Container(key: artefact.key, child: artefact.content),
-                        onDragEnd: (details) {
-                          if (_isInsideMat(details.offset)) {
-                            _updateArtifactPosition(artefact, details.offset);
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: artefact.showResizeHandle,
+                        builder: (context, showHandle, _) {
+                          if (showHandle) {
+                            return Container(key: artefact.key, child: artefact.content);
                           }
+                          return Draggable<BoardArtefact>(
+                            data: artefact,
+                            feedback: Transform.scale(
+                              scale: 1.2,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      spreadRadius: 0,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Opacity(
+                                  opacity: 0.5,
+                                  child: artefact.content,
+                                ),
+                              ),
+                            ),
+                            childWhenDragging: Container(),
+                            child: Container(key: artefact.key, child: artefact.content),
+                            onDragEnd: (details) {
+                              if (_isInsideMat(details.offset)) {
+                                _updateArtifactPosition(artefact, details.offset);
+                              }
+                            },
+                          );
                         },
                       ),
                     ),
