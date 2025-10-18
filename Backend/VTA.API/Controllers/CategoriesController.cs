@@ -56,7 +56,9 @@ public class CategoriesController(VTAContext context) : ControllerBase
             return NotFound();
         }
 
-        return category;
+        var categoryWithFullUrls = category.WithFullUrls(Request.Scheme, Request.Host.ToString());
+        
+        return categoryWithFullUrls;
     }
 
     // PATCH: api/Categories/5
