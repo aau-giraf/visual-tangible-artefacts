@@ -50,6 +50,28 @@ public static class ImageUtilities
 
         return true;
     }
+    
+    /// <summary>
+    /// Repalces an image
+    /// </summary>
+    /// <param name="image">The uploaded IFormFile</param>
+    /// <param name="imgName">The image name (always the GUID) of the owning entity</param>
+    /// <param name="dir">Artefact or category dir</param>
+    /// <returns>The new image path on success, null if no image was provided or old image wasn't found</returns>
+    public static string? ReplaceImage(IFormFile? image, string imgName, string dir)
+    {
+        if (image == null)
+        {
+            return null;
+        }
+
+        // Delete the old image first
+        DeleteImage(imgName, dir);
+
+        // Add the new image and return its path
+        return AddImage(image, imgName, dir);
+    }
+    
     /// <summary>
     /// Locates an image in the filesystem, and returns only the file name (without the extension)
     /// </summary>
