@@ -36,28 +36,30 @@ public static class DTOConverter
         };
     }
 
-    public static CategoryGetDTO MapCategoryToCategoryGetDTO(Category category, string scheme, string host)
+    public static CategoryGetDTO MapUserCategoryToCategoryGetDTO(UserCategory category, string scheme, string host)
     {
         ICollection<ArtefactGetDTO> artefacts = new List<ArtefactGetDTO>();
         foreach (Artefact artefact in category.Artefacts)
         {
             artefacts.Add(MapArtefactToArtefactGetDTO(artefact, scheme, host));
         }
+        
         return new CategoryGetDTO
         {
             CategoryId = category.CategoryId,
             CategoryIndex = category.CategoryIndex,
             Name = category.Name,
-            Artefacts = artefacts,
-            ImageUrl = scheme + "://" + host + category.ImagePath,
+            ImageUrl = string.IsNullOrEmpty(category.ImagePath) ? null : scheme + "://" + host + category.ImagePath,
+            IsDefaultCategory = false,
             UsageCount = category.UsageCount,
-            LastUsedDate = category.LastUsedDate
+            LastUsedDate = category.LastUsedDate,
+            Artefacts = artefacts
         };
     }
 
-    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string imageUrl)
+    public static UserCategory MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string? imageUrl)
     {
-        return new Category
+        return new UserCategory
         {
             CategoryId = id,
             CategoryIndex = category.CategoryIndex,
@@ -101,5 +103,4 @@ public static class DTOConverter
             Username = user.Username
         };
     }
-
 }
