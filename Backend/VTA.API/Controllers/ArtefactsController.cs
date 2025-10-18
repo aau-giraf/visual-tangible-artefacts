@@ -147,7 +147,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return Forbid();
         }
 
-        
+        // Todo: Verify that the dto.CategoryId is a UserCategory that belongs to the user
 
         string artefactId = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
@@ -166,7 +166,6 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
         
-
         context.Artefacts.Add(artefact);
         try
         {
