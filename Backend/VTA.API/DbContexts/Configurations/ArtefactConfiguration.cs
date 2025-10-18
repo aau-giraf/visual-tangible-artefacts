@@ -8,9 +8,9 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
 {
     public void Configure(EntityTypeBuilder<Artefact> builder)
     {
-        builder.HasKey(e => e.ArtefactId).HasName("PRIMARY");
-
         builder.ToTable("artefact");
+     
+        builder.HasKey(e => e.ArtefactId).HasName("PRIMARY");
 
         builder.HasIndex(e => e.CategoryId, "categoryId");
 
