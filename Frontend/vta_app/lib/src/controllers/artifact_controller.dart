@@ -144,10 +144,8 @@ class ArtefactController extends ChangeNotifier {
 
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
-<<<<<<< HEAD
         await _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
         notifyListeners();
-=======
         _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
 
         _showSuccessSnackBarAfterAsync(
@@ -155,7 +153,6 @@ class ArtefactController extends ChangeNotifier {
           screenHeight,
           'Artefact slettet',
         );
->>>>>>> dev-main
       });
     } catch (e) {
       _showErrorSnackBarAfterAsync(
