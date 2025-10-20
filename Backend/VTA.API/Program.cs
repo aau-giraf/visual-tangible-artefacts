@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
 using VTA.API.DbContexts;
+using VTA.API.Extensions;
 using VTA.API.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,18 +15,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add HttpClient services for ElevenLabs API integration
+builder.Services.AddHttpClient();
 
-/*Register our DB contexts. They could have just been one big one, but that would worsen concurrency!*/
-builder.WrapDbContext<ArtefactContext>();
-builder.WrapDbContext<CategoryContext>();
-builder.WrapDbContext<UserContext>();
+// Register our DB context
+builder.AddVTAContext();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 //register our singleton
 builder.Services.AddSingleton(provider =>
-    {
+    { 
         var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;
@@ -97,6 +98,11 @@ if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);
 }
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
+if (!Directory.Exists(assetsDirs))
+{
+    Directory.CreateDirectory(assetsDirs);
+}
 
 builder.Services.AddEndpointsApiExplorer();
 //Swagger ui stuff
@@ -123,6 +129,12 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 var app = builder.Build();
+
+// Auto-create database if environment variable is set for docker compose
+if (app.Environment.IsDevelopment())
+{
+    await app.MigrateVTAContext();
+}
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

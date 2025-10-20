@@ -63,25 +63,12 @@ namespace VTA.Tests.TestHelpers
         {
             await _mySqlContainer.StartAsync();
 
-            var userOptions = new DbContextOptionsBuilder<UserContext>()
+            var contextOptions = new DbContextOptionsBuilder<VTAContext>()
                 .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
                 .Options;
 
-            using var userContext = new UserContext(userOptions);
-            await userContext.Database.EnsureCreatedAsync();
-
-            var categoryOptions = new DbContextOptionsBuilder<CategoryContext>()
-                .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
-                .Options;
-
-            using var categoryContext = new CategoryContext(categoryOptions);
-            await categoryContext.Database.EnsureCreatedAsync();
-
-            var artefactContextOptions = new DbContextOptionsBuilder<ArtefactContext>()
-                .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
-                .Options;
-            using var artefactContext = new ArtefactContext(artefactContextOptions);
-            await artefactContext.Database.EnsureCreatedAsync();
+            await using var vtaContext = new VTAContext(contextOptions);
+            await vtaContext.Database.EnsureCreatedAsync();
         }
 
         public async Task DisposeAsync()
@@ -94,24 +81,10 @@ namespace VTA.Tests.TestHelpers
             builder.ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<UserContext>));
+                    d => d.ServiceType == typeof(DbContextOptions<VTAContext>));
                 services.Remove(descriptor);
 
-                var descriptor2 = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<CategoryContext>));
-                services.Remove(descriptor2);
-
-                var descriptorArtefactContext = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ArtefactContext>));
-                services.Remove(descriptorArtefactContext);
-
-                services.AddDbContext<UserContext>(options =>
-                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
-
-                services.AddDbContext<CategoryContext>(options =>
-                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
-
-                services.AddDbContext<ArtefactContext>(options =>
+                services.AddDbContext<VTAContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
             });
 

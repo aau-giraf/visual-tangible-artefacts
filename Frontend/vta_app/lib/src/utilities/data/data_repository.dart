@@ -176,6 +176,50 @@ class ArtifactRepository extends ApiDataRepository {
       return false;
     }
   }
+
+  Future<List<Category>?> fetchMostUsedCategories(String token,
+      {int limit = 3}) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson(
+          'Users/Categories/most-used?limit=$limit',
+          headers: headers);
+
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body) as List;
+        var categories = jsonResponse
+            .map((jsonCategory) =>
+                Category.fromJson(jsonCategory as Map<String, dynamic>))
+            .toList();
+        return categories;
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<bool> trackCategoryUsage(String categoryId,
+      {required String token}) async {
+    try {
+      var headers = <String, String>{'Authorization': 'Bearer $token'};
+      var response = await apiProvider.postAsJson(
+          'Users/Categories/$categoryId/usage',
+          headers: headers,
+          body: {});
+
+      if (responseOk(response)) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 class UserRepository extends ApiDataRepository {
