@@ -96,7 +96,7 @@ public partial class ArtefactGetDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public string UserId { get; set; } = null!;
+    public string? UserId { get; set; } = null!;
 
     /// <summary>
     /// The category ID the artefact belongs to

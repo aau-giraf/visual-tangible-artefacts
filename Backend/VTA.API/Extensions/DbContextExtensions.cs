@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.Models;
+using VTA.API.Models.Users;
 
 namespace VTA.API.Extensions;
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using VTA.API.Models;
+using VTA.API.Models.Users;
 
 namespace VTA.API.DbContexts.Configurations;
 

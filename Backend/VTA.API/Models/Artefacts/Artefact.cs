@@ -1,12 +1,10 @@
-﻿namespace VTA.API.Models;
+﻿namespace VTA.API.Models.Artefacts;
 
-public class Artefact
+public abstract class Artefact
 {
     public required string ArtefactId { get; set; }
 
     public required ushort ArtefactIndex { get; set; }
-
-    public required string UserId { get; set; }
 
     public string? CategoryId { get; set; }
 
@@ -14,9 +12,6 @@ public class Artefact
     public string? SoundPath { get; set; } = null!;
     public DateTime? ModifiedDate { get; set; }
     public string? Name { get; set; }
-    public virtual Category? Category { get; set; }
-
-    public virtual User User { get; set; } = null!;
-
+    
     //public bool? NameShown { get; set; }
 }

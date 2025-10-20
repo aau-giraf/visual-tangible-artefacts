@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using VTA.API.Models;
+using VTA.API.Models.Artefacts;
 
 namespace VTA.API.DTOs;
 
@@ -10,14 +11,14 @@ namespace VTA.API.DTOs;
 public static class ArtefactProjections
 {
     /// <summary>
-    /// Projects an Artefact entity to an ArtefactGetDTO.
+    /// Projects an UserArtefact entity to an ArtefactGetDTO.
     /// Returns relative image and sound paths that need to be converted to full URLs using WithFullUrls() extension method.
     /// </summary>
     /// <remarks>
     /// This projection is translatable to SQL and can be used in EF Core queries for optimal performance.
     /// Both ImageUrl and SoundUrl will contain relative paths (e.g., "/api/Assets/Artefacts/guid.png").
     /// </remarks>
-    public static Expression<Func<Artefact, ArtefactGetDTO>> ArtefactToDto =>
+    public static Expression<Func<UserArtefact, ArtefactGetDTO>> UserArtefactToDto =>
         a => new ArtefactGetDTO
         {
             ArtefactId = a.ArtefactId,
@@ -29,6 +30,25 @@ public static class ArtefactProjections
             SoundUrl = a.SoundPath
         };
 
+    /// <summary>
+    /// Projects an DefaultArtefact entity to an ArtefactGetDTO.
+    /// Returns relative image and sound paths that need to be converted to full URLs using WithFullUrls() extension method.
+    /// </summary>
+    /// <remarks>
+    /// This projection is translatable to SQL and can be used in EF Core queries for optimal performance.
+    /// Both ImageUrl and SoundUrl will contain relative paths (e.g., "/api/Assets/Artefacts/guid.png").
+    /// </remarks>
+    public static Expression<Func<DefaultArtefact, ArtefactGetDTO>> DefaultArtefactToDto =>
+        a => new ArtefactGetDTO
+        {
+            ArtefactId = a.ArtefactId,
+            ArtefactIndex = a.ArtefactIndex,
+            CategoryId = a.CategoryId,
+            Name = a.Name,
+            ImageUrl = a.ImagePath,
+            SoundUrl = a.SoundPath
+        };
+    
     /// <summary>
     /// Converts relative image and sound paths to full URLs with scheme and host.
     /// Mutates the DTO in place for optimal performance.

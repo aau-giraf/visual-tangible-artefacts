@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
+using VTA.API.Models.Categories;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
@@ -13,18 +13,19 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class CategoriesController(VTAContext context) : ControllerBase
 {
-    // GET: api/Categories
+    // GET: api/Users/Categories
     /// <summary>
     /// Gets all categories (and artefacts within them) that a user owns
     /// </summary>
     /// <returns>An IEnumerable of Categories</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories()
+    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(CancellationToken cancellationToken)
     {
         var userId = User.FindFirst("id")?.Value!;
         
-        var categories = await CompiledQueries.GetAllCategoryDTOs(context, userId)
-            .ToListAsync();
+        var categories = await CompiledQueries
+            .GetUserCategoryDTOs(context, userId)
+            .ToListAsync(cancellationToken);
         
         if (categories.Count == 0)
         {
@@ -38,18 +39,20 @@ public class CategoriesController(VTAContext context) : ControllerBase
         return categoriesWithFullUrls;
     }
 
-    // GET: api/Categories/5
+    // GET: api/Users/Categories/5
     /// <summary>
     /// Gets a specific category (and it's artefacts)
     /// </summary>
     /// <param name="categoryId">The category to get</param>
     /// <returns>The specified category</returns>
     [HttpGet("{categoryId}")]
-    public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId)
+    public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId, CancellationToken cancellationToken)
     {
         var userId = User.FindFirst("id")?.Value!;
-        
-        var category = await CompiledQueries.GetUserCategoryDTOById(context, userId, categoryId);
+
+        var category = await CompiledQueries
+            .GetUserCategoryDTOById(context, userId, categoryId)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (category is null)
         {
@@ -61,7 +64,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         return categoryWithFullUrls;
     }
 
-    // PATCH: api/Categories/5
+    // PATCH: api/Users/Categories/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     /// <summary>
     /// Patches a category (there is a nuget package to do this, I, however find it... weird, so I haven't used it yet :( )
@@ -79,7 +82,8 @@ public class CategoriesController(VTAContext context) : ControllerBase
             .Where(c => c.CategoryId == dto.CategoryId && c.UserId == userId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(c => c.CategoryIndex, c => dto.CategoryIndex ?? c.CategoryIndex)
-                .SetProperty(c => c.Name, c => dto.Name ?? c.Name));
+                .SetProperty(c => c.Name, c => dto.Name ?? c.Name),
+                HttpContext.RequestAborted);
         
         if (rowsAffected == 0)
         {
@@ -95,7 +99,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Categories
+    // POST: api/Users/Categories
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     /// <summary>
     /// Creates a new category
@@ -122,14 +126,14 @@ public class CategoriesController(VTAContext context) : ControllerBase
         UserCategory category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
         context.Categories.Add(category);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(HttpContext.RequestAborted);
 
         var categoryGetDto = DTOConverter.MapUserCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString());
         
         return CreatedAtAction("GetCategory", new { categoryId = categoryGetDto.CategoryId }, categoryGetDto);
     }
 
-    // DELETE: api/Categories/5
+    // DELETE: api/Users/Categories/5
     /// <summary>
     /// Deletes a user category using its ID
     /// </summary>
@@ -150,32 +154,43 @@ public class CategoriesController(VTAContext context) : ControllerBase
             .Where(x => x.UserId == userId && x.CategoryId == categoryId)
             .SelectMany(x => x.Artefacts)
             .Select(x => x.ArtefactId)
-            .ToListAsync();
+            .ToListAsync(HttpContext.RequestAborted);
         
-        // Optimized the update to avoid loading the entire entity into memory
-        var rowsAffected = await context.Categories
-            .OfType<UserCategory>()
-            .Where(c => c.CategoryId == categoryId && c.UserId == userId)
-            .ExecuteDeleteAsync();
-
-        if (rowsAffected == 0)
-        {
-            return NotFound();
-        }
+        await using var transaction = await context.Database.BeginTransactionAsync(HttpContext.RequestAborted);
         
-        // Now, delete the images associated with the artefacts and the category itself
-        // Optimally this should be done asynchronously also to avoid having to load the categoryArtefactIds, but for simplicity, we'll do it synchronously here
-        foreach (var artefactId in categoryArtefactIds)
+        try
         {
-            ImageUtilities.DeleteImage(artefactId, "Artefacts");
-        }
+            var rowsAffected = await context.Categories
+                .OfType<UserCategory>()
+                .Where(c => c.CategoryId == categoryId && c.UserId == userId)
+                .ExecuteDeleteAsync(HttpContext.RequestAborted);
 
-        ImageUtilities.DeleteImage(categoryId, "Categories");
+            if (rowsAffected == 0)
+            {
+                return NotFound();
+            }
+        
+            // Now, delete the images associated with the artefacts and the category itself
+            // Optimally this should be done asynchronously also to avoid having to load the categoryArtefactIds, but for simplicity, we'll do it synchronously here
+            foreach (var artefactId in categoryArtefactIds)
+            {
+                ImageUtilities.DeleteImage(artefactId, "Artefacts");
+            }
+
+            ImageUtilities.DeleteImage(categoryId, "Categories");
+            
+            await transaction.CommitAsync(HttpContext.RequestAborted);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(HttpContext.RequestAborted);
+            throw;
+        }
 
         return NoContent();
     }
 
-    // POST: api/Categories/{categoryId}/usage
+    // POST: api/Users/Categories/{categoryId}/usage
     /// <summary>
     /// Tracks when a category is used by incrementing usage count and updating last used date
     /// </summary>
@@ -192,7 +207,8 @@ public class CategoriesController(VTAContext context) : ControllerBase
             .Where(c => c.CategoryId == categoryId && c.UserId == userId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(c => c.UsageCount, c => c.UsageCount + 1)
-                .SetProperty(c => c.LastUsedDate, DateTime.UtcNow));
+                .SetProperty(c => c.LastUsedDate, DateTime.UtcNow),
+                HttpContext.RequestAborted);
 
         if (rowsAffected == 0)
         {
@@ -202,7 +218,33 @@ public class CategoriesController(VTAContext context) : ControllerBase
         return NoContent();
     }
 
-    // GET: api/Categories/most-used
+    // GET: api/Users/Categories/predefined
+    /// <summary>
+    /// Gets the predefined default categories
+    /// </summary>
+    /// <returns>A list of the most default categories</returns>
+    [HttpGet("predefined")]
+    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetPredefinedCategories()
+    {
+        var userId = User.FindFirst("id")?.Value!;
+
+        var categories = await CompiledQueries
+            .GetDefaultCategoryDTOs(context)
+            .ToListAsync(HttpContext.RequestAborted);
+        
+        if (categories.Count == 0)
+        {
+            return NotFound();
+        }
+
+        var categoriesWithFullUrls = categories
+            .Select(x => x.WithFullUrls(Request.Scheme, Request.Host.ToString()))
+            .ToList();
+        
+        return categoriesWithFullUrls;
+    }
+    
+    // GET: api/Users/Categories/most-used
     /// <summary>
     /// Gets the most used categories for the authenticated user
     /// </summary>
@@ -217,7 +259,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         
         var categories = await CompiledQueries
             .GetMostUsedUserCategoryDTOs(context, userId, limit)
-            .ToListAsync();
+            .ToListAsync(HttpContext.RequestAborted);
         
         if (categories.Count == 0)
         {
@@ -229,10 +271,5 @@ public class CategoriesController(VTAContext context) : ControllerBase
             .ToList();
         
         return categoriesWithFullUrls;
-    }
-
-    private bool CategoryExists(string id)
-    {
-        return context.Categories.Any(e => e.CategoryId == id);
     }
 }

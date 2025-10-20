@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
+using VTA.API.Models.Artefacts;
+using VTA.API.Models.Categories;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
@@ -13,221 +14,250 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class ArtefactsController(VTAContext context) : ControllerBase
 {
-    // GET: api/Artefacts
+    // GET: api/Users/Artefacts
     /// <summary>
     /// Gets all artefacts that a user owns
     /// </summary>
     /// <returns>An IEnumerable of artefacts</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
+    public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts(CancellationToken cancellationToken)
     {
-        var userId = User.FindFirst("id")?.Value;
+        //TODO: Delete endpoint if not needed
+        
+        var userId = User.FindFirst("id")?.Value!;
 
-        List<Artefact>? artefacts = await context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
-        if (artefacts == null)
+        var artefacts = await CompiledQueries
+            .GetUserArtefactDTOs(context, userId)
+            .ToListAsync(cancellationToken);
+
+        if (artefacts.Count == 0)
         {
             return NotFound();
         }
-        List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
-        foreach (Artefact artefact in artefacts)
-        {
-            artefactGetDTOs.Add(DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString()));
-        }
-        return artefactGetDTOs;
+
+        var artefactsWithFullUrls = artefacts
+            .Select(x => x.WithFullUrls(Request.Scheme, Request.Host.ToString()))
+            .ToList();
+
+        return artefactsWithFullUrls;
     }
 
-    // GET: api/Artefacts/5
+    // GET: api/Users/Artefacts/5
     /// <summary>
     /// Gets a specific artefact
     /// </summary>
     /// <param name="artefactId">The artefact to get</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The specified artefact</returns>
     [HttpGet("{artefactId}")]
-    public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
+    public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId, CancellationToken cancellationToken)
     {
-        var userId = User.FindFirst("id")?.Value;
+        //TODO: Delete endpoint if not needed
+        
+        var userId = User.FindFirst("id")?.Value!;
 
-        var artefact = await context.Artefacts.Where(a => a.UserId == userId).FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
-        if (artefact == null)
+        var artefact = await CompiledQueries
+            .GetUserArtefactDTOById(context, userId, artefactId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (artefact is null)
         {
             return NotFound();
         }
 
-        ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
+        var artefactWithFullUrls = artefact.WithFullUrls(Request.Scheme, Request.Host.ToString());
 
-        return artefactGetDTO;
+        return artefactWithFullUrls;
     }
 
-    // PATCH: api/Artefacts/5
+    // PATCH: api/Users/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     /// <summary>
     /// Updates an artefacts information
     /// </summary>
-    /// <param name="dto"></param>
-    /// <returns></returns>
+    /// <param name="dto">The artefact patch DTO with fields to update</param>
+    /// <returns>Status code 204 (No content) to the client on success</returns>
     [HttpPatch]
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
-        var artefact = context.Artefacts.Find(dto.ArtefactId);
+        var userId = User.FindFirst("id")?.Value!;
 
-        if (artefact == null)
+        // If we have files to upload, we need to load the entity
+        if (dto.Image != null || dto.Sound != null)
         {
-            return BadRequest();
-        }
+            var artefact = await context.Artefacts
+                .OfType<UserArtefact>()
+                .FirstOrDefaultAsync(a => a.ArtefactId == dto.ArtefactId && a.UserId == userId, HttpContext.RequestAborted);
 
-        if (dto.ArtefactIndex != null && artefact.ArtefactIndex != dto.ArtefactIndex)
-        {
-            artefact.ArtefactIndex = dto.ArtefactIndex.Value;
-        }
-        if (!string.IsNullOrEmpty(dto.Name) && artefact.Name != dto.Name)
-        {
-            artefact.Name = dto.Name;
-        }
-        if (dto.Image != null)
-        {
-            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
-            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
-        }
-        if (dto.Sound != null)
-        {
-            // Delete any existing sound for this artefact
-            try
-            {
-                SoundUtilities.DeleteSound(artefact.ArtefactId);
-            }
-            catch { }
-            // Save sound file using SoundUtilities: ArtefactId + extension in Assets/Sounds
-            var soundPath = SoundUtilities.AddSound(dto.Sound, artefact.ArtefactId);
-            artefact.SoundPath = soundPath;
-        }
-
-        context.Entry(artefact).State = EntityState.Modified;
-
-        try
-        {
-            await context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!ArtefactExists(artefact.CategoryId))
+            if (artefact == null)
             {
                 return NotFound();
             }
-            else
+
+            // Handle image update
+            if (dto.Image != null)
             {
-                throw;
+                var imagePath = ImageUtilities.ReplaceImage(dto.Image, artefact.ArtefactId, "Artefacts");
+                artefact.ImagePath = imagePath;
+            }
+
+            // Handle sound update
+            if (dto.Sound != null)
+            {
+                var soundPath = SoundUtilities.ReplaceSound(dto.Sound, artefact.ArtefactId);
+                artefact.SoundPath = soundPath;
+            }
+
+            // Update simple fields if provided
+            if (dto.ArtefactIndex != null)
+            {
+                artefact.ArtefactIndex = dto.ArtefactIndex.Value;
+            }
+            
+            if (!string.IsNullOrEmpty(dto.Name))
+            {
+                artefact.Name = dto.Name;
+            }
+
+            artefact.ModifiedDate = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(HttpContext.RequestAborted);
+        }
+        else
+        {
+            // No files - use ExecuteUpdateAsync for better performance
+            var rowsAffected = await context.Artefacts
+                .OfType<UserArtefact>()
+                .Where(a => a.ArtefactId == dto.ArtefactId && a.UserId == userId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(a => a.ArtefactIndex, a => dto.ArtefactIndex ?? a.ArtefactIndex)
+                    .SetProperty(a => a.Name, a => dto.Name ?? a.Name)
+                    .SetProperty(a => a.ModifiedDate, DateTime.UtcNow),
+                    HttpContext.RequestAborted);
+
+            if (rowsAffected == 0)
+            {
+                return NotFound();
             }
         }
 
         return NoContent();
     }
 
-    // POST: api/Artefacts
+    // POST: api/Users/Artefacts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     /// <summary>
     /// Creates a new artefact
     /// </summary>
-    /// <param name="ArtefactPostDTO">An object with all artefact info</param>
+    /// <param name="artefactPostDTO">An object with all artefact info</param>
     /// <returns>
-    /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
+    /// Status code 201 (Created) to the client on success with the created artefact<br />
+    /// Status code 400 (Bad Request) if the category doesn't exist or doesn't belong to the user<br />
     /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
     /// </returns>
     [HttpPost]
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
-    public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
+    public async Task<ActionResult<ArtefactGetDTO>> PostArtefact([FromForm] ArtefactPostDTO artefactPostDTO)
     {
-
-        Console.WriteLine("----------------------------------------" + artefactPostDTO.Name);
-        Console.WriteLine("----------------------------------------");
-        var userId = User.FindFirst("id")?.Value;
+        var userId = User.FindFirst("id")?.Value!;
 
         if (userId != artefactPostDTO.UserId)
         {
             return Forbid();
         }
 
-        // Todo: Verify that the dto.CategoryId is a UserCategory that belongs to the user
+        // Verify that the dto.CategoryId is a UserCategory that belongs to the user (if provided)
+        if (!string.IsNullOrEmpty(artefactPostDTO.CategoryId))
+        {
+            var categoryExists = await context.Categories
+                .OfType<UserCategory>()
+                .AnyAsync(c => c.CategoryId == artefactPostDTO.CategoryId && c.UserId == userId, HttpContext.RequestAborted);
+
+            if (!categoryExists)
+            {
+                return BadRequest("Category does not exist or does not belong to the user");
+            }
+        }
 
         string artefactId = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
         string? soundUrl = null;
-        
-        // Debug logging for sound data
-        Console.WriteLine($"Debug: PostArtefact - Sound data present: {artefactPostDTO.Sound != null}");
+
         if (artefactPostDTO.Sound != null)
         {
-            Console.WriteLine($"Debug: PostArtefact - Sound file size: {artefactPostDTO.Sound.Length} bytes");
-            Console.WriteLine($"Debug: PostArtefact - Sound file name: {artefactPostDTO.Sound.FileName}");
             soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId);
-            Console.WriteLine($"Debug: PostArtefact - Sound saved to: {soundUrl}");
         }
-        Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
+
+        UserArtefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
-        
+        artefact.ModifiedDate = DateTime.UtcNow;
+
         context.Artefacts.Add(artefact);
-        try
+        await context.SaveChangesAsync(HttpContext.RequestAborted);
+        
+        var artefactGetDTO = new ArtefactGetDTO
         {
-            await context.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            if (ArtefactExists(artefact.ArtefactId))
-            {
-                //Chance of this happening is infinitely small ! But never zero !
-                while (ArtefactExists(artefact.ArtefactId))
-                {
-                    artefact.ArtefactId = Guid.NewGuid().ToString();
-                }
-                await context.SaveChangesAsync();
-            }
-            else
-            {
-                throw;
-            }
-        }
+            ArtefactId = artefact.ArtefactId,
+            ArtefactIndex = artefact.ArtefactIndex,
+            UserId = artefact.UserId,
+            CategoryId = artefact.CategoryId,
+            Name = artefact.Name,
+            ImageUrl = imageUrl != null ? $"{Request.Scheme}://{Request.Host}{imageUrl}" : null,
+            SoundUrl = soundUrl != null ? $"{Request.Scheme}://{Request.Host}{soundUrl}" : null
+        };
 
-        ArtefactGetDTO artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
-
-        return Ok(artefactGetDTO);
+        return CreatedAtAction("GetArtefact", new { artefactId = artefactGetDTO.ArtefactId }, artefactGetDTO);
     }
 
-    // DELETE: api/Artefacts/5
+    // DELETE: api/Users/Artefacts/5
     /// <summary>
     /// Deletes an artefact using its ID
     /// </summary>
     /// <param name="artefactId">The artefacts ID</param>
     /// <returns>
     /// Status code 204 (No content) to the client on success<br />
-    /// Status code 403 (Forbidden) if a client tries to delete an artefact that they do not own<br />
-    /// Status code 404 (Not Found) if the artefact does not exist
+    /// Status code 404 (Not Found) if the artefact does not exist or user doesn't own it
     /// </returns>
     [HttpDelete("{artefactId}")]
     public async Task<IActionResult> DeleteArtefact(string artefactId)
     {
-        var userId = User.FindFirst("id")?.Value;
+        var userId = User.FindFirst("id")?.Value!;
 
-        var artefact = await context.Artefacts.FindAsync(artefactId);
-        if (artefact == null)
-        {
-            return NotFound();
-        }
+        await using var transaction = await context.Database.BeginTransactionAsync(HttpContext.RequestAborted);
 
-        if (userId != artefact.UserId)
-        {
-            return Forbid();
-        }
-        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
-        // Also remove associated sound file if present
         try
         {
-            SoundUtilities.DeleteSound(artefact.ArtefactId);
-        }
-        catch { }
+            var rowsAffected = await context.Artefacts
+                .OfType<UserArtefact>()
+                .Where(a => a.ArtefactId == artefactId && a.UserId == userId)
+                .ExecuteDeleteAsync(HttpContext.RequestAborted);
 
-        context.Artefacts.Remove(artefact);
-        await context.SaveChangesAsync();
+            if (rowsAffected == 0)
+            {
+                return NotFound();
+            }
+
+            // Delete associated files
+            ImageUtilities.DeleteImage(artefactId, "Artefacts");
+
+            try
+            {
+                SoundUtilities.DeleteSound(artefactId);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            await transaction.CommitAsync(HttpContext.RequestAborted);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(HttpContext.RequestAborted);
+            throw;
+        }
 
         return NoContent();
     }
@@ -318,10 +348,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         try
         {
             // Check if artefact exists and user owns it
-            var userId = User.FindFirst("id")?.Value;
+            var userId = User.FindFirst("id")?.Value!;
             var artefact = await context.Artefacts
+                .OfType<UserArtefact>()
                 .Where(a => a.UserId == userId && a.ArtefactId == request.ArtefactId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(HttpContext.RequestAborted);
 
             if (artefact == null)
             {
@@ -462,10 +493,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst("id")?.Value;
+            var userId = User.FindFirst("id")?.Value!;
             var artefact = await context.Artefacts
+                .OfType<UserArtefact>()
                 .Where(a => a.UserId == userId && a.ArtefactId == artefactId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(HttpContext.RequestAborted);
 
             if (artefact == null)
             {
@@ -477,24 +509,18 @@ public class ArtefactsController(VTAContext context) : ControllerBase
                 return NotFound("No audio attached to this artefact");
             }
 
-            Console.WriteLine($"Debug: PlayArtefactAudio - Artefact {artefactId} has soundPath: {artefact.SoundPath}");
-
             // Convert the API path to file system path
             // SoundPath is like "/api/Assets/Sounds/filename.mp3"
             var fileName = Path.GetFileName(artefact.SoundPath);
             var soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
             var filePath = Path.Combine(soundFolder, fileName);
 
-            Console.WriteLine($"Debug: PlayArtefactAudio - Looking for file: {filePath}");
-
             if (!System.IO.File.Exists(filePath))
             {
-                Console.WriteLine($"Debug: PlayArtefactAudio - File not found: {filePath}");
                 return NotFound("Audio file not found on disk");
             }
 
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-            Console.WriteLine($"Debug: PlayArtefactAudio - Serving audio file: {fileBytes.Length} bytes");
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath, HttpContext.RequestAborted);
 
             return File(fileBytes, "audio/mpeg", fileName);
         }
@@ -517,22 +543,9 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     /// Status code 500 (Internal Server Error) if ElevenLabs API fails
     /// </returns>
     [HttpPost("generate-speech")]
-    public async Task<ActionResult<ArtefactGetDTO>> GenerateSpeech(ArtefactTextToSpeechDTO ttsDto)
+    public async Task<ActionResult<ArtefactGetDTO>> GenerateSpeech([FromBody] ArtefactTextToSpeechDTO ttsDto)
     {
-        var userId = User.FindFirst("id")?.Value;
-
-        // Find the artefact
-        var artefact = await context.Artefacts.FindAsync(ttsDto.ArtefactId);
-        if (artefact == null)
-        {
-            return NotFound("Artefact not found");
-        }
-
-        // Check ownership
-        if (userId != artefact.UserId)
-        {
-            return Forbid();
-        }
+        var userId = User.FindFirst("id")?.Value!;
 
         // Validate text input
         if (string.IsNullOrWhiteSpace(ttsDto.Text))
@@ -540,12 +553,22 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return BadRequest("Text cannot be empty");
         }
 
+        // Find the artefact and verify ownership
+        var artefact = await context.Artefacts
+            .OfType<UserArtefact>()
+            .FirstOrDefaultAsync(a => a.ArtefactId == ttsDto.ArtefactId && a.UserId == userId, HttpContext.RequestAborted);
+
+        if (artefact == null)
+        {
+            return NotFound("Artefact not found");
+        }
+
         try
         {
             // Get ElevenLabs API key from configuration
             var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
             var apiKey = configuration["ElevenLabs:ApiKey"];
-            
+
             if (string.IsNullOrEmpty(apiKey))
             {
                 return StatusCode(500, "ElevenLabs API key not configured");
@@ -571,56 +594,33 @@ public class ArtefactsController(VTAContext context) : ControllerBase
                 return StatusCode(500, "Failed to generate speech from ElevenLabs API");
             }
 
-            // Delete any existing sound for this artefact
-            try
-            {
-                SoundUtilities.DeleteSound(artefact.ArtefactId);
-            }
-            catch { }
-
-            // Save the generated audio as a temporary file
-            var tempFileName = $"{artefact.ArtefactId}.mp3";
-            var tempFilePath = Path.GetTempFileName();
-            await System.IO.File.WriteAllBytesAsync(tempFilePath, audioData);
-
-            // Create a form file from the audio data
-            using var stream = new MemoryStream(audioData);
-            var formFile = new FormFile(stream, 0, audioData.Length, "sound", tempFileName)
-            {
-                Headers = new HeaderDictionary(),
-                ContentType = "audio/mpeg"
-            };
-
-            // Save using existing sound utilities
-            var soundPath = SoundUtilities.AddSound(formFile, artefact.ArtefactId);
+            // Replace the existing sound with the generated audio
+            var soundPath = SoundUtilities.ReplaceSound(audioData, artefact.ArtefactId, ".mp3");
             if (soundPath != null)
             {
                 artefact.SoundPath = soundPath;
                 artefact.ModifiedDate = DateTime.UtcNow;
-                
-                context.Entry(artefact).State = EntityState.Modified;
-                await context.SaveChangesAsync();
+
+                await context.SaveChangesAsync(HttpContext.RequestAborted);
             }
 
-            // Clean up temp file
-            try
+            // Return updated artefact DTO
+            var artefactGetDTO = new ArtefactGetDTO
             {
-                System.IO.File.Delete(tempFilePath);
-            }
-            catch { }
+                ArtefactId = artefact.ArtefactId,
+                ArtefactIndex = artefact.ArtefactIndex,
+                UserId = artefact.UserId,
+                CategoryId = artefact.CategoryId,
+                Name = artefact.Name,
+                ImageUrl = artefact.ImagePath != null ? $"{Request.Scheme}://{Request.Host}{artefact.ImagePath}" : null,
+                SoundUrl = soundPath != null ? $"{Request.Scheme}://{Request.Host}{soundPath}" : null
+            };
 
-            // Return updated artefact
-            var updatedArtefactDto = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
-            return Ok(updatedArtefactDto);
+            return Ok(artefactGetDTO);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"An error occurred while generating speech: {ex.Message}");
         }
-    }
-
-    private bool ArtefactExists(string id)
-    {
-        return context.Artefacts.Any(e => e.ArtefactId == id);
     }
 }

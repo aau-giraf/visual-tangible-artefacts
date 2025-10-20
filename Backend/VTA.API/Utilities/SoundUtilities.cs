@@ -56,4 +56,55 @@ public static class SoundUtilities
         File.Delete(file);
         return true;
     }
+
+    /// <summary>
+    /// Replaces an existing sound file with a new one.
+    /// Deletes the old sound file (if it exists) and adds the new one.
+    /// </summary>
+    /// <param name="soundFile">The new sound file to upload</param>
+    /// <param name="soundId">The ID to use for the sound file (typically artefact ID)</param>
+    /// <returns>The URL path to the new sound file, or null if the operation failed</returns>
+    public static string? ReplaceSound(IFormFile? soundFile, string soundId)
+    {
+        if (soundFile == null || soundFile.Length == 0)
+        {
+            return null;
+        }
+
+        // Delete existing sound file if it exists
+        try
+        {
+            DeleteSound(soundId);
+        }
+        catch { }
+
+        // Add the new sound file
+        return AddSound(soundFile, soundId);
+    }
+
+    /// <summary>
+    /// Replaces an existing sound file with new audio data.
+    /// Deletes the old sound file (if it exists) and adds the new one.
+    /// </summary>
+    /// <param name="soundData">The new audio data as byte array</param>
+    /// <param name="soundId">The ID to use for the sound file (typically artefact ID)</param>
+    /// <param name="fileExtension">The file extension (default: .mp3)</param>
+    /// <returns>The URL path to the new sound file, or null if the operation failed</returns>
+    public static string? ReplaceSound(byte[]? soundData, string soundId, string fileExtension = ".mp3")
+    {
+        if (soundData == null || soundData.Length == 0)
+        {
+            return null;
+        }
+
+        // Delete existing sound file if it exists
+        try
+        {
+            DeleteSound(soundId);
+        }
+        catch { }
+
+        // Add the new sound file
+        return AddSound(soundData, soundId, fileExtension);
+    }
 }

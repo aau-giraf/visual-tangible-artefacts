@@ -1,4 +1,7 @@
-﻿namespace VTA.API.Models;
+﻿using VTA.API.Models.Artefacts;
+using VTA.API.Models.Categories;
+
+namespace VTA.API.Models.Users;
 
 public class User
 {
@@ -12,7 +15,7 @@ public class User
 
     public string Username { get; set; } = null!;
 
-    public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
+    public virtual ICollection<UserArtefact> Artefacts { get; set; } = new List<UserArtefact>();
 
     public virtual ICollection<UserCategory> Categories { get; set; } = new List<UserCategory>();
 }

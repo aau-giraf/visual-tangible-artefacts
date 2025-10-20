@@ -1,4 +1,6 @@
-﻿namespace VTA.API.Models;
+﻿using VTA.API.Models.Artefacts;
+
+namespace VTA.API.Models.Categories;
 
 public abstract class Category
 {
@@ -7,5 +9,6 @@ public abstract class Category
     public string? Name { get; set; }
     public string? ImagePath { get; set; }
     public DateTime? ModifiedDate { get; set; }
-    public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
+
+    // Remove base collection - derived classes will have their specific artefact collections
 }

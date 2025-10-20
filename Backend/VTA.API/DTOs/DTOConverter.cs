@@ -1,5 +1,8 @@
 using System.Drawing;
 using VTA.API.Models;
+using VTA.API.Models.Artefacts;
+using VTA.API.Models.Categories;
+using VTA.API.Models.Users;
 
 namespace VTA.API.DTOs;
 
@@ -8,7 +11,7 @@ namespace VTA.API.DTOs;
 /// </summary>
 public static class DTOConverter
 {
-    public static ArtefactGetDTO MapArtefactToArtefactGetDTO(Artefact artefact, string scheme, string host)
+    public static ArtefactGetDTO MapArtefactToArtefactGetDTO(UserArtefact artefact, string scheme, string host)
     {
         return new ArtefactGetDTO
         {
@@ -21,10 +24,23 @@ public static class DTOConverter
             SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
         };
     }
-
-    public static Artefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl, string? soundUrl = null)
+    
+    public static ArtefactGetDTO MapArtefactToArtefactGetDTO(DefaultArtefact artefact, string scheme, string host)
     {
-        return new Artefact
+        return new ArtefactGetDTO
+        {
+            ArtefactId = artefact.ArtefactId,
+            ArtefactIndex = artefact.ArtefactIndex,
+            CategoryId = artefact.CategoryId,
+            Name = artefact.Name,
+            ImageUrl = scheme + "://" + host + artefact.ImagePath,
+            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
+        };
+    }
+
+    public static UserArtefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl, string? soundUrl = null)
+    {
+        return new UserArtefact
         {
             ArtefactId = id,
             ArtefactIndex = artefact.ArtefactIndex,
@@ -38,12 +54,6 @@ public static class DTOConverter
 
     public static CategoryGetDTO MapUserCategoryToCategoryGetDTO(UserCategory category, string scheme, string host)
     {
-        ICollection<ArtefactGetDTO> artefacts = new List<ArtefactGetDTO>();
-        foreach (Artefact artefact in category.Artefacts)
-        {
-            artefacts.Add(MapArtefactToArtefactGetDTO(artefact, scheme, host));
-        }
-        
         return new CategoryGetDTO
         {
             CategoryId = category.CategoryId,
@@ -53,7 +63,9 @@ public static class DTOConverter
             IsDefaultCategory = false,
             UsageCount = category.UsageCount,
             LastUsedDate = category.LastUsedDate,
-            Artefacts = artefacts
+            Artefacts = category.Artefacts
+                .Select(artefact => MapArtefactToArtefactGetDTO(artefact, scheme, host))
+                .ToList()
         };
     }
 

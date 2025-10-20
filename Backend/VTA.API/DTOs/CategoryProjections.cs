@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using VTA.API.Models;
+using VTA.API.Models.Categories;
 
 namespace VTA.API.DTOs;
 
@@ -27,7 +28,7 @@ public static class CategoryProjections
             ImageUrl = c.ImagePath,
             UsageCount = c.UsageCount,
             LastUsedDate = c.LastUsedDate,
-            Artefacts = c.Artefacts.AsQueryable().Select(ArtefactProjections.ArtefactToDto).ToList()
+            Artefacts = c.Artefacts.AsQueryable().Select(ArtefactProjections.UserArtefactToDto).ToList()
         };
 
     /// <summary>
@@ -47,7 +48,7 @@ public static class CategoryProjections
             Name = c.Name,
             ImageUrl = c.ImagePath,
             IsDefaultCategory = true,
-            Artefacts = c.Artefacts.AsQueryable().Select(ArtefactProjections.ArtefactToDto).ToList()
+            Artefacts = c.Artefacts.AsQueryable().Select(ArtefactProjections.DefaultArtefactToDto).ToList()
         };
 
     /// <summary>
