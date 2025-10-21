@@ -91,6 +91,10 @@ public class ArtefactsController : ControllerBase
         {
             artefact.Name = dto.Name;
         }
+        if (dto.NameShown != null && artefact.NameShown != dto.NameShown)
+        {
+            artefact.NameShown = dto.NameShown;
+        }
         if (dto.Image != null)
         {
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");

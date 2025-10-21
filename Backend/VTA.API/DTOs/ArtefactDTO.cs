@@ -76,6 +76,11 @@ public partial class ArtefactPatchDTO
     /// </summary>
     public IFormFile? Sound { get; set; }
 
+    /// <summary>
+    /// The sound file for the artefact
+    /// </summary>
+    public bool? NameShown { get; set; }
+
 }
 
 /// <summary>
@@ -107,6 +112,11 @@ public partial class ArtefactGetDTO
     /// The name of the artefact
     /// </summary>
     public string? Name {get; set; }
+
+    /// <summary>
+    /// Whether the artefact's name should be shown
+    /// </summary>
+    public bool NameShown { get; set; }
 
     /// <summary>
     /// The URL to the artefact's image

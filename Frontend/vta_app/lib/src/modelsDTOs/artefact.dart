@@ -66,6 +66,7 @@ class Artefact implements JsonSerializable {
       'image': image,
       'sound': sound,
       'name': name,
+      'nameShown': nameShown,
     };
   }
 }

@@ -177,6 +177,36 @@ class ArtifactModel {
       return false;
     }
   }
+
+  Future<void> updateArtefact(Artefact artefact, {required String token}) async{
+    try {
+      // Build body with PascalCase keys to match backend DTO WHY DONT WE DO THIS AS DEFAULT???
+      final Map<String, dynamic> body = {
+        'ArtefactId': artefact.artefactId,
+        if (artefact.artefactIndex != null) 'ArtefactIndex': artefact.artefactIndex,
+        if (artefact.userId != null) 'UserId': artefact.userId,
+        if (artefact.categoryId != null) 'CategoryId': artefact.categoryId,
+        if (artefact.name != null) 'Name': artefact.name,
+        if (artefact.image != null) 'Image': artefact.image,
+        if (artefact.sound != null) 'Sound': artefact.sound,
+        if (artefact.nameShown != null) 'NameShown': artefact.nameShown,
+      };
+      var response = await apiProvider.sendAsMultiPart(
+        'PATCH', "Users/Artefacts",
+        body: body, headers: {'Authorization': 'Bearer $token'});
+      if (response != null && response.ok) {
+      } else {
+        throw ArtifactException(
+            message:
+                'Failed to patch artefact, status code: \\${response?.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('$e');
+      rethrow;
+    }
+  }
+
+
 }
 
 class ArtifactException implements Exception {

@@ -62,6 +62,8 @@ public partial class ArtefactContext : DbContext
             entity.Property(e => e.SoundPath)
                 .HasMaxLength(255)
                 .HasColumnName("soundPath");
+            entity.Property(e => e.NameShown)
+                .HasColumnName("nameShown");
                 
             entity.HasOne(d => d.Category).WithMany(p => p.Artefacts)
                 .HasForeignKey(d => d.CategoryId)

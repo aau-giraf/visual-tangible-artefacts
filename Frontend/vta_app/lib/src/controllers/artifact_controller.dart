@@ -175,6 +175,18 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateArtifact(Artefact artefact, BuildContext context) async {
+    var token = GetIt.instance.get<Token>();
+    try {
+      await _model.updateArtefact(artefact, token: token.value!);
+    } catch (e) {
+      if (context != null && context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+    }
+  }
+
+
   void _showSuccessActionSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     GlobalSnackbar.show(context, message,

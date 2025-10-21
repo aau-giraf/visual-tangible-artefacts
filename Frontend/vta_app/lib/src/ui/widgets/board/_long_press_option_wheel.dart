@@ -150,7 +150,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                   _showName = val;
                 });
                 // Persist the change to backend
-                await widget.artifactController.updateArtifacts(context: context);
+                await widget.artifactController.updateArtifact(widget.artifact.baseArtefact!, context);
               },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
