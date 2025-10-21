@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
@@ -275,6 +276,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     top: artefact.position?.dy,
                     child: LongPressOptionWheel(
                       artifact: artefact,
+                      artifactController: GetIt.instance<ArtefactController>(),
                       child: Draggable<BoardArtefact>(
                         data: artefact,
                         feedback: Transform.scale(

@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
+  final ArtefactController artifactController;
 
   const LongPressOptionWheel({
     Key? key,
     required this.artifact,
     required this.child,
+    required this.artifactController,
   }) : super(key: key);
 
   @override
@@ -22,7 +26,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
-  bool _showName = false;
+  late bool _showName;
+
+  @override
+  void initState() {
+    super.initState();
+    _showName = widget.artifact.baseArtefact?.nameShown ?? false;
+  }
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
@@ -133,11 +143,14 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               key: _optionWheelKey,
               artefactId: widget.artifact.artefactId,
               artefactName: widget.artifact.baseArtefact?.name ?? '',
-              showName: _showName,
-              onToggleName: (val) {
+              showName: widget.artifact.baseArtefact?.nameShown ?? false,
+              onToggleName: (val) async {
+                widget.artifact.baseArtefact?.nameShown = val;
                 setState(() {
                   _showName = val;
                 });
+                // Persist the change to backend
+                await widget.artifactController.updateArtifacts(context: context);
               },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,

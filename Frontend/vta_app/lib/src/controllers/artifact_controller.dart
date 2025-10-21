@@ -128,10 +128,6 @@ class ArtefactController extends ChangeNotifier {
         });
   }
 
-  Future<String> getArtifactName(String artefactId) async {
-    return "Test: artefactId is $artefactId";
-  }
-
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
     // Save ScaffoldMessenger reference before dialog
     final scaffoldMessenger = ScaffoldMessenger.of(context);

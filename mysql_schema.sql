@@ -57,7 +57,7 @@ CREATE TABLE artefact (
   soundPath      VARCHAR(255)  NULL,
   modifiedDate   DATETIME      NULL,
   name           VARCHAR(255)  NULL,
-  nameShown     TINYINT(1)    NOT NULL DEFAULT 1,
+  nameShown     TINYINT(1)    NOT NULL DEFAULT 0,
   PRIMARY KEY (artefactId),
   KEY categoryId (categoryId),
   KEY userId (userID),
