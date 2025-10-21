@@ -11,15 +11,8 @@ namespace VTA.API.Controllers;
 [Authorize]//Lock all endpoints behind JWT
 [Route("api/Users/Artefacts")]//We designed the route so that *Users* OWNS *Artefacts* and this route reflects it
 [ApiController]
-public class ArtefactsController : ControllerBase
+public class ArtefactsController(VTAContext context) : ControllerBase
 {
-    private readonly ArtefactContext _context;
-
-    public ArtefactsController(ArtefactContext context)
-    {
-        _context = context;
-    }
-
     // GET: api/Artefacts
     /// <summary>
     /// Gets all artefacts that a user owns
@@ -30,7 +23,7 @@ public class ArtefactsController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Artefact>? artefacts = await _context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
+        List<Artefact>? artefacts = await context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
         if (artefacts == null)
         {
             return NotFound();
@@ -54,7 +47,7 @@ public class ArtefactsController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var artefact = await _context.Artefacts.Where(a => a.UserId == userId).FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
+        var artefact = await context.Artefacts.Where(a => a.UserId == userId).FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
         if (artefact == null)
         {
             return NotFound();
@@ -76,7 +69,7 @@ public class ArtefactsController : ControllerBase
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
-        var artefact = _context.Artefacts.Find(dto.ArtefactId);
+        var artefact = context.Artefacts.Find(dto.ArtefactId);
 
         if (artefact == null)
         {
@@ -109,11 +102,11 @@ public class ArtefactsController : ControllerBase
             artefact.SoundPath = soundPath;
         }
 
-        _context.Entry(artefact).State = EntityState.Modified;
+        context.Entry(artefact).State = EntityState.Modified;
 
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -174,10 +167,10 @@ public class ArtefactsController : ControllerBase
         artefact.Name = artefactPostDTO.Name;
         
 
-        _context.Artefacts.Add(artefact);
+        context.Artefacts.Add(artefact);
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
@@ -188,7 +181,7 @@ public class ArtefactsController : ControllerBase
                 {
                     artefact.ArtefactId = Guid.NewGuid().ToString();
                 }
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
             else
             {
@@ -216,7 +209,7 @@ public class ArtefactsController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var artefact = await _context.Artefacts.FindAsync(artefactId);
+        var artefact = await context.Artefacts.FindAsync(artefactId);
         if (artefact == null)
         {
             return NotFound();
@@ -234,8 +227,8 @@ public class ArtefactsController : ControllerBase
         }
         catch { }
 
-        _context.Artefacts.Remove(artefact);
-        await _context.SaveChangesAsync();
+        context.Artefacts.Remove(artefact);
+        await context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -327,7 +320,7 @@ public class ArtefactsController : ControllerBase
         {
             // Check if artefact exists and user owns it
             var userId = User.FindFirst("id")?.Value;
-            var artefact = await _context.Artefacts
+            var artefact = await context.Artefacts
                 .Where(a => a.UserId == userId && a.ArtefactId == request.ArtefactId)
                 .FirstOrDefaultAsync();
 
@@ -374,7 +367,7 @@ public class ArtefactsController : ControllerBase
 
             // Update artefact with sound path
             artefact.SoundPath = soundUrl;
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             // Return the sound URL
             return Ok(new { soundUrl = soundUrl, message = "Speech generated and saved successfully" });
@@ -471,7 +464,7 @@ public class ArtefactsController : ControllerBase
         try
         {
             var userId = User.FindFirst("id")?.Value;
-            var artefact = await _context.Artefacts
+            var artefact = await context.Artefacts
                 .Where(a => a.UserId == userId && a.ArtefactId == artefactId)
                 .FirstOrDefaultAsync();
 
@@ -530,7 +523,7 @@ public class ArtefactsController : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         // Find the artefact
-        var artefact = await _context.Artefacts.FindAsync(ttsDto.ArtefactId);
+        var artefact = await context.Artefacts.FindAsync(ttsDto.ArtefactId);
         if (artefact == null)
         {
             return NotFound("Artefact not found");
@@ -606,8 +599,8 @@ public class ArtefactsController : ControllerBase
                 artefact.SoundPath = soundPath;
                 artefact.ModifiedDate = DateTime.UtcNow;
                 
-                _context.Entry(artefact).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
+                context.Entry(artefact).State = EntityState.Modified;
+                await context.SaveChangesAsync();
             }
 
             // Clean up temp file
@@ -629,6 +622,6 @@ public class ArtefactsController : ControllerBase
 
     private bool ArtefactExists(string id)
     {
-        return _context.Artefacts.Any(e => e.ArtefactId == id);
+        return context.Artefacts.Any(e => e.ArtefactId == id);
     }
 }

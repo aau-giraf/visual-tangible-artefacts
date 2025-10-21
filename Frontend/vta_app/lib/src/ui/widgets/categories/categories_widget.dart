@@ -580,7 +580,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 class AddItemPopup extends StatefulWidget {
   final Category? category;
   final bool isCategory;
-  // Updated to accept optional soundBytes as the third parameter
   final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes) onSubmit;
   final String title;
 
