@@ -21,7 +21,8 @@ import 'package:just_audio/just_audio.dart';
 class AddItemPopup extends StatefulWidget {
   Category? category;
   final bool isCategory;
-  final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes) onSubmit;
+  final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes)
+      onSubmit;
   final String title;
 
   AddItemPopup({
@@ -278,7 +279,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ],
             ),
           ),
-                SizedBox(height: 16),
+          SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -323,7 +324,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 SizedBox(width: 16),
                 // Only show the sound button when adding an artefact, not a category
                 if (!widget.isCategory)
-                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png', onClick: () {
+                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png',
+                      onClick: () {
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
@@ -361,15 +363,18 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   // 0xFF2E7D32 = dark green, 0xFFBADFB5 = light green
-                  backgroundColor: _canSubmit() ? Color(0xFF2E7D32) : Color(0xFFBADFB5),
+                  backgroundColor:
+                      _canSubmit() ? Color(0xFF2E7D32) : Color(0xFFBADFB5),
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 onPressed: _canSubmit()
                     ? () {
                         if (formKey.currentState!.validate()) {
                           // Categories shouldn't include soundBytes
-                          final Uint8List? sendSound = widget.isCategory ? null : soundBytes;
-                          widget.onSubmit(nameController.text, imageBytes, sendSound);
+                          final Uint8List? sendSound =
+                              widget.isCategory ? null : soundBytes;
+                          widget.onSubmit(
+                              nameController.text, imageBytes, sendSound);
                           Navigator.of(context).pop();
                         }
                       }
@@ -431,147 +436,180 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ),
             ),
             SizedBox(width: 12),
-            Text('Tilføj lyd til artefakt', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Tilføj lyd til artefakt',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
         SizedBox(height: 12),
         SizedBox(height: 12),
         Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    var result = await FilePicker.platform.pickFiles(
-                        type: FileType.audio, allowMultiple: false, withData: true);
-                    if (result != null && result.files.single.bytes != null) {
-                      setDialogState(() {
-                        soundBytes = result.files.single.bytes;
-                      });
-                      // keep the dialog open so user can preview
-                    }
-                  },
-                  child: Text('Upload lyd'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    // recording handler (same as before)
-                      try {
-                      if (_recorder == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Optager ikke tilgængelig på denne platform')));
-                        return;
-                      }
-
-                      if (!_isRecording) {
-                        debugPrint('Permission 1');
-                        final bool hasPermission = await (_recorder as dynamic).hasPermission();
-                        if (!hasPermission) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Mangler mikrofon tilladelse')));
-                          return;
-                        }
-                        final tmpPath = '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
-                        debugPrint('TEMP PATH: $tmpPath');
-                        
-                        try {
-                          // Use the correct API for AudioRecorder in record 6.x
-                          await (_recorder as dynamic).start(RecordConfig(
-                            encoder: AudioEncoder.aacLc,
-                          ), path: tmpPath);
-                          debugPrint('Recording started successfully');
-                          
-                          // Only set recording state to true if start was successful
-                          setState(() {
-                            _isRecording = true;
-                            _recordingDuration = Duration.zero;
-                            _currentLevel = 0.0;
-                            _amplitudeSupported = true;
-                            _levelPhase = 0.0;
-                          });
-                          debugPrint('UI state updated to recording');
-                          
-                        } catch (startError) {
-                          debugPrint('Failed to start recording: $startError');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Kunne ikke starte optagelse: $startError')));
-                          return;
-                        }
-                        _recordTimer?.cancel();
-                        _recordTimer = Timer.periodic(Duration(seconds: 1), (_) {
-                          setDialogState(() {
-                            _recordingDuration = _recordingDuration + Duration(seconds: 1);
-                          });
-                        });
-                        _amplitudeTimer?.cancel();
-                        _amplitudeTimer = Timer.periodic(Duration(milliseconds: 200), (_) async {
-                          try {
-                            final amp = await (_recorder as dynamic).getAmplitude();
-                            double level = 0.0;
-                            if (amp != null) {
-                              if (amp is Map && amp.containsKey('current')) {
-                                level = (amp['current'] as num).toDouble();
-                              } else if (amp is num) {
-                                level = (amp as num).toDouble();
-                              }
-                            }
-                            final normalized = (level <= 0) ? 0.0 : (level / 32768.0).clamp(0.0, 1.0);
-                            setDialogState(() {
-                              _currentLevel = normalized;
-                            });
-                          } catch (_) {
-                            _amplitudeSupported = false;
-                            _levelPhase += 0.3;
-                            final pulse = (0.3 + 0.7 * (0.5 + 0.5 * (sin(_levelPhase))).abs()).clamp(0.0, 1.0);
-                            setDialogState(() {
-                              _currentLevel = pulse;
-                            });
-                          }
-                        });
-                      } else {
-                        final path = await (_recorder as dynamic).stop();
-                        _recordTimer?.cancel();
-                        _amplitudeTimer?.cancel();
-                        setDialogState(() {
-                          _isRecording = false;
-                          _currentLevel = 0.0;
-                          _amplitudeSupported = true;
-                          _levelPhase = 0.0;
-                        });
-                        if (path != null) {
-                          final file = File(path);
-                          if (await file.exists()) {
-                            final bytes = await file.readAsBytes();
-                            setDialogState(() {
-                              soundBytes = bytes;
-                            });
-                          }
-                        }
-                      }
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Optagelse fejlede: $e')));
-                      _recordTimer?.cancel();
-                      _amplitudeTimer?.cancel();
-                      setDialogState(() {
-                        _isRecording = false;
-                        _currentLevel = 0.0;
-                      });
-                    }
-                  },
-                  child: Text(_isRecording ? 'Stop optagelse' : 'Start optagelse'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setDialogState(() {
-                      _showTextToSpeechField = !_showTextToSpeechField;
-                    });
-                  },
-                  child: Text('Generer lyd (AI)'),
-                ),
-              ],
+            ElevatedButton.icon(
+              onPressed: () {
+                setDialogState(() {
+                  _showTextToSpeechField = !_showTextToSpeechField;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: _showTextToSpeechField
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                foregroundColor: _showTextToSpeechField ? Colors.white : null,
+              ),
+              icon: const Icon(Icons.mic),
+              label: Text(_showTextToSpeechField
+                  ? 'Skjul tekst til tale'
+                  : 'Tekst til tale (AI)'),
             ),
-            SizedBox(height: 12),
-            // Show text input when AI mode is active, otherwise show timer/level/play controls  
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () async {
+                try {
+                  if (_recorder == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              'Optager ikke tilgængelig på denne platform')),
+                    );
+                    return;
+                  }
+
+                  if (!_isRecording) {
+                    final bool hasPermission =
+                        await (_recorder as dynamic).hasPermission();
+                    if (!hasPermission) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Mangler mikrofon tilladelse')),
+                      );
+                      return;
+                    }
+                    final tmpPath =
+                        '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+                    try {
+                      await (_recorder as dynamic).start(
+                        RecordConfig(encoder: AudioEncoder.aacLc),
+                        path: tmpPath,
+                      );
+
+                      setState(() {
+                        _isRecording = true;
+                        _recordingDuration = Duration.zero;
+                        _currentLevel = 0.0;
+                        _amplitudeSupported = true;
+                        _levelPhase = 0.0;
+                      });
+                    } catch (startError) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                'Kunne ikke starte optagelse: $startError')),
+                      );
+                      return;
+                    }
+
+                    _recordTimer?.cancel();
+                    _recordTimer =
+                        Timer.periodic(const Duration(seconds: 1), (_) {
+                      setDialogState(() {
+                        _recordingDuration =
+                            _recordingDuration + const Duration(seconds: 1);
+                      });
+                    });
+                    _amplitudeTimer?.cancel();
+                    _amplitudeTimer = Timer.periodic(
+                        const Duration(milliseconds: 200), (_) async {
+                      try {
+                        final amp = await (_recorder as dynamic).getAmplitude();
+                        double level = 0.0;
+                        if (amp != null) {
+                          if (amp is Map && amp.containsKey('current')) {
+                            level = (amp['current'] as num).toDouble();
+                          } else if (amp is num) {
+                            level = amp.toDouble();
+                          }
+                        }
+                        final normalized = (level <= 0)
+                            ? 0.0
+                            : (level / 32768.0).clamp(0.0, 1.0);
+                        setDialogState(() {
+                          _currentLevel = normalized;
+                        });
+                      } catch (_) {
+                        _amplitudeSupported = false;
+                        _levelPhase += 0.3;
+                        final pulse =
+                            (0.3 + 0.7 * (0.5 + 0.5 * (sin(_levelPhase))).abs())
+                                .clamp(0.0, 1.0);
+                        setDialogState(() {
+                          _currentLevel = pulse;
+                        });
+                      }
+                    });
+                  } else {
+                    final path = await (_recorder as dynamic).stop();
+                    _recordTimer?.cancel();
+                    _amplitudeTimer?.cancel();
+                    setDialogState(() {
+                      _isRecording = false;
+                      _currentLevel = 0.0;
+                      _amplitudeSupported = true;
+                      _levelPhase = 0.0;
+                    });
+                    if (path != null) {
+                      final file = File(path);
+                      if (await file.exists()) {
+                        final bytes = await file.readAsBytes();
+                        setDialogState(() {
+                          soundBytes = bytes;
+                        });
+                      }
+                    }
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Optagelse fejlede: $e')),
+                  );
+                  _recordTimer?.cancel();
+                  _amplitudeTimer?.cancel();
+                  setDialogState(() {
+                    _isRecording = false;
+                    _currentLevel = 0.0;
+                  });
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: _isRecording ? Colors.red : null,
+                foregroundColor: _isRecording ? Colors.white : null,
+              ),
+              icon: Icon(_isRecording ? Icons.stop : Icons.fiber_manual_record),
+              label: Text(_isRecording ? 'Stop optagelse' : 'Optag lyd'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.audio,
+                  allowMultiple: false,
+                  withData: true,
+                );
+                if (result != null && result.files.single.bytes != null) {
+                  setDialogState(() {
+                    soundBytes = result.files.single.bytes;
+                  });
+                }
+              },
+              style:
+                  ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
+              icon: const Icon(Icons.upload_file),
+              label: const Text('Upload lydfil'),
+            ),
+            const SizedBox(height: 12),
+            // Show text input when AI mode is active, otherwise show timer/level/play controls
             _showTextToSpeechField
                 ? Container(
                     padding: EdgeInsets.all(12),
@@ -586,7 +624,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
                       children: [
                         Text(
                           'Indtast tekst til AI tale:',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade800),
                         ),
                         SizedBox(height: 8),
                         TextField(
@@ -598,7 +638,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
                             setDialogState(() {});
                           },
                           decoration: InputDecoration(
-                            hintText: 'Skriv den tekst du vil konvertere til lyd...',
+                            hintText:
+                                'Skriv den tekst du vil konvertere til lyd...',
                             border: OutlineInputBorder(),
                             filled: true,
                             fillColor: Colors.white,
@@ -610,10 +651,14 @@ class _AddItemPopupState extends State<AddItemPopup> {
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: _isGeneratingSpeech || _textToSpeechController.text.trim().isEmpty
+                                onPressed: _isGeneratingSpeech ||
+                                        _textToSpeechController.text
+                                            .trim()
+                                            .isEmpty
                                     ? null
                                     : () async {
-                                        await _generateSpeechFromText(setDialogState);
+                                        await _generateSpeechFromText(
+                                            setDialogState);
                                       },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
@@ -628,7 +673,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                             height: 16,
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white),
                                             ),
                                           ),
                                           SizedBox(width: 8),
@@ -669,11 +716,16 @@ class _AddItemPopupState extends State<AddItemPopup> {
                             ? null
                             : () async {
                                 try {
-                                  final uri = Uri.dataFromBytes(soundBytes!, mimeType: 'audio/m4a');
-                                  await _player.setAudioSource(AudioSource.uri(uri));
+                                  final uri = Uri.dataFromBytes(soundBytes!,
+                                      mimeType: 'audio/m4a');
+                                  await _player
+                                      .setAudioSource(AudioSource.uri(uri));
                                   _player.play();
                                 } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Afspilning fejlede: $e')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('Afspilning fejlede: $e')));
                                 }
                               },
                         child: Text('Afspil lyd'),
@@ -707,24 +759,27 @@ class _AddItemPopupState extends State<AddItemPopup> {
     }
 
     try {
-      print('Debug: Generating speech for text: "${text.substring(0, text.length > 50 ? 50 : text.length)}..."');
-      
+      print(
+          'Debug: Generating speech for text: "${text.substring(0, text.length > 50 ? 50 : text.length)}..."');
+
       // Generate speech using backend API
       final audioData = await _generateSpeechViaBackend(text);
 
-      print('Debug: Audio data received: ${audioData != null ? '${audioData.length} bytes' : 'null'}');
+      print(
+          'Debug: Audio data received: ${audioData != null ? '${audioData.length} bytes' : 'null'}');
 
       if (audioData != null) {
         // Store the generated TTS audio in both the main state and dialog state
         _generatedTtsAudio = audioData;
-        
+
         // Update main popup state
         setState(() {
-          soundBytes = audioData; // This is what gets sent when creating artefact
+          soundBytes =
+              audioData; // This is what gets sent when creating artefact
           _showTextToSpeechField = false;
           _textToSpeechController.clear();
         });
-        
+
         // Update dialog state to hide TTS field and show success
         if (setDialogState != null) {
           setDialogState(() {
@@ -733,8 +788,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
             _textToSpeechController.clear();
           });
         }
-        
-        _showSuccessMessage('Lyd genereret succesfuldt! Nu kan du tilføje artefaktet med lyden.');
+
+        _showSuccessMessage(
+            'Lyd genereret succesfuldt! Nu kan du tilføje artefaktet med lyden.');
         // Close the sound modal dialog - the audio is now saved in soundBytes
         Navigator.of(context).pop();
       } else {
@@ -743,7 +799,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
     } catch (e, stackTrace) {
       print('Debug: Exception in _generateSpeechFromText: $e');
       print('Debug: Stack trace: $stackTrace');
-      
+
       String errorMessage = 'Fejl ved generering af lyd';
       if (e.toString().contains('Authentication failed')) {
         errorMessage = 'Du skal logge ind igen for at bruge denne funktion';
@@ -752,7 +808,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
       } else {
         errorMessage = 'Fejl ved generering af lyd: ${e.toString()}';
       }
-      
+
       _showErrorMessage(errorMessage);
     } finally {
       // Update both states
@@ -806,7 +862,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      
+
       final body = json.encode({
         'text': text,
         // voiceId removed - backend controls which voice to use
@@ -819,12 +875,14 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
       print('Debug: Response status: ${response.statusCode}');
       print('Debug: Response headers: ${response.headers}');
-      
+
       if (response.statusCode == 200) {
-        print('Debug: Success! Audio data length: ${response.bodyBytes.length}');
+        print(
+            'Debug: Success! Audio data length: ${response.bodyBytes.length}');
         return response.bodyBytes;
       } else if (response.statusCode == 401) {
-        print('Debug: Authentication failed - token might be expired or invalid');
+        print(
+            'Debug: Authentication failed - token might be expired or invalid');
         throw Exception('Authentication failed. Please log in again.');
       } else {
         print('Backend API error: ${response.statusCode} ${response.body}');

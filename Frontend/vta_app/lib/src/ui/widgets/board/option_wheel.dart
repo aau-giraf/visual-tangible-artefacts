@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
@@ -12,7 +13,7 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import 'package:vta_app/src/utilities/audio/recorder.dart';
 
-enum _SoundOption { textToSpeech, record }
+enum _SoundOption { textToSpeech, record, upload }
 
 class OptionWheel extends StatefulWidget {
   final Artefact artefact;
@@ -381,6 +382,17 @@ class _OptionWheelState extends State<OptionWheel>
                 padding: const EdgeInsets.all(16),
               ),
             ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(_SoundOption.upload);
+              },
+              icon: const Icon(Icons.upload_file),
+              label: const Text('Upload lydfil'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+              ),
+            ),
           ],
         ),
         actions: [
@@ -396,6 +408,8 @@ class _OptionWheelState extends State<OptionWheel>
       await _showTextToSpeechDialog(rootContext);
     } else if (result == _SoundOption.record) {
       await _showRecordSoundDialog(rootContext);
+    } else if (result == _SoundOption.upload) {
+      await _showUploadSoundDialog(rootContext);
     }
   }
 
@@ -798,6 +812,81 @@ class _OptionWheelState extends State<OptionWheel>
           await file.delete();
         }
       } catch (_) {}
+    }
+  }
+
+  Future<void> _showUploadSoundDialog(BuildContext rootContext) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.audio,
+      allowMultiple: false,
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final pickedFile = result.files.single;
+    final bytes = pickedFile.bytes;
+    if (bytes == null) {
+      ScaffoldMessenger.of(rootContext).showSnackBar(
+        const SnackBar(
+          content: Text('Kunne ikke læse den valgte lydfil.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final navigator = Navigator.of(rootContext, rootNavigator: true);
+    bool loadingVisible = false;
+
+    showDialog(
+      context: rootContext,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+    loadingVisible = true;
+
+    void closeLoading() {
+      if (loadingVisible && navigator.mounted) {
+        navigator.pop();
+        loadingVisible = false;
+      }
+    }
+
+    try {
+      final controller = GetIt.I.get<ArtefactController>();
+      final updatedArtefact = Artefact(
+        artefactId: widget.artefact.artefactId,
+        userId: widget.artefact.userId,
+        categoryId: widget.artefact.categoryId,
+        artefactIndex: widget.artefact.artefactIndex,
+        sound: Uint8List.fromList(bytes),
+      );
+
+      await controller.updateArtefact(rootContext, updatedArtefact);
+
+      closeLoading();
+      ScaffoldMessenger.of(rootContext).showSnackBar(
+        SnackBar(
+          content: Text('Lydfilen "${pickedFile.name}" er uploadet.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      closeLoading();
+      ScaffoldMessenger.of(rootContext).showSnackBar(
+        SnackBar(
+          content: Text('Kunne ikke uploade lydfilen: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
