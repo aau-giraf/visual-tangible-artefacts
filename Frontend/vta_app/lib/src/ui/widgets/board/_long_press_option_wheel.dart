@@ -143,8 +143,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             color: Colors.transparent,
             child: OptionWheel(
               key: _optionWheelKey,
-              artefactId: widget.artifact.artefactId,
-              artefactName: widget.artifact.baseArtefact?.name ?? '',
+              artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) {
                 setState(() {

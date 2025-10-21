@@ -156,6 +156,24 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateArtefact(
+    BuildContext context, 
+    Artefact artefact,
+  ) async {
+    try {
+      await _model.updateArtefact(artefact, token: GetIt.I.get<Token>().value!);
+      notifyListeners();
+      if (context.mounted) {
+        _showSuccessActionSnackBar(context, 'Artefact opdateret');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+      rethrow;
+    }
+  }
+
   Future<void> trackCategoryUsage(String categoryId,
       {BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();
