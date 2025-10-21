@@ -193,22 +193,29 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
     // create overlay
     _overlayEntry = OverlayEntry(builder: (context) {
+      // Calculate baseRadius based on artifact size
+      final RenderBox artifactBox = widget.artifact.key.currentContext?.findRenderObject() as RenderBox;
+      double baseRadius = 165; // default fallback
+      final Size artifactSize = artifactBox.size;
+      // Use the larger of width/height, scale factor can be tuned
+      final double maxDim = artifactSize.width > artifactSize.height ? artifactSize.width : artifactSize.height;
+      baseRadius = (maxDim * 0.8).clamp(130, 300); // scale with screen size???
 
       // fallback sizes (if this happens... fix it)
       final double fallbackWidth = (150 + 90 / 2 + 30) * 2;
       final Size ws = _wheelSize ?? Size(fallbackWidth, fallbackWidth);
-  final double left = _artifactCenterGlobal!.dx - ws.width / 2;
-  final double top = _artifactCenterGlobal!.dy - ws.height / 2;
+      final double left = _artifactCenterGlobal!.dx - ws.width / 2;
+      final double top = _artifactCenterGlobal!.dy - ws.height / 2;
 
       // decides orientation for overflow
       final media = MediaQuery.of(context).size;
       final double candidateLeft = _artifactCenterGlobal!.dx - ws.width / 2;
       final double candidateTop = _artifactCenterGlobal!.dy - ws.height / 2;
 
-  final bool overflowLeft = candidateLeft < -50;
-  final bool overflowRight = candidateLeft + ws.width > media.width;
-  final bool overflowTop = candidateTop < -80;
-  final bool overflowBottom = candidateTop + ws.height > media.height;
+      final bool overflowLeft = candidateLeft < -50;
+      final bool overflowRight = candidateLeft + ws.width > media.width;
+      final bool overflowTop = candidateTop < -80;
+      final bool overflowBottom = candidateTop + ws.height > media.height;
       // Default
       double centerAngleDeg = 0;
 
@@ -274,12 +281,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
               endDegrees: endDegrees,
+              baseRadius: baseRadius,
             ),
           ),
         ),
       ]);
     });
-  Overlay.of(context).insert(_overlayEntry!);
+    Overlay.of(context).insert(_overlayEntry!);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final optionContext = _optionWheelKey.currentContext;
       if (optionContext != null) {
