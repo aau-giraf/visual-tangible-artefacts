@@ -274,7 +274,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     left: artefact.position?.dx,
                     top: artefact.position?.dy,
                     child: LongPressOptionWheel(
+                      key: artefact.longPressKey,
                       artifact: artefact,
+                      controller: widget.controller,
                       child: Draggable<BoardArtefact>(
                         data: artefact,
                         feedback: Transform.scale(
@@ -300,7 +302,19 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         childWhenDragging: Container(),
                         child: Transform.scale(
                           scale: artefact.scale,
-                          child: Container(key: artefact.key, child: artefact.content),
+                          child: Builder(
+                            builder: (context) {
+                              // Get the LongPressOptionWheel state to check if scaling mode is active
+                              final longPressState = artefact.longPressKey.currentState;
+                              final content = Container(key: artefact.key, child: artefact.content);
+                              
+                              // Wrap with scaling indicator if in scaling mode
+                              if (longPressState != null) {
+                                return longPressState.wrapWithScalingIndicator(content);
+                              }
+                              return content;
+                            },
+                          ),
                         ),
                         onDragEnd: (details) {
                           if (_isInsideMat(details.offset)) {

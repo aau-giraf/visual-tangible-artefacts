@@ -585,7 +585,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'Indtast tekst til AI tale-syntese:',
+                          'Indtast tekst til AI tale:',
                           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
                         ),
                         SizedBox(height: 8),
@@ -596,7 +596,6 @@ class _AddItemPopupState extends State<AddItemPopup> {
                           onChanged: (text) {
                             // Trigger rebuild when text changes to enable/disable button
                             setDialogState(() {});
-                            print('Debug: Text field changed: "$text", isEmpty: ${text.trim().isEmpty}');
                           },
                           decoration: InputDecoration(
                             hintText: 'Skriv den tekst du vil konvertere til lyd...',

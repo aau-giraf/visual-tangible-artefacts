@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
+  final TalkingmatController controller;
 
   const LongPressOptionWheel({
     super.key,
     required this.artifact,
     required this.child,
+    required this.controller,
   });
 
   @override
@@ -22,19 +25,111 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
   bool _showName = false;
+  bool _isScalingMode = false;
+  double _initialScale = 1.0;
+  Offset? _dragStart;
+
+  // Public getter for scaling mode
+  bool get isScalingMode => _isScalingMode;
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
-    _showPersistentWheel();
+    if (!_isScalingMode) {
+      _showPersistentWheel();
+    }
+  }
+
+  // Helper method to wrap content with scaling indicator
+  Widget wrapWithScalingIndicator(Widget content) {
+    if (!_isScalingMode) {
+      return content;
+    }
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        content,
+        Positioned(
+          right: -5,
+          bottom: -5,
+          child: GestureDetector(
+            onTap: () {
+              // Exit scaling mode when blue handle is clicked
+              setState(() {
+                _isScalingMode = false;
+              });
+            },
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.zoom_out_map,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
+        // The main gesture detector wrapping the child
         GestureDetector(
           onLongPressStart: _onLongPressStart,
-          child: widget.child,
+          // Allow tapping to exit scaling mode
+          onTap: () {
+            if (_isScalingMode) {
+              setState(() {
+                _isScalingMode = false;
+              });
+            }
+          },
+          // Enable pan gestures for scaling when in scaling mode
+          onPanStart: _isScalingMode ? (details) {
+            setState(() {
+              _initialScale = widget.artifact.scale;
+              _dragStart = details.globalPosition;
+            });
+          } : null,
+          onPanUpdate: _isScalingMode ? (details) {
+            if (_dragStart != null) {
+              // Calculate drag direction for scaling
+              final dragDirection = details.globalPosition - _dragStart!;
+              
+              // Scale based on diagonal drag (positive = larger, negative = smaller)
+              final scaleDelta = (dragDirection.dx + dragDirection.dy) / 200;
+              // Limit scale to reasonable range: 0.5x to 2.0x
+              final newScale = (_initialScale + scaleDelta).clamp(0.5, 2.0);
+              
+              widget.controller.updateArtifactScale(widget.artifact, newScale);
+            }
+          } : null,
+          onPanEnd: _isScalingMode ? (details) {
+            _dragStart = null;
+          } : null,
+          // Wrap child in AbsorbPointer when scaling to prevent Draggable from intercepting
+          child: AbsorbPointer(
+            absorbing: _isScalingMode,
+            child: widget.child,
+          ),
         ),
         Positioned(
           left: 0,
@@ -151,18 +246,12 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                 });
               },
               onSizeChange: () {
-                // Cycle through sizes: 1.0 -> 1.5 -> 2.0 -> 0.5 -> 1.0
+                // Toggle scaling mode
                 setState(() {
-                  if (widget.artifact.scale == 1.0) {
-                    widget.artifact.scale = 1.5;
-                  } else if (widget.artifact.scale == 1.5) {
-                    widget.artifact.scale = 2.0;
-                  } else if (widget.artifact.scale == 2.0) {
-                    widget.artifact.scale = 0.5;
-                  } else {
-                    widget.artifact.scale = 1.0;
-                  }
+                  _isScalingMode = !_isScalingMode;
                 });
+                // Hide the wheel when entering scaling mode
+                _hidePersistentWheel();
               },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
