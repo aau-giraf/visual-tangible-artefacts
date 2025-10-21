@@ -1,10 +1,18 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:record/record.dart' show AudioEncoder, RecordConfig;
+import 'package:vta_app/src/utilities/audio/recorder.dart';
+
+enum _SoundOption { textToSpeech, record }
 
 class OptionWheel extends StatefulWidget {
   final Artefact artefact;
@@ -52,6 +60,12 @@ class _OptionWheelState extends State<OptionWheel>
   void dispose() {
     _ctrl.dispose();
     super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   @override
@@ -333,7 +347,7 @@ class _OptionWheelState extends State<OptionWheel>
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     final rootContext = rootNavigator.context;
 
-    final result = await showDialog<bool>(
+    final result = await showDialog<_SoundOption>(
       context: rootContext,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Skift lyd'),
@@ -348,8 +362,7 @@ class _OptionWheelState extends State<OptionWheel>
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(true); // Return true to indicate text-to-speech
+                Navigator.of(dialogContext).pop(_SoundOption.textToSpeech);
               },
               icon: const Icon(Icons.mic),
               label: const Text('Tekst til tale'),
@@ -360,11 +373,10 @@ class _OptionWheelState extends State<OptionWheel>
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(false); // Return false to indicate file upload
+                Navigator.of(dialogContext).pop(_SoundOption.record);
               },
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Upload lydfil'),
+              icon: const Icon(Icons.fiber_manual_record),
+              label: const Text('Optag lyd'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.all(16),
               ),
@@ -373,22 +385,22 @@ class _OptionWheelState extends State<OptionWheel>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Annuller'),
           ),
         ],
       ),
     );
 
-    if (result == true) {
+    if (result == _SoundOption.textToSpeech) {
       await _showTextToSpeechDialog(rootContext);
-    } else if (result == false) {
-      await _showUploadSoundDialog(rootContext);
+    } else if (result == _SoundOption.record) {
+      await _showRecordSoundDialog(rootContext);
     }
   }
 
   Future<void> _showTextToSpeechDialog(BuildContext rootContext) async {
-    final TextEditingController textController = TextEditingController();
+    String inputText = '';
     final navigator = Navigator.of(rootContext, rootNavigator: true);
     final scaffoldMessenger = ScaffoldMessenger.of(rootContext);
 
@@ -400,7 +412,6 @@ class _OptionWheelState extends State<OptionWheel>
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: textController,
               decoration: const InputDecoration(
                 labelText: 'Indtast tekst',
                 border: OutlineInputBorder(),
@@ -408,6 +419,9 @@ class _OptionWheelState extends State<OptionWheel>
               ),
               maxLines: 3,
               autofocus: true,
+              onChanged: (value) => inputText = value,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => FocusScope.of(dialogContext).unfocus(),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -423,7 +437,7 @@ class _OptionWheelState extends State<OptionWheel>
           ),
           TextButton(
             onPressed: () async {
-              final text = textController.text.trim();
+              final text = inputText.trim();
               if (text.isEmpty) {
                 scaffoldMessenger.showSnackBar(
                   const SnackBar(
@@ -434,6 +448,7 @@ class _OptionWheelState extends State<OptionWheel>
                 return;
               }
 
+              FocusScope.of(dialogContext).unfocus();
               Navigator.of(dialogContext).pop(); // Close the input dialog
 
               bool loadingDialogVisible = false;
@@ -514,35 +529,276 @@ class _OptionWheelState extends State<OptionWheel>
         ],
       ),
     );
-
-    textController.dispose();
   }
 
-  Future<void> _showUploadSoundDialog(BuildContext rootContext) async {
+  Future<void> _showRecordSoundDialog(BuildContext rootContext) async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(rootContext).showSnackBar(
+        const SnackBar(
+          content: Text('Optagelse er ikke understøttet i browseren.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    dynamic recorder;
+    try {
+      recorder = createRecorder();
+    } catch (_) {
+      recorder = null;
+    }
+
+    if (recorder == null) {
+      ScaffoldMessenger.of(rootContext).showSnackBar(
+        const SnackBar(
+          content: Text('Optagelse er ikke tilgængelig på denne enhed.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    bool isRecording = false;
+    Duration recordingDuration = Duration.zero;
+    Timer? recordTimer;
+    Uint8List? recordedBytes;
+    String? recordingPath;
+
+    void cancelTimer() {
+      recordTimer?.cancel();
+      recordTimer = null;
+    }
+
+    Future<void> startRecording(StateSetter update) async {
+      try {
+        final hasPermission = await (recorder as dynamic).hasPermission();
+        if (!hasPermission) {
+          ScaffoldMessenger.of(rootContext).showSnackBar(
+            const SnackBar(
+              content: Text('Mangler mikrofon-tilladelse'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        final tempFile =
+            '${Directory.systemTemp.path}/vta_record_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        recordingPath = tempFile;
+
+        await (recorder as dynamic).start(
+          RecordConfig(encoder: AudioEncoder.aacLc),
+          path: tempFile,
+        );
+
+        update(() {
+          isRecording = true;
+          recordingDuration = Duration.zero;
+          recordedBytes = null;
+        });
+
+        cancelTimer();
+        recordTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+          update(() {
+            recordingDuration = recordingDuration + const Duration(seconds: 1);
+          });
+        });
+      } catch (e) {
+        recordingPath = null;
+        ScaffoldMessenger.of(rootContext).showSnackBar(
+          SnackBar(
+            content: Text('Kunne ikke starte optagelse: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    Future<void> stopRecording(StateSetter update) async {
+      if (!isRecording) {
+        return;
+      }
+
+      try {
+        final path = await (recorder as dynamic).stop();
+        cancelTimer();
+
+        final filePath = path ?? recordingPath;
+        Uint8List? bytes;
+        if (filePath != null) {
+          final file = File(filePath);
+          if (await file.exists()) {
+            bytes = await file.readAsBytes();
+            try {
+              await file.delete();
+            } catch (_) {}
+          }
+        }
+
+        update(() {
+          isRecording = false;
+          recordedBytes = bytes ?? recordedBytes;
+        });
+        recordingPath = null;
+      } catch (e) {
+        cancelTimer();
+        update(() {
+          isRecording = false;
+        });
+        ScaffoldMessenger.of(rootContext).showSnackBar(
+          SnackBar(
+            content: Text('Kunne ikke stoppe optagelse: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
     await showDialog(
       context: rootContext,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Upload lydfil'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.upload_file, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Filupload funktionalitet kommer snart.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              title: const Text('Optag lyd'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isRecording ? Icons.mic : Icons.mic_none,
+                    size: 48,
+                    color: isRecording ? Colors.red : Colors.black54,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _formatDuration(recordingDuration),
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (isRecording) {
+                        await stopRecording(setState);
+                      } else {
+                        await startRecording(setState);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isRecording ? Colors.red : null,
+                      foregroundColor: isRecording ? Colors.white : null,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 16),
+                    ),
+                    icon: Icon(
+                        isRecording ? Icons.stop : Icons.fiber_manual_record),
+                    label: Text(
+                        isRecording ? 'Stop optagelse' : 'Start optagelse'),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    recordedBytes != null
+                        ? 'Optagelsen er klar til upload.'
+                        : isRecording
+                            ? 'Optagelse i gang...'
+                            : 'Tryk på start for at optage lyd.',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    if (isRecording) {
+                      await stopRecording(setState);
+                    }
+                    setState(() {
+                      recordedBytes = null;
+                    });
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Annuller'),
+                ),
+                TextButton(
+                  onPressed: (!isRecording && recordedBytes != null)
+                      ? () async {
+                          final navigator =
+                              Navigator.of(rootContext, rootNavigator: true);
+                          bool loadingVisible = false;
+
+                          showDialog(
+                            context: rootContext,
+                            barrierDismissible: false,
+                            builder: (_) => const PopScope(
+                              canPop: false,
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                          );
+                          loadingVisible = true;
+
+                          void closeLoading() {
+                            if (loadingVisible && navigator.mounted) {
+                              navigator.pop();
+                              loadingVisible = false;
+                            }
+                          }
+
+                          try {
+                            final controller =
+                                GetIt.I.get<ArtefactController>();
+                            final updatedArtefact = Artefact(
+                              artefactId: widget.artefact.artefactId,
+                              userId: widget.artefact.userId,
+                              categoryId: widget.artefact.categoryId,
+                              artefactIndex: widget.artefact.artefactIndex,
+                              sound: recordedBytes,
+                            );
+
+                            await controller.updateArtefact(
+                                rootContext, updatedArtefact);
+
+                            closeLoading();
+                            if (Navigator.of(dialogContext).mounted) {
+                              Navigator.of(dialogContext).pop();
+                            }
+                          } catch (e) {
+                            closeLoading();
+                            ScaffoldMessenger.of(rootContext).showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text('Kunne ikke gemme optagelsen: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      : null,
+                  child: const Text('Gem'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
+
+    cancelTimer();
+    if (isRecording) {
+      try {
+        await (recorder as dynamic).stop();
+      } catch (_) {}
+    }
+    if (recordingPath != null) {
+      try {
+        final file = File(recordingPath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {}
+    }
   }
 }
 
