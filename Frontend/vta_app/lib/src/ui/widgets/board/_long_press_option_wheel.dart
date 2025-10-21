@@ -199,7 +199,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
       final Size artifactSize = artifactBox.size;
       // Use the larger of width/height, scale factor can be tuned
       final double maxDim = artifactSize.width > artifactSize.height ? artifactSize.width : artifactSize.height;
-      baseRadius = (maxDim * 0.8).clamp(130, 300);
+      baseRadius = (maxDim * 0.8).clamp(130, 300); // scale with screen size???
 
       // fallback sizes (if this happens... fix it)
       final double fallbackWidth = (150 + 90 / 2 + 30) * 2;
