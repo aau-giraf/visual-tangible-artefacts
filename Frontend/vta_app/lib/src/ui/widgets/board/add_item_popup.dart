@@ -824,6 +824,33 @@ class _AddItemPopupState extends State<AddItemPopup> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ElevatedButton(
+              onPressed: soundBytes == null ? null : () {
+                // Confirm - keep the changes and close
+                // Stop any recording in progress first
+                if (_isRecording) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Stop optagelsen før du bekræfter'),
+                    ),
+                  );
+                  return;
+                }
+                
+                // Update main state to reflect any changes made in dialog
+                setState(() {
+                  // soundBytes is already updated by the recording/upload/TTS actions
+                  // This setState will trigger _canSubmit() to re-evaluate
+                });
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: soundBytes != null ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+                foregroundColor: soundBytes != null ? Colors.white : Colors.grey.shade600,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Bekræft'),
+            ),
+            ElevatedButton(
               onPressed: () {
                 // Cancel - discard any changes and close
                 // Stop any recording in progress
@@ -854,33 +881,6 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: const Text('Annuller'),
-            ),
-            ElevatedButton(
-              onPressed: soundBytes == null ? null : () {
-                // Confirm - keep the changes and close
-                // Stop any recording in progress first
-                if (_isRecording) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Stop optagelsen før du bekræfter'),
-                    ),
-                  );
-                  return;
-                }
-                
-                // Update main state to reflect any changes made in dialog
-                setState(() {
-                  // soundBytes is already updated by the recording/upload/TTS actions
-                  // This setState will trigger _canSubmit() to re-evaluate
-                });
-                Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: soundBytes != null ? const Color(0xFF2E7D32) : Colors.grey.shade300,
-                foregroundColor: soundBytes != null ? Colors.white : Colors.grey.shade600,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text('Bekræft'),
             ),
           ],
         ),

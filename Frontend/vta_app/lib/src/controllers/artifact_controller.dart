@@ -68,6 +68,7 @@ class ArtefactController extends ChangeNotifier {
     );
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.80),
       builder: (context) => popup,
     );
   }
@@ -123,6 +124,7 @@ class ArtefactController extends ChangeNotifier {
         });
     await showDialog(
         context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.80),
         builder: (context) {
           return popup;
         });

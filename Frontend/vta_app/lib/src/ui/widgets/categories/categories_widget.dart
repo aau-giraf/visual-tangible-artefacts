@@ -506,6 +506,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showAddCategoryPopup(BuildContext context) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
@@ -529,6 +530,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showEditCategoryPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
@@ -555,6 +557,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showAddArtifactPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: false,
