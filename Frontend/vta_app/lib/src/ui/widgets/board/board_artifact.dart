@@ -101,8 +101,6 @@ class BoardArtefactView extends StatelessWidget {
     else {
       content = Image.asset('assets/images/flutter_logo.png');
     }
-          height: 200,
-        ),
 
     return SizedBox(width: width, height: height, child: content);
   }

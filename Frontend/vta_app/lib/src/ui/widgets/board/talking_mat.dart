@@ -211,7 +211,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     
     print('Debug: Finished playing all artefact sounds on TalkingMat');
   }
-  void _loadArtifactSize(BoardArtefact artifact) {
     // Access the size of the artifact's content after it has been rendered
   // Uses a local GlobalKey (outdated term which was used before) for measurement, and it not stored in BoardArtefact (been updated)
   void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
