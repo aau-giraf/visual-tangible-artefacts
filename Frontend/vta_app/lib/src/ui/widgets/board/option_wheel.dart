@@ -128,7 +128,7 @@ class _OptionWheelState extends State<OptionWheel> with SingleTickerProviderStat
             for (int i = 0; i < buttonCount; i++) {
               final double angleDeg = startDegrees + degreesStep * i;
               final double leftPos = (WheelWidth / 2) + animatedRadius * math.cos(angleDeg * math.pi / 180 - math.pi / 2) - buttonSize / 2 + wheelOffsetLeft;
-              double topPos = (WheelHeight / 2) + animatedRadius * math.sin(angleDeg * math.pi / 180 - math.pi / 2) + widget.verticalNudge + wheelOffsetTop + 5;
+              double topPos = (WheelHeight / 2) + animatedRadius * math.sin(angleDeg * math.pi / 180 - math.pi / 2) + widget.verticalNudge + wheelOffsetTop +13; // change the int at the end to nudge up/down the buttons on the arc, 13 suits pc 5 suits tablet in tests
               // if the button is near the wheel's left or right edge, nudge it up
               // slightly to avoid visual clipping with the board edge.
               const double horizontalEdgeThreshold = 300;

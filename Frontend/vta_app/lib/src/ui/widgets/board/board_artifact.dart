@@ -2,44 +2,71 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 
+// do NOT store Widgets inside this class; build views on-demand
 class BoardArtefact {
-  final Widget content;
   Offset? position;
-  final GlobalKey key;
   Size? renderedSize;
-  Artefact? baseArtefact;
+  final Artefact? baseArtefact;
+  final Map<String, String>? headers;
 
   BoardArtefact({
-    required this.content,
     this.position,
     this.baseArtefact,
-  }) : key = GlobalKey();
+    this.headers,
+  });
 
   String get artefactId => baseArtefact?.artefactId ?? '';
 
   factory BoardArtefact.fromArtefact(Artefact artefact,
       {Map<String, String>? headers}) {
-    
+    return BoardArtefact(baseArtefact: artefact, headers: headers);
+  }
+}
+
+// use this in the widget layer to display artefacts.
+class BoardArtefactView extends StatelessWidget {
+  final BoardArtefact artefact;
+  final Map<String, String>? headers;
+  final double width;
+  final double height;
+
+  const BoardArtefactView({
+    Key? key,
+    required this.artefact,
+    this.headers,
+    this.width = 200,
+    this.height = 200,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final artefactData = artefact.baseArtefact;
+
     Widget content;
-    
     // Check if artefact has an image
-    if (artefact.imageUrl != null && artefact.imageUrl!.isNotEmpty) {
+    if (artefactData != null &&
+        artefactData.imageUrl != null &&
+        artefactData.imageUrl!.isNotEmpty) {
+      final usedHeaders = headers ?? artefact.headers;
       content = FadeInImage(
         imageErrorBuilder: (context, error, stackTrace) {
           return Image.asset('assets/images/flutter_logo.png');
         },
-        image: NetworkImage(artefact.imageUrl!, headers: headers),
+        image: NetworkImage(artefactData.imageUrl!, headers: usedHeaders),
         placeholder: AssetImage('assets/images/flutter_logo.png'),
+        fit: BoxFit.contain,
       );
     } 
     // If no image but has sound, show speaker icon
-    else if (artefact.soundUrl != null && artefact.soundUrl!.isNotEmpty) {
+    else if (artefactData != null &&
+        artefactData.soundUrl != null &&
+        artefactData.soundUrl!.isNotEmpty) {
       content = GestureDetector(
         onTap: () async {
           // Play the sound when clicked
           try {
             final player = AudioPlayer();
-            await player.setUrl(artefact.soundUrl!);
+            await player.setUrl(artefactData.soundUrl!);
             await player.play();
           } catch (e) {
             print('Error playing sound: $e');
@@ -69,18 +96,14 @@ class BoardArtefact {
           ),
         ),
       );
-    }
     // Fallback to default image
+    } 
     else {
       content = Image.asset('assets/images/flutter_logo.png');
     }
-    
-    return BoardArtefact(
-        content: SizedBox(
-          width: 200,
           height: 200,
-          child: content,
         ),
-        baseArtefact: artefact);
+
+    return SizedBox(width: width, height: height, child: content);
   }
 }

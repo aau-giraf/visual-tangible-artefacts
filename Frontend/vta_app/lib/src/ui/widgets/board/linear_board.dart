@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import '../../../controllers/linear_board_controller.dart';
-import '_long_press_option_wheel.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
 
@@ -383,20 +382,24 @@ class LinearBoardState extends State<LinearBoard>
           child: SizedBox(
             width: artifactWidth / (_linearBoardController.fieldCount / 4),
             height: artifactHeight,
-            child: artifact.content,
+            child: BoardArtefactView(
+              artefact: artifact,
+              width: artifactWidth / (_linearBoardController.fieldCount / 4),
+              height: artifactHeight,
+            ),
           ),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.1,
-        child: artifact.content,
+        child: BoardArtefactView(artefact: artifact),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: artifact.content,
+        child: BoardArtefactView(artefact: artifact),
       ),
     );
   }

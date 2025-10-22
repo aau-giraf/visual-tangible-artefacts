@@ -69,8 +69,11 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     });
   }
 
-  void removeArtifact(GlobalKey artifactKey) {
-    artifacts.removeWhere((artifact) => artifact.key == artifactKey);
+  // Removes artefact by artefactId
+  void removeArtifactById(String artefactId) {
+    setState(() {
+      artifacts.removeWhere((artifact) => artifact.artefactId == artefactId);
+    });
   }
 
   void removeAllArtifacts() {
@@ -208,17 +211,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     
     print('Debug: Finished playing all artefact sounds on TalkingMat');
   }
-
   void _loadArtifactSize(BoardArtefact artifact) {
     // Access the size of the artifact's content after it has been rendered
+  // Uses a local GlobalKey (outdated term which was used before) for measurement, and it not stored in BoardArtefact (been updated)
+  void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? renderBox =
-          artifact.key.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final size = renderBox.size;
-
-        // Update the rendered size in the artifact
-        artifact.renderedSize = size;
+      final optionContext = key.currentContext;
+      if (optionContext != null) {
+        final renderObject = optionContext.findRenderObject();
+        if (renderObject is RenderBox) {
+          final size = renderObject.size;
+          artifact.renderedSize = size;
+        }
       }
     });
   }
@@ -262,10 +266,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
               clipBehavior: Clip.none,
               children: [
                 ...artefacts.map((artefact) {
-                  _loadArtifactSize(
-                      artefact); // Ensure the artifact size is captured
+                  final artefactKey = GlobalKey();
+                  _loadArtifactSize(artefactKey, artefact); // Ensure the artifact size is captured
 
-                  // If artifact is newly added (no position), center it on the mat
                   artefact.position ??= Offset(
                     (widget.width ?? constraints.maxWidth) / 2,
                     (widget.height ?? constraints.maxHeight) / 2,
@@ -293,12 +296,15 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                             ),
                             child: Opacity(
                               opacity: 0.5,
-                              child: artefact.content,
+                              child: BoardArtefactView(
+                                artefact: artefact,
+                                key: artefactKey,
+                              ),
                             ),
                           ),
                         ),
                         childWhenDragging: Container(),
-                        child: Container(key: artefact.key, child: artefact.content),
+                        child: Container(key: artefactKey, child: BoardArtefactView(artefact: artefact)),
                         onDragEnd: (details) {
                           if (_isInsideMat(details.offset)) {
                             _updateArtifactPosition(artefact, details.offset);
