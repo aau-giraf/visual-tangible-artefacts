@@ -134,66 +134,6 @@ class ArtifactModel {
     }
   }
 
-  Future<void> updateArtefact(Artefact artefact, {required String token}) async {
-    try {
-      var body = <String, dynamic>{
-        'ArtefactId': artefact.artefactId,
-        'UserId': artefact.userId,
-      };
-      if (artefact.name != null) {
-        body['Name'] = artefact.name;
-      }
-      if (artefact.categoryId != null) {
-        body['CategoryId'] = artefact.categoryId;
-      }
-      if (artefact.artefactIndex != null) {
-        body['ArtefactIndex'] = artefact.artefactIndex.toString();
-      }
-      if (artefact.sound != null) {
-        body['Sound'] = artefact.sound;
-      }
-      if (artefact.image != null) {
-        body['Image'] = artefact.image;
-      }
-      
-      var response = await apiProvider.sendAsMultiPart(
-          'PATCH', "Users/Artefacts",
-          body: body, 
-          headers: {'Authorization': 'Bearer $token'});
-      
-      if (response != null && response.ok) {
-        // Update the local artefact in the categories list
-        var category = categories?.firstWhere(
-          (cat) => cat.categoryId == artefact.categoryId,
-          orElse: () => Category(),
-        );
-        if (category?.artefacts != null) {
-          var index = category!.artefacts!.indexWhere(
-            (a) => a.artefactId == artefact.artefactId
-          );
-          if (index != -1) {
-            // Fetch the updated artefact to get the new soundUrl if sound was updated
-            var getResponse = await apiProvider.fetchAsJson(
-              "Users/Artefacts/${artefact.artefactId}",
-              headers: {'Authorization': 'Bearer $token'}
-            );
-            if (getResponse != null && getResponse.ok) {
-              var updatedArtefact = Artefact.fromJson(jsonDecode(getResponse.body));
-              category.artefacts![index] = updatedArtefact;
-            }
-          }
-        }
-      } else {
-        throw ArtifactException(
-            message:
-                'Failed to update artefact, status code: ${response?.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('$e');
-      rethrow;
-    }
-  }
-
   Future<void> fetchAndUpdateMostUsedCategories(
       {required String token, int limit = 3}) async {
     try {
