@@ -457,7 +457,10 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                       widget.onArtifactAdded(boardArtefacts[index]);
                       Navigator.pop(context);
                     },
-              child: boardArtefacts[index].content,
+              child: BoardArtefactView(
+                artefact: boardArtefacts[index],
+                key: ValueKey(boardArtefacts[index].artefactId),
+              ),
             ),
           ),
           if (isInDeletionMode)

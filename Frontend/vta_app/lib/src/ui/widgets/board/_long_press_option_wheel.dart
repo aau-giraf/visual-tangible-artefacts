@@ -188,7 +188,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   }
 
   void _showPersistentWheel() {
-    final artifactContext = widget.artifact.key.currentContext;
+  final artifactContext = context;
     if (artifactContext == null) return;
 
     final RenderBox artifactBox = artifactContext.findRenderObject() as RenderBox;
