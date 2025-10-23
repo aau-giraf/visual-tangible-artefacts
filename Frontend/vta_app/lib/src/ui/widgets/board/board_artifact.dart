@@ -8,7 +8,7 @@ class BoardArtefact {
   final Widget baseContent;
   Offset? position;
   final GlobalKey key;
-  final GlobalKey<LongPressOptionWheelState> longPressKey;
+  //final GlobalKey<LongPressOptionWheelState> longPressKey;
   Size? renderedSize;
   Artefact? baseArtefact;
   final ValueNotifier<Size> sizeNotifier;

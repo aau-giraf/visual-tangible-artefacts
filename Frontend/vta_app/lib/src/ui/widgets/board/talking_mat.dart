@@ -187,8 +187,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     left: artefact.position?.dx,
                     top: artefact.position?.dy,
                     child: LongPressOptionWheel(
-                      key: artefact.longPressKey,
                       artifact: artefact,
+                      controller: widget.controller,
                       child: ValueListenableBuilder<bool>(
                         valueListenable: artefact.showResizeHandle,
                         builder: (context, showHandle, _) {

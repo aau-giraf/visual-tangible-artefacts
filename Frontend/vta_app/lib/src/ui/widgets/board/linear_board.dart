@@ -279,21 +279,18 @@ class LinearBoardState extends State<LinearBoard>
     );
   }
 
-   Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
+  Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
       int index, double artifactWidth, double artifactHeight) {
     return Draggable<BoardArtefact>(
       data: artifact,
-      feedback: Transform.scale(
-        scale: artifact.scale,
-        child: Material(
-          type: MaterialType.transparency,
-          child: Opacity(
-            opacity: 0.5,
-            child: SizedBox(
-              width: artifactWidth / (_linearBoardController.fieldCount / 4),
-              height: artifactHeight,
-              child: artifact.content,
-            ),
+      feedback: Material(
+        type: MaterialType.transparency,
+        child: Opacity(
+          opacity: 0.5,
+          child: SizedBox(
+            width: artifactWidth / (_linearBoardController.fieldCount / 4),
+            height: artifactHeight,
+            child: artifact.content,
           ),
         ),
       ),
@@ -301,19 +298,16 @@ class LinearBoardState extends State<LinearBoard>
         opacity: 0.1,
         child: artifact.content,
       ),
-      child: Transform.scale(
-        scale: artifact.scale,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: artifact.content,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
         ),
+        child: artifact.content,
       ),
     );
   }
-
+  
   Widget _buildVerticalDivider(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.44,

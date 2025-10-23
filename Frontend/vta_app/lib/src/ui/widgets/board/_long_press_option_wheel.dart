@@ -32,56 +32,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
-    if (!_isScalingMode) {
-      _showPersistentWheel();
-    }
-  }
-
-  // Helper method to wrap content with scaling indicator
-  Widget wrapWithScalingIndicator(Widget content) {
-    if (!_isScalingMode) {
-      return content;
-    }
-    
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        content,
-        Positioned(
-          right: -5,
-          bottom: -5,
-          child: GestureDetector(
-            onTap: () {
-              // Exit scaling mode when blue handle is clicked
-              setState(() {
-                _isScalingMode = false;
-              });
-            },
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.zoom_out_map,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    _showPersistentWheel();
   }
 
   void _showResizeCaptureOverlay() {
@@ -186,50 +137,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     } catch (_) {}
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Stack(
-      clipBehavior: Clip.none,
       children: [
-        // The main gesture detector wrapping the child
         GestureDetector(
           onLongPressStart: _onLongPressStart,
-          // Allow tapping to exit scaling mode
-          onTap: () {
-            if (_isScalingMode) {
-              setState(() {
-                _isScalingMode = false;
-              });
-            }
-          },
-          // Enable pan gestures for scaling when in scaling mode
-          onPanStart: _isScalingMode ? (details) {
-            setState(() {
-              _initialScale = widget.artifact.scale;
-              _dragStart = details.globalPosition;
-            });
-          } : null,
-          onPanUpdate: _isScalingMode ? (details) {
-            if (_dragStart != null) {
-              // Calculate drag direction for scaling
-              final dragDirection = details.globalPosition - _dragStart!;
-              
-              // Scale based on diagonal drag (positive = larger, negative = smaller)
-              final scaleDelta = (dragDirection.dx + dragDirection.dy) / 200;
-              // Limit scale to reasonable range: 0.5x to 2.0x
-              final newScale = (_initialScale + scaleDelta).clamp(0.5, 2.0);
-              
-              widget.controller.updateArtifactScale(widget.artifact, newScale);
-            }
-          } : null,
-          onPanEnd: _isScalingMode ? (details) {
-            _dragStart = null;
-          } : null,
-          // Wrap child in AbsorbPointer when scaling to prevent Draggable from intercepting
-          child: AbsorbPointer(
-            absorbing: _isScalingMode,
-            child: widget.child,
-          ),
+          child: widget.child,
         ),
         Positioned(
           left: 0,

@@ -95,7 +95,7 @@ class _OptionWheelState extends State<OptionWheel>
         icon: Icons.volume_up,
         label: 'skift lyd',
         onPressed: () async {
-          final dialogFuture = _showChangeSoundDialog(context);S
+          final dialogFuture = _showChangeSoundDialog(context);
           widget.onPressed?.call(); // Close wheel after dialog launched
           await dialogFuture;
         },
@@ -141,10 +141,6 @@ class _OptionWheelState extends State<OptionWheel>
     final int buttonCount = options.length;
     final double degreesStep =
         buttonCount > 1 ? (endDegrees - startDegrees) / (buttonCount - 1) : 0.0;
-
-
-  final int buttonCount = options.length;
-  final double degreesStep = buttonCount > 1 ? (endDegrees - startDegrees) / (buttonCount - 1) : 0.0;
 
   // wheel dimensions
   final double WheelWidth = ((radius + buttonSize / 2 + 30) * 2);
