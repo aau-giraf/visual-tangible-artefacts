@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
+  final TalkingmatController controller;
 
   const LongPressOptionWheel({
-    Key? key,
+    super.key,
     required this.artifact,
     required this.child,
-  }) : super(key: key);
+    required this.controller,
+  });
 
   @override
   State<LongPressOptionWheel> createState() => LongPressOptionWheelState();
@@ -134,7 +137,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     } catch (_) {}
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
@@ -256,8 +259,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             color: Colors.transparent,
             child: OptionWheel(
               key: _optionWheelKey,
-              artefactId: widget.artifact.artefactId,
-              artefactName: widget.artifact.baseArtefact?.name ?? '',
+              artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) {
                 setState(() {
