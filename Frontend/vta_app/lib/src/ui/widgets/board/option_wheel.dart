@@ -93,20 +93,18 @@ class _OptionWheelState extends State<OptionWheel>
     final options = [
       _OptionWheelButton(
         icon: Icons.volume_up,
-        label: 'skift lyd',
-        onPressed: () async {
-          final dialogFuture = _showChangeSoundDialog(context);
-          widget.onPressed?.call(); // Close wheel after dialog launched
-          await dialogFuture;
+        label: 'Audio',
+        onPressed: () {
+          widget.playSound?.call();
         },
         preferredWidth: buttonSize,
       ),
       _OptionWheelButton(
         icon: Icons.edit,
-        label: 'skift navn',
+        label: 'skift lyd',
         onPressed: () async {
-          final dialogFuture = _showChangeNameDialog(context);
-          widget.onPressed?.call();
+          final dialogFuture = _showChangeSoundDialog(context);
+          widget.onPressed?.call(); // Close wheel after dialog launched
           await dialogFuture;
         },
         preferredWidth: buttonSize,
@@ -121,22 +119,24 @@ class _OptionWheelState extends State<OptionWheel>
         preferredWidth: buttonSize,
       ),
       _OptionWheelButton(
-      icon: Icons.volume_up,
-      label: 'Audio',
-      onPressed: () {
-        widget.playSound?.call();
-      },
-      preferredWidth: buttonSize,
-    ),
-    _OptionWheelButton(
-      icon: Icons.open_in_full,
-      label: 'Resize',
-      onPressed: () {
-        widget.onResize?.call();
-        widget.onPressed?.call();
-      },
-      preferredWidth: buttonSize,
-    ),
+        icon: Icons.edit,
+        label: 'skift navn',
+        onPressed: () async {
+          final dialogFuture = _showChangeNameDialog(context);
+          widget.onPressed?.call();
+          await dialogFuture;
+        },
+        preferredWidth: buttonSize,
+      ),
+      _OptionWheelButton(
+        icon: Icons.open_in_full,
+        label: 'Resize',
+        onPressed: () {
+          widget.onResize?.call();
+          widget.onPressed?.call();
+        },
+        preferredWidth: buttonSize,
+      ),
     ];
     final int buttonCount = options.length;
     final double degreesStep =
