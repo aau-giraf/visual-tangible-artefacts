@@ -54,7 +54,7 @@ namespace VTA.Tests.TestHelpers
             return (response.StatusCode, data);
         }
 
-        public async Task<HttpStatusCode> DeleteUserAsync(string userId, string token)
+        public async Task<HttpStatusCode> DeleteUserAsync(Guid userId, string token)
         {
             var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/{userId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

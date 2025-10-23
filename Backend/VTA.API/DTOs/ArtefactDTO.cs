@@ -13,12 +13,12 @@ public partial class ArtefactPostDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public required string UserId { get; set; }
+    public required Guid UserId { get; set; }
 
     /// <summary>
     /// The category ID the artefact belongs to
     /// </summary>
-    public string? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
     
     /// <summary>
     /// The name of the artefact
@@ -44,7 +44,7 @@ public partial class ArtefactPatchDTO
     /// <summary>
     /// The ID of the artefact to update
     /// </summary>
-    public required string ArtefactId { get; set; }
+    public required Guid ArtefactId { get; set; }
 
     /// <summary>
     /// The index of the artefact
@@ -54,12 +54,12 @@ public partial class ArtefactPatchDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public required string UserId { get; set; }
+    public required Guid UserId { get; set; }
 
     /// <summary>
     /// The category ID the artefact belongs to
     /// </summary>
-    public string? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
 
     /// <summary>
     /// The name of the artefact
@@ -86,7 +86,7 @@ public partial class ArtefactGetDTO
     /// <summary>
     /// The unique identifier of the artefact
     /// </summary>
-    public string ArtefactId { get; set; } = null!;
+    public Guid ArtefactId { get; set; }
 
     /// <summary>
     /// The index of the artefact
@@ -96,12 +96,12 @@ public partial class ArtefactGetDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public string? UserId { get; set; } = null!;
+    public Guid? UserId { get; set; } = null!;
 
     /// <summary>
     /// The category ID the artefact belongs to
     /// </summary>
-    public string? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
     
     /// <summary>
     /// The name of the artefact
@@ -143,7 +143,7 @@ public partial class ArtefactTtsRequest
     /// <summary>
     /// The ID of the artefact to add the generated speech to
     /// </summary>
-    public required string ArtefactId { get; set; }
+    public required Guid ArtefactId { get; set; }
     
     /// <summary>
     /// The text to convert to speech
@@ -180,7 +180,7 @@ public partial class ArtefactTextToSpeechDTO
     /// <summary>
     /// The ID of the artefact to generate speech for
     /// </summary>
-    public required string ArtefactId { get; set; }
+    public required Guid ArtefactId { get; set; }
     
     /// <summary>
     /// The text to convert to speech

@@ -22,7 +22,7 @@ public static class CategoryProjections
     public static Expression<Func<UserCategory, CategoryGetDTO>> UserCategoryToDto =>
         c => new CategoryGetDTO
         {
-            CategoryId = c.CategoryId,
+            CategoryId = c.Id,
             CategoryIndex = c.CategoryIndex,
             Name = c.Name,
             ImageUrl = c.ImagePath,
@@ -43,7 +43,7 @@ public static class CategoryProjections
     public static Expression<Func<DefaultCategory, CategoryGetDTO>> DefaultCategoryToDto =>
         c => new CategoryGetDTO
         {
-            CategoryId = c.CategoryId,
+            CategoryId = c.Id,
             CategoryIndex = c.CategoryIndex,
             Name = c.Name,
             ImageUrl = c.ImagePath,

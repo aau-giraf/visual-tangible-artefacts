@@ -34,7 +34,7 @@ namespace VTA.Tests.UnitTests
             };
 
             var content = new MultipartFormDataContent();
-            content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
+            content.Add(new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId));
             content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
@@ -73,7 +73,7 @@ namespace VTA.Tests.UnitTests
             };
 
             var content = new MultipartFormDataContent();
-            content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
+            content.Add(new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId));
             content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
             var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
@@ -118,7 +118,7 @@ namespace VTA.Tests.UnitTests
             };
 
             var content = new MultipartFormDataContent();
-            content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
+            content.Add(new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId));
             content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
             var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");

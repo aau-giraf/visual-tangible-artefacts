@@ -21,7 +21,7 @@ public static class ArtefactProjections
     public static Expression<Func<UserArtefact, ArtefactGetDTO>> UserArtefactToDto =>
         a => new ArtefactGetDTO
         {
-            ArtefactId = a.ArtefactId,
+            ArtefactId = a.Id,
             ArtefactIndex = a.ArtefactIndex,
             UserId = a.UserId,
             CategoryId = a.CategoryId,
@@ -41,7 +41,7 @@ public static class ArtefactProjections
     public static Expression<Func<DefaultArtefact, ArtefactGetDTO>> DefaultArtefactToDto =>
         a => new ArtefactGetDTO
         {
-            ArtefactId = a.ArtefactId,
+            ArtefactId = a.Id,
             ArtefactIndex = a.ArtefactIndex,
             CategoryId = a.CategoryId,
             Name = a.Name,

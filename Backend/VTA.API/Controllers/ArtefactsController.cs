@@ -26,8 +26,13 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         
         var userId = User.FindFirst("id")?.Value!;
 
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
         var artefacts = await CompiledQueries
-            .GetUserArtefactDTOs(context, userId)
+            .GetUserArtefactDTOs(context, userGuid)
             .ToListAsync(cancellationToken);
 
         if (artefacts.Count == 0)
@@ -49,15 +54,20 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     /// <param name="artefactId">The artefact to get</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The specified artefact</returns>
-    [HttpGet("{artefactId}")]
-    public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId, CancellationToken cancellationToken)
+    [HttpGet("{artefactId:guid}")]
+    public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(Guid artefactId, CancellationToken cancellationToken)
     {
         //TODO: Delete endpoint if not needed
         
         var userId = User.FindFirst("id")?.Value!;
 
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID");
+        }
+        
         var artefact = await CompiledQueries
-            .GetUserArtefactDTOById(context, userId, artefactId)
+            .GetUserArtefactDTOById(context, userGuid, artefactId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (artefact is null)
@@ -83,12 +93,17 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value!;
 
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID");
+        }
+        
         // If we have files to upload, we need to load the entity
         if (dto.Image != null || dto.Sound != null)
         {
             var artefact = await context.Artefacts
                 .OfType<UserArtefact>()
-                .FirstOrDefaultAsync(a => a.ArtefactId == dto.ArtefactId && a.UserId == userId, HttpContext.RequestAborted);
+                .FirstOrDefaultAsync(a => a.Id == dto.ArtefactId && a.UserId == userGuid, HttpContext.RequestAborted);
 
             if (artefact == null)
             {
@@ -98,14 +113,14 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Handle image update
             if (dto.Image != null)
             {
-                var imagePath = ImageUtilities.ReplaceImage(dto.Image, artefact.ArtefactId, "Artefacts");
+                var imagePath = ImageUtilities.ReplaceImage(dto.Image, artefact.Id.ToString(), "Artefacts");
                 artefact.ImagePath = imagePath;
             }
 
             // Handle sound update
             if (dto.Sound != null)
             {
-                var soundPath = SoundUtilities.ReplaceSound(dto.Sound, artefact.ArtefactId);
+                var soundPath = SoundUtilities.ReplaceSound(dto.Sound, artefact.Id.ToString());
                 artefact.SoundPath = soundPath;
             }
 
@@ -129,7 +144,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // No files - use ExecuteUpdateAsync for better performance
             var rowsAffected = await context.Artefacts
                 .OfType<UserArtefact>()
-                .Where(a => a.ArtefactId == dto.ArtefactId && a.UserId == userId)
+                .Where(a => a.Id == dto.ArtefactId && a.UserId == userGuid)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(a => a.ArtefactIndex, a => dto.ArtefactIndex ?? a.ArtefactIndex)
                     .SetProperty(a => a.Name, a => dto.Name ?? a.Name)
@@ -162,17 +177,22 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value!;
 
-        if (userId != artefactPostDTO.UserId)
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID");
+        }
+        
+        if (userGuid != artefactPostDTO.UserId)
         {
             return Forbid();
         }
 
         // Verify that the dto.CategoryId is a UserCategory that belongs to the user (if provided)
-        if (!string.IsNullOrEmpty(artefactPostDTO.CategoryId))
+        if (artefactPostDTO.CategoryId is { } value && value != Guid.Empty)
         {
             var categoryExists = await context.Categories
                 .OfType<UserCategory>()
-                .AnyAsync(c => c.CategoryId == artefactPostDTO.CategoryId && c.UserId == userId, HttpContext.RequestAborted);
+                .AnyAsync(c => c.Id == artefactPostDTO.CategoryId && c.UserId == userGuid, HttpContext.RequestAborted);
 
             if (!categoryExists)
             {
@@ -180,17 +200,17 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
         }
 
-        string artefactId = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
+        Guid artefactId = Guid.NewGuid();
+        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId.ToString(), "Artefacts");
         string? soundUrl = null;
 
         if (artefactPostDTO.Sound != null)
         {
-            soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId);
+            soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId.ToString());
         }
 
         UserArtefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
-        artefact.UserId = userId;
+        artefact.UserId = userGuid;
         artefact.Name = artefactPostDTO.Name;
         artefact.ModifiedDate = DateTime.UtcNow;
 
@@ -199,7 +219,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         
         var artefactGetDTO = new ArtefactGetDTO
         {
-            ArtefactId = artefact.ArtefactId,
+            ArtefactId = artefact.Id,
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
@@ -220,10 +240,15 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     /// Status code 204 (No content) to the client on success<br />
     /// Status code 404 (Not Found) if the artefact does not exist or user doesn't own it
     /// </returns>
-    [HttpDelete("{artefactId}")]
-    public async Task<IActionResult> DeleteArtefact(string artefactId)
+    [HttpDelete("{artefactId:guid}")]
+    public async Task<IActionResult> DeleteArtefact(Guid artefactId)
     {
         var userId = User.FindFirst("id")?.Value!;
+        
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID");
+        }
 
         await using var transaction = await context.Database.BeginTransactionAsync(HttpContext.RequestAborted);
 
@@ -231,7 +256,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             var rowsAffected = await context.Artefacts
                 .OfType<UserArtefact>()
-                .Where(a => a.ArtefactId == artefactId && a.UserId == userId)
+                .Where(a => a.Id == artefactId && a.UserId == userGuid)
                 .ExecuteDeleteAsync(HttpContext.RequestAborted);
 
             if (rowsAffected == 0)
@@ -240,11 +265,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Delete associated files
-            ImageUtilities.DeleteImage(artefactId, "Artefacts");
+            ImageUtilities.DeleteImage(artefactId.ToString(), "Artefacts");
 
             try
             {
-                SoundUtilities.DeleteSound(artefactId);
+                SoundUtilities.DeleteSound(artefactId.ToString());
             }
             catch
             {
@@ -340,7 +365,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return BadRequest("Text cannot be empty");
         }
 
-        if (string.IsNullOrWhiteSpace(request.ArtefactId))
+        if (request.ArtefactId == Guid.Empty)
         {
             return BadRequest("ArtefactId cannot be empty");
         }
@@ -349,9 +374,15 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             // Check if artefact exists and user owns it
             var userId = User.FindFirst("id")?.Value!;
+            
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+            
             var artefact = await context.Artefacts
                 .OfType<UserArtefact>()
-                .Where(a => a.UserId == userId && a.ArtefactId == request.ArtefactId)
+                .Where(a => a.UserId == userGuid && a.Id == request.ArtefactId)
                 .FirstOrDefaultAsync(HttpContext.RequestAborted);
 
             if (artefact == null)
@@ -388,7 +419,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId, ".mp3");
+            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId.ToString(), ".mp3");
             
             if (soundUrl == null)
             {
@@ -488,15 +519,21 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     /// </summary>
     /// <param name="artefactId">The ID of the artefact</param>
     /// <returns>The audio file if it exists</returns>
-    [HttpGet("{artefactId}/play-audio")]
-    public async Task<IActionResult> PlayArtefactAudio(string artefactId)
+    [HttpGet("{artefactId:guid}/play-audio")]
+    public async Task<IActionResult> PlayArtefactAudio(Guid artefactId)
     {
         try
         {
             var userId = User.FindFirst("id")?.Value!;
+            
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+            
             var artefact = await context.Artefacts
                 .OfType<UserArtefact>()
-                .Where(a => a.UserId == userId && a.ArtefactId == artefactId)
+                .Where(a => a.UserId == userGuid && a.Id == artefactId)
                 .FirstOrDefaultAsync(HttpContext.RequestAborted);
 
             if (artefact == null)
@@ -547,6 +584,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value!;
 
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
         // Validate text input
         if (string.IsNullOrWhiteSpace(ttsDto.Text))
         {
@@ -556,7 +598,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Find the artefact and verify ownership
         var artefact = await context.Artefacts
             .OfType<UserArtefact>()
-            .FirstOrDefaultAsync(a => a.ArtefactId == ttsDto.ArtefactId && a.UserId == userId, HttpContext.RequestAborted);
+            .FirstOrDefaultAsync(a => a.Id == ttsDto.ArtefactId && a.UserId == userGuid, HttpContext.RequestAborted);
 
         if (artefact == null)
         {
@@ -595,7 +637,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Replace the existing sound with the generated audio
-            var soundPath = SoundUtilities.ReplaceSound(audioData, artefact.ArtefactId, ".mp3");
+            var soundPath = SoundUtilities.ReplaceSound(audioData, artefact.Id.ToString(), ".mp3");
             if (soundPath != null)
             {
                 artefact.SoundPath = soundPath;
@@ -607,7 +649,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Return updated artefact DTO
             var artefactGetDTO = new ArtefactGetDTO
             {
-                ArtefactId = artefact.ArtefactId,
+                ArtefactId = artefact.Id,
                 ArtefactIndex = artefact.ArtefactIndex,
                 UserId = artefact.UserId,
                 CategoryId = artefact.CategoryId,

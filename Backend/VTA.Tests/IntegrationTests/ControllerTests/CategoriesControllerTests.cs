@@ -50,12 +50,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var categoryPostDTO = new CategoryPostDTO
         {
-            UserId = userId!,
+            UserId = userId!.Value,
             Name = "Test Category"
         };
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
+        content.Add(new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId));
         content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
@@ -83,12 +83,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var categoryPostDTO = new CategoryPostDTO
         {
-            UserId = userId!,
+            UserId = userId!.Value,
             Name = "Test Category"
         };
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
+        content.Add(new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId));
         content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
@@ -145,13 +145,13 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var categoryPostDTO = new CategoryPostDTO
         {
-            UserId = userId!,
+            UserId = userId!.Value,
             Name = "Test Category"
         };
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId) },
+            { new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId) },
             { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
         };
 
@@ -172,7 +172,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var patchContent = new MultipartFormDataContent
         {
-            { new StringContent(patchDTO.CategoryId), nameof(CategoryPatchDTO.CategoryId) },
+            { new StringContent(patchDTO.CategoryId.ToString()), nameof(CategoryPatchDTO.CategoryId) },
             { new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name) }
         };
 
@@ -202,12 +202,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var patchDTO = new CategoryPatchDTO
         {
-            CategoryId = "nonexistent",
+            CategoryId = Guid.NewGuid(),
             Name = "Updated Category"
         };
 
         var patchContent = new MultipartFormDataContent();
-        patchContent.Add(new StringContent(patchDTO.CategoryId), nameof(CategoryPatchDTO.CategoryId));
+        patchContent.Add(new StringContent(patchDTO.CategoryId.ToString()), nameof(CategoryPatchDTO.CategoryId));
         patchContent.Add(new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name));
 
         var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Categories");
@@ -236,12 +236,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var categoryPostDTO = new CategoryPostDTO
         {
-            UserId = userId1!,
+            UserId = userId1!.Value,
             Name = "Test Category"
         };
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
+        content.Add(new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId));
         content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");

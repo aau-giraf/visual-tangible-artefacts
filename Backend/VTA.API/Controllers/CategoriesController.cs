@@ -19,13 +19,18 @@ public class CategoriesController(VTAContext context) : ControllerBase
     /// </summary>
     /// <returns>An IEnumerable of Categories</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories()
     {
         var userId = User.FindFirst("id")?.Value!;
+
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
         
         var categories = await CompiledQueries
-            .GetUserCategoryDTOs(context, userId)
-            .ToListAsync(cancellationToken);
+            .GetUserCategoryDTOs(context, userGuid)
+            .ToListAsync(HttpContext.RequestAborted);
         
         if (categories.Count == 0)
         {
@@ -45,14 +50,19 @@ public class CategoriesController(VTAContext context) : ControllerBase
     /// </summary>
     /// <param name="categoryId">The category to get</param>
     /// <returns>The specified category</returns>
-    [HttpGet("{categoryId}")]
-    public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId, CancellationToken cancellationToken)
+    [HttpGet("{categoryId:guid}")]
+    public async Task<ActionResult<CategoryGetDTO>> GetCategory(Guid categoryId)
     {
         var userId = User.FindFirst("id")?.Value!;
 
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
+        
         var category = await CompiledQueries
-            .GetUserCategoryDTOById(context, userId, categoryId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .GetUserCategoryDTOById(context, userGuid, categoryId)
+            .FirstOrDefaultAsync(HttpContext.RequestAborted);
 
         if (category is null)
         {
@@ -77,9 +87,14 @@ public class CategoriesController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value!;
         
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
+        
         var rowsAffected = await context.Categories
             .OfType<UserCategory>()
-            .Where(c => c.CategoryId == dto.CategoryId && c.UserId == userId)
+            .Where(c => c.Id == dto.CategoryId && c.UserId == userGuid)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(c => c.CategoryIndex, c => dto.CategoryIndex ?? c.CategoryIndex)
                 .SetProperty(c => c.Name, c => dto.Name ?? c.Name),
@@ -93,7 +108,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         //if the image is not null, replace it. (I considered creating/adding an algorithm that checks if it's the same image, but i chose not to bother (it should be simple enough though))
         if (dto.Image != null)
         {
-            ImageUtilities.ReplaceImage(dto.Image, dto.CategoryId, "Categories");
+            ImageUtilities.ReplaceImage(dto.Image, dto.CategoryId.ToString(), "Categories");
         }
 
         return NoContent();
@@ -115,13 +130,18 @@ public class CategoriesController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value!;
 
-        if (userId != categoryPostDTO.UserId)
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
+        
+        if (userGuid != categoryPostDTO.UserId)
         {
             return Forbid();
         }
 
-        string id = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories");
+        Guid id = Guid.NewGuid();
+        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id.ToString(), "Categories");
 
         UserCategory category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
@@ -143,17 +163,22 @@ public class CategoriesController(VTAContext context) : ControllerBase
     /// Status code 403 (Forbidden) if a client tries to delete a category that they do not own<br />
     /// Status code 404 (Not Found) if the category does not exist
     /// </returns>
-    [HttpDelete("{categoryId}")]
-    public async Task<IActionResult> DeleteCategory(string categoryId)
+    [HttpDelete("{categoryId:guid}")]
+    public async Task<IActionResult> DeleteCategory(Guid categoryId)
     {
         var userId = User.FindFirst("id")?.Value!;
+        
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
 
         // First, get the artefact IDs associated with the category to delete their images later
         var categoryArtefactIds = await context.Categories
             .OfType<UserCategory>()
-            .Where(x => x.UserId == userId && x.CategoryId == categoryId)
+            .Where(x => x.UserId == userGuid && x.Id == categoryId)
             .SelectMany(x => x.Artefacts)
-            .Select(x => x.ArtefactId)
+            .Select(x => x.Id)
             .ToListAsync(HttpContext.RequestAborted);
         
         await using var transaction = await context.Database.BeginTransactionAsync(HttpContext.RequestAborted);
@@ -162,7 +187,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         {
             var rowsAffected = await context.Categories
                 .OfType<UserCategory>()
-                .Where(c => c.CategoryId == categoryId && c.UserId == userId)
+                .Where(c => c.Id == categoryId && c.UserId == userGuid)
                 .ExecuteDeleteAsync(HttpContext.RequestAborted);
 
             if (rowsAffected == 0)
@@ -174,10 +199,10 @@ public class CategoriesController(VTAContext context) : ControllerBase
             // Optimally this should be done asynchronously also to avoid having to load the categoryArtefactIds, but for simplicity, we'll do it synchronously here
             foreach (var artefactId in categoryArtefactIds)
             {
-                ImageUtilities.DeleteImage(artefactId, "Artefacts");
+                ImageUtilities.DeleteImage(artefactId.ToString(), "Artefacts");
             }
 
-            ImageUtilities.DeleteImage(categoryId, "Categories");
+            ImageUtilities.DeleteImage(categoryId.ToString(), "Categories");
             
             await transaction.CommitAsync(HttpContext.RequestAborted);
         }
@@ -196,15 +221,20 @@ public class CategoriesController(VTAContext context) : ControllerBase
     /// </summary>
     /// <param name="categoryId">The category ID to track usage for</param>
     /// <returns>Status code 204 (No content) on success</returns>
-    [HttpPost("{categoryId}/usage")]
-    public async Task<IActionResult> TrackCategoryUsage(string categoryId)
+    [HttpPost("{categoryId:guid}/usage")]
+    public async Task<IActionResult> TrackCategoryUsage(Guid categoryId)
     {
         var userId = User.FindFirst("id")?.Value;
+        
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
 
         // Optimized the update to avoid loading the entire entity into memory
         var rowsAffected = await context.Categories
             .OfType<UserCategory>()
-            .Where(c => c.CategoryId == categoryId && c.UserId == userId)
+            .Where(c => c.Id == categoryId && c.UserId == userGuid)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(c => c.UsageCount, c => c.UsageCount + 1)
                 .SetProperty(c => c.LastUsedDate, DateTime.UtcNow),
@@ -226,8 +256,6 @@ public class CategoriesController(VTAContext context) : ControllerBase
     [HttpGet("predefined")]
     public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetPredefinedCategories()
     {
-        var userId = User.FindFirst("id")?.Value!;
-
         var categories = await CompiledQueries
             .GetDefaultCategoryDTOs(context)
             .ToListAsync(HttpContext.RequestAborted);
@@ -254,11 +282,16 @@ public class CategoriesController(VTAContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetMostUsedCategories(int limit = 5)
     {
         var userId = User.FindFirst("id")?.Value!;
+        
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID.");
+        }
 
         // Optimized the query using compiled queries with projection instead of loading full entities and then mapping
         
         var categories = await CompiledQueries
-            .GetMostUsedUserCategoryDTOs(context, userId, limit)
+            .GetMostUsedUserCategoryDTOs(context, userGuid, limit)
             .ToListAsync(HttpContext.RequestAborted);
         
         if (categories.Count == 0)

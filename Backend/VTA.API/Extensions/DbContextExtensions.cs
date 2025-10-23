@@ -81,7 +81,7 @@ public static class DbContextExtensions
         
         var testUser = new User
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid(),
             Name = giraf,
             Password = giraf,
             Username = giraf

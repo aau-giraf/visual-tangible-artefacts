@@ -11,8 +11,9 @@ public class UserCategoryConfiguration : IEntityTypeConfiguration<UserCategory>
         builder.HasIndex(e => e.UserId, "userId");
 
         builder.Property(e => e.UserId)
-            .HasMaxLength(36)
-            .HasColumnName("userId");
+            .HasColumnName("userId")
+            .HasColumnType("BINARY(16)")
+            .HasConversion(Converters.GuidToBytesConverter);
 
         builder.Property(e => e.UsageCount)
             .HasDefaultValue(0)

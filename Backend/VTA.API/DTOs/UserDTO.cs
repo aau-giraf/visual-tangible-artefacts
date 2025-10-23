@@ -13,7 +13,7 @@ public partial class UserPostDTO
 
 public partial class UserGetDTO
 {
-    public string Id { get; set; } = null!;
+    public Guid Id { get; set; }
 
     public string? Name { get; set; }
 
@@ -41,7 +41,7 @@ public class UserLoginDTO
 public class UserLoginResponseDTO
 {
     public string Token { get; set; } = null!;
-    public string userId { get; set; }
+    public Guid userId { get; set; }
 }
 
 

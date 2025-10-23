@@ -35,8 +35,8 @@ public static class CompiledQueries
     /// <param name="userId">The ID of the user whose categories to retrieve</param>
     /// <param name="limit">Maximum number of categories to return (default: 100)</param>
     /// <returns>An async enumerable of user category DTOs with relative image paths</returns>
-    public static Func<VTAContext, string, IAsyncEnumerable<CategoryGetDTO>> GetUserCategoryDTOs =
-        EF.CompileAsyncQuery((VTAContext context, string userId) =>
+    public static Func<VTAContext, Guid, IAsyncEnumerable<CategoryGetDTO>> GetUserCategoryDTOs =
+        EF.CompileAsyncQuery((VTAContext context, Guid userId) =>
             context.Categories
                 .AsNoTrackingWithIdentityResolution()
                 .OfType<UserCategory>()
@@ -51,8 +51,8 @@ public static class CompiledQueries
     /// <param name="userId">The ID of the user whose categories to retrieve</param>
     /// <param name="limit">Maximum number of categories to return (default: 100)</param>
     /// <returns>An async enumerable of user category DTOs ordered by usage, with relative image paths</returns>
-    public static Func<VTAContext, string, int, IAsyncEnumerable<CategoryGetDTO>> GetMostUsedUserCategoryDTOs =
-        EF.CompileAsyncQuery((VTAContext context, string userId, int limit = 100) =>
+    public static Func<VTAContext, Guid, int, IAsyncEnumerable<CategoryGetDTO>> GetMostUsedUserCategoryDTOs =
+        EF.CompileAsyncQuery((VTAContext context, Guid userId, int limit = 100) =>
             context.Categories
                 .AsNoTrackingWithIdentityResolution()
                 .OfType<UserCategory>()
@@ -70,12 +70,12 @@ public static class CompiledQueries
     /// <param name="userId">The ID of the user who owns the category</param>
     /// <param name="categoryId">The ID of the category to retrieve</param>
     /// <returns>A task resolving to the category DTO with relative image paths, or null if not found</returns>
-    public static Func<VTAContext, string, string, IAsyncEnumerable<CategoryGetDTO>> GetUserCategoryDTOById =
-        EF.CompileAsyncQuery((VTAContext context, string userId, string categoryId) =>
+    public static Func<VTAContext, Guid, Guid, IAsyncEnumerable<CategoryGetDTO>> GetUserCategoryDTOById =
+        EF.CompileAsyncQuery((VTAContext context, Guid userId, Guid categoryId) =>
             context.Categories
                 .AsNoTrackingWithIdentityResolution()
                 .OfType<UserCategory>()
-                .Where(x => x.UserId == userId && x.CategoryId == categoryId)
+                .Where(x => x.UserId == userId && x.Id == categoryId)
                 .Select(CategoryProjections.UserCategoryToDto));
 
     // ==================== ARTEFACT QUERIES ====================
@@ -100,8 +100,8 @@ public static class CompiledQueries
     /// <param name="context">The database context</param>
     /// <param name="userId">The ID of the user whose artefacts to retrieve</param>
     /// <returns>An async enumerable of user artefact DTOs with relative image and sound paths</returns>
-    public static Func<VTAContext, string, IAsyncEnumerable<ArtefactGetDTO>> GetUserArtefactDTOs =
-        EF.CompileAsyncQuery((VTAContext context, string userId) =>
+    public static Func<VTAContext, Guid, IAsyncEnumerable<ArtefactGetDTO>> GetUserArtefactDTOs =
+        EF.CompileAsyncQuery((VTAContext context, Guid userId) =>
             context.Artefacts
                 .AsNoTrackingWithIdentityResolution()
                 .OfType<UserArtefact>()
@@ -116,11 +116,11 @@ public static class CompiledQueries
     /// <param name="userId">The ID of the user who owns the artefact</param>
     /// <param name="artefactId">The ID of the artefact to retrieve</param>
     /// <returns>An async enumerable containing the artefact DTO with relative image and sound paths, or empty if not found</returns>
-    public static Func<VTAContext, string, string, IAsyncEnumerable<ArtefactGetDTO>> GetUserArtefactDTOById =
-        EF.CompileAsyncQuery((VTAContext context, string userId, string artefactId) =>
+    public static Func<VTAContext, Guid, Guid, IAsyncEnumerable<ArtefactGetDTO>> GetUserArtefactDTOById =
+        EF.CompileAsyncQuery((VTAContext context, Guid userId, Guid artefactId) =>
             context.Artefacts
                 .AsNoTrackingWithIdentityResolution()
                 .OfType<UserArtefact>()
-                .Where(x => x.UserId == userId && x.ArtefactId == artefactId)
+                .Where(x => x.UserId == userId && x.Id == artefactId)
                 .Select(ArtefactProjections.UserArtefactToDto));
 }

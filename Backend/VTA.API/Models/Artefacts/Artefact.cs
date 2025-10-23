@@ -2,11 +2,11 @@
 
 public abstract class Artefact
 {
-    public required string ArtefactId { get; set; }
+    public required Guid Id { get; set; }
 
     public required ushort ArtefactIndex { get; set; }
 
-    public string? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
 
     public string? ImagePath { get; set; } = null!;
     public string? SoundPath { get; set; } = null!;

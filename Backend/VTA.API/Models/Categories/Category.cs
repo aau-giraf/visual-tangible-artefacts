@@ -4,7 +4,7 @@ namespace VTA.API.Models.Categories;
 
 public abstract class Category
 {
-    public required string CategoryId { get; set; }
+    public required Guid Id { get; set; }
     public byte? CategoryIndex { get; set; }
     public string? Name { get; set; }
     public string? ImagePath { get; set; }

@@ -5,7 +5,7 @@ namespace VTA.API.Models.Users;
 
 public class User
 {
-    public required string Id { get; set; }
+    public required Guid Id { get; set; }
 
     public string? Name { get; set; }
 

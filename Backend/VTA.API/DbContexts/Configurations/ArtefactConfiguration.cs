@@ -10,19 +10,21 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
     {
         builder.ToTable("artefact");
 
-        builder.HasKey(e => e.ArtefactId).HasName("PRIMARY");
+        builder.HasKey(e => e.Id).HasName("PRIMARY");
 
         builder.HasIndex(e => e.CategoryId, "categoryId");
 
-        builder.Property(e => e.ArtefactId)
-            .HasMaxLength(36)
-            .HasColumnName("artefactId");
+        builder.Property(e => e.Id)
+            .HasColumnName("id")
+            .HasColumnType("BINARY(16)")
+            .HasConversion(Converters.GuidToBytesConverter);
 
         builder.Property(e => e.ArtefactIndex).HasColumnName("artefactIndex");
 
         builder.Property(e => e.CategoryId)
-            .HasMaxLength(36)
-            .HasColumnName("categoryId");
+            .HasColumnName("categoryId")
+            .HasColumnType("BINARY(16)")
+            .HasConversion(Converters.GuidToBytesConverter);
 
         builder.Property(e => e.ImagePath)
             .HasMaxLength(255)
@@ -40,11 +42,8 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
             .HasMaxLength(255)
             .HasColumnName("name");
 
-        // TPH discriminator: 0 = DefaultArtefact, 1 = UserArtefact
         builder.HasDiscriminator<int>("artefactType")
             .HasValue<DefaultArtefact>(0)
             .HasValue<UserArtefact>(1);
-
-        // Note: Relationships are configured in derived type configurations
     }
 }

@@ -15,7 +15,7 @@ public static class DTOConverter
     {
         return new ArtefactGetDTO
         {
-            ArtefactId = artefact.ArtefactId,
+            ArtefactId = artefact.Id,
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
@@ -29,7 +29,7 @@ public static class DTOConverter
     {
         return new ArtefactGetDTO
         {
-            ArtefactId = artefact.ArtefactId,
+            ArtefactId = artefact.Id,
             ArtefactIndex = artefact.ArtefactIndex,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
@@ -38,11 +38,11 @@ public static class DTOConverter
         };
     }
 
-    public static UserArtefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, string id, string? imageUrl, string? soundUrl = null)
+    public static UserArtefact MapArtefactPostDTOToArtefact(ArtefactPostDTO artefact, Guid id, string? imageUrl, string? soundUrl = null)
     {
         return new UserArtefact
         {
-            ArtefactId = id,
+            Id = id,
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
@@ -56,7 +56,7 @@ public static class DTOConverter
     {
         return new CategoryGetDTO
         {
-            CategoryId = category.CategoryId,
+            CategoryId = category.Id,
             CategoryIndex = category.CategoryIndex,
             Name = category.Name,
             ImageUrl = string.IsNullOrEmpty(category.ImagePath) ? null : scheme + "://" + host + category.ImagePath,
@@ -69,11 +69,11 @@ public static class DTOConverter
         };
     }
 
-    public static UserCategory MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string? imageUrl)
+    public static UserCategory MapCategoryPostDTOToCategory(CategoryPostDTO category, Guid id, string? imageUrl)
     {
         return new UserCategory
         {
-            CategoryId = id,
+            Id = id,
             CategoryIndex = category.CategoryIndex,
             UserId = category.UserId,
             Name = category.Name,
@@ -93,7 +93,7 @@ public static class DTOConverter
         };
     }
 
-    public static User MapUserSignUpDTOToUser(UserSignupDTO dto, string id)
+    public static User MapUserSignUpDTOToUser(UserSignupDTO dto, Guid id)
     {
         return new User
         {
@@ -104,7 +104,7 @@ public static class DTOConverter
             GuardianKey = dto.GuardianKey
         };
     }
-    public static User MapUserPostDTOToUser(UserPostDTO user, string id)
+    public static User MapUserPostDTOToUser(UserPostDTO user, Guid id)
     {
         return new User
         {

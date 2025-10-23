@@ -36,7 +36,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
         imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
         content.Add(imageContent, "Image", "testImage.jpg");
-        content.Add(new StringContent(loginData.userId), "UserId");
+        content.Add(new StringContent(loginData.userId.ToString()), "UserId");
         content.Add(new StringContent("0"), "ArtefactIndex");  // Add missing required field
         content.Add(new StringContent("Test Name"), "Name");   // Optional but good to test
 
@@ -149,8 +149,8 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(artefact.ArtefactId), "ArtefactId" },
-            { new StringContent(loginData.userId), "UserId" },
+            { new StringContent(artefact.ArtefactId.ToString()), "ArtefactId" },
+            { new StringContent(loginData.userId.ToString()), "UserId" },
             { new StringContent("1"), "ArtefactIndex" },  // Changed index
             { new StringContent("Updated Name"), "Name" }
         };
@@ -226,7 +226,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(loginData.userId), "UserId" },
+            { new StringContent(loginData.userId.ToString()), "UserId" },
             { new StringContent("0"), "ArtefactIndex" },
             { new StringContent("Test Name"), "Name" }
         };
@@ -300,8 +300,8 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent("non-existent-id"), "ArtefactId" },
-            { new StringContent(loginData.userId), "UserId" },
+            { new StringContent(Guid.NewGuid().ToString()), "ArtefactId" },
+            { new StringContent(loginData.userId.ToString()), "UserId" },
             { new StringContent("1"), "ArtefactIndex" },
             { new StringContent("Updated Name"), "Name" }
         };
@@ -354,9 +354,9 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
             imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
             content.Add(imageContent, "Image", "testImage.jpg");
-            content.Add(new StringContent(loginData.userId), "UserId");
+            content.Add(new StringContent(loginData.userId.ToString()), "UserId");
             content.Add(new StringContent(i.ToString()), "ArtefactIndex");
-            content.Add(new StringContent(categoryId), "CategoryId");
+            content.Add(new StringContent(categoryId.ToString()), "CategoryId");
             content.Add(new StringContent($"Test Artefact {i}"), "Name");
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
@@ -400,7 +400,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         }
     }
 
-    private async Task<string> CreateTestCategory(string userId, string token)
+    private async Task<Guid> CreateTestCategory(Guid userId, string token)
     {
         var categoryPostDTO = new CategoryPostDTO
         {
@@ -410,7 +410,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId) },
+            { new StringContent(categoryPostDTO.UserId.ToString()), nameof(CategoryPostDTO.UserId) },
             { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
         };
 

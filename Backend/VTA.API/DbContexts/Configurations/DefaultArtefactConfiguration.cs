@@ -9,7 +9,6 @@ public class DefaultArtefactConfiguration : IEntityTypeConfiguration<DefaultArte
 {
     public void Configure(EntityTypeBuilder<DefaultArtefact> builder)
     {
-        // Relationship with DefaultCategory
         builder.HasOne<DefaultCategory>(d => d.Category)
             .WithMany(p => p.Artefacts)
             .HasForeignKey(d => d.CategoryId)

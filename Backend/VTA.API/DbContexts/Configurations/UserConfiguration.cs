@@ -14,8 +14,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(e => e.Id).HasName("PRIMARY");
 
         builder.Property(e => e.Id)
-            .HasMaxLength(36)
-            .HasColumnName("id");
+            .HasColumnName("id")
+            .HasColumnType("BINARY(16)")
+            .HasConversion(Converters.GuidToBytesConverter);
         
         builder.Property(e => e.GuardianKey)
             .HasMaxLength(255)

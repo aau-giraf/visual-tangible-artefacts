@@ -4,7 +4,7 @@ public partial class CategoryPostDTO
 {
     public byte? CategoryIndex { get; set; }
 
-    public required string UserId { get; set; }
+    public required Guid UserId { get; set; }
 
     public string? Name { get; set; }
     public IFormFile? Image { get; set; }
@@ -12,7 +12,7 @@ public partial class CategoryPostDTO
 
 public partial class CategoryPatchDTO
 {
-    public string CategoryId { get; set; }
+    public Guid CategoryId { get; set; }
 
     public byte? CategoryIndex { get; set; }
     public string? Name { get; set; }
@@ -21,7 +21,7 @@ public partial class CategoryPatchDTO
 
 public class CategoryGetDTO
 {
-    public string CategoryId { get; set; } = null!;
+    public Guid CategoryId { get; set; }
 
      public byte? CategoryIndex { get; set; }
      public string? Name { get; set; }

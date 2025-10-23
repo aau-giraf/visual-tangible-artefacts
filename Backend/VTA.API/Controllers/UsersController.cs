@@ -76,11 +76,11 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         {
             return Conflict("Username already exists");
         }
-        User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
+        User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid());
 
         while (UserIdExists(user.Id))
         {
-            user.Id = Guid.NewGuid().ToString();
+            user.Id = Guid.NewGuid();
         }
 
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
@@ -178,8 +178,8 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// <param name="id"></param>
     /// <param name="user"></param>
     /// <returns></returns>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutUser(string id, User user)
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> PutUser(Guid id, User user)
     {
         if (id != user.Id)
         {
@@ -220,12 +220,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// <remarks>
     /// We could remove the Id != id test (probably also the null check, since it *should* be impossible to get a null)
     /// </remarks>
-    [HttpDelete("{id}")]//{} allows us to extract that part of the url as a variable
-    public async Task<IActionResult> DeleteUser(string id)
+    [HttpDelete("{id:guid}")]//{} allows us to extract that part of the url as a variable
+    public async Task<IActionResult> DeleteUser(Guid id)
     {
-        var Id = User.FindFirst("id")?.Value;//Extract the id from the JWT (Dotnet infers that we are talking about the JWT)
+        var userId = User.FindFirst("id")?.Value;//Extract the id from the JWT (Dotnet infers that we are talking about the JWT)
 
-        if (Id != id)//We are assuming users can be malicious and try to delete someone else, so Id's have to match
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest("Invalid user ID in token.");
+        }
+        
+        if (userGuid != id) //We are assuming users can be malicious and try to delete someone else, so Id's have to match
         {
             return Forbid();
         }
@@ -243,9 +248,9 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         {
             foreach (var artefact in category.Artefacts)
             {
-                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+                ImageUtilities.DeleteImage(artefact.Id.ToString(), "Artefacts");
             }
-            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+            ImageUtilities.DeleteImage(category.Id.ToString(), "Categories");
         }
 
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
@@ -254,7 +259,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         return NoContent();
     }
 
-    private bool UserIdExists(string id)
+    private bool UserIdExists(Guid id)
     {
         return context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID 
     }
@@ -270,7 +275,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// <param name="name">Only used to create more uniqueness</param>
     /// <returns>A valid JWT for this user</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private string GenerateJwt(string userId, string name)
+    private string GenerateJwt(Guid userId, string name)
     {
         var secretKey = config.GetValue<string>("Secret:SecretKey")
                         ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables 
@@ -285,7 +290,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
         var claims = new[]
         {
-        new Claim("id", userId),
+        new Claim("id", userId.ToString()),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
     };

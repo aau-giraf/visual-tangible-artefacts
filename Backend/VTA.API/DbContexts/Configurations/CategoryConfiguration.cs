@@ -10,11 +10,12 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
     {
         builder.ToTable("category");
 
-        builder.HasKey(e => e.CategoryId).HasName("PRIMARY");
+        builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-        builder.Property(e => e.CategoryId)
-            .HasMaxLength(36)
-            .HasColumnName("categoryId");
+        builder.Property(e => e.Id)
+            .HasColumnName("id")
+            .HasColumnType("BINARY(16)")
+            .HasConversion(Converters.GuidToBytesConverter);
 
         builder.Property(e => e.CategoryIndex).HasColumnName("categoryIndex");
 
