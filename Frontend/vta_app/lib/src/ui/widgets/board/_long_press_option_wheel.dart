@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
+import '../../../utilities/audio/artefact_sound_player.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -21,16 +22,13 @@ class LongPressOptionWheel extends StatefulWidget {
 
 class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   OverlayEntry? _overlayEntry;
+  OverlayEntry? _resizeCaptureEntry;
+  VoidCallback? _resizeListener;
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
   bool _showName = false;
-  bool _isScalingMode = false;
-  double _initialScale = 1.0;
-  Offset? _dragStart;
-
-  // Public getter for scaling mode
-  bool get isScalingMode => _isScalingMode;
+  final _soundPlayer = _ArtefactSoundPlayerImpl();
 
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
@@ -84,6 +82,108 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
         ),
       ],
     );
+  }
+
+  void _showResizeCaptureOverlay() {
+    if (_resizeCaptureEntry != null) return;
+
+    _resizeCaptureEntry = OverlayEntry(builder: (context) {
+      final RenderBox? artifactBox = widget.artifact.key.currentContext?.findRenderObject() as RenderBox?;
+      if (artifactBox == null) {
+        return const SizedBox.shrink();
+      }
+  final artifactTopLeft = artifactBox.localToGlobal(Offset.zero);
+  final artifactRect = artifactTopLeft & artifactBox.size;
+
+  const double handlePadding = 36.0;
+  final Rect inflatedRect = artifactRect.inflate(handlePadding);
+
+  final media = MediaQuery.of(context).size;
+      return Stack(children: [
+        // top
+        Positioned(
+          left: 0,
+          top: 0,
+          right: 0,
+          height: inflatedRect.top,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // left
+        Positioned(
+          left: 0,
+          top: inflatedRect.top,
+          width: inflatedRect.left,
+          height: inflatedRect.height,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // right
+        Positioned(
+          left: inflatedRect.right,
+          top: inflatedRect.top,
+          width: (media.width - inflatedRect.right),
+          height: inflatedRect.height,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // bottom
+        Positioned(
+          left: 0,
+          top: inflatedRect.bottom,
+          right: 0,
+          bottom: 0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.artifact.showResizeHandle.value = false;
+              _hideResizeCaptureOverlay();
+            },
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+      ]);
+    });
+
+    Overlay.of(context).insert(_resizeCaptureEntry!);
+    _resizeListener = () {
+      _resizeCaptureEntry?.markNeedsBuild();
+    };
+    try {
+      widget.artifact.sizeNotifier.addListener(_resizeListener!);
+    } catch (_) {}
+  }
+
+  void _hideResizeCaptureOverlay() {
+    _resizeCaptureEntry?.remove();
+    _resizeCaptureEntry = null;
+    if (_resizeListener != null) {
+      try {
+        widget.artifact.sizeNotifier.removeListener(_resizeListener!);
+      } catch (_) {}
+      _resizeListener = null;
+    }
+    try {
+      widget.artifact.showResizeHandle.value = false;
+    } catch (_) {}
   }
 
   @override
@@ -182,22 +282,29 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
     // create overlay
     _overlayEntry = OverlayEntry(builder: (context) {
+      // Calculate baseRadius based on artifact size
+      final RenderBox artifactBox = widget.artifact.key.currentContext?.findRenderObject() as RenderBox;
+      double baseRadius = 165; // default fallback
+      final Size artifactSize = artifactBox.size;
+      // Use the larger of width/height, scale factor can be tuned
+      final double maxDim = artifactSize.width > artifactSize.height ? artifactSize.width : artifactSize.height;
+      baseRadius = (maxDim * 0.8).clamp(130, 300); // scale with screen size???
 
       // fallback sizes (if this happens... fix it)
       final double fallbackWidth = (150 + 90 / 2 + 30) * 2;
       final Size ws = _wheelSize ?? Size(fallbackWidth, fallbackWidth);
-  final double left = _artifactCenterGlobal!.dx - ws.width / 2;
-  final double top = _artifactCenterGlobal!.dy - ws.height / 2;
+      final double left = _artifactCenterGlobal!.dx - ws.width / 2;
+      final double top = _artifactCenterGlobal!.dy - ws.height / 2;
 
       // decides orientation for overflow
       final media = MediaQuery.of(context).size;
       final double candidateLeft = _artifactCenterGlobal!.dx - ws.width / 2;
       final double candidateTop = _artifactCenterGlobal!.dy - ws.height / 2;
 
-  final bool overflowLeft = candidateLeft < -50;
-  final bool overflowRight = candidateLeft + ws.width > media.width;
-  final bool overflowTop = candidateTop < -80;
-  final bool overflowBottom = candidateTop + ws.height > media.height;
+      final bool overflowLeft = candidateLeft < -50;
+      final bool overflowRight = candidateLeft + ws.width > media.width;
+      final bool overflowTop = candidateTop < -80;
+      final bool overflowBottom = candidateTop + ws.height > media.height;
       // Default
       double centerAngleDeg = 0;
 
@@ -245,23 +352,30 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                   _showName = val;
                 });
               },
-              onSizeChange: () {
-                // Toggle scaling mode
-                setState(() {
-                  _isScalingMode = !_isScalingMode;
-                });
-                // Hide the wheel when entering scaling mode
+              playSound: () {
+                final artefact = widget.artifact.baseArtefact;
+                if (artefact != null) {
+                  _soundPlayer.playArtefactSound(artefact);
+                } else {
+                  debugPrint('TODO : Add sound for artefact');
+                }
                 _hidePersistentWheel();
+              },
+              onResize: () async {
+                widget.artifact.showResizeHandle.value = true;
+                _hidePersistentWheel();
+                _showResizeCaptureOverlay();
               },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
               endDegrees: endDegrees,
+              baseRadius: baseRadius,
             ),
           ),
         ),
       ]);
     });
-  Overlay.of(context).insert(_overlayEntry!);
+    Overlay.of(context).insert(_overlayEntry!);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final optionContext = _optionWheelKey.currentContext;
       if (optionContext != null) {
@@ -281,3 +395,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _wheelSize = null;
   }
 }
+
+// Private implementation that mixes in the ArtefactSoundPlayer functionality
+class _ArtefactSoundPlayerImpl with ArtefactSoundPlayer {}

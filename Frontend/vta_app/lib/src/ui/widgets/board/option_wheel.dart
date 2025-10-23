@@ -19,6 +19,8 @@ class OptionWheel extends StatefulWidget {
   final Artefact artefact;
   final VoidCallback? onPressed;
   final bool showName;
+  final VoidCallback? playSound;
+  final VoidCallback? onResize;
   final ValueChanged<bool>? onToggleName;
   final VoidCallback? onSizeChange; // Callback for size button
   final double startDegrees;
@@ -31,6 +33,8 @@ class OptionWheel extends StatefulWidget {
     super.key,
     required this.artefact,
     required this.showName,
+    required this.playSound,
+    this.onResize,
     this.onToggleName,
     this.onPressed,
     this.onSizeChange, // Add size change callback
@@ -91,7 +95,7 @@ class _OptionWheelState extends State<OptionWheel>
         icon: Icons.volume_up,
         label: 'skift lyd',
         onPressed: () async {
-          final dialogFuture = _showChangeSoundDialog(context);
+          final dialogFuture = _showChangeSoundDialog(context);S
           widget.onPressed?.call(); // Close wheel after dialog launched
           await dialogFuture;
         },
@@ -117,27 +121,33 @@ class _OptionWheelState extends State<OptionWheel>
         preferredWidth: buttonSize,
       ),
       _OptionWheelButton(
-        icon: Icons.radio_button_checked,
-        label: 'slet',
-        onPressed: () {},
-        preferredWidth: buttonSize,
-      ),
-      _OptionWheelButton(
-        icon: Icons.photo_size_select_small,
-        label: 'størrelse',
-        onPressed: () {
-          widget.onSizeChange?.call();
-          widget.onPressed?.call();
-        },
-        preferredWidth: buttonSize,
-      ),
+      icon: Icons.volume_up,
+      label: 'Audio',
+      onPressed: () {
+        widget.playSound?.call();
+      },
+      preferredWidth: buttonSize,
+    ),
+    _OptionWheelButton(
+      icon: Icons.open_in_full,
+      label: 'Resize',
+      onPressed: () {
+        widget.onResize?.call();
+        widget.onPressed?.call();
+      },
+      preferredWidth: buttonSize,
+    ),
     ];
     final int buttonCount = options.length;
     final double degreesStep =
         buttonCount > 1 ? (endDegrees - startDegrees) / (buttonCount - 1) : 0.0;
 
-    // wheel dimensions
-    final double WheelWidth = ((radius + buttonSize / 2 + 30) * 2);
+
+  final int buttonCount = options.length;
+  final double degreesStep = buttonCount > 1 ? (endDegrees - startDegrees) / (buttonCount - 1) : 0.0;
+
+  // wheel dimensions
+  final double WheelWidth = ((radius + buttonSize / 2 + 30) * 2);
     final double WheelHeight = WheelWidth;
 
     // animation for buttons (go from center to radius) vibe
