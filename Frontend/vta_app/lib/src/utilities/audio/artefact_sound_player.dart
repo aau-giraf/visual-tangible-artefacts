@@ -47,34 +47,30 @@ mixin ArtefactSoundPlayer {
     }
   }
 
-  Future<void> playArtefactSoundsInOrder(List<Artefact> artefacts) async {
-    for (final artefact in artefacts) {
-      await playArtefactSound(artefact);
-      
-      // Get the NetworkAudio instance from cache
-      final audio = _audioCache[artefact.soundUrl];
-      if (audio != null && audio.isInitialized) {
-        // Create a completer to track when the audio finishes
-        final completer = Completer<void>();
-        
-        // Subscribe to player state changes
-        final subscription = audio.playerStateStream.listen((state) {
-          if (state.processingState == ProcessingState.completed) {
-            completer.complete();
-          }
-        });
-        
-        // Wait for the audio to complete
-        try {
-          await completer.future.timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              audio.stop();
-            },
-          );
-        } finally {
-          await subscription.cancel();
+  /// Play a single artefact and wait for it to finish (or timeout).
+  /// This exposes a single-item play that other widgets can await and
+  /// allows stopping between items.
+  Future<void> playArtefactSoundAndWait(Artefact artefact) async {
+    await playArtefactSound(artefact);
+
+    final audio = _audioCache[artefact.soundUrl];
+    if (audio != null && audio.isInitialized) {
+      final completer = Completer<void>();
+      final subscription = audio.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          completer.complete();
         }
+      });
+
+      try {
+        await completer.future.timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            audio.stop();
+          },
+        );
+      } finally {
+        await subscription.cancel();
       }
     }
   }

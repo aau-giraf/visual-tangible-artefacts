@@ -68,6 +68,7 @@ class ArtefactController extends ChangeNotifier {
     );
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.70),
       builder: (context) => popup,
     );
   }
@@ -123,6 +124,7 @@ class ArtefactController extends ChangeNotifier {
         });
     await showDialog(
         context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.70),
         builder: (context) {
           return popup;
         });
@@ -153,6 +155,24 @@ class ArtefactController extends ChangeNotifier {
         screenHeight,
         e.toString(),
       );
+    }
+  }
+
+  Future<void> updateArtefact(
+    BuildContext context, 
+    Artefact artefact,
+  ) async {
+    try {
+      await _model.updateArtefact(artefact, token: GetIt.I.get<Token>().value!);
+      notifyListeners();
+      if (context.mounted) {
+        _showSuccessActionSnackBar(context, 'Artefact opdateret');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+      rethrow;
     }
   }
 
