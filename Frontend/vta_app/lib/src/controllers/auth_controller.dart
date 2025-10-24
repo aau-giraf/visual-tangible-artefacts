@@ -30,10 +30,10 @@ class AuthController extends ChangeNotifier {
       await _model.login(username, password);
 
       if (context != null && context.mounted) {
-
         await artifactController.updateArtifacts(context: context);
+        if(!context.mounted) return;
         await artifactController.updateMostUsedCategories(context: context);
-
+        if(!context.mounted) return;
         Navigator.of(context)
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
@@ -54,7 +54,12 @@ class AuthController extends ChangeNotifier {
     if (context != null && context.mounted) {
       await _showLogoutConfirmationDialog(context);
     } else {
-      _model.logout();
+      try {
+        await artifactController.clearUserData();
+        await _model.logout();
+      } catch (e) {
+        debugPrint('[AuthController.logout] clearUserData failed: $e');
+      }
     }
     notifyListeners();
   }
@@ -84,20 +89,28 @@ class AuthController extends ChangeNotifier {
   Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
     await showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Log ud'),
           content: const Text('Er du sikker på, at du vil logge ud?'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
               child: const Text('Annuller'),
             ),
             TextButton(
-              onPressed: () {
-                _model.logout();
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                try {
+                  await artifactController.clearUserData();
+                  await _model.logout();
+                } catch (e) {
+                  debugPrint(
+                      '[AuthController.logout] clearUserData failed: $e');
+                }
+                if (!context.mounted) return;
                 Navigator.of(context).pushReplacementNamed(LoginView.routeName);
               },
               child: const Text('Log ud'),

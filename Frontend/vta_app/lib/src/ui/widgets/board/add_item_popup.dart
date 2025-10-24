@@ -151,7 +151,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
       return hasName && hasImage;
     } else {
       final hasSound = soundBytes != null;
-      return hasName && hasImage && hasSound;
+      // return hasName && hasImage && hasSound;   Doesnt' work
+      return hasName && hasImage;
+
     }
   }
 
