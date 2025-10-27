@@ -68,13 +68,24 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                   ElevatedButton.icon(
                     onPressed: () => _playAudio('assets/sound/dårligt.mp3'),
                     icon: const Icon(Icons.sick, color: Colors.white),
-                    label: const Text('Har det ikke godt',
-                        style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black.withOpacity(0.2),
+                    label: const Flexible( // allows text to wrap if needed
+                      child: Text(
+                      'Har det ikke godt',
+                      style: TextStyle(color: Colors.white),
+                      overflow: TextOverflow.visible, // ensures wrapping instead of clipping
+                      ),
                     ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black.withOpacity(0.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                   ),
-                  const SizedBox(height: 8),
+                  alignment: Alignment.centerLeft,
+                  minimumSize: const Size(double.infinity, 50),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                  ),
+                  const SizedBox(height: 10),
                   ElevatedButton.icon(
                     onPressed: () => _playAudio('assets/sound/toilet.mp3'),
                     icon: const Icon(Icons.wc, color: Colors.white),
@@ -82,9 +93,14 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black.withOpacity(0.2),
+                      shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  minimumSize: const Size(double.infinity, 50),
+                  alignment: Alignment.centerLeft,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   ElevatedButton.icon(
                     onPressed: () => _playAudio('assets/sound/sulten.mp3'),
                     icon: const Icon(Icons.lunch_dining, color: Colors.white),
@@ -92,6 +108,11 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black.withOpacity(0.2),
+                      shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  minimumSize: const Size(double.infinity, 50),
+                  alignment: Alignment.centerLeft,
                     ),
                   ),
                 ],

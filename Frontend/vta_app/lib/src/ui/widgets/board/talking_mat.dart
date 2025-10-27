@@ -190,40 +190,57 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     (widget.width ?? constraints.maxWidth) / 2,
                     (widget.height ?? constraints.maxHeight) / 2,
                   );
+
+                  final double uploadSize = MediaQuery.of(context).size.width > 150
+                      ? 150
+                      : 120;
+
                   return Positioned(
                     left: artefact.position?.dx,
                     top: artefact.position?.dy,
-                    child: Draggable<BoardArtefact>(
-                      data: artefact,
-                      feedback: Transform.scale(
-                        scale: 1.2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
-                                blurRadius: 15,
-                                spreadRadius: 5,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Opacity(
-                            opacity: 0.5,
-                            child: artefact.content,
-                          ),
-                        ),
-                      ),
-                      childWhenDragging: Container(),
-                      child:
-                          Container(key: artefact.key, child: artefact.content),
-                      onDragEnd: (details) {
-                        if (_isInsideMat(details.offset)) {
-                          _updateArtifactPosition(artefact, details.offset);
-                        }
-                      },
-                    ),
-                  );
+          child: Draggable<BoardArtefact>(
+            data: artefact,
+            feedback: Transform.scale(
+              scale: 1.2,         
+              child: Container(
+    width: uploadSize,
+    height: uploadSize,
+    decoration: BoxDecoration(
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          blurRadius: 6,
+          spreadRadius: 2,
+          offset: Offset(0, 0),
+        ),
+      ],
+    ),
+    child: artefact.content, // content stays normal size
+  ),
+),
+
+            childWhenDragging: Container(),
+            child: Container(
+              key: artefact.key,
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 0)
+                  ),
+                ],
+              ),
+              child: artefact.content,
+            ),
+            onDragEnd: (details) {
+              if (_isInsideMat(details.offset)) {
+                _updateArtifactPosition(artefact, details.offset);
+              }
+            },
+          ),
+        );
                 }),
                 Align(
                   alignment: Alignment.lerp(
