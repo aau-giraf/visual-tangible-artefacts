@@ -206,12 +206,14 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     width: uploadSize,
     height: uploadSize,
     decoration: BoxDecoration(
+      color: Colors.black,
+      borderRadius: BorderRadius.circular(10),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.3),
-          blurRadius: 6,
-          spreadRadius: 2,
-          offset: Offset(0, 0),
+          color: Colors.black.withValues(alpha: 0.5),
+          blurRadius: 7,
+          spreadRadius: 5,
+          offset: Offset(0, 3),
         ),
       ],
     ),
@@ -221,14 +223,17 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
 
             childWhenDragging: Container(),
             child: Container(
+              margin: const EdgeInsets.only(left: 30, top: 100, right: 30, bottom:50),
               key: artefact.key,
               decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 0)
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 7,
+                    spreadRadius: 5,
+                    offset: const Offset(0, 3)
                   ),
                 ],
               ),
