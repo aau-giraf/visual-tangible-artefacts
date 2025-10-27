@@ -26,17 +26,17 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: Text("Confirm"),
-            content: Text("Are you sure you want to remove all artifacts?"),
+            title: Text("Bekræft"),
+            content: Text("Er du sikker på at du vil fjerne alle artefakter?"),
             actions: <Widget>[
               TextButton(
-                child: Text("Cancel"),
+                child: Text("Annuller"),
                 onPressed: () {
                   Navigator.of(context).pop(); // Close the dialog
                 },
               ),
               TextButton(
-                child: Text("Yes"),
+                child: Text("Ja"),
                 onPressed: () {
                   value.clear();
                   Navigator.of(context).pop(); // Close the dialog
