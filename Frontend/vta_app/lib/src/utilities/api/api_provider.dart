@@ -122,7 +122,7 @@ class ApiProvider {
               filename: '$key.json'));
         } else {
           throw Exception(
-              'Unsupported list type for key $key: ${value.runtimeType}');
+              'Ukendt listetype for nøgle $key: ${value.runtimeType}');
         }
       } else if (value is Map) {
         if (value is Map<String, dynamic>) {

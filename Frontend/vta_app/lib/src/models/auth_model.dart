@@ -77,7 +77,7 @@ class AuthModel {
         cacheData(token: token.value, userId: userInfo.userId);
       } else {
         throw Exception(
-            'Signup failed with status code: ${response?.statusCode}');
+            'Mislykkedes at oprette bruger, status kode: ${response?.statusCode}');
       }
     } catch (e) {
       debugPrint('$e');
@@ -89,15 +89,15 @@ class AuthModel {
   void _throwAuthException(int? statusCode) {
     String message;
     if (statusCode == null) {
-      message = 'No response from server';
+      message = 'Ingen respons fra server';
     } else if (statusCode == 409) {
-      message = 'This username already exists, please choose another';
+      message = 'Dette brugernavn eksisterer allerede, vælg et andet';
     } else if (statusCode == 404) {
       message = 'Forkert brugernavn eller kodeord';
     } else if (statusCode <= 500) {
-      message = 'A server error occured';
+      message = 'En serverfejl opstod';
     } else {
-      message = 'An unknown error occured';
+      message = 'En ukendt fejl opstod';
     }
     throw AuthException(message: message);
   }
