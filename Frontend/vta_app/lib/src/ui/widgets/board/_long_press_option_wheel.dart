@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
+import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
@@ -24,6 +25,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   OverlayEntry? _overlayEntry;
   OverlayEntry? _resizeCaptureEntry;
   VoidCallback? _resizeListener;
+  PointerRoute? _globalPointerRoute;
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
@@ -43,78 +45,25 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
       if (artifactBox == null) {
         return const SizedBox.shrink();
       }
-  final artifactTopLeft = artifactBox.localToGlobal(Offset.zero);
-  final artifactRect = artifactTopLeft & artifactBox.size;
-
-  const double handlePadding = 36.0;
-  final Rect inflatedRect = artifactRect.inflate(handlePadding);
 
   final media = MediaQuery.of(context).size;
       return Stack(children: [
-        // top
-        Positioned(
-          left: 0,
-          top: 0,
-          right: 0,
-          height: inflatedRect.top,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              widget.artifact.showResizeHandle.value = false;
-              _hideResizeCaptureOverlay();
-            },
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        // left
-        Positioned(
-          left: 0,
-          top: inflatedRect.top,
-          width: inflatedRect.left,
-          height: inflatedRect.height,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              widget.artifact.showResizeHandle.value = false;
-              _hideResizeCaptureOverlay();
-            },
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        // right
-        Positioned(
-          left: inflatedRect.right,
-          top: inflatedRect.top,
-          width: (media.width - inflatedRect.right),
-          height: inflatedRect.height,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              widget.artifact.showResizeHandle.value = false;
-              _hideResizeCaptureOverlay();
-            },
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        // bottom
-        Positioned(
-          left: 0,
-          top: inflatedRect.bottom,
-          right: 0,
-          bottom: 0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              widget.artifact.showResizeHandle.value = false;
-              _hideResizeCaptureOverlay();
-            },
-            child: Container(color: Colors.transparent),
-          ),
-        ),
       ]);
     });
 
     Overlay.of(context).insert(_resizeCaptureEntry!);
+    // Install a global pointer route to detect pointer-up events anywhere
+    // without blocking hit-testing. This allows stopping resize when the user
+    // releases the pointer even if they release outside the artifact area.
+    _globalPointerRoute = (PointerEvent event) {
+      if (event is PointerUpEvent) {
+        try {
+          widget.artifact.showResizeHandle.value = false;
+        } catch (_) {}
+        _hideResizeCaptureOverlay();
+      }
+    };
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_globalPointerRoute!);
     _resizeListener = () {
       _resizeCaptureEntry?.markNeedsBuild();
     };
@@ -126,6 +75,12 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   void _hideResizeCaptureOverlay() {
     _resizeCaptureEntry?.remove();
     _resizeCaptureEntry = null;
+    if (_globalPointerRoute != null) {
+      try {
+        GestureBinding.instance.pointerRouter.removeGlobalRoute(_globalPointerRoute!);
+      } catch (_) {}
+      _globalPointerRoute = null;
+    }
     if (_resizeListener != null) {
       try {
         widget.artifact.sizeNotifier.removeListener(_resizeListener!);
