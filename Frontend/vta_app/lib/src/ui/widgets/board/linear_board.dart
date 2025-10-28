@@ -2,10 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
-import 'package:vta_app/src/singletons/token.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
@@ -303,7 +300,7 @@ class LinearBoardState extends State<LinearBoard>
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: artifact.content,
+        child: Center(child: artifact.content),
       ),
     );
   }

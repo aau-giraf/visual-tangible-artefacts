@@ -16,10 +16,10 @@ mixin ArtefactSoundPlayer {
       return;
     }
     
-    // Ensure URL is properly formed with scheme and host
-    final soundUrl = artefact.soundUrl!.startsWith('http')
-        ? artefact.soundUrl!
-        : '${_apiProvider.baseUrl}..${artefact.soundUrl}';
+  // Ensure URL is properly formed with scheme and host
+  final soundUrl = artefact.soundUrl!.startsWith('http')
+    ? artefact.soundUrl!
+    : '${_apiProvider.baseUrl}${artefact.soundUrl}';
 
     try {
       // Get or create NetworkAudio instance
@@ -52,8 +52,15 @@ mixin ArtefactSoundPlayer {
   /// allows stopping between items.
   Future<void> playArtefactSoundAndWait(Artefact artefact) async {
     await playArtefactSound(artefact);
+    // Recreate the full sound URL used as the cache key so we can find the
+    // NetworkAudio instance created in playArtefactSound.
+    if (artefact.soundUrl == null) return;
+    final soundUrl = artefact.soundUrl!.startsWith('http')
+        ? artefact.soundUrl!
+        : '${_apiProvider.baseUrl}${artefact.soundUrl}';
 
-    final audio = _audioCache[artefact.soundUrl];
+    // Use the same full URL key as stored in the cache
+    final audio = _audioCache[soundUrl];
     if (audio != null && audio.isInitialized) {
       final completer = Completer<void>();
       final subscription = audio.playerStateStream.listen((state) {

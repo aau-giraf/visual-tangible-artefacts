@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
-import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
@@ -261,19 +259,4 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   }
 }
 
-// Private implementation that mixes in the ArtefactSoundPlayer functionality
-abstract class _ArtefactSoundPlayer {
-  Future<void> playArtefactSound(Artefact artefact);
-}
-
-class _ArtefactSoundPlayerImpl implements _ArtefactSoundPlayer {
-  @override
-  Future<void> playArtefactSound(Artefact artefact) async {
-    try {
-      final soundPlayer = GetIt.instance<ArtefactSoundPlayer>();
-      await soundPlayer.playArtefactSound(artefact);
-    } catch (e) {
-      print('Error playing artefact sound: $e');
-    }
-  }
-}
+class _ArtefactSoundPlayerImpl with ArtefactSoundPlayer {}
