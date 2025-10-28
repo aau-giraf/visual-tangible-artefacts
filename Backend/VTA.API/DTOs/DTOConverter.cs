@@ -32,7 +32,6 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
-            // Ensure NameShown is set to a non-null default to avoid DB errors
             NameShown = false,
             ImagePath = imageUrl,
             SoundPath = soundUrl
