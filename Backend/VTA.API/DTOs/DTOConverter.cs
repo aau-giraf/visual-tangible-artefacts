@@ -17,6 +17,7 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
+            NameShown = artefact.NameShown,
             ImageUrl = scheme + "://" + host + artefact.ImagePath,
             SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
         };
@@ -31,6 +32,7 @@ public static class DTOConverter
             UserId = artefact.UserId,
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
+            NameShown = artefact.NameShown,
             ImagePath = imageUrl,
             SoundPath = soundUrl
         };

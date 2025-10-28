@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
-import 'package:vta_app/src/ui/widgets/board/_long_press_option_wheel.dart';
 
 class BoardArtefact {
   final Widget baseContent;
   Offset? position;
-  final GlobalKey key;
-  //final GlobalKey<LongPressOptionWheelState> longPressKey;
   Size? renderedSize;
   Artefact? baseArtefact;
   final ValueNotifier<Size> sizeNotifier;
@@ -19,8 +16,7 @@ class BoardArtefact {
     this.position,
     this.baseArtefact,
     Size? initialSize,
-  })  : key = GlobalKey(),
-        sizeNotifier = ValueNotifier<Size>(initialSize ?? const Size(200, 200)),
+  })  : sizeNotifier = ValueNotifier<Size>(initialSize ?? const Size(200, 200)),
         showResizeHandle = ValueNotifier<bool>(false);
 
   String get artefactId => baseArtefact?.artefactId ?? '';

@@ -155,6 +155,9 @@ class ArtifactModel {
       if (artefact.image != null) {
         body['Image'] = artefact.image;
       }
+      if (artefact.nameShown != null) {
+        body['NameShown'] = artefact.nameShown;
+      }
       
       var response = await apiProvider.sendAsMultiPart(
           'PATCH', "Users/Artefacts",

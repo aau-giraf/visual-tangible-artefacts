@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
-import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 
@@ -35,7 +31,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
-  bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -69,8 +64,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     });
   }
 
-  void removeArtifact(GlobalKey artifactKey) {
-    artifacts.removeWhere((artifact) => artifact.key == artifactKey);
+  void removeArtifact(BoardArtefact artifact) {
+    artifacts.removeWhere((item) => item.artefactId == artifact.artefactId);
   }
 
   void removeAllArtifacts() {
@@ -122,16 +117,15 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
   }
 
-  void _loadArtifactSize(BoardArtefact artifact) {
-    // Access the size of the artifact's content after it has been rendered
+  void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? renderBox =
-          artifact.key.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final size = renderBox.size;
-
-        // Update the rendered size in the artifact
-        artifact.renderedSize = size;
+      final optionContext = key.currentContext;
+      if (optionContext != null) {
+        final renderObject = optionContext.findRenderObject();
+        if (renderObject is RenderBox) {
+          final size = renderObject.size;
+          artifact.renderedSize = size;
+        }
       }
     });
   }
@@ -175,8 +169,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
               clipBehavior: Clip.none,
               children: [
                 ...artefacts.map((artefact) {
-                  _loadArtifactSize(
-                      artefact); // Ensure the artifact size is captured
+                  final artefactKey = GlobalKey();
+                  _loadArtifactSize(artefactKey, artefact);
 
                   // If artifact is newly added (no position), center it on the mat
                   artefact.position ??= Offset(
@@ -189,11 +183,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     child: LongPressOptionWheel(
                       artifact: artefact,
                       controller: widget.controller,
+                      artifactKey: artefactKey,
                       child: ValueListenableBuilder<bool>(
                         valueListenable: artefact.showResizeHandle,
                         builder: (context, showHandle, _) {
                           if (showHandle) {
-                            return Container(key: artefact.key, child: artefact.content);
+                            return Container(key: artefactKey, child: artefact.content);
                           }
                           return Draggable<BoardArtefact>(
                             data: artefact,
@@ -218,7 +213,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                               ),
                             ),
                             childWhenDragging: Container(),
-                            child: Container(key: artefact.key, child: artefact.content),
+                            child: Container(key: artefactKey, child: artefact.content),
                             onDragEnd: (details) {
                               if (_isInsideMat(details.offset)) {
                                 _updateArtifactPosition(artefact, details.offset);

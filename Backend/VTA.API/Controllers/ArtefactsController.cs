@@ -84,6 +84,10 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             artefact.Name = dto.Name;
         }
+        if (dto.NameShown.HasValue)
+        {
+            artefact.NameShown = dto.NameShown;
+        }
         if (dto.Image != null)
         {
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");

@@ -4,17 +4,21 @@ import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
   final TalkingmatController controller;
+  final GlobalKey artifactKey;
 
   const LongPressOptionWheel({
     super.key,
     required this.artifact,
-    required this.child,
+    required this.child,  
     required this.controller,
+    required this.artifactKey,
   });
 
   @override
@@ -32,6 +36,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   bool _showName = false;
   final _soundPlayer = _ArtefactSoundPlayerImpl();
 
+  @override
+  void initState() {
+    super.initState();
+    // Initialize showName from the artefact model if available
+    _showName = widget.artifact.baseArtefact?.nameShown ?? false;
+  }
+
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
     _showPersistentWheel();
@@ -41,12 +52,11 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     if (_resizeCaptureEntry != null) return;
 
     _resizeCaptureEntry = OverlayEntry(builder: (context) {
-      final RenderBox? artifactBox = widget.artifact.key.currentContext?.findRenderObject() as RenderBox?;
+      final RenderBox? artifactBox = widget.artifactKey.currentContext?.findRenderObject() as RenderBox?;
       if (artifactBox == null) {
         return const SizedBox.shrink();
       }
 
-  final media = MediaQuery.of(context).size;
       return Stack(children: [
       ]);
     });
@@ -143,7 +153,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   }
 
   void _showPersistentWheel() {
-    final artifactContext = widget.artifact.key.currentContext;
+    final artifactContext = widget.artifactKey.currentContext;
     if (artifactContext == null) return;
 
     final RenderBox artifactBox = artifactContext.findRenderObject() as RenderBox;
@@ -152,7 +162,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     // create overlay
     _overlayEntry = OverlayEntry(builder: (context) {
       // Calculate baseRadius based on artifact size
-      final RenderBox artifactBox = widget.artifact.key.currentContext?.findRenderObject() as RenderBox;
+      final RenderBox artifactBox = widget.artifactKey.currentContext?.findRenderObject() as RenderBox;
       double baseRadius = 165; // default fallback
       final Size artifactSize = artifactBox.size;
       // Use the larger of width/height, scale factor can be tuned
@@ -216,10 +226,23 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               key: _optionWheelKey,
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
-              onToggleName: (val) {
-                setState(() {
-                  _showName = val;
-                });
+              onToggleName: (val) async {
+                try {
+                  // Update local artefact model
+                  widget.artifact.baseArtefact?.nameShown = val;
+                  setState(() {
+                    _showName = val;
+                  });
+                  // Persist change using ArtefactController if available
+                  try {
+                    final controller = GetIt.I.get<ArtefactController>();
+                    if (widget.artifact.baseArtefact != null) {
+                      await controller.updateArtefact(context, widget.artifact.baseArtefact!);
+                    }
+                  } catch (_) {
+                    // ignore if controller not registered
+                  }
+                } catch (_) {}
               },
               playSound: () {
                 final artefact = widget.artifact.baseArtefact;
