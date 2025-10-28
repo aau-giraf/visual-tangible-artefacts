@@ -12,6 +12,12 @@ class LongPressOptionWheel extends StatefulWidget {
   final TalkingmatController controller;
   final GlobalKey artifactKey;
   final ArtefactController artifactController;
+  static const TextStyle nameTextStyle = TextStyle(
+    color: Colors.black,
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1.1,
+  );
 
   const LongPressOptionWheel({
     super.key,
@@ -119,12 +125,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               ),
               child: Text(
                 widget.artifact.baseArtefact?.name ?? '',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
+                style: LongPressOptionWheel.nameTextStyle,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
               ),

@@ -145,6 +145,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         globalOffset.dy - matTopLeftGlobal.dy >= 0 &&
         globalOffset.dy + matTopLeftGlobal.dy <= renderBox.size.height;
   }
+// sry Saka I fucked your shit up a bit here
+// name offset calculation based on text metrics
+  double _getNameDisplayOffset(String name, BuildContext context) {
+    if (name.isEmpty) return 0.0;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(text: name, style: LongPressOptionWheel.nameTextStyle),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    );
+    textPainter.layout(maxWidth: double.infinity);
+    return textPainter.height + 4.0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +231,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                             child: Container(key: artefactKey, child: artefact.content),
                             onDragEnd: (details) {
                               if (_isInsideMat(details.offset)) {
-                                _updateArtifactPosition(artefact, details.offset);
+                                Offset adjustedPosition = details.offset;
+                                if (artefact.baseArtefact?.nameShown == true) {
+                                  final double nameOffset = _getNameDisplayOffset(
+                                    artefact.baseArtefact?.name ?? '',
+                                    context,
+                                  );
+                                  adjustedPosition = Offset(
+                                    details.offset.dx,
+                                    details.offset.dy - nameOffset,
+                                  );
+                                }
+                                _updateArtifactPosition(artefact, adjustedPosition);
                               }
                             },
                           );
