@@ -84,7 +84,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             artefact.Name = dto.Name;
         }
-        if (dto.NameShown.HasValue)
+        if (dto.NameShown != null && artefact.NameShown != dto.NameShown)
         {
             artefact.NameShown = dto.NameShown;
         }

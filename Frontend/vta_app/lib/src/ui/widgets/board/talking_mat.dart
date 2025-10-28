@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
@@ -184,6 +186,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                       artifact: artefact,
                       controller: widget.controller,
                       artifactKey: artefactKey,
+                      artifactController: GetIt.instance<ArtefactController>(),
                       child: ValueListenableBuilder<bool>(
                         valueListenable: artefact.showResizeHandle,
                         builder: (context, showHandle, _) {

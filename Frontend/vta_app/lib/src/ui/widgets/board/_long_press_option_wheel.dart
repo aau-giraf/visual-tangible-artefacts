@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
@@ -12,6 +13,7 @@ class LongPressOptionWheel extends StatefulWidget {
   final Widget child;
   final TalkingmatController controller;
   final GlobalKey artifactKey;
+  final ArtefactController artifactController;
 
   const LongPressOptionWheel({
     super.key,
@@ -19,6 +21,7 @@ class LongPressOptionWheel extends StatefulWidget {
     required this.child,  
     required this.controller,
     required this.artifactKey,
+    required this.artifactController,
   });
 
   @override
@@ -33,13 +36,12 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
-  bool _showName = false;
+  late bool _showName;
   final _soundPlayer = _ArtefactSoundPlayerImpl();
 
   @override
   void initState() {
     super.initState();
-    // Initialize showName from the artefact model if available
     _showName = widget.artifact.baseArtefact?.nameShown ?? false;
   }
 
@@ -104,24 +106,16 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
  @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
       children: [
-        GestureDetector(
-          onLongPressStart: _onLongPressStart,
-          child: widget.child,
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          child: AnimatedOpacity(
-            opacity: _showName ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
+        AnimatedOpacity(
+          opacity: _showName ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          child: IgnorePointer(
+            ignoring: true,
             child: Container(
               alignment: Alignment.topCenter,
-              // Move name up based on image height if available, else default higher
-              margin: EdgeInsets.only(top: _getNameTopMargin()),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               decoration: const BoxDecoration(
                 color: Colors.transparent,
               ),
@@ -139,17 +133,12 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             ),
           ),
         ),
+        GestureDetector(
+          onLongPressStart: _onLongPressStart,
+          child: widget.child,
+        ),
       ],
     );
-  }
-
-  double _getNameTopMargin() {
-    // TODO: Doesnt work for now, should change height depending on image size, when wheel also scales correctly on image size
-    final imageHeight = widget.artifact.baseArtefact?.image?.lengthInBytes ?? 0;
-    if (imageHeight > 0) {
-      return 100;
-    }
-    return 0;
   }
 
   void _showPersistentWheel() {
@@ -227,36 +216,20 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) async {
-                try {
-                  // Update local artefact model
-                  widget.artifact.baseArtefact?.nameShown = val;
-                  setState(() {
-                    _showName = val;
-                  });
-                  // Persist change using ArtefactController if available
-                  try {
-                    final controller = GetIt.I.get<ArtefactController>();
-                    if (widget.artifact.baseArtefact != null) {
-                      await controller.updateArtefact(context, widget.artifact.baseArtefact!);
-                    }
-                  } catch (_) {
-                    // ignore if controller not registered
-                  }
-                } catch (_) {}
+                widget.artifact.baseArtefact?.nameShown = val;
+                setState(() {
+                  _showName = val;
+                });
+                // Persist the change to backend
+                await widget.artifactController.updateArtifact(widget.artifact.baseArtefact!, context);
               },
-              playSound: () {
-                final artefact = widget.artifact.baseArtefact;
-                if (artefact != null) {
-                  _soundPlayer.playArtefactSound(artefact);
-                } else {
-                  debugPrint('TODO : Add sound for artefact');
-                }
-                _hidePersistentWheel();
+              playSound: () async {
+                await _soundPlayer.playArtefactSound(widget.artifact.baseArtefact!);
               },
-              onResize: () async {
+              onResize: () {
                 widget.artifact.showResizeHandle.value = true;
-                _hidePersistentWheel();
                 _showResizeCaptureOverlay();
+                _hidePersistentWheel();
               },
               onPressed: _hidePersistentWheel,
               startDegrees: startDegrees,
@@ -289,4 +262,18 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 }
 
 // Private implementation that mixes in the ArtefactSoundPlayer functionality
-class _ArtefactSoundPlayerImpl with ArtefactSoundPlayer {}
+abstract class _ArtefactSoundPlayer {
+  Future<void> playArtefactSound(Artefact artefact);
+}
+
+class _ArtefactSoundPlayerImpl implements _ArtefactSoundPlayer {
+  @override
+  Future<void> playArtefactSound(Artefact artefact) async {
+    try {
+      final soundPlayer = GetIt.instance<ArtefactSoundPlayer>();
+      await soundPlayer.playArtefactSound(artefact);
+    } catch (e) {
+      print('Error playing artefact sound: $e');
+    }
+  }
+}

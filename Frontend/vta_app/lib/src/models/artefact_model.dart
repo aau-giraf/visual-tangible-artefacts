@@ -240,6 +240,10 @@ class ArtifactModel {
       return false;
     }
   }
+
+
+
+
 }
 
 class ArtifactException implements Exception {
