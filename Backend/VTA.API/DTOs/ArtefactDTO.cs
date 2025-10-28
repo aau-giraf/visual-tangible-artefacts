@@ -26,6 +26,11 @@ public partial class ArtefactPostDTO
     public string? Name {get; set; }
     
     /// <summary>
+    /// Whether the artefact name should be shown
+    /// </summary>
+    public bool? NameShown { get; set; }
+    
+    /// <summary>
     /// The image file for the artefact
     /// </summary>
     public required IFormFile Image { get; set; }
@@ -81,10 +86,6 @@ public partial class ArtefactPatchDTO
     /// </summary>
     public IFormFile? Sound { get; set; }
 
-    /// <summary>
-    /// The sound file for the artefact
-    /// </summary>
-    public bool? NameShown { get; set; }
 
 }
 
