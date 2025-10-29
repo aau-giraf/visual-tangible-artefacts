@@ -169,7 +169,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
+                color: const Color.fromARGB(240, 158, 158, 158).withOpacity(0.3),
                 spreadRadius: 2,
                 blurRadius: 2,
                 offset: const Offset(0, 4),
@@ -190,62 +190,40 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     (widget.width ?? constraints.maxWidth) / 2,
                     (widget.height ?? constraints.maxHeight) / 2,
                   );
-
-                  final double uploadSize = MediaQuery.of(context).size.width > 150
-                      ? 150
-                      : 120;
-
                   return Positioned(
                     left: artefact.position?.dx,
                     top: artefact.position?.dy,
-          child: Draggable<BoardArtefact>(
-            data: artefact,
-            feedback: Transform.scale(
-              scale: 1.2,         
-              child: Container(
-    width: uploadSize,
-    height: uploadSize,
-    decoration: BoxDecoration(
-      color: Colors.black,
-      borderRadius: BorderRadius.circular(10),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.5),
-          blurRadius: 7,
-          spreadRadius: 5,
-          offset: Offset(0, 3),
-        ),
-      ],
-    ),
-    child: artefact.content, // content stays normal size
-  ),
-),
-
-            childWhenDragging: Container(),
-            child: Container(
-              margin: const EdgeInsets.only(left: 30, top: 100, right: 30, bottom:50),
-              key: artefact.key,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    blurRadius: 7,
-                    spreadRadius: 5,
-                    offset: const Offset(0, 3)
-                  ),
-                ],
-              ),
-              child: artefact.content,
-            ),
-            onDragEnd: (details) {
-              if (_isInsideMat(details.offset)) {
-                _updateArtifactPosition(artefact, details.offset);
-              }
-            },
-          ),
-        );
+                    child: Draggable<BoardArtefact>(
+                      data: artefact,
+                      feedback: Transform.scale(
+                        scale: 1.2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color.fromARGB(213, 158, 158, 158).withOpacity(0.2),
+                                blurRadius: 15,
+                                spreadRadius: 5,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Opacity(
+                            opacity: 0.5,
+                            child: artefact.content,
+                          ),
+                        ),
+                      ),
+                      childWhenDragging: Container(),
+                      child:
+                          Container(key: artefact.key, child: artefact.content),
+                      onDragEnd: (details) {
+                        if (_isInsideMat(details.offset)) {
+                          _updateArtifactPosition(artefact, details.offset);
+                        }
+                      },
+                    ),
+                  );
                 }),
                 Align(
                   alignment: Alignment.lerp(

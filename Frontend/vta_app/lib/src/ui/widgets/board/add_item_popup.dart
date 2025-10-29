@@ -83,8 +83,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
   @override
   Widget build(BuildContext context) {
     var screenSize = MediaQuery.of(context).size;
-    var minHeight = screenSize.height * 0.8;
-    var minWidth = screenSize.width * 0.6;
+    var minHeight = screenSize.height * 0.75;
+    var minWidth = screenSize.width * 0.55;
 
     return Dialog(
       child: Container(
@@ -108,7 +108,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         ),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(8.0),
             child: _buildForm(minWidth, formKey, nameController),
           ),
         ),
@@ -118,6 +118,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
   Widget _buildForm(double minWidth, GlobalKey<FormState> formKey,
       TextEditingController nameController) {
+    
+    final titleFontSize = (minWidth * 0.05).clamp(16.0, 28.0);
+    final imageDisplaySize = (minWidth * 0.3).clamp(80.0, 150.0);
+
     return Form(
       key: formKey,
       child: Column(
@@ -127,12 +131,13 @@ class _AddItemPopupState extends State<AddItemPopup> {
             widget.title + (widget.isCategory ? 'Kategori' : 'Artefakt'),
             style: TextStyle(
               color: Colors.black,
-              fontSize: 28,
+              fontSize: titleFontSize,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w400,
             ),
+            textAlign: TextAlign.center,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
           SizedBox(
             width: minWidth * 0.8,
             child: Column(
@@ -159,27 +164,27 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
                   ),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 8),
                 if (imageBytes != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.memory(
                       imageBytes!,
-                      width: 150,
-                      height: 150,
+                      width: imageDisplaySize,
+                      height: imageDisplaySize,
                       fit: BoxFit.cover,
                     ),
                   )
                 else
                   Image.asset(
                     'assets/images/no_image.png',
-                    width: 150,
-                    height: 150,
+                    width: imageDisplaySize,
+                    height: imageDisplaySize,
                   ),
               ],
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -187,10 +192,11 @@ class _AddItemPopupState extends State<AddItemPopup> {
               children: [
                 _buildButton(
                     'Tag nyt billede', 'assets/images/camera_icon_filled.png',
+                    scaleBase: minWidth,
                     onClick: _onTakePictureButtonPressed),
-                SizedBox(width: 16),
+                SizedBox(width: 8),
                 _buildButton('Upload', 'assets/images/folder_icon.png',
-                    onClick: () async {
+                    scaleBase: minWidth, onClick: () async {
                   var result = await FilePicker.platform.pickFiles(
                       type: FileType.image,
                       allowMultiple: false,
@@ -201,9 +207,9 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     });
                   }
                 }),
-                SizedBox(width: 16),
+                SizedBox(width: 8),
                 _buildButton('Lav med AI', 'assets/images/ai_file.png',
-                    onClick: () {
+                    scaleBase: minWidth, onClick: () {
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {
@@ -224,15 +230,15 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ],
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: imageBytes != null 
-                      ? Color(0xFF4CAF50) // Deeper green when image is uploaded
-                      : Color(0xFFBADFB5), // Original light green when no image
+                  backgroundColor: imageBytes != null
+                      ? Color(0xFF4CAF50)
+                      : Color(0xFFBADFB5),
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 onPressed: () {
@@ -252,7 +258,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
         ],
       ),
     );
@@ -281,18 +287,31 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   Widget _buildButton(String label, String imageUrl,
-      {void Function()? onClick}) {
+      {void Function()? onClick, required double scaleBase}) {
+    
+    final idealButtonSize = scaleBase * 0.22;
+    final idealIconSize = scaleBase * 0.11;
+    final idealSpacing = scaleBase * 0.015;
+    final idealFontSize = scaleBase * 0.03;
+
+    
+    final buttonSize = idealButtonSize.clamp(60.0, 100.0);
+    final iconSize = idealIconSize.clamp(30.0, 50.0);
+    final spacing = idealSpacing.clamp(2.0, 6.0);
+    final fontSize = idealFontSize.clamp(10.0, 14.0);
+
+
     return GestureDetector(
       onTap: onClick,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 100,
-            height: 100,
+            width: buttonSize,
+            height: buttonSize,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
                   color: Color(0x3F000000),
@@ -305,8 +324,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: iconSize,
+                  height: iconSize,
                   decoration: BoxDecoration(
                     image: DecorationImage(
                       image: AssetImage(imageUrl),
@@ -314,14 +333,16 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     ),
                   ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: spacing),
                 Text(
                   label,
                   style: TextStyle(
                     color: Colors.black,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w400,
+                    fontSize: fontSize,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
