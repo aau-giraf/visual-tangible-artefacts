@@ -225,7 +225,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            widget.title + (widget.isCategory ? 'Kategori' : 'Artefakt'),
+            widget.title,
             style: TextStyle(
               color: Colors.black,
               fontSize: 28,

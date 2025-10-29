@@ -75,24 +75,35 @@ class BoardArtefact {
       content = Image.asset('assets/images/flutter_logo.png');
     }
     
-    // Calculate responsive size based on screen width
-    double screenWidth = context != null ? MediaQuery.of(context).size.width : 400;
-    double artifactSize = screenWidth > 600 ? 200 : screenWidth * 0.3;
+    // Create flexible content that adapts to parent constraints
+    // Use AspectRatio with proper constraints to ensure valid sizing
+    Widget responsiveContent = AspectRatio(
+      aspectRatio: 1.0,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: 50,
+          minHeight: 50,
+          maxWidth: 500,
+          maxHeight: 500,
+        ),
+        child: artefact.imageUrl != null && artefact.imageUrl!.isNotEmpty
+            ? FadeInImage(
+                imageErrorBuilder: (context, error, stackTrace) {
+                  return Image.asset('assets/images/flutter_logo.png');
+                },
+                image: NetworkImage(artefact.imageUrl ?? "", headers: headers),
+                placeholder: AssetImage('assets/images/flutter_logo.png'),
+                fit: BoxFit.contain,
+              )
+            : FittedBox(
+                fit: BoxFit.contain,
+                child: content,
+              ),
+      ),
+    );
     
     return BoardArtefact(
-        content: SizedBox(
-          width: artifactSize,
-          height: artifactSize,
-          child: artefact.imageUrl != null && artefact.imageUrl!.isNotEmpty
-              ? FadeInImage(
-                  imageErrorBuilder: (context, error, stackTrace) {
-                    return Image.asset('assets/images/flutter_logo.png');
-                  },
-                  image: NetworkImage(artefact.imageUrl ?? "", headers: headers),
-                  placeholder: AssetImage('assets/images/flutter_logo.png'),
-                )
-              : content,
-        ),
+        content: responsiveContent,
         baseArtefact: artefact);
   }
 }

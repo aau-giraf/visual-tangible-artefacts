@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
@@ -23,16 +24,52 @@ class ArtifactBoardScreen extends StatefulWidget {
 }
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
-  late ArtifactBoardController controller;
   List<Category>? categories;
+  static const String _controllerKey = 'ArtifactBoardController';
+
+  void _notifyView() {
+    if (mounted) {
+      debugPrint('[ArtifactBoardScreen] notifyView callback - calling setState');
+      setState(() {});
+    }
+  }
+
+  ArtifactBoardController get controller {
+    // Use GetIt to store controller persistently across widget recreations
+    try {
+      final existingController = GetIt.instance.get<ArtifactBoardController>(
+        instanceName: _controllerKey,
+      );
+      debugPrint('[ArtifactBoardScreen] get controller - Reusing existing controller from GetIt: ${existingController.hashCode}');
+      // Update the notifyView callback to point to current widget state
+      existingController.notifyView = _notifyView;
+      return existingController;
+    } catch (e) {
+      // Controller doesn't exist yet, create and register it
+      debugPrint('[ArtifactBoardScreen] get controller - Creating NEW ArtifactBoardController and registering in GetIt');
+      final newController = ArtifactBoardController(notifyView: _notifyView);
+      GetIt.instance.registerSingleton<ArtifactBoardController>(
+        newController,
+        instanceName: _controllerKey,
+      );
+      return newController;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    // Initialize the controller with a callback to setState
-    controller = ArtifactBoardController(notifyView: () {
-      setState(() {});
-    });
+    debugPrint('[ArtifactBoardScreen] initState - Initializing state');
+    // Controller will be lazily initialized on first access via GetIt
+    // This ensures it persists across widget recreations
+  }
+
+  @override
+  void dispose() {
+    debugPrint('[ArtifactBoardScreen] dispose - Disposing state (controller persists in GetIt)');
+    // DON'T remove controller from GetIt - it should persist across widget recreations
+    // Only remove it when truly leaving the screen (e.g., in a route guard)
+    super.dispose();
   }
 
   @override
@@ -100,9 +137,22 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: padding),
                         child: Center(
-                          child: controller.showDirectional
-                              ? controller.linearBoard!
-                              : controller.talkingMat!,
+                          child: Builder(
+                            builder: (context) {
+                              if (controller.showDirectional) {
+                                debugPrint('[ArtifactBoardScreen] Showing linear board, linearBoard is null: ${controller.linearBoard == null}');
+                                return controller.linearBoard ?? const Center(child: Text('Linear board not initialized'));
+                              } else {
+                                final talkingMatWidget = controller.talkingMat;
+                                if (talkingMatWidget == null) {
+                                  debugPrint('[ArtifactBoardScreen] TalkingMat is null');
+                                  return const SizedBox.shrink();
+                                }
+                                debugPrint('[ArtifactBoardScreen] Using talkingMat widget with controller: ${talkingMatWidget.controller.hashCode}');
+                                return talkingMatWidget;
+                              }
+                            },
+                          ),
                         ),
                       ),
                       Positioned(

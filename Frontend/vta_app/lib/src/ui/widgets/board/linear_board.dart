@@ -33,6 +33,7 @@ class LinearBoardState extends State<LinearBoard>
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _isHoveringTrashCan = false;
   bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -340,9 +341,6 @@ class LinearBoardState extends State<LinearBoard>
   }
 
   Widget _buildBox(BuildContext context, BoardArtefact? artifact, int index) {
-    double artifactWidth = MediaQuery.of(context).size.width * 0.2;
-    double artifactHeight = MediaQuery.of(context).size.height * 0.4;
-
     return Expanded(
       child: DragTarget<BoardArtefact>(
         onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
@@ -358,13 +356,34 @@ class LinearBoardState extends State<LinearBoard>
             List<dynamic> rejectedData) {
           return Padding(
             padding: EdgeInsets.all(5),
-            child: SizedBox(
-              width: artifactWidth,
-              height: artifactHeight,
-              child: artifact == null
-                  ? null
-                  : _buildDraggableArtifact(
-                      context, artifact, index, artifactWidth, artifactHeight),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Use the actual available constraints instead of screen size
+                // Handle unbounded constraints
+                double maxWidth = constraints.maxWidth.isFinite 
+                    ? constraints.maxWidth 
+                    : MediaQuery.of(context).size.width * 0.15;
+                double maxHeight = constraints.maxHeight.isFinite 
+                    ? constraints.maxHeight 
+                    : MediaQuery.of(context).size.height * 0.35;
+                
+                double maxSize = maxWidth < maxHeight ? maxWidth : maxHeight;
+                
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: maxWidth.isFinite ? maxWidth : double.infinity,
+                    maxHeight: maxHeight.isFinite ? maxHeight : double.infinity,
+                  ),
+                  child: SizedBox(
+                    width: maxWidth.isFinite ? maxWidth : null,
+                    height: maxHeight.isFinite ? maxHeight : null,
+                    child: artifact == null
+                        ? null
+                        : _buildDraggableArtifact(
+                            context, artifact, index, maxSize),
+                  ),
+                );
+              },
             ),
           );
         },
@@ -373,7 +392,11 @@ class LinearBoardState extends State<LinearBoard>
   }
 
    Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
-      int index, double artifactWidth, double artifactHeight) {
+      int index, double maxSize) {
+    // Ensure maxSize is valid and not zero
+    double safeMaxSize = maxSize > 0 && maxSize.isFinite ? maxSize : 100;
+    double artifactSize = safeMaxSize * 0.9; // Leave some padding
+    
     return Draggable<BoardArtefact>(
       data: artifact,
       feedback: Material(
@@ -381,22 +404,29 @@ class LinearBoardState extends State<LinearBoard>
         child: Opacity(
           opacity: 0.5,
           child: SizedBox(
-            width: artifactWidth / (_linearBoardController.fieldCount / 4),
-            height: artifactHeight,
+            width: artifactSize * 0.8,
+            height: artifactSize * 0.8,
             child: artifact.content,
           ),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.1,
-        child: artifact.content,
+        child: SizedBox(
+          width: artifactSize,
+          height: artifactSize,
+          child: artifact.content,
+        ),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: artifact.content,
+        clipBehavior: Clip.hardEdge,
+        child: Center(
+          child: artifact.content,
+        ),
       ),
     );
   }
@@ -423,11 +453,7 @@ class LinearBoardState extends State<LinearBoard>
                   )
                 : SizedBox.shrink(),
           ),
-          GestureDetector(
-            onTap: () {
-              confirmRemoveAllArtifacts();
-            },
-            child: DragTarget<BoardArtefact>(
+          DragTarget<BoardArtefact>(
               onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
                 int artifactIndex =
                     _linearBoardController.artifacts.indexOf(details.data);
@@ -459,7 +485,6 @@ class LinearBoardState extends State<LinearBoard>
                 );
               },
             ),
-          ),
         ]));
   }
 
@@ -467,33 +492,48 @@ class LinearBoardState extends State<LinearBoard>
       {double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
-    return Stack(children: [
-      Container(
-        width: width,
-        height: width,
-        decoration: ShapeDecoration(
-          color: color,
-          shape: const OvalBorder(),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        child: Center(
-          child: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/icons/trash_bin.png'),
-                fit: BoxFit.scaleDown,
-              ),
-            ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: ShapeDecoration(
+        color: color,
+        shape: const OvalBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+            spreadRadius: 0,
+          )
+        ],
+      ),
+      child: MouseRegion(
+        child: IconButton(
+          icon: Icon(
+            Icons.delete_outline,
+            color: _isHoveringTrashCan ? Colors.white : Colors.grey[600],
+            size: width * 0.5,
+          ),
+          onPressed: () {
+            confirmRemoveAllArtifacts();
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            hoverColor: const Color.fromARGB(255, 244, 0, 0).withOpacity(0.9),
+            shape: const CircleBorder(),
           ),
         ),
+        onEnter: (_) {
+          setState(() {
+            _isHoveringTrashCan = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHoveringTrashCan = false;
+          });
+        },
       ),
-    ]);
+    );
   }
 }

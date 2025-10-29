@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
 import 'package:get_it/get_it.dart';
@@ -29,19 +30,24 @@ class ArtifactBoardController {
   bool get isPlayingAllSounds => _isPlayingAllSounds;
 
   // Callback to notify the view to update UI
-  final VoidCallback notifyView;
+  VoidCallback notifyView;
 
   // Constructor
   ArtifactBoardController({required this.notifyView}) {
+    debugPrint('[ArtifactBoardController] CREATED');
     // Initialize keys
     talkingMatKey = GlobalKey<TalkingMatState>();
     linearBoardKey = GlobalKey<LinearBoardState>();
 
     // Initialize controllers
     talkingmatController = TalkingmatController(onArtefactAdded: _playArtefactAudio);
+    debugPrint('[ArtifactBoardController] Created talkingmatController with ID: ${talkingmatController.hashCode}');
+    
+    // Initialize linearBoardController with default field count
+    linearBoardFieldCount = 4; // Default value
     linearBoardController = LinearBoardController(
-      artifacts: [],
-      fieldCount: 0,
+      artifacts: List<BoardArtefact?>.filled(linearBoardFieldCount!, null, growable: false),
+      fieldCount: linearBoardFieldCount!,
       onArtefactAdded: _playArtefactAudio,
     );
 
@@ -51,12 +57,14 @@ class ArtifactBoardController {
       artifacts: [],
       controller: talkingmatController,
     );
+    debugPrint('[ArtifactBoardController] Created talkingMat widget with controller ID: ${talkingmatController.hashCode}');
     linearBoard = LinearBoard(
       key: linearBoardKey,
       linearBoardController: linearBoardController,
     );
+    debugPrint('[ArtifactBoardController] Created linearBoard widget: ${linearBoard != null}');
 
-    // Initialize configuration
+    // Initialize configuration (async - will update field count if different)
     _setupLinearBoardController();
     getCurrentBoardStatus();
   }
