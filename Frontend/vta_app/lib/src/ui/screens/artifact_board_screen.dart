@@ -113,6 +113,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             offset: Offset(0, screenWidth > 600 ? 60 : 40),
                             icon: Icon(Icons.supervised_user_circle_outlined,
                                 size: screenWidth > 600 ? 50 : 35),
+                            iconSize: screenWidth > 600 ? 50 : 35, // ensures shadow matches icon
+                            padding: EdgeInsets.zero,               // removes extra padding around the icon
                             itemBuilder: (context) => [
                                   PopupMenuItem(
                                     padding: EdgeInsets.zero, // Remove default padding
