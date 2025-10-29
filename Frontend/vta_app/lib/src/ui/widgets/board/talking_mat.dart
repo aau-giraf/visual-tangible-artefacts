@@ -169,7 +169,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
+                color: const Color.fromARGB(240, 158, 158, 158).withOpacity(0.3),
                 spreadRadius: 2,
                 blurRadius: 2,
                 offset: const Offset(0, 4),
@@ -201,7 +201,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
+                                color: const Color.fromARGB(213, 158, 158, 158).withOpacity(0.2),
                                 blurRadius: 15,
                                 spreadRadius: 5,
                                 offset: const Offset(0, 4),
