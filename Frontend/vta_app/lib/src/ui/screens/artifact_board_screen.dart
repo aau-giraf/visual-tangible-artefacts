@@ -115,6 +115,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                 size: screenWidth > 600 ? 50 : 35),
                             itemBuilder: (context) => [
                                   PopupMenuItem(
+                                    padding: EdgeInsets.zero, // Remove default padding
                                     child: ListTile(
                                       leading: Icon(Icons.settings, size: screenWidth > 600 ? 20 : 16),
                                       title: Text('Instillinger', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
@@ -125,6 +126,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                     ),
                                   ),
                                   PopupMenuItem(
+                                    padding: EdgeInsets.zero, // Remove default padding
                                     child: ListTile(
                                       leading: Icon(Icons.logout, size: screenWidth > 600 ? 20 : 16),
                                       title: Text('Log ud', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
