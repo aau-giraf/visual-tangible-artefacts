@@ -107,7 +107,7 @@ class AuthModel {
     } else if (statusCode == 409) {
       message = 'This username already exists, please choose another';
     } else if (statusCode == 404) {
-      message = 'Invalid username or password';
+      message = 'Forkert brugernavn eller kodeord';
     } else if (statusCode <= 500) {
       message = 'A server error occured';
     } else {

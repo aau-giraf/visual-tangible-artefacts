@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/utilities/extensions/string_extension.dart';
 import 'settings_controller.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 

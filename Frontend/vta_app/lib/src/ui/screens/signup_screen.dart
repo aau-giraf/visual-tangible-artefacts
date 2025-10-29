@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vta_app/src/modelsDTOs/signup_form.dart';
-import 'package:vta_app/src/modelsDTOs/signup_response.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'dart:convert';
-import 'artifact_board_screen.dart';
 import 'login_screen.dart';
 
 class SignupPage extends StatefulWidget {
@@ -21,39 +16,19 @@ class _SignupPageState extends State<SignupPage> {
   final ApiProvider apiProvider =
       ApiProvider(baseUrl: 'https://api.giraf.live/api');
 
-  // Future<void> _signup() async {
-  //   if (_formKey.currentState!.validate()) {
-  //     try {
-  //       var signupForm = SignupForm(
-  //           username: _usernameController.text,
-  //           password: _passwordController.text);
-
-  //       final response = await apiProvider.postAsJson('/Users/SignUp',
-  //           body: signupForm.toJson());
-
-  //       if (response != null && response.statusCode == 200) {
-  //         var signupResponse =
-  //             SignupResponse.fromJson(json.decode(response.body));
-  //         String token = signupResponse.token ?? "";
-  //         SharedPreferences prefs = await SharedPreferences.getInstance();
-  //         await prefs.setString('jwt_token', token);
-
-  //         // Navigate to user page
-  //         Navigator.of(context).pushReplacement(
-  //           MaterialPageRoute(builder: (context) => ArtifactBoardScreen()),
-  //         );
-  //       } else {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(content: Text('Signup failed')),
-  //         );
-  //       }
-  //     } catch (e) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('An error occurred: $e')),
-  //       );
-  //     }
-  //   }
-  // }
+  Future<void> _signup() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('En fejl opstod: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +112,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: /*_signup*/ null,
+                      onPressed: _signup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade400,
                         shape: RoundedRectangleBorder(

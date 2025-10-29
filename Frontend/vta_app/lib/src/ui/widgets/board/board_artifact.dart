@@ -18,7 +18,7 @@ class BoardArtefact {
   String get artefactId => baseArtefact?.artefactId ?? '';
 
   factory BoardArtefact.fromArtefact(Artefact artefact,
-      {Map<String, String>? headers}) {
+      {Map<String, String>? headers, BuildContext? context}) {
     
     Widget content;
     
@@ -75,11 +75,23 @@ class BoardArtefact {
       content = Image.asset('assets/images/flutter_logo.png');
     }
     
+    // Calculate responsive size based on screen width
+    double screenWidth = context != null ? MediaQuery.of(context).size.width : 400;
+    double artifactSize = screenWidth > 600 ? 200 : screenWidth * 0.3;
+    
     return BoardArtefact(
         content: SizedBox(
-          width: 200,
-          height: 200,
-          child: content,
+          width: artifactSize,
+          height: artifactSize,
+          child: artefact.imageUrl != null && artefact.imageUrl!.isNotEmpty
+              ? FadeInImage(
+                  imageErrorBuilder: (context, error, stackTrace) {
+                    return Image.asset('assets/images/flutter_logo.png');
+                  },
+                  image: NetworkImage(artefact.imageUrl ?? "", headers: headers),
+                  placeholder: AssetImage('assets/images/flutter_logo.png'),
+                )
+              : content,
         ),
         baseArtefact: artefact);
   }

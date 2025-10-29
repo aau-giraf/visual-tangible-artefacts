@@ -35,6 +35,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _isHoveringTrashCan = false;
   bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -114,13 +115,20 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       // This ensures the position is relative to the board's coordinate space
       final localPosition = renderBox.globalToLocal(offset);
 
+      // Clamp the position to keep the artifact within bounds
+      // Account for the artifact's own size to prevent it from going off-screen
+      final clampedX = localPosition.dx.clamp(0.0, renderBox.size.width - size.width);
+      final clampedY = localPosition.dy.clamp(0.0, renderBox.size.height - size.height);
+
       // Update the artifact's position in the state
       // This will trigger a rebuild with the new position
       setState(() {
-        artifact.position = localPosition;
+        artifact.position = Offset(clampedX, clampedY);
       });
     }
   }
+
+ 
 
   /// Play all artefact sounds on the board sequentially
   Future<void> _playAllArtefactSounds() async {
@@ -229,13 +237,21 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
 
     // Get the global position of the top-left corner of the TalkingMat
     final Offset matTopLeftGlobal = renderBox.localToGlobal(Offset.zero);
+    final Size matSize = renderBox.size;
 
-    // Check if the artifact is inside the mat by comparing global coordinates
-    return globalOffset.dx - matTopLeftGlobal.dx >= 0 &&
-        globalOffset.dx + matTopLeftGlobal.dx <= renderBox.size.width &&
-        globalOffset.dy - matTopLeftGlobal.dy >= 0 &&
-        globalOffset.dy + matTopLeftGlobal.dy <= renderBox.size.height;
+    final double matRight = matTopLeftGlobal.dx + matSize.width;
+    final double matBottom = matTopLeftGlobal.dy + matSize.height;
+
+    
+     // Check if the artifact is inside the mat by comparing global coordinates
+   return globalOffset.dx >= matTopLeftGlobal.dx &&
+          globalOffset.dx <= matRight &&
+          globalOffset.dy >= matTopLeftGlobal.dy &&
+          globalOffset.dy <= matBottom;   
+          
+   
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -317,19 +333,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         position: _offsetAnimation,
                         child: _showDeleteHover
                             ? buildTrashCan(
-                                height: 30,
-                                width: 30,
+                                height: MediaQuery.of(context).size.width > 600 ? 30 : 25,
+                                width: MediaQuery.of(context).size.width > 600 ? 30 : 25,
                                 color: const Color.fromARGB(255, 235, 32, 18))
                             : null),
-                    GestureDetector(
-                      onTap: () {
-                        widget.controller.removeAllArtifacts(context: context);
-                      },
-                      child: DragTarget<BoardArtefact>(
+                    DragTarget<BoardArtefact>(
                         builder: (context, data, rejectedData) {
+                          double screenWidth = MediaQuery.of(context).size.width;
+                          double baseSize = screenWidth > 600 ? 50 : 35;
+                          double expandedSize = screenWidth > 600 ? 120 : 80;
                           return buildTrashCan(
-                            height: _isDraggingOverTrashCan ? 120 : 50,
-                            width: _isDraggingOverTrashCan ? 120 : 50,
+                            height: _isDraggingOverTrashCan ? expandedSize : baseSize,
+                            width: _isDraggingOverTrashCan ? expandedSize : baseSize,
                           );
                         },
                         onAcceptWithDetails: (details) {
@@ -367,7 +382,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                             }
                           });
                         },
-                      ),
                     ),
                   ]),
                 ),
@@ -384,33 +398,48 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       {double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
-    return Stack(children: [
-      Container(
-        width: width,
-        height: width,
-        decoration: ShapeDecoration(
-          color: color,
-          shape: const OvalBorder(),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        child: Center(
-          child: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/icons/trash_bin.png'),
-                fit: BoxFit.scaleDown,
-              ),
-            ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: ShapeDecoration(
+        color: color,
+        shape: const OvalBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+            spreadRadius: 0,
+          )
+        ],
+      ),
+      child: MouseRegion(
+        child: IconButton(
+          icon: Icon(
+            Icons.delete_outline,
+            color: _isHoveringTrashCan ? Colors.white : Colors.grey[600],
+            size: width * 0.5,
+          ),
+          onPressed: () {
+            widget.controller.removeAllArtifacts(context: context);
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            hoverColor: const Color.fromARGB(255, 244, 0, 0).withOpacity(0.9),
+            shape: const CircleBorder(),
           ),
         ),
+        onEnter: (_) {
+          setState(() {
+            _isHoveringTrashCan = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHoveringTrashCan = false;
+          });
+        },
       ),
-    ]);
+    );
   }
 }
