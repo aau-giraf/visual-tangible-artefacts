@@ -30,7 +30,7 @@ class ArtifactModel {
       } else {
         throw ArtifactException(
             message:
-                'Failed to fetch categories with status code: ${response?.statusCode}');
+                'Mislykkedes at hente kategorier, status kode: ${response?.statusCode}');
       }
     } catch (e) {
       debugPrint("$e");
@@ -52,7 +52,7 @@ class ArtifactModel {
       } else {
         throw ArtifactException(
             message:
-                'Failed to post category, status code: ${response?.statusCode}');
+                'Mislykkedes at poste kategori, status kode: ${response?.statusCode}');
       }
     } catch (e) {
       debugPrint('$e');

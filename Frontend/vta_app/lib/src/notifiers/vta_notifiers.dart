@@ -110,7 +110,7 @@ class ArtifactState with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Error deleting category: $e');
+      print('Fejl ved sletning af kategori: $e');
       return false;
     }
   }
@@ -149,7 +149,7 @@ class ArtifactState with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Error deleting artifact: $e');
+      print('Fejl ved sletning af artefact: $e');
       return false;
     }
   }
