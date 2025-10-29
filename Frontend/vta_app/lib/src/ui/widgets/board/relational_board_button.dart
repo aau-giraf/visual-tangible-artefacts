@@ -7,8 +7,9 @@ void main() {
 class RelationalBoardButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Icon? icon;
+  final Object? heroTag;
 
-  const RelationalBoardButton({super.key, this.onPressed, this.icon});
+  const RelationalBoardButton({super.key, this.onPressed, this.icon, this.heroTag});
 
   static const IconData calendarViewWeekRounded =
       IconData(0xf601, fontFamily: 'MaterialIcons');
@@ -16,6 +17,7 @@ class RelationalBoardButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
+      heroTag: heroTag,
       onPressed: onPressed ?? () {},
       foregroundColor: Colors.black,
       backgroundColor: Colors.white,
