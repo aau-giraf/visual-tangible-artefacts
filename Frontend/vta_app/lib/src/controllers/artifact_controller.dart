@@ -17,7 +17,6 @@ class ArtefactController extends ChangeNotifier {
   List<Category>? get mostUsedCategories => _model.mostUsedCategories;
 
   ArtefactController(this._model);
-  
 
   Future<void> updateArtifacts({BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();
@@ -41,6 +40,15 @@ class ArtefactController extends ChangeNotifier {
         _showErrorSnackBar(context, e.toString());
       }
     }
+  }
+
+  Future<void> clearUserData() async {
+    try {
+      _model.clearCache();
+    } catch (e) {
+      debugPrint('[ArtefactController.clearUserData] failed: $e');
+    }
+    notifyListeners();
   }
 
   Future<void> newCategory(BuildContext context) async {
@@ -191,8 +199,7 @@ class ArtefactController extends ChangeNotifier {
       if (success) {
         notifyListeners();
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<void> updateArtifact(Artefact artefact, BuildContext context) async {

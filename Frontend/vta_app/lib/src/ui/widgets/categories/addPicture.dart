@@ -365,6 +365,7 @@ class AddPicturePage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         FloatingActionButton(
+                          heroTag: 'upload_button',
                           onPressed: () async {
                             FilePickerResult? result =
                                 await FilePicker.platform.pickFiles();
@@ -378,6 +379,7 @@ class AddPicturePage extends StatelessWidget {
                           child: const Icon(Icons.add),
                         ),
                         FloatingActionButton(
+                          heroTag: 'camera_button',
                           onPressed: () {
                             showDialog(
                               context: context,
@@ -400,6 +402,7 @@ class AddPicturePage extends StatelessWidget {
                           child: const Icon(Icons.camera_alt),
                         ),
                         FloatingActionButton(
+                          heroTag: 'ai_button',
                           onPressed: () {
                             showDialog(
                               context: context,

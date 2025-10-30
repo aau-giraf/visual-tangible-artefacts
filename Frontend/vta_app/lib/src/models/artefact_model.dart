@@ -1,10 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
-import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 
 class ArtifactModel {
@@ -241,9 +239,10 @@ class ArtifactModel {
     }
   }
 
-
-
-
+  void clearCache() {
+    categories = [];
+    mostUsedCategories = [];
+  }
 }
 
 class ArtifactException implements Exception {
