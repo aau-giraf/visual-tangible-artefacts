@@ -14,7 +14,7 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
   }
 
   void removeArtifact(BoardArtefact artefact) {
-    value.removeWhere((item) => item.key == artefact.key);
+    value.removeWhere((item) => item.artefactId == artefact.artefactId);
     notifyListeners();
   }
 

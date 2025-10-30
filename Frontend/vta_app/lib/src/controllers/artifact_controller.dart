@@ -76,6 +76,7 @@ class ArtefactController extends ChangeNotifier {
     );
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.70),
       builder: (context) => popup,
     );
   }
@@ -131,13 +132,10 @@ class ArtefactController extends ChangeNotifier {
         });
     await showDialog(
         context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.70),
         builder: (context) {
           return popup;
         });
-  }
-
-  Future<String> getArtifactName(String artefactId) async {
-    return "Test: artefactId is $artefactId";
   }
 
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
@@ -164,6 +162,24 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateArtefact(
+    BuildContext context, 
+    Artefact artefact,
+  ) async {
+    try {
+      await _model.updateArtefact(artefact, token: GetIt.I.get<Token>().value!);
+      notifyListeners();
+      if (context.mounted) {
+        _showSuccessActionSnackBar(context, 'Artefact opdateret');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+      rethrow;
+    }
+  }
+
   Future<void> trackCategoryUsage(String categoryId,
       {BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();
@@ -185,6 +201,18 @@ class ArtefactController extends ChangeNotifier {
       }
     } catch (e) {}
   }
+
+  Future<void> updateArtifact(Artefact artefact, BuildContext context) async {
+    var token = GetIt.instance.get<Token>();
+    try {
+      await _model.updateArtefact(artefact, token: token.value!);
+    } catch (e) {
+      if (context != null && context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+    }
+  }
+
 
   void _showSuccessActionSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();

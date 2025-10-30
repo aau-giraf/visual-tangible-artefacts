@@ -506,11 +506,12 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showAddCategoryPopup(BuildContext context) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
           title: 'Tilføj kategori',
-          onSubmit: (name, imageBytes, soundBytes) {
+          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -529,12 +530,13 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showEditCategoryPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
           title: 'Rediger kategori',
           category: category,
-          onSubmit: (name, imageBytes, soundBytes) {
+          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -555,10 +557,11 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showAddArtifactPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: false,
-          onSubmit: (name, bytes, sound) async {
+          onSubmit: (String name, Uint8List? bytes, Uint8List? sound) async {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -570,7 +573,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
             await artifactState.addArtifact(newArtifact,
                 token: authState.token!);
           },
-          title: "Tilføj Artifakt",
+          title: "Tilføj Artefakt",
         );
       },
     );

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
-import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 
@@ -35,7 +33,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
-  bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -69,8 +66,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     });
   }
 
-  void removeArtifact(GlobalKey artifactKey) {
-    artifacts.removeWhere((artifact) => artifact.key == artifactKey);
+  void removeArtifact(BoardArtefact artifact) {
+    artifacts.removeWhere((item) => item.artefactId == artifact.artefactId);
   }
 
   void removeAllArtifacts() {
@@ -122,103 +119,15 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
   }
 
-  /// Play all artefact sounds on the board sequentially
-  Future<void> _playAllArtefactSounds() async {
-    if (_isPlayingAllSounds) {
-      // If already playing, stop the current playback
-      await _audioPlayer.stop();
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isPlayingAllSounds = true;
-    });
-
-    print('Debug: TalkingMat - Total artefacts on board: ${widget.controller.value.length}');
-    
-    // Debug each artefact
-    for (var artifact in widget.controller.value) {
-      print('Debug: TalkingMat - Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
-    }
-    
-    final artefacts = widget.controller.value
-        .where((artifact) => artifact.baseArtefact?.soundUrl?.isNotEmpty == true)
-        .toList();
-
-    if (artefacts.isEmpty) {
-      print('Debug: TalkingMat - No artefacts with sound found on the board');
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    print('Debug: Playing ${artefacts.length} artefact sounds sequentially on TalkingMat');
-
-    try {
-      for (var boardArtefact in artefacts) {
-        if (_isPlayingAllSounds) {
-          try {
-            final token = GetIt.instance.get<Token>().value;
-            final apiProvider = GetIt.instance.get<ApiProvider>();
-            
-            if (token != null) {
-              final audioUrl = '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
-              print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
-              
-              // Fetch audio data with proper authentication
-              final response = await http.get(
-                Uri.parse(audioUrl),
-                headers: {
-                  'Authorization': 'Bearer $token',
-                },
-              );
-              
-              if (response.statusCode == 200) {
-                // Set audio source from bytes and play
-                await _audioPlayer.setAudioSource(
-                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
-                );
-                await _audioPlayer.play();
-              } else {
-                print('Debug: Failed to fetch audio - Status: ${response.statusCode}');
-                continue; // Skip to next artefact
-              }
-              
-              // Wait for the audio to complete before playing the next one
-              await _audioPlayer.playerStateStream
-                  .firstWhere((state) => state.processingState == ProcessingState.completed);
-              
-              print('Debug: Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
-            }
-          } catch (e) {
-            print('Debug: Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
-            // Continue to next artefact even if this one fails
-          }
-        }
-      }
-    } finally {
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-    }
-    
-    print('Debug: Finished playing all artefact sounds on TalkingMat');
-  }
-
-  void _loadArtifactSize(BoardArtefact artifact) {
-    // Access the size of the artifact's content after it has been rendered
+  void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? renderBox =
-          artifact.key.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final size = renderBox.size;
-
-        // Update the rendered size in the artifact
-        artifact.renderedSize = size;
+      final optionContext = key.currentContext;
+      if (optionContext != null) {
+        final renderObject = optionContext.findRenderObject();
+        if (renderObject is RenderBox) {
+          final size = renderObject.size;
+          artifact.renderedSize = size;
+        }
       }
     });
   }
@@ -235,6 +144,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         globalOffset.dx + matTopLeftGlobal.dx <= renderBox.size.width &&
         globalOffset.dy - matTopLeftGlobal.dy >= 0 &&
         globalOffset.dy + matTopLeftGlobal.dy <= renderBox.size.height;
+  }
+// sry Saka I fucked your shit up a bit here
+// name offset calculation based on text metrics
+  double _getNameDisplayOffset(String name, BuildContext context) {
+    if (name.isEmpty) return 0.0;
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(text: name, style: LongPressOptionWheel.nameTextStyle),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    );
+    textPainter.layout(maxWidth: double.infinity);
+    return textPainter.height + 4.0;
   }
 
   @override
@@ -262,8 +183,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
               clipBehavior: Clip.none,
               children: [
                 ...artefacts.map((artefact) {
-                  _loadArtifactSize(
-                      artefact); // Ensure the artifact size is captured
+                  final artefactKey = GlobalKey();
+                  _loadArtifactSize(artefactKey, artefact);
 
                   // If artifact is newly added (no position), center it on the mat
                   artefact.position ??= Offset(
@@ -275,34 +196,56 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     top: artefact.position?.dy,
                     child: LongPressOptionWheel(
                       artifact: artefact,
-                      child: Draggable<BoardArtefact>(
-                        data: artefact,
-                        feedback: Transform.scale(
-                          scale: 1.2,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  spreadRadius: 0,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Opacity(
-                              opacity: 0.5,
-                              child: artefact.content,
-                            ),
-                          ),
-                        ),
-                        childWhenDragging: Container(),
-                        child: Container(key: artefact.key, child: artefact.content),
-                        onDragEnd: (details) {
-                          if (_isInsideMat(details.offset)) {
-                            _updateArtifactPosition(artefact, details.offset);
+                      controller: widget.controller,
+                      artifactKey: artefactKey,
+                      artifactController: GetIt.instance<ArtefactController>(),
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: artefact.showResizeHandle,
+                        builder: (context, showHandle, _) {
+                          if (showHandle) {
+                            return Container(key: artefactKey, child: artefact.content);
                           }
+                          return Draggable<BoardArtefact>(
+                            data: artefact,
+                            feedback: Transform.scale(
+                              scale: 1.2,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      spreadRadius: 0,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Opacity(
+                                  opacity: 0.5,
+                                  child: artefact.content,
+                                ),
+                              ),
+                            ),
+                            childWhenDragging: Container(),
+                            child: Container(key: artefactKey, child: artefact.content),
+                            onDragEnd: (details) {
+                              if (_isInsideMat(details.offset)) {
+                                Offset adjustedPosition = details.offset;
+                                if (artefact.baseArtefact?.nameShown == true) {
+                                  final double nameOffset = _getNameDisplayOffset(
+                                    artefact.baseArtefact?.name ?? '',
+                                    context,
+                                  );
+                                  adjustedPosition = Offset(
+                                    details.offset.dx,
+                                    details.offset.dy - nameOffset,
+                                  );
+                                }
+                                _updateArtifactPosition(artefact, adjustedPosition);
+                              }
+                            },
+                          );
                         },
                       ),
                     ),

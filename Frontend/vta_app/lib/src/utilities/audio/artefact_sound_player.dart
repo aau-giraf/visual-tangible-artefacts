@@ -16,10 +16,10 @@ mixin ArtefactSoundPlayer {
       return;
     }
     
-    // Ensure URL is properly formed with scheme and host
-    final soundUrl = artefact.soundUrl!.startsWith('http')
-        ? artefact.soundUrl!
-        : '${_apiProvider.baseUrl}..${artefact.soundUrl}';
+  // Ensure URL is properly formed with scheme and host
+  final soundUrl = artefact.soundUrl!.startsWith('http')
+    ? artefact.soundUrl!
+    : '${_apiProvider.baseUrl}${artefact.soundUrl}';
 
     try {
       // Get or create NetworkAudio instance
@@ -47,34 +47,37 @@ mixin ArtefactSoundPlayer {
     }
   }
 
-  Future<void> playArtefactSoundsInOrder(List<Artefact> artefacts) async {
-    for (final artefact in artefacts) {
-      await playArtefactSound(artefact);
-      
-      // Get the NetworkAudio instance from cache
-      final audio = _audioCache[artefact.soundUrl];
-      if (audio != null && audio.isInitialized) {
-        // Create a completer to track when the audio finishes
-        final completer = Completer<void>();
-        
-        // Subscribe to player state changes
-        final subscription = audio.playerStateStream.listen((state) {
-          if (state.processingState == ProcessingState.completed) {
-            completer.complete();
-          }
-        });
-        
-        // Wait for the audio to complete
-        try {
-          await completer.future.timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              audio.stop();
-            },
-          );
-        } finally {
-          await subscription.cancel();
+  /// Play a single artefact and wait for it to finish (or timeout).
+  /// This exposes a single-item play that other widgets can await and
+  /// allows stopping between items.
+  Future<void> playArtefactSoundAndWait(Artefact artefact) async {
+    await playArtefactSound(artefact);
+    // Recreate the full sound URL used as the cache key so we can find the
+    // NetworkAudio instance created in playArtefactSound.
+    if (artefact.soundUrl == null) return;
+    final soundUrl = artefact.soundUrl!.startsWith('http')
+        ? artefact.soundUrl!
+        : '${_apiProvider.baseUrl}${artefact.soundUrl}';
+
+    // Use the same full URL key as stored in the cache
+    final audio = _audioCache[soundUrl];
+    if (audio != null && audio.isInitialized) {
+      final completer = Completer<void>();
+      final subscription = audio.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          completer.complete();
         }
+      });
+
+      try {
+        await completer.future.timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            audio.stop();
+          },
+        );
+      } finally {
+        await subscription.cancel();
       }
     }
   }
