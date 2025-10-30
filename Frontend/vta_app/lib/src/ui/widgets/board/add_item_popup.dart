@@ -331,7 +331,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 SizedBox(width: 16),
                 // Only show the sound button when adding an artefact, not a category
                 if (!widget.isCategory)
-                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png', onClick: () {
+                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png', scaleBase: minWidth, onClick: () {
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
