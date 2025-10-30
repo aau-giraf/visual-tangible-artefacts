@@ -58,10 +58,24 @@ class AuthModel {
     }
   }
 
+  Future<void> clearCacheData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('jwtToken');
+      await prefs.remove('userId');
+    } catch (e) {
+      debugPrint('[AuthModel.clearCacheData] failed: $e');
+    } finally {
+      token.value = null;
+      userInfo.userId = null;
+    }
+  }
+
   /// clears all data stored on in the [SharedPreferences]
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    await clearCacheData();
   }
 
   /// Signs up the user with the provided [email] and [password]

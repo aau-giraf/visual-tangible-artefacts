@@ -1,8 +1,15 @@
 // views/linear_board.dart
 
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:vta_app/src/singletons/token.dart';
 import '../../../controllers/linear_board_controller.dart';
+import '_long_press_option_wheel.dart';
+import '../../../utilities/audio/artefact_sound_player.dart';
+
 
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
@@ -19,13 +26,16 @@ class LinearBoard extends StatefulWidget {
 }
 
 class LinearBoardState extends State<LinearBoard>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ArtefactSoundPlayer {
   late LinearBoardController _linearBoardController;
 
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _isHoveringTrashCan = false;
+  bool _isPlayingAllSounds = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -55,7 +65,125 @@ class LinearBoardState extends State<LinearBoard>
   @override
   void dispose() {
     _animationController.dispose();
+    _audioPlayer.dispose();
+    cleanupArtefactSounds();
     super.dispose();
+  }
+
+  /// Play audio for artefact if it has sound attached
+  Future<void> _playArtefactAudio(BoardArtefact artefact) async {
+    if (artefact.baseArtefact?.artefactId == null) return;
+    
+    try {
+      final token = GetIt.instance.get<Token>().value;
+      if (token == null) return;
+
+      final artefactId = artefact.baseArtefact!.artefactId!;
+      final audioUrl = 'Remote/Users/Artefacts/$artefactId/play-audio';
+      
+      print('Debug: Playing audio for artefact $artefactId');
+      
+      // Set the audio source to the backend endpoint
+      await _audioPlayer.setUrl(audioUrl, headers: {
+        'Authorization': 'Bearer $token',
+      });
+      
+      // Play the audio
+      await _audioPlayer.play();
+      print('Debug: Audio playback started successfully');
+      
+    } catch (e) {
+      print('Debug: Error playing artefact audio: $e');
+      // Don't show error to user, just log it - this is optional functionality
+    }
+  }
+
+  /// Play all artefact sounds on the board sequentially
+  Future<void> _playAllArtefactSounds() async {
+    if (_isPlayingAllSounds) {
+      // If already playing, stop the current playback
+      await _audioPlayer.stop();
+      setState(() {
+        _isPlayingAllSounds = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isPlayingAllSounds = true;
+    });
+
+    print('Debug: LinearBoard - Total artefacts on board: ${_linearBoardController.artifacts.length}');
+    
+    // Debug each artefact
+    for (var artifact in _linearBoardController.artifacts) {
+      if (artifact != null) {
+        print('Debug: LinearBoard - Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
+      }
+    }
+    
+    final artefacts = _linearBoardController.artifacts
+        .where((artifact) => artifact?.baseArtefact?.soundUrl?.isNotEmpty == true)
+        .toList();
+
+    if (artefacts.isEmpty) {
+      print('Debug: LinearBoard - No artefacts with sound found on the board');
+      setState(() {
+        _isPlayingAllSounds = false;
+      });
+      return;
+    }
+
+    print('Debug: Playing ${artefacts.length} artefact sounds sequentially');
+
+    try {
+      for (var boardArtefact in artefacts) {
+        if (boardArtefact != null && _isPlayingAllSounds) {
+          try {
+            final token = GetIt.instance.get<Token>().value;
+            
+            if (token != null) {
+              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+              print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+              
+              // Fetch audio data with proper authentication
+              final response = await http.get(
+                Uri.parse(audioUrl),
+                headers: {
+                  'Authorization': 'Bearer $token',
+                },
+              );
+              
+              if (response.statusCode == 200) {
+                // Set audio source from bytes and play
+                await _audioPlayer.setAudioSource(
+                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
+                );
+                await _audioPlayer.play();
+              } else {
+                print('Debug: Failed to fetch audio - Status: ${response.statusCode}');
+                continue; // Skip to next artefact
+              }
+              
+              // Wait for the audio to complete before playing the next one
+              await _audioPlayer.playerStateStream
+                  .firstWhere((state) => state.processingState == ProcessingState.completed);
+              
+              print('Debug: Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+            }
+          } catch (e) {
+            print('Debug: Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
+            // Continue to next artefact even if this one fails
+          }
+        }
+      }
+    } finally {
+      setState(() {
+        _isPlayingAllSounds = false;
+      });
+    }
+    
+    print('Debug: Finished playing all artefact sounds');
   }
 
   /// Confirmation dialog for removing all artifacts on the board
@@ -136,10 +264,38 @@ class LinearBoardState extends State<LinearBoard>
     return Stack(
       children: [
         _buildGrid(context),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: _buildInteractiveTrashcan(context),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Play sounds for all artifacts in order
+                    final artifacts = _linearBoardController.artifacts
+                        .where((a) => a != null && a.baseArtefact != null)
+                        .map((a) => a!.baseArtefact!)
+                        .toList();
+                    playArtefactSoundsInOrder(artifacts);
+                  },
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play All Sounds'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            _buildInteractiveTrashcan(context),
+          ],
         ),
+
       ],
     );
   }
@@ -162,14 +318,22 @@ class LinearBoardState extends State<LinearBoard>
             )
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
-              _buildBox(context, _linearBoardController.artifacts[i], i),
-              if (i < _linearBoardController.fieldCount - 1)
-                _buildVerticalDivider(context),
-            ]
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (int i = 0; i < _linearBoardController.fieldCount; i++) ...[
+                  _buildBox(context, _linearBoardController.artifacts[i], i),
+                  if (i < _linearBoardController.fieldCount - 1)
+                    _buildVerticalDivider(context),
+                ]
+              ],
+            ),
+            // NOTE: boxes are already added inside the Row above. Avoid
+            // duplicating them here, which would place Expanded widgets
+            // directly under a Stack (invalid ParentData usage).
           ],
         ),
       ),
@@ -177,9 +341,6 @@ class LinearBoardState extends State<LinearBoard>
   }
 
   Widget _buildBox(BuildContext context, BoardArtefact? artifact, int index) {
-    double artifactWidth = MediaQuery.of(context).size.width * 0.2;
-    double artifactHeight = MediaQuery.of(context).size.height * 0.4;
-
     return Expanded(
       child: DragTarget<BoardArtefact>(
         onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
@@ -188,18 +349,41 @@ class LinearBoardState extends State<LinearBoard>
           if (currentIndex != -1) {
             _linearBoardController.moveArtifact(currentIndex, index);
           }
+          // Play audio when artefact is placed on the board
+          _playArtefactAudio(details.data);
         },
         builder: (BuildContext context, List<BoardArtefact?> candidateData,
             List<dynamic> rejectedData) {
           return Padding(
             padding: EdgeInsets.all(5),
-            child: SizedBox(
-              width: artifactWidth,
-              height: artifactHeight,
-              child: artifact == null
-                  ? null
-                  : _buildDraggableArtifact(
-                      context, artifact, index, artifactWidth, artifactHeight),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Use the actual available constraints instead of screen size
+                // Handle unbounded constraints
+                double maxWidth = constraints.maxWidth.isFinite 
+                    ? constraints.maxWidth 
+                    : MediaQuery.of(context).size.width * 0.15;
+                double maxHeight = constraints.maxHeight.isFinite 
+                    ? constraints.maxHeight 
+                    : MediaQuery.of(context).size.height * 0.35;
+                
+                double maxSize = maxWidth < maxHeight ? maxWidth : maxHeight;
+                
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: maxWidth.isFinite ? maxWidth : double.infinity,
+                    maxHeight: maxHeight.isFinite ? maxHeight : double.infinity,
+                  ),
+                  child: SizedBox(
+                    width: maxWidth.isFinite ? maxWidth : null,
+                    height: maxHeight.isFinite ? maxHeight : null,
+                    child: artifact == null
+                        ? null
+                        : _buildDraggableArtifact(
+                            context, artifact, index, maxSize),
+                  ),
+                );
+              },
             ),
           );
         },
@@ -207,8 +391,12 @@ class LinearBoardState extends State<LinearBoard>
     );
   }
 
-  Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
-      int index, double artifactWidth, double artifactHeight) {
+   Widget _buildDraggableArtifact(BuildContext context, BoardArtefact artifact,
+      int index, double maxSize) {
+    // Ensure maxSize is valid and not zero
+    double safeMaxSize = maxSize > 0 && maxSize.isFinite ? maxSize : 100;
+    double artifactSize = safeMaxSize * 0.9; // Leave some padding
+    
     return Draggable<BoardArtefact>(
       data: artifact,
       feedback: Material(
@@ -216,22 +404,29 @@ class LinearBoardState extends State<LinearBoard>
         child: Opacity(
           opacity: 0.5,
           child: SizedBox(
-            width: artifactWidth / (_linearBoardController.fieldCount / 4),
-            height: artifactHeight,
+            width: artifactSize * 0.8,
+            height: artifactSize * 0.8,
             child: artifact.content,
           ),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.1,
-        child: artifact.content,
+        child: SizedBox(
+          width: artifactSize,
+          height: artifactSize,
+          child: artifact.content,
+        ),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: artifact.content,
+        clipBehavior: Clip.hardEdge,
+        child: Center(
+          child: artifact.content,
+        ),
       ),
     );
   }
@@ -258,11 +453,7 @@ class LinearBoardState extends State<LinearBoard>
                   )
                 : SizedBox.shrink(),
           ),
-          GestureDetector(
-            onTap: () {
-              confirmRemoveAllArtifacts();
-            },
-            child: DragTarget<BoardArtefact>(
+          DragTarget<BoardArtefact>(
               onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
                 int artifactIndex =
                     _linearBoardController.artifacts.indexOf(details.data);
@@ -294,7 +485,6 @@ class LinearBoardState extends State<LinearBoard>
                 );
               },
             ),
-          ),
         ]));
   }
 
@@ -302,33 +492,48 @@ class LinearBoardState extends State<LinearBoard>
       {double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
-    return Stack(children: [
-      Container(
-        width: width,
-        height: width,
-        decoration: ShapeDecoration(
-          color: color,
-          shape: const OvalBorder(),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        child: Center(
-          child: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/icons/trash_bin.png'),
-                fit: BoxFit.scaleDown,
-              ),
-            ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: ShapeDecoration(
+        color: color,
+        shape: const OvalBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+            spreadRadius: 0,
+          )
+        ],
+      ),
+      child: MouseRegion(
+        child: IconButton(
+          icon: Icon(
+            Icons.delete_outline,
+            color: _isHoveringTrashCan ? Colors.white : Colors.grey[600],
+            size: width * 0.5,
+          ),
+          onPressed: () {
+            confirmRemoveAllArtifacts();
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            hoverColor: const Color.fromARGB(255, 244, 0, 0).withOpacity(0.9),
+            shape: const CircleBorder(),
           ),
         ),
+        onEnter: (_) {
+          setState(() {
+            _isHoveringTrashCan = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHoveringTrashCan = false;
+          });
+        },
       ),
-    ]);
+    );
   }
 }

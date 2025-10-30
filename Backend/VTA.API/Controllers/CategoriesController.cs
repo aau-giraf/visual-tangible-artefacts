@@ -12,15 +12,8 @@ namespace VTA.API.Controllers;
 [Authorize]
 [Route("api/Users/Categories")]//We designed the route so that *Users* OWNS *Categories* and this route reflects it
 [ApiController]
-public class CategoriesController : ControllerBase
+public class CategoriesController(VTAContext context) : ControllerBase
 {
-    private readonly CategoryContext _context;
-
-    public CategoriesController(CategoryContext context)
-    {
-        _context = context;
-    }
-
     // GET: api/Categories
     /// <summary>
     /// Gets all categories (and artefacts within them) that a user owns
@@ -31,7 +24,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Category>? categories = await _context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
+        List<Category>? categories = await context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
         if (categories == null)
         {
             return NotFound();
@@ -56,7 +49,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var category = await _context.Categories
+        var category = await context.Categories
             .Where(c => c.CategoryId == categoryId && c.UserId == userId)
             .Include(c => c.Artefacts)
             .FirstOrDefaultAsync();
@@ -84,7 +77,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var category = _context.Categories.Find(dto.CategoryId);
+        var category = context.Categories.Find(dto.CategoryId);
 
         if (category == null)
         {
@@ -107,11 +100,11 @@ public class CategoriesController : ControllerBase
             ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories");
         }
 
-        _context.Entry(category).State = EntityState.Modified;
+        context.Entry(category).State = EntityState.Modified;
 
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -154,10 +147,10 @@ public class CategoriesController : ControllerBase
 
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
-        _context.Categories.Add(category);
+        context.Categories.Add(category);
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -169,14 +162,14 @@ public class CategoriesController : ControllerBase
                 {
                     category.CategoryId = Guid.NewGuid().ToString();
                 }
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
             else
             {
                 throw;
             }
         }
-        var cat = await _context.Categories.FindAsync(id);
+        var cat = await context.Categories.FindAsync(id);
 
         CategoryGetDTO returnCat = DTOConverter.MapCategoryToCategoryGetDTO(cat, Request.Scheme, Request.Host.ToString());
 
@@ -198,7 +191,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var category = await _context.Categories.FindAsync(categoryId);
+        var category = await context.Categories.FindAsync(categoryId);
 
         if (category == null)
         {
@@ -217,14 +210,94 @@ public class CategoriesController : ControllerBase
 
         ImageUtilities.DeleteImage(category.CategoryId, "Categories");
 
-        _context.Categories.Remove(category);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
-        await _context.SaveChangesAsync();
+        context.Categories.Remove(category);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
+        await context.SaveChangesAsync();
 
         return NoContent();
     }
 
+    // POST: api/Categories/{categoryId}/usage
+    /// <summary>
+    /// Tracks when a category is used by incrementing usage count and updating last used date
+    /// </summary>
+    /// <param name="categoryId">The category ID to track usage for</param>
+    /// <returns>Status code 204 (No content) on success</returns>
+    [HttpPost("{categoryId}/usage")]
+    public async Task<IActionResult> TrackCategoryUsage(string categoryId)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        var category = await context.Categories.FindAsync(categoryId);
+
+        if (category == null)
+        {
+            return NotFound();
+        }
+
+        if (userId != category.UserId)
+        {
+            return Forbid();
+        }
+
+        category.UsageCount++;
+        category.LastUsedDate = DateTime.UtcNow;
+
+        context.Entry(category).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!CategoryExists(category.CategoryId))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
+    }
+
+    // GET: api/Categories/most-used
+    /// <summary>
+    /// Gets the most used categories for the authenticated user
+    /// </summary>
+    /// <param name="limit">Number of most used categories to return (default: 5)</param>
+    /// <returns>A list of the most used categories</returns>
+    [HttpGet("most-used")]
+    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetMostUsedCategories(int limit = 5)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        List<Category>? categories = await context.Categories
+            .Where(c => c.UserId == userId)
+            .Include(c => c.Artefacts)
+            .OrderByDescending(c => c.UsageCount)
+            .ThenByDescending(c => c.LastUsedDate)
+            .Take(limit)
+            .ToListAsync();
+
+        if (categories == null)
+        {
+            return NotFound();
+        }
+
+        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
+        foreach (Category category in categories)
+        {
+            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
+        }
+
+        return categoryGetDTOs;
+    }
+
     private bool CategoryExists(string id)
     {
-        return _context.Categories.Any(e => e.CategoryId == id);
+        return context.Categories.Any(e => e.CategoryId == id);
     }
 }

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+
 import 'package:vta_app/src/models/artefact_model.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
@@ -42,15 +43,17 @@ void main() async {
   final apiProvider = ApiProvider(
       baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
           ['Remote']);
+  GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());
 
-  final AuthController authController =
-      AuthController(AuthModel(apiProvider, token, userInfo));
-
   final ArtefactController artifactController =
       ArtefactController(ArtifactModel(apiProvider));
+  GetIt.I.registerSingleton<ArtefactController>(artifactController);
+
+  final AuthController authController =
+      AuthController(AuthModel(apiProvider, token, userInfo));
 
   // Initialize the CameraManager
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {

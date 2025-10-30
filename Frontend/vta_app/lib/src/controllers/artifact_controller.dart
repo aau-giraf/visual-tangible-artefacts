@@ -12,6 +12,7 @@ import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
 class ArtefactController extends ChangeNotifier {
   final ArtifactModel _model;
   List<Category>? get categories => _model.categories;
+  List<Category>? get mostUsedCategories => _model.mostUsedCategories;
 
   ArtefactController(this._model);
 
@@ -26,10 +27,33 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateMostUsedCategories(
+      {BuildContext? context, int limit = 3}) async {
+    var token = GetIt.instance.get<Token>();
+    try {
+      await _model.fetchAndUpdateMostUsedCategories(
+          token: token.value!, limit: limit);
+    } catch (e) {
+      if (context != null && context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+    }
+  }
+
+  Future<void> clearUserData() async {
+    try {
+      _model.clearCache();
+    } catch (e) {
+      debugPrint('[ArtefactController.clearUserData] failed: $e');
+    }
+    notifyListeners();
+  }
+
   Future<void> newCategory(BuildContext context) async {
     var popup = AddItemPopup(
       isCategory: true,
-      onSubmit: (name, imageBytes) async {
+      title: 'Tilføj kategori',
+      onSubmit: (name, imageBytes, soundBytes) async {
         try {
           var newCategory = Category(
             categoryIndex: 0,
@@ -55,32 +79,44 @@ class ArtefactController extends ChangeNotifier {
   }
 
   Future<void> deleteCategory(Category category, BuildContext context) async {
+    // Save ScaffoldMessenger reference before dialog
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
         await _model.deleteCategory(category,
             token: GetIt.I.get<Token>().value!);
         notifyListeners();
-        if (context.mounted) {
-          _showSuccessActionSnackBar(context, 'Categori slettet');
-        }
+
+        _showSuccessSnackBarAfterAsync(
+          scaffoldMessenger,
+          screenHeight,
+          'Categori slettet',
+        );
       });
     } catch (e) {
-      if (context.mounted) {
-        _showErrorSnackBar(context, e.toString());
-      }
+      _showErrorSnackBarAfterAsync(
+        scaffoldMessenger,
+        screenHeight,
+        e.toString(),
+      );
     }
   }
 
   Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
-        onSubmit: (name, imageBytes) {
+        title: 'Tilføj artefakt',
+        onSubmit: (name, imageBytes, soundBytes) {
           try {
             var newArtefact = Artefact(
                 categoryId: categoryId,
                 artefactIndex: 0,
                 userId: GetIt.I.get<UserInfo>().userId,
-                image: imageBytes);
+                image: imageBytes,
+                sound: soundBytes,
+                name: name);
             _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
             _showSuccessActionSnackBar(context, 'Artefact tilføjet');
@@ -98,19 +134,54 @@ class ArtefactController extends ChangeNotifier {
         });
   }
 
+  Future<String> getArtifactName(String artefactId) async {
+    return "Test: artefactId is $artefactId";
+  }
+
   Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
+    // Save ScaffoldMessenger reference before dialog
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
         _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+
+        _showSuccessSnackBarAfterAsync(
+          scaffoldMessenger,
+          screenHeight,
+          'Artefact slettet',
+        );
       });
-      if (context.mounted) {
-        _showSuccessActionSnackBar(context, "Artefact slettet");
-      }
     } catch (e) {
-      if (context.mounted) {
-        _showErrorSnackBar(context, e.toString());
-      }
+      _showErrorSnackBarAfterAsync(
+        scaffoldMessenger,
+        screenHeight,
+        e.toString(),
+      );
     }
+  }
+
+  Future<void> trackCategoryUsage(String categoryId,
+      {BuildContext? context}) async {
+    var token = GetIt.instance.get<Token>();
+
+    try {
+      var category = _model.categories?.firstWhere(
+        (cat) => cat.categoryId == categoryId,
+        orElse: () => Category(),
+      );
+
+      if (category?.categoryId == null) {
+        return;
+      }
+
+      var success =
+          await _model.trackCategoryUsage(categoryId, token: token.value!);
+      if (success) {
+        notifyListeners();
+      }
+    } catch (e) {}
   }
 
   void _showSuccessActionSnackBar(BuildContext context, String message) {
@@ -123,6 +194,41 @@ class ArtefactController extends ChangeNotifier {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     GlobalSnackbar.show(context, message,
         color: Colors.white, iconColor: Colors.red);
+  }
+
+  // Helper methods for async calls (using saved ScaffoldMessenger)
+  void _showSuccessSnackBarAfterAsync(
+    ScaffoldMessengerState messenger,
+    double screenHeight,
+    String message,
+  ) {
+    messenger.removeCurrentSnackBar();
+    GlobalSnackbar.show(
+      null, // No context available after async gap
+      message,
+      color: Colors.white,
+      iconColor: Colors.green,
+      showAtTop: true,
+      scaffoldMessenger: messenger,
+      screenHeight: screenHeight,
+    );
+  }
+
+  void _showErrorSnackBarAfterAsync(
+    ScaffoldMessengerState messenger,
+    double screenHeight,
+    String message,
+  ) {
+    messenger.removeCurrentSnackBar();
+    GlobalSnackbar.show(
+      null, // No context available after async gap
+      message,
+      color: Colors.white,
+      iconColor: Colors.red,
+      showAtTop: true,
+      scaffoldMessenger: messenger,
+      screenHeight: screenHeight,
+    );
   }
 
   // This can be used for category or artefact deletion by passing the appropriate delete action

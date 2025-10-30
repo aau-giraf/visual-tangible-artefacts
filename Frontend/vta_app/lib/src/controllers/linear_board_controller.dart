@@ -7,11 +7,13 @@ import '../ui/widgets/board/board_artifact.dart';
 class LinearBoardController extends ChangeNotifier {
   List<BoardArtefact?> artifacts;
   int fieldCount;
+  Function(BoardArtefact)? _onArtefactAdded;
 
   LinearBoardController({
     required this.artifacts,
     required this.fieldCount,
-  });
+    Function(BoardArtefact)? onArtefactAdded,
+  }) : _onArtefactAdded = onArtefactAdded;
 
 
   /// Function for adding an artifact to the board. An index of location can be provided, if available
@@ -47,6 +49,10 @@ class LinearBoardController extends ChangeNotifier {
 
     // Set the new artifact at the specified index, if a location was found
     artifacts[indexOfLocation] = artifact;
+    
+    // Trigger audio playback if callback is set
+    _onArtefactAdded?.call(artifact);
+    
     notifyListeners();
   }
 

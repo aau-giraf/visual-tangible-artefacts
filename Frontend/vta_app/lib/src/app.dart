@@ -24,16 +24,46 @@ class MyApp extends StatelessWidget {
 
   final ArtefactController artifactController;
 
+  /// Build routes function - created once and reused
+  Route<dynamic> Function(RouteSettings) get _onGenerateRoute {
+    return (RouteSettings routeSettings) {
+      return MaterialPageRoute<void>(
+        settings: routeSettings,
+        maintainState: true, // Preserve route state when not visible
+        builder: (BuildContext context) {
+          switch (routeSettings.name) {
+            case SplashView.routeName:
+              return SplashView(controller: authController);
+            case LoginView.routeName:
+              return LoginView(controller: authController);
+            case SettingsView.routeName:
+              return SettingsView(controller: settingsController);
+            case ArtifactBoardScreen.routeName:
+              return ArtifactBoardScreen(
+                key: const PageStorageKey('ArtifactBoardScreen'),
+                artifactController: artifactController,
+                authController: authController,
+              );
+            default:
+              return SplashView(controller: authController);
+          }
+        },
+      );
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    
     // Glue the SettingsController to the MaterialApp.
     //
     // The ListenableBuilder Widget listens to the SettingsController for changes.
-    // Whenever the user updates their settings, the MaterialApp is rebuilt.
+    // Only rebuild theme-related parts, not the entire app structure.
     return ListenableBuilder(
       listenable: settingsController,
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
+          key: const ValueKey('MaterialApp'), // Stable key to preserve Navigator state
           theme: ThemeData(
             inputDecorationTheme: AppTheme.getInputDecorationTheme(context),
           ),
@@ -73,28 +103,8 @@ class MyApp extends StatelessWidget {
 
           // Define a function to handle named routes in order to support
           // Flutter web url navigation and deep linking.
-          onGenerateRoute: (RouteSettings routeSettings) {
-            return MaterialPageRoute<void>(
-              settings: routeSettings,
-              builder: (BuildContext context) {
-                switch (routeSettings.name) {
-                  case SplashView.routeName:
-                    return SplashView(controller: authController);
-                  case LoginView.routeName:
-                    return LoginView(controller: authController);
-                  case SettingsView.routeName:
-                    return SettingsView(controller: settingsController);
-                  case ArtifactBoardScreen.routeName:
-                    return ArtifactBoardScreen(
-                      artifactController: artifactController,
-                      authController: authController,
-                    );
-                  default:
-                    return SplashView(controller: authController);
-                }
-              },
-            );
-          },
+          // Using a getter ensures the function is stable and not recreated on rebuilds
+          onGenerateRoute: _onGenerateRoute,
         );
       },
     );

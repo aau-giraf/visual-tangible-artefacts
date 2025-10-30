@@ -15,17 +15,8 @@ namespace VTA.API.Controllers;
 [Authorize]
 [Route("api/Users")]//Define where all endpoints are
 [ApiController]
-public class UsersController : ControllerBase
+public class UsersController(VTAContext context, IConfiguration config) : ControllerBase
 {
-    private readonly UserContext _context;
-    private readonly IConfiguration _config;
-
-    public UsersController(UserContext context, IConfiguration config)
-    {
-        _context = context;
-        _config = config;
-    }
-
     /// <summary>
     /// Login the user
     /// </summary>
@@ -41,7 +32,7 @@ public class UsersController : ControllerBase
             return BadRequest();
         }
         
-        User? user = await _context.Users. //_context.Users (In the users table)
+        User? user = await context.Users. //_context.Users (In the users table)
             FirstOrDefaultAsync( //find the first user
             u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
         
@@ -93,10 +84,10 @@ public class UsersController : ControllerBase
 
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
-        _context.Users.Add(user);
+        context.Users.Add(user);
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
@@ -144,7 +135,7 @@ public class UsersController : ControllerBase
     [HttpGet("Users")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
     {
-        List<User> users = await _context.Users.ToListAsync();
+        List<User> users = await context.Users.ToListAsync();
         List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
         foreach (User user in users)
         {
@@ -163,7 +154,7 @@ public class UsersController : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        User user = await _context.Users.FindAsync(userId);
+        User user = await context.Users.FindAsync(userId);
 
         if (user == null)
         {
@@ -194,11 +185,11 @@ public class UsersController : ControllerBase
             return BadRequest();
         }
 
-        _context.Entry(user).State = EntityState.Modified;
+        context.Entry(user).State = EntityState.Modified;
 
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -238,7 +229,7 @@ public class UsersController : ControllerBase
             return Forbid();
         }
 
-        var user = await _context.Users.FindAsync(id);//Find user with 
+        var user = await context.Users.FindAsync(id);//Find user with 
 
         if (user == null)
         {
@@ -256,19 +247,19 @@ public class UsersController : ControllerBase
             ImageUtilities.DeleteImage(category.CategoryId, "Categories");
         }
 
-        _context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
-        await _context.SaveChangesAsync();
+        context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
+        await context.SaveChangesAsync();
 
         return NoContent();
     }
 
     private bool UserIdExists(string id)
     {
-        return _context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID 
+        return context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID 
     }
     private bool UsernameExists(string username)
     {
-        return _context.Users.Any(e => e.Username == username);//Returns true if any username column within the *Users* table contains the username
+        return context.Users.Any(e => e.Username == username);//Returns true if any username column within the *Users* table contains the username
     }
 
     /// <summary>
@@ -280,7 +271,7 @@ public class UsersController : ControllerBase
     /// <exception cref="InvalidOperationException"></exception>
     private string GenerateJwt(string userId, string name)
     {
-        var secretKey = _config.GetValue<string>("Secret:SecretKey")
+        var secretKey = config.GetValue<string>("Secret:SecretKey")
                         ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables 
                         ?? throw new InvalidOperationException("A JWT secret is required for token generation."); //Throw if no secret is found
         var validIssuer = "api.vta.com";
