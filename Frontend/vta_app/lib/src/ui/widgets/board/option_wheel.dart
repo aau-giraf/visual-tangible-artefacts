@@ -84,7 +84,7 @@ class _OptionWheelState extends State<OptionWheel>
 
     // wheel nudge from center
     final double wheelOffsetLeft = 0;
-    final double wheelOffsetTop = 70;
+    final double wheelOffsetTop = 60;
 
     // button size (width)
     final double buttonSize = 100;
@@ -170,16 +170,16 @@ class _OptionWheelState extends State<OptionWheel>
                   animatedRadius *
                       math.sin(angleDeg * math.pi / 180 - math.pi / 2) +
                   widget.verticalNudge +
-                  wheelOffsetTop +
-                  5;
+                  wheelOffsetTop +  
+                  -36;
               // if the button is near the wheel's left or right edge, nudge it up
               // slightly to avoid visual clipping with the board edge.
-              const double horizontalEdgeThreshold = 300;
+              
               const double upwardNudge = -48.0; // negative to move up
-              final bool nearLeftEdge = leftPos < horizontalEdgeThreshold;
+              
               final bool nearRightEdge =
-                  leftPos + buttonSize > WheelWidth - horizontalEdgeThreshold;
-              if (nearLeftEdge || nearRightEdge) {
+                  leftPos + buttonSize > WheelWidth;
+              if (nearRightEdge) {
                 topPos += upwardNudge;
               }
 
