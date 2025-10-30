@@ -5,6 +5,7 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -34,9 +35,7 @@ class LongPressOptionWheel extends StatefulWidget {
 
 class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   OverlayEntry? _overlayEntry;
-  OverlayEntry? _resizeCaptureEntry;
-  VoidCallback? _resizeListener;
-  PointerRoute? _globalPointerRoute;
+  final _resizeOverlay = ResizeOverlay();
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   final GlobalKey _optionWheelKey = GlobalKey();
@@ -54,59 +53,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _showPersistentWheel();
   }
 
-  void _showResizeCaptureOverlay() {
-    if (_resizeCaptureEntry != null) return;
 
-    _resizeCaptureEntry = OverlayEntry(builder: (context) {
-      final RenderBox? artifactBox = widget.artifactKey.currentContext?.findRenderObject() as RenderBox?;
-      if (artifactBox == null) {
-        return const SizedBox.shrink();
-      }
-
-      return Stack(children: [
-      ]);
-    });
-
-    Overlay.of(context).insert(_resizeCaptureEntry!);
-    // Install a global pointer route to detect pointer-up events anywhere
-    // without blocking hit-testing. This allows stopping resize when the user
-    // releases the pointer even if they release outside the artifact area.
-    _globalPointerRoute = (PointerEvent event) {
-      if (event is PointerUpEvent) {
-        try {
-          widget.artifact.showResizeHandle.value = false;
-        } catch (_) {}
-        _hideResizeCaptureOverlay();
-      }
-    };
-    GestureBinding.instance.pointerRouter.addGlobalRoute(_globalPointerRoute!);
-    _resizeListener = () {
-      _resizeCaptureEntry?.markNeedsBuild();
-    };
-    try {
-      widget.artifact.sizeNotifier.addListener(_resizeListener!);
-    } catch (_) {}
-  }
-
-  void _hideResizeCaptureOverlay() {
-    _resizeCaptureEntry?.remove();
-    _resizeCaptureEntry = null;
-    if (_globalPointerRoute != null) {
-      try {
-        GestureBinding.instance.pointerRouter.removeGlobalRoute(_globalPointerRoute!);
-      } catch (_) {}
-      _globalPointerRoute = null;
-    }
-    if (_resizeListener != null) {
-      try {
-        widget.artifact.sizeNotifier.removeListener(_resizeListener!);
-      } catch (_) {}
-      _resizeListener = null;
-    }
-    try {
-      widget.artifact.showResizeHandle.value = false;
-    } catch (_) {}
-  }
 
  @override
   Widget build(BuildContext context) {
@@ -227,7 +174,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               },
               onResize: () {
                 widget.artifact.showResizeHandle.value = true;
-                _showResizeCaptureOverlay();
+                _resizeOverlay.show(context, widget.artifact, widget.artifactKey);
                 _hidePersistentWheel();
               },
               onPressed: _hidePersistentWheel,
