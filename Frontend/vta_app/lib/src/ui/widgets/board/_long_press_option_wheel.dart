@@ -39,6 +39,10 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   PointerRoute? _globalPointerRoute;
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
+  Size? _resizeStartSize;
+  Offset? _resizeStartPointer;
+  static const double _minResizeWidth = 100.0;
+  static const double _maxResizeWidth = 1000.0;
   final GlobalKey _optionWheelKey = GlobalKey();
   late bool _showName;
   final _soundPlayer = _ArtefactSoundPlayerImpl();
@@ -59,18 +63,49 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
 
     _resizeCaptureEntry = OverlayEntry(builder: (context) {
       final RenderBox? artifactBox = widget.artifactKey.currentContext?.findRenderObject() as RenderBox?;
-      if (artifactBox == null) {
-        return const SizedBox.shrink();
-      }
+      if (artifactBox == null) return const SizedBox.shrink();
 
-      return Stack(children: [
-      ]);
+      return Positioned.fill(
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (PointerDownEvent event) {
+            // record starting size and pointer for delta calculations
+            try {
+              _resizeStartSize = widget.artifact.sizeNotifier.value;
+            } catch (_) {
+              _resizeStartSize = null;
+            }
+            _resizeStartPointer = event.position;
+          },
+          onPointerMove: (PointerMoveEvent event) {
+            if (_resizeStartPointer == null || _resizeStartSize == null) return;
+            final dx = event.position.dx - _resizeStartPointer!.dx;
+            final double aspect = _resizeStartSize!.height / _resizeStartSize!.width;
+            double newWidth = (_resizeStartSize!.width + dx).clamp(_minResizeWidth, _maxResizeWidth);
+            double newHeight = (newWidth * aspect).clamp(_minResizeWidth * aspect, _maxResizeWidth * aspect);
+            try {
+              widget.artifact.sizeNotifier.value = Size(newWidth, newHeight);
+            } catch (_) {}
+            _resizeCaptureEntry?.markNeedsBuild();
+          },
+          onPointerUp: (PointerUpEvent event) {
+            // finish resizing
+            try {
+              widget.artifact.showResizeHandle.value = false;
+            } catch (_) {}
+            _resizeStartPointer = null;
+            _resizeStartSize = null;
+            _hideResizeCaptureOverlay();
+          },
+          child: Container(color: Colors.transparent),
+        ),
+      );
     });
 
     Overlay.of(context).insert(_resizeCaptureEntry!);
-    // Install a global pointer route to detect pointer-up events anywhere
-    // without blocking hit-testing. This allows stopping resize when the user
-    // releases the pointer even if they release outside the artifact area.
+
+    // Also install a global pointer route as a robust fallback to capture
+    // pointer-up events when some platforms dispatch differently.
     _globalPointerRoute = (PointerEvent event) {
       if (event is PointerUpEvent) {
         try {
@@ -80,6 +115,8 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
       }
     };
     GestureBinding.instance.pointerRouter.addGlobalRoute(_globalPointerRoute!);
+
+    // Keep overlay in sync with artifact size changes (optional)
     _resizeListener = () {
       _resizeCaptureEntry?.markNeedsBuild();
     };
@@ -106,6 +143,19 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     try {
       widget.artifact.showResizeHandle.value = false;
     } catch (_) {}
+    _resizeStartPointer = null;
+    _resizeStartSize = null;
+  }
+
+  @override
+  void dispose() {
+    try {
+      _hidePersistentWheel();
+    } catch (_) {}
+    try {
+      _hideResizeCaptureOverlay();
+    } catch (_) {}
+    super.dispose();
   }
 
  @override

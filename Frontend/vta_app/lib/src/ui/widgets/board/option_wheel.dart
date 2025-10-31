@@ -174,7 +174,7 @@ class _OptionWheelState extends State<OptionWheel>
                   5;
               // if the button is near the wheel's left or right edge, nudge it up
               // slightly to avoid visual clipping with the board edge.
-              const double horizontalEdgeThreshold = 300;
+              const double horizontalEdgeThreshold = 2000;
               const double upwardNudge = -48.0; // negative to move up
               final bool nearLeftEdge = leftPos < horizontalEdgeThreshold;
               final bool nearRightEdge =
