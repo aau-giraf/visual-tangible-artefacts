@@ -288,10 +288,15 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         builder: (BuildContext context) {
           return Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: FractionallySizedBox(
-              heightFactor: 0.8,
-              child: _buildImageGrid(category),
-            ),
+                          child: ListenableBuilder(
+                listenable: widget.artefactController,
+                builder: (context, child) {
+                  // Find the updated category from the controller
+                  Category? updatedCategory = widget.artefactController.categories
+                      ?.firstWhere((cat) => cat.categoryId == category.categoryId);
+                  return _buildImageGrid(updatedCategory ?? category);
+                },
+              ),
           );
         },
       );
