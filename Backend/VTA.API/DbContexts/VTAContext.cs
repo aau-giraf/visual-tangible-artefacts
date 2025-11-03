@@ -1,6 +1,8 @@
 
 using Microsoft.EntityFrameworkCore;
-using VTA.API.Models;
+using VTA.API.Models.Artefacts;
+using VTA.API.Models.Categories;
+using VTA.API.Models.Users;
 
 namespace VTA.API.DbContexts;
 

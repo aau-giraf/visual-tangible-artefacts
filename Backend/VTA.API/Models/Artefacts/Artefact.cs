@@ -13,5 +13,5 @@ public abstract class Artefact
     public DateTime? ModifiedDate { get; set; }
     public string? Name { get; set; }
     
-    //public bool? NameShown { get; set; }
+    public bool? NameShown { get; set; }
 }

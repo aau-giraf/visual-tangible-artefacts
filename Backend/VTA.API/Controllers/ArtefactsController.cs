@@ -1,3 +1,4 @@
+using System.Xml;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -133,6 +134,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             if (!string.IsNullOrEmpty(dto.Name))
             {
                 artefact.Name = dto.Name;
+            }
+            
+            if (dto.NameShown.HasValue)
+            {
+                artefact.NameShown = dto.NameShown.Value;
             }
 
             artefact.ModifiedDate = DateTime.UtcNow;
