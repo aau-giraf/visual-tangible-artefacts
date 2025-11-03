@@ -288,10 +288,15 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         builder: (BuildContext context) {
           return Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: FractionallySizedBox(
-              heightFactor: 0.8,
-              child: _buildImageGrid(category),
-            ),
+                          child: ListenableBuilder(
+                listenable: widget.artefactController,
+                builder: (context, child) {
+                  // Find the updated category from the controller
+                  Category? updatedCategory = widget.artefactController.categories
+                      ?.firstWhere((cat) => cat.categoryId == category.categoryId);
+                  return _buildImageGrid(updatedCategory ?? category);
+                },
+              ),
           );
         },
       );
@@ -299,15 +304,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
 // ModalSheet for editing and deleting categories
-  void _showCategoryEditModal(BuildContext context, Category category) {
-    final categoriesEdit = CategoriesEdit(
-      categoryName: category.name!,
-      imageUrl: category.imageUrl,
-      categoryId: category.categoryId!,
-      onEdit: () {
-        MaterialPageRoute(builder: (context) => AddPicturePage());
-      }, // Pass edit functionality if needed
-    );
+void _showCategoryEditModal(BuildContext context, Category category) {
     showModalBottomSheet(
       backgroundColor: Colors.white,
       isScrollControlled: true,
@@ -429,8 +426,6 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   Widget _buildImageGridItem(BuildContext context, int index, Category category,
       bool isInDeletionMode, VoidCallback onLongPress,
       {required VoidCallback onDelete}) {
-    var authState = Provider.of<AuthState>(context);
-    var artifactState = Provider.of<ArtifactState>(context, listen: false);
     var headers = <String, String>{
       'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
     };

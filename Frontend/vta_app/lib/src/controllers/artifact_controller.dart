@@ -107,11 +107,11 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
-  Future<void> newArtifact(BuildContext context, String categoryId) async {
+Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
         title: 'Tilføj artefakt',
-        onSubmit: (name, imageBytes, soundBytes) {
+        onSubmit: (name, imageBytes, soundBytes) async {
           try {
             var newArtefact = Artefact(
                 categoryId: categoryId,
@@ -120,9 +120,11 @@ class ArtefactController extends ChangeNotifier {
                 image: imageBytes,
                 sound: soundBytes,
                 name: name);
-            _model.postArtefact(newArtefact,
+            await _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
-            _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+              if (context.mounted) {
+                _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+              }
             notifyListeners();
           } catch (e) {
             if (context.mounted) {
@@ -138,15 +140,15 @@ class ArtefactController extends ChangeNotifier {
         });
   }
 
-  Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
+Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
     // Save ScaffoldMessenger reference before dialog
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
-        _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
-
+        await _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+        notifyListeners();
         _showSuccessSnackBarAfterAsync(
           scaffoldMessenger,
           screenHeight,
