@@ -48,7 +48,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         // Debug the response content
         var responseContent = await response.Content.ReadAsStringAsync();

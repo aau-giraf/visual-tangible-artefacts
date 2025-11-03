@@ -63,7 +63,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         request.Content = content;
 
         var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var category = await response.Content.ReadFromJsonAsync<CategoryGetDTO>();
         Assert.NotNull(category);
