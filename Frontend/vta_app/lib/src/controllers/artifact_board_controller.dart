@@ -38,11 +38,10 @@ class ArtifactBoardController {
     linearBoardKey = GlobalKey<LinearBoardState>();
 
     // Initialize controllers
-    talkingmatController = TalkingmatController(onArtefactAdded: _playArtefactAudio);
+    talkingmatController = TalkingmatController();
     linearBoardController = LinearBoardController(
       artifacts: [],
       fieldCount: 0,
-      onArtefactAdded: _playArtefactAudio,
     );
 
     // Setup TalkingMat and LinearBoard
@@ -59,37 +58,6 @@ class ArtifactBoardController {
     // Initialize configuration
     _setupLinearBoardController();
     getCurrentBoardStatus();
-  }
-
-  /// Function to play audio when an artefact is added to the board
-  void _playArtefactAudio(BoardArtefact boardArtefact) async {
-    if (boardArtefact.baseArtefact?.soundUrl?.isNotEmpty == true) {
-      try {
-        final token = GetIt.instance.get<Token>().value;
-        final apiProvider = GetIt.instance.get<ApiProvider>();
-        
-        if (token != null) {
-          final response = await http.get(
-            Uri.parse('${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio'),
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
-          );
-          
-          if (response.statusCode == 200) {
-            await _audioPlayer.setAudioSource(
-              AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
-            );
-            await _audioPlayer.play();
-            print('Audio playback started successfully for artefact: ${boardArtefact.baseArtefact!.artefactId}');
-          } else {
-            print('Failed to load audio: ${response.statusCode}');
-          }
-        }
-      } catch (e) {
-        print('Error playing artefact audio: $e');
-      }
-    }
   }
 
   /// Function for setting up the linear board

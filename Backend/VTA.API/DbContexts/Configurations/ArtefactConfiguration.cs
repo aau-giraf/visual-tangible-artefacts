@@ -41,6 +41,8 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
         builder.Property(e => e.Name)
             .HasMaxLength(255)
             .HasColumnName("name");
+        builder.Property(e => e.NameShown)
+            .HasColumnName("nameShown");
 
         builder.HasDiscriminator<int>("artefactType")
             .HasValue<DefaultArtefact>(0)

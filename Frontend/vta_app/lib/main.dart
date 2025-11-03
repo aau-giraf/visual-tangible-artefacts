@@ -48,12 +48,12 @@ void main() async {
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());
 
+  final ArtefactController artifactController =
+      ArtefactController(ArtifactModel(apiProvider));
+  GetIt.I.registerSingleton<ArtefactController>(artifactController);
+
   final AuthController authController =
       AuthController(AuthModel(apiProvider, token, userInfo));
-
-  final ArtefactController artifactController =
-    ArtefactController(ArtifactModel(apiProvider));
-  GetIt.I.registerSingleton<ArtefactController>(artifactController);
 
   // Initialize the CameraManager
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {

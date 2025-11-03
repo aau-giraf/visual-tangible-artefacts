@@ -17,7 +17,6 @@ class ArtefactController extends ChangeNotifier {
   List<Category>? get mostUsedCategories => _model.mostUsedCategories;
 
   ArtefactController(this._model);
-  
 
   Future<void> updateArtifacts({BuildContext? context}) async {
     var token = GetIt.instance.get<Token>();
@@ -41,6 +40,15 @@ class ArtefactController extends ChangeNotifier {
         _showErrorSnackBar(context, e.toString());
       }
     }
+  }
+
+  Future<void> clearUserData() async {
+    try {
+      _model.clearCache();
+    } catch (e) {
+      debugPrint('[ArtefactController.clearUserData] failed: $e');
+    }
+    notifyListeners();
   }
 
   Future<void> newCategory(BuildContext context) async {
@@ -68,6 +76,7 @@ class ArtefactController extends ChangeNotifier {
     );
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.70),
       builder: (context) => popup,
     );
   }
@@ -98,11 +107,11 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
-  Future<void> newArtifact(BuildContext context, String categoryId) async {
+Future<void> newArtifact(BuildContext context, String categoryId) async {
     var popup = AddItemPopup(
         isCategory: false,
         title: 'Tilføj artefakt',
-        onSubmit: (name, imageBytes, soundBytes) {
+        onSubmit: (name, imageBytes, soundBytes) async {
           try {
             var newArtefact = Artefact(
                 categoryId: categoryId,
@@ -111,9 +120,11 @@ class ArtefactController extends ChangeNotifier {
                 image: imageBytes,
                 sound: soundBytes,
                 name: name);
-            _model.postArtefact(newArtefact,
+            await _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
-            _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+              if (context.mounted) {
+                _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+              }
             notifyListeners();
           } catch (e) {
             if (context.mounted) {
@@ -123,24 +134,21 @@ class ArtefactController extends ChangeNotifier {
         });
     await showDialog(
         context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.70),
         builder: (context) {
           return popup;
         });
   }
 
-  Future<String> getArtifactName(String artefactId) async {
-    return "Test: artefactId is $artefactId";
-  }
-
-  Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
+Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
     // Save ScaffoldMessenger reference before dialog
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     try {
       await _showDeleteConfirmationDialog(context, onDelete: () async {
-        _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
-
+        await _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
+        notifyListeners();
         _showSuccessSnackBarAfterAsync(
           scaffoldMessenger,
           screenHeight,
@@ -153,6 +161,24 @@ class ArtefactController extends ChangeNotifier {
         screenHeight,
         e.toString(),
       );
+    }
+  }
+
+  Future<void> updateArtefact(
+    BuildContext context, 
+    Artefact artefact,
+  ) async {
+    try {
+      await _model.updateArtefact(artefact, token: GetIt.I.get<Token>().value!);
+      notifyListeners();
+      if (context.mounted) {
+        _showSuccessActionSnackBar(context, 'Artefact opdateret');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
+      rethrow;
     }
   }
 
@@ -175,9 +201,20 @@ class ArtefactController extends ChangeNotifier {
       if (success) {
         notifyListeners();
       }
+    } catch (e) {}
+  }
+
+  Future<void> updateArtifact(Artefact artefact, BuildContext context) async {
+    var token = GetIt.instance.get<Token>();
+    try {
+      await _model.updateArtefact(artefact, token: token.value!);
     } catch (e) {
+      if (context != null && context.mounted) {
+        _showErrorSnackBar(context, e.toString());
+      }
     }
   }
+
 
   void _showSuccessActionSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
