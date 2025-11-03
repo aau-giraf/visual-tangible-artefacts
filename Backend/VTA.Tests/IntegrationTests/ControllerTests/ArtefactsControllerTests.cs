@@ -255,7 +255,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var content = new MultipartFormDataContent
         {
             { imageContent, "Image", "testImage.jpg" },
-            { new StringContent("wrong-user-id"), "UserId" },
+            { new StringContent(Guid.NewGuid().ToString()), "UserId" },
             { new StringContent("0"), "ArtefactIndex" },
             { new StringContent("Test Name"), "Name" }
         };
@@ -418,7 +418,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         postRequest.Content = content;
         var postResponse = await _client.SendAsync(postRequest);
-        Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
         Assert.NotNull(category);

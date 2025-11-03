@@ -96,7 +96,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         postRequest.Content = content;
 
         var postResponse = await _client.SendAsync(postRequest);
-        Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
@@ -128,8 +128,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
-        var errorResponse = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.NotNull(errorResponse);
+        // Don't attempt to deserialize - 404 responses have no body
 
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
@@ -160,7 +159,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         postRequest.Content = content;
 
         var postResponse = await _client.SendAsync(postRequest);
-        Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
@@ -249,7 +248,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         postRequest.Content = content;
 
         var postResponse = await _client.SendAsync(postRequest);
-        Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 

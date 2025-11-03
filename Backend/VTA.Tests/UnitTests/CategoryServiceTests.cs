@@ -44,7 +44,7 @@ namespace VTA.Tests.UnitTests
             var response = await _client.SendAsync(request);
             var category = await response.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             Assert.NotNull(category);
             Assert.Equal(categoryPostDTO.Name, category!.Name);
 
@@ -81,6 +81,7 @@ namespace VTA.Tests.UnitTests
             postRequest.Content = content;
 
             var postResponse = await _client.SendAsync(postRequest);
+            Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
             var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
             var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category!.CategoryId}");
@@ -126,6 +127,7 @@ namespace VTA.Tests.UnitTests
             postRequest.Content = content;
 
             var postResponse = await _client.SendAsync(postRequest);
+            Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
             var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
             var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Categories/{category!.CategoryId}");

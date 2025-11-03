@@ -32,11 +32,6 @@ public class CategoriesController(VTAContext context) : ControllerBase
             .GetUserCategoryDTOs(context, userGuid)
             .ToListAsync(HttpContext.RequestAborted);
         
-        if (categories.Count == 0)
-        {
-            return NotFound();
-        }
-        
         var categoriesWithFullUrls = categories
             .Select(x => x.WithFullUrls(Request.Scheme, Request.Host.ToString()))
             .ToList();
@@ -102,7 +97,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         
         if (rowsAffected == 0)
         {
-            return NotFound();
+            return BadRequest("Category does not exist or you don't have permission to modify it");
         }
         
         //if the image is not null, replace it. (I considered creating/adding an algorithm that checks if it's the same image, but i chose not to bother (it should be simple enough though))
@@ -173,10 +168,26 @@ public class CategoriesController(VTAContext context) : ControllerBase
             return BadRequest("Invalid user ID.");
         }
 
-        // First, get the artefact IDs associated with the category to delete their images later
+        // Check if category exists first
+        var category = await context.Categories
+            .OfType<UserCategory>()
+            .FirstOrDefaultAsync(c => c.Id == categoryId, HttpContext.RequestAborted);
+
+        if (category == null)
+        {
+            return NotFound();
+        }
+
+        // Check if user owns the category
+        if (category.UserId != userGuid)
+        {
+            return Forbid();
+        }
+
+        // Get artefact IDs associated with the category to delete their images later
         var categoryArtefactIds = await context.Categories
             .OfType<UserCategory>()
-            .Where(x => x.UserId == userGuid && x.Id == categoryId)
+            .Where(x => x.Id == categoryId)
             .SelectMany(x => x.Artefacts)
             .Select(x => x.Id)
             .ToListAsync(HttpContext.RequestAborted);
@@ -185,18 +196,12 @@ public class CategoriesController(VTAContext context) : ControllerBase
         
         try
         {
-            var rowsAffected = await context.Categories
+            await context.Categories
                 .OfType<UserCategory>()
-                .Where(c => c.Id == categoryId && c.UserId == userGuid)
+                .Where(c => c.Id == categoryId)
                 .ExecuteDeleteAsync(HttpContext.RequestAborted);
-
-            if (rowsAffected == 0)
-            {
-                return NotFound();
-            }
         
-            // Now, delete the images associated with the artefacts and the category itself
-            // Optimally this should be done asynchronously also to avoid having to load the categoryArtefactIds, but for simplicity, we'll do it synchronously here
+            // Delete the images associated with the artefacts and the category itself
             foreach (var artefactId in categoryArtefactIds)
             {
                 ImageUtilities.DeleteImage(artefactId.ToString(), "Artefacts");

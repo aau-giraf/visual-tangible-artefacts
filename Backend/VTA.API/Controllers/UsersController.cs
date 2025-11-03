@@ -153,7 +153,12 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     [HttpGet]
     public async Task<ActionResult<UserGetDTO>> GetUser()
     {
-        var userId = User.FindFirst("id")?.Value;
+        var userIdString = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
 
         User user = await context.Users.FindAsync(userId);
 

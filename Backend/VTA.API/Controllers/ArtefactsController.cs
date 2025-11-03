@@ -108,7 +108,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
 
             if (artefact == null)
             {
-                return NotFound();
+                return BadRequest("Artefact does not exist or you don't have permission to modify it");
             }
 
             // Handle image update
@@ -159,7 +159,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
 
             if (rowsAffected == 0)
             {
-                return NotFound();
+                return BadRequest("Artefact does not exist or you don't have permission to modify it");
             }
         }
 

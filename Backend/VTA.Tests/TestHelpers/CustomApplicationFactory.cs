@@ -29,6 +29,7 @@ namespace VTA.Tests.TestHelpers
                 .AddEnvironmentVariables()
                 .Build();
 
+            // Not needed for tests that use Testcontainers
             var connectionString = config.GetValue<string>("ConnectionStrings:TestConnection")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
 
@@ -45,10 +46,18 @@ namespace VTA.Tests.TestHelpers
                 throw new ArgumentNullException("A JWT secret is required for token generation.");
             }
 
-            var builder = new MySqlConnectionStringBuilder(connectionString);
-            var database = builder.Database;
-            var username = builder.UserID;
-            var password = builder.Password;
+            // Use default test values if connection string is not configured
+            string database = "vta_test_db";
+            string username = "vta_test_user";
+            string password = "vta_test_password";
+
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                var builder = new MySqlConnectionStringBuilder(connectionString);
+                database = !string.IsNullOrEmpty(builder.Database) ? builder.Database : database;
+                username = !string.IsNullOrEmpty(builder.UserID) ? builder.UserID : username;
+                password = !string.IsNullOrEmpty(builder.Password) ? builder.Password : password;
+            }
 
             _mySqlContainer = new MySqlBuilder()
                 .WithImage("mysql:8.0")
