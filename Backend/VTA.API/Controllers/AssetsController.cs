@@ -9,20 +9,21 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class AssetsController : ControllerBase
 {
-    //All endpoints in here simply serves the image to the client. We have not done a test on if a user is allowed to access this image (it could be sensetive info or people in pictures you know), we probably should do this though 
-    // GET: api/Assets/Artefacts/image
+    //All endpoints in here simply serves the image to the client. We have not done a test on if a user is allowed to access this image (it could be sensetive info or people in pictures you know), we probably should do this though
+    // GET: api/Assets/Artefacts/{userId}/{filename}
     /// <summary>
-    /// Displayes/Serves an artefact image
+    /// Displays/Serves an artefact image
     /// </summary>
-    /// <param name="filepath">The "imagePath" returned from the artefact</param>
+    /// <param name="userId">The user ID</param>
+    /// <param name="filename">The filename</param>
     /// <returns>
     /// File if the image exists on the server
     /// Status code 404 (Not Found) if the image does not exist
     /// </returns>
-    [HttpGet("Artefacts/{filepath}")]
-    public IActionResult GetArtefactImage(string filepath)
+    [HttpGet("Artefacts/{userId}/{filename}")]
+    public IActionResult GetArtefactImage(string userId, string filename)
     {
-        var imagePath = $"Assets/Artefacts/{filepath}";//this should have been Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", filepath); but we have a user testing it at the moment so we can't change it
+        var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId, filename);
         if (!System.IO.File.Exists(imagePath))
         {
             return NotFound();
@@ -31,17 +32,18 @@ public class AssetsController : ControllerBase
         return File(fileBytes, "image/jpeg");
     }
     /// <summary>
-    /// Displayes/Serves a Category image
+    /// Displays/Serves a Category image
     /// </summary>
-    /// <param name="filepath">The "imagePath" returned from the artefact</param>
+    /// <param name="userId">The user ID</param>
+    /// <param name="filename">The filename</param>
     /// <returns>
     /// File if the image exists on the server
     /// Status code 404 (Not Found) if the image does not exist
     /// </returns>
-    [HttpGet("Categories/{filepath}")]//{} allows us to extract that part of the url as a variable
-    public IActionResult GetCategoryImage(string filepath)
+    [HttpGet("Categories/{userId}/{filename}")]//{} allows us to extract that part of the url as a variable
+    public IActionResult GetCategoryImage(string userId, string filename)
     {
-        var imagePath = $"Assets/Categories/{filepath}";//this should have been Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Categories", filepath); but we have a user testing it at the moment so we can't change it
+        var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Categories", userId, filename);
         if (!System.IO.File.Exists(imagePath))
         {
             return NotFound();
@@ -50,11 +52,11 @@ public class AssetsController : ControllerBase
         return File(fileBytes, "image/jpeg");
     }
 
-    // GET: api/Assets/Sounds/file
-    [HttpGet("Sounds/{filepath}")]
-    public IActionResult GetSoundFile(string filepath)
+    // GET: api/Assets/Sounds/{userId}/{filename}
+    [HttpGet("Sounds/{userId}/{filename}")]
+    public IActionResult GetSoundFile(string userId, string filename)
     {
-        var soundPath = $"Assets/Sounds/{filepath}";
+        var soundPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds", userId, filename);
         if (!System.IO.File.Exists(soundPath))
         {
             return NotFound();
