@@ -145,6 +145,11 @@ public class CategoriesController(VTAContext context) : ControllerBase
         string id = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
 
+        if (imageUrl == null)
+        {
+            return BadRequest("Failed to save category image");
+        }
+
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
         context.Categories.Add(category);
@@ -170,6 +175,11 @@ public class CategoriesController(VTAContext context) : ControllerBase
             }
         }
         var cat = await context.Categories.FindAsync(id);
+
+        if (cat == null)
+        {
+            return NotFound();
+        }
 
         CategoryGetDTO returnCat = DTOConverter.MapCategoryToCategoryGetDTO(cat, Request.Scheme, Request.Host.ToString());
 

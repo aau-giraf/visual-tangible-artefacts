@@ -69,6 +69,13 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
         var artefact = context.Artefacts.Find(dto.ArtefactId);
 
         if (artefact == null)
@@ -88,9 +95,8 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             artefact.NameShown = dto.NameShown;
         }
-        var userId = User.FindFirst("id")?.Value;
 
-        if (dto.Image != null)
+        if (dto.Image != null && !string.IsNullOrEmpty(artefact.CategoryId))
         {
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories", userId);
             ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories", userId);
@@ -116,7 +122,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!ArtefactExists(artefact.CategoryId))
+            if (!ArtefactExists(artefact.ArtefactId))
             {
                 return NotFound();
             }
@@ -326,6 +332,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             // Check if artefact exists and user owns it
             var userId = User.FindFirst("id")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
             var artefact = await context.Artefacts
                 .Where(a => a.UserId == userId && a.ArtefactId == request.ArtefactId)
                 .FirstOrDefaultAsync();
@@ -406,6 +418,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         try
         {
             var userId = User.FindFirst("id")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
 
             // Get ElevenLabs API key from configuration
             var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();

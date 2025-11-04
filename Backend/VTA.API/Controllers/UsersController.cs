@@ -237,14 +237,20 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         }
         
         /*Categories and artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
-        * Therefore we remove all the images from the filesystem before we loose the refs*/
+        * Therefore we remove all the images and sounds from the filesystem before we loose the refs*/
         foreach (var category in user.Categories)
         {
             foreach (var artefact in category.Artefacts)
             {
-                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", id);
+                // Also delete sound files if they exist
+                try
+                {
+                    SoundUtilities.DeleteSound(artefact.ArtefactId, id);
+                }
+                catch { }
             }
-            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
         }
 
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
