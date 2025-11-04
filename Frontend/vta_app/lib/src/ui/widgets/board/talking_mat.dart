@@ -319,27 +319,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     artifactController: GetIt.instance<ArtefactController>(),
                     child: Draggable<BoardArtefact>(
                       data: artefact,
-                      feedback: Transform.scale(
-                        scale: 1.2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Opacity(
-                            opacity: 0.5,
-                            child: artefact.content,
-                          ),
-                        ),
-                      ),
-                      childWhenDragging: const SizedBox.shrink(),
+                      // Keep original visible; no ghost feedback
+                      feedback: const SizedBox.shrink(),
+                      childWhenDragging: null,
                       child: RepaintBoundary(
                         key: measurementKey,
                         child: artefact.content,
@@ -371,11 +353,27 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                 );
               }).toList();
 
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ...itemWidgets,
-                  Align(
+              return DragTarget<BoardArtefact>(
+                onWillAcceptWithDetails: (details) => true,
+                onMove: (details) {
+                  final artefact = details.data;
+                  // Adjust anchoring if name is shown so pointer aligns with image
+                  Offset adjusted = details.offset;
+                  if (artefact.baseArtefact?.nameShown == true) {
+                    final double nameOffset = _getNameDisplayOffset(
+                      artefact.baseArtefact?.name ?? '',
+                      context,
+                    );
+                    adjusted = Offset(details.offset.dx, details.offset.dy - nameOffset);
+                  }
+                  _updateArtifactPosition(artefact, adjusted);
+                },
+                builder: (context, candidate, rejected) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ...itemWidgets,
+                      Align(
                     alignment: Alignment.lerp(
                             Alignment.bottomCenter, Alignment.center, 0.1) ??
                         Alignment.bottomCenter,
@@ -433,8 +431,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         ),
                       ),
                     ]),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               );
             },
           ),
