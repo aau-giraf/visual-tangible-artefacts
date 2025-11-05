@@ -27,6 +27,19 @@ CREATE TABLE user (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
+-- Insert a system user and a default "Session-Artefact" category if they don't already exist.
+-- The category needs a valid userId because of the foreign key constraint, so we create
+-- a lightweight system user and then create the category referencing it.
+INSERT INTO user (id, name, password, guardianKey, username)
+SELECT 'system', 'System', '', NULL, 'system'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM user WHERE id = 'system');
+
+INSERT INTO category (categoryId, categoryIndex, userId, name, imagePath, modifiedDate, usageCount, lastUsedDate)
+SELECT 'Session-Artefact', 0, 'system', 'Session Artefacts', NULL, NOW(), 0, NULL
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM category WHERE categoryId = 'Session-Artefact');
+
 -- CATEGORY
 CREATE TABLE category (
   categoryId     VARCHAR(36)  NOT NULL,

@@ -29,7 +29,7 @@ class _FloatingActionButtonExampleState extends State<QuickAddArtefactButton> {
             child: FloatingActionButton(
               heroTag: 'quickAddArtefact',
               onPressed: () {
-                widget.artefactController.newArtifact(context, 'QUICK_ADDED_ARTEFACT');
+                widget.artefactController.newArtifact(context, 'Session-Artefact');
               },
               foregroundColor: Colors.white,
               backgroundColor: Colors.green,
