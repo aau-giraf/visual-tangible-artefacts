@@ -145,11 +145,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         string id = Guid.NewGuid().ToString();
         string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
 
-        if (imageUrl == null)
-        {
-            return BadRequest("Failed to save category image");
-        }
-
+        // Image is optional - allow null imageUrl
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
         context.Categories.Add(category);

@@ -260,7 +260,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate text input
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         try
@@ -320,12 +320,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate input
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         if (string.IsNullOrWhiteSpace(request.ArtefactId))
         {
-            return BadRequest("ArtefactId cannot be empty");
+            return BadRequest(new { error = "ArtefactId cannot be empty" });
         }
 
         try
@@ -412,7 +412,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate input
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         try
@@ -563,7 +563,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate text input
         if (string.IsNullOrWhiteSpace(ttsDto.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         try
