@@ -26,6 +26,11 @@ public partial class ArtefactPostDTO
     public string? Name {get; set; }
     
     /// <summary>
+    /// Whether the artefact name should be shown
+    /// </summary>
+    public bool? NameShown { get; set; }
+    
+    /// <summary>
     /// The image file for the artefact
     /// </summary>
     public required IFormFile Image { get; set; }
@@ -67,6 +72,11 @@ public partial class ArtefactPatchDTO
     public string? Name { get; set; }
 
     /// <summary>
+    /// Whether the artefact name should be shown
+    /// </summary>
+    public bool? NameShown { get; set; }
+
+    /// <summary>
     /// The image file for the artefact
     /// </summary>
     public IFormFile? Image { get; set; }
@@ -75,6 +85,7 @@ public partial class ArtefactPatchDTO
     /// The sound file for the artefact
     /// </summary>
     public IFormFile? Sound { get; set; }
+
 
 }
 
@@ -107,6 +118,11 @@ public partial class ArtefactGetDTO
     /// The name of the artefact
     /// </summary>
     public string? Name {get; set; }
+
+    /// <summary>
+    /// Whether the artefact's name should be shown
+    /// </summary>
+    public bool? NameShown { get; set; }
 
     /// <summary>
     /// The URL to the artefact's image

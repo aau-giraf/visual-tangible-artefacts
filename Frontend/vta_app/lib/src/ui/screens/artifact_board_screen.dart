@@ -134,7 +134,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ]),
                       ),
-                      // Play All Sounds Button - positioned next to Brugerindstillinger button
+                      
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(

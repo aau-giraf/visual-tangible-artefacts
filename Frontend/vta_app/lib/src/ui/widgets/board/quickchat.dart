@@ -104,6 +104,7 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
           child: Padding(
             padding: const EdgeInsets.all(50.50),
             child: FloatingActionButton(
+              heroTag: 'quick_chat_button',
               onPressed: () {
                 setState(() {
                   _isPopupVisible = !_isPopupVisible;

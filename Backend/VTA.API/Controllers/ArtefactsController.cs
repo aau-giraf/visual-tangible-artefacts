@@ -84,6 +84,10 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             artefact.Name = dto.Name;
         }
+        if (dto.NameShown != null && artefact.NameShown != dto.NameShown)
+        {
+            artefact.NameShown = dto.NameShown;
+        }
         if (dto.Image != null)
         {
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
@@ -282,7 +286,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Return audio data directly
-            return File(audioData, "audio/mpeg", "generated_speech.mp3");
+            return File(audioData, "audio/mpeg", "generated_speech");
         }
         catch (Exception ex)
         {
@@ -358,7 +362,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId, ".mp3");
+            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId);
             
             if (soundUrl == null)
             {
@@ -429,7 +433,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var soundId = Guid.NewGuid().ToString();
             
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, soundId, ".mp3");
+            var soundUrl = SoundUtilities.AddSound(audioData, soundId);
             
             if (soundUrl == null)
             {
@@ -481,7 +485,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             Console.WriteLine($"Debug: PlayArtefactAudio - Artefact {artefactId} has soundPath: {artefact.SoundPath}");
 
             // Convert the API path to file system path
-            // SoundPath is like "/api/Assets/Sounds/filename.mp3"
+            // SoundPath is like "/api/Assets/Sounds/filename"
             var fileName = Path.GetFileName(artefact.SoundPath);
             var soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
             var filePath = Path.Combine(soundFolder, fileName);
@@ -580,7 +584,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             catch { }
 
             // Save the generated audio as a temporary file
-            var tempFileName = $"{artefact.ArtefactId}.mp3";
+            var tempFileName = $"{artefact.ArtefactId}";
             var tempFilePath = Path.GetTempFileName();
             await System.IO.File.WriteAllBytesAsync(tempFilePath, audioData);
 
