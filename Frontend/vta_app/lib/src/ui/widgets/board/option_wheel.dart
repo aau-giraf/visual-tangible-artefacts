@@ -130,7 +130,7 @@ class _OptionWheelState extends State<OptionWheel>
       ),
       _OptionWheelButton(
         icon: Icons.open_in_full,
-        label: 'Resize',
+        label: 'Størrelse',
         onPressed: () {
           widget.onResize?.call();
           widget.onPressed?.call();

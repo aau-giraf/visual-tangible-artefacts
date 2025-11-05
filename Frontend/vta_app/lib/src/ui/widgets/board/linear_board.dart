@@ -185,7 +185,7 @@ class LinearBoardState extends State<LinearBoard>
                     }
                   },
                   icon: Icon(_isPlayingAllSounds ? Icons.stop : Icons.play_arrow),
-                  label: Text(_isPlayingAllSounds ? 'Stop Audio' : 'Play All Sounds'),
+                  label: Text(_isPlayingAllSounds ? 'Stop Lyde' : 'Afspil Alle Lyde'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isPlayingAllSounds ? Colors.red : Colors.blue,
                     foregroundColor: Colors.white,
