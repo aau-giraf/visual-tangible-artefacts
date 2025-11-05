@@ -43,8 +43,8 @@ CREATE TABLE category (
   KEY userId (userId),
   CONSTRAINT category_ibfk_1
     FOREIGN KEY (userId) REFERENCES user(id)
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
@@ -65,12 +65,12 @@ CREATE TABLE artefact (
   KEY userId (userID),
   CONSTRAINT artefact_ibfk_2
     FOREIGN KEY (categoryId) REFERENCES category(categoryId)
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT artefact_ibfk_1
     FOREIGN KEY (userID) REFERENCES user(id)
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
@@ -88,8 +88,8 @@ CREATE TABLE savedBoard (
   KEY userId (userId),
   CONSTRAINT savedBoard_ibfk_1
     FOREIGN KEY (userId) REFERENCES user(id)
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
@@ -107,12 +107,12 @@ CREATE TABLE savedArtefact (
   KEY boardId (boardId),
   CONSTRAINT savedArtefact_ibfk_1
     FOREIGN KEY (artefactId) REFERENCES artefact(artefactId)
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT savedArtefact_ibfk_2
     FOREIGN KEY (boardId) REFERENCES savedBoard(id)
-    ON DELETE RESTRICT
-    ON UPDATE RESTRICT,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   UNIQUE KEY unique_artefact_board (artefactId, boardId)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
@@ -124,4 +124,4 @@ ALTER TABLE savedBoard
   ADD CONSTRAINT savedBoard_ibfk_2
     FOREIGN KEY (savedArtefactId) REFERENCES savedArtefact(id)
     ON DELETE SET NULL
-    ON UPDATE RESTRICT;
+    ON UPDATE CASCADE;

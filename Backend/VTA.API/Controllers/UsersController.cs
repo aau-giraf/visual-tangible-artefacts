@@ -229,13 +229,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             return Forbid();
         }
 
-        var user = await context.Users.FindAsync(id);//Find user with 
+        // Load user with all related entities (Categories and their Artefacts)
+        var user = await context.Users
+            .Include(u => u.Categories)
+                .ThenInclude(c => c.Artefacts)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
             return NotFound();
         }
-        
+
         /*Categories and artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
         * Therefore we remove all the images and sounds from the filesystem before we loose the refs*/
         foreach (var category in user.Categories)
