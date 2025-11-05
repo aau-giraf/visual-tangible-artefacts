@@ -335,7 +335,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                         final Size artSize = artefact.renderedSize ?? const Size(200, 200);
                         if (_isInsideMat(details.offset, artefactSize: artSize)) {
                           Offset adjustedPosition = details.offset;
-                          if (artefact.baseArtefact?.nameShown == true) {
+                          if (artefact.nameVisible == true) {
                             final double nameOffset = _getNameDisplayOffset(
                               artefact.baseArtefact?.name ?? '',
                               context,
@@ -359,7 +359,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                   final artefact = details.data;
                   // Adjust anchoring if name is shown so pointer aligns with image
                   Offset adjusted = details.offset;
-                  if (artefact.baseArtefact?.nameShown == true) {
+                  if (artefact.nameVisible == true) {
                     final double nameOffset = _getNameDisplayOffset(
                       artefact.baseArtefact?.name ?? '',
                       context,

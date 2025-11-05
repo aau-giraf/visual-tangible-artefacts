@@ -10,6 +10,8 @@ class BoardArtefact {
   Artefact? baseArtefact;
   final ValueNotifier<Size> sizeNotifier;
   final ValueNotifier<bool> showResizeHandle;
+  // Per-instance display state (e.g., show name above the artefact)
+  bool nameVisible;
   // Used for auto-sizing images on first render
   final String? imageUrlForSizing;
   final Map<String, String>? imageHeadersForSizing;
@@ -21,8 +23,10 @@ class BoardArtefact {
     this.imageUrlForSizing,
     this.imageHeadersForSizing,
     Size? initialSize,
+    bool? nameVisible,
   })  : sizeNotifier = ValueNotifier<Size>(initialSize ?? const Size(200, 200)),
-        showResizeHandle = ValueNotifier<bool>(false);
+        showResizeHandle = ValueNotifier<bool>(false),
+        nameVisible = nameVisible ?? false;
 
   String get artefactId => baseArtefact?.artefactId ?? '';
 
@@ -97,7 +101,25 @@ class BoardArtefact {
       imageUrlForSizing: artefact.imageUrl,
       imageHeadersForSizing: headers,
       initialSize: const Size(200, 200),
+
+      nameVisible: false,
     );
+  }
+
+ 
+  BoardArtefact clone({bool keepPosition = false}) {
+    final cloned = BoardArtefact(
+      baseContent: baseContent,
+      baseArtefact: baseArtefact,
+      imageUrlForSizing: imageUrlForSizing,
+      imageHeadersForSizing: imageHeadersForSizing,
+      initialSize: sizeNotifier.value,
+      nameVisible: false,
+    );
+    if (keepPosition) {
+      cloned.position = position == null ? null : Offset(position!.dx, position!.dy);
+    }
+    return cloned;
   }
 }
 
