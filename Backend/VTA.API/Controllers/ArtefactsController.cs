@@ -283,8 +283,8 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
-                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
 
@@ -365,8 +365,8 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
-                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
 
@@ -438,11 +438,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
-            // Generate speech
+            // Generate speech using v2.5 turbo model which supports audio tags
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
                 voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
-                modelId: "eleven_monolingual_v1"
+                modelId: "eleven_turbo_v2_5" // v2.5 model supports audio tags like <break>, <emphasis>, etc.
             );
 
             if (audioData == null)
