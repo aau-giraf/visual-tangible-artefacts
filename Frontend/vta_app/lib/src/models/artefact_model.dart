@@ -81,7 +81,7 @@ class ArtifactModel {
     }
   }
 
-  Future<void> postArtefact(Artefact artefact, {required String token}) async {
+  Future<Artefact> postArtefact(Artefact artefact, {required String token}) async {
     try {
       // Ensure we pass the sound bytes with the key 'Sound' to match backend IFormFile binding
       var body = artefact.toJson();
@@ -92,10 +92,12 @@ class ArtifactModel {
       var response = await apiProvider.sendAsMultiPart(
           'POST', "Users/Artefacts",
           body: body, headers: {'Authorization': 'Bearer $token'});
+
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);
         final catId = newArtefact.categoryId;
+
         if (catId == 'Session-Artefact') {
           // Do not add to categories list!!! session artefacts are treated as uncategorized.
         } else {
@@ -114,8 +116,7 @@ class ArtifactModel {
           }
         }
 
-        
-
+        return newArtefact;
       } else {
         throw ArtifactException(
             message:

@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
@@ -332,14 +334,27 @@ class LinearBoardState extends State<LinearBoard>
               confirmRemoveAllArtifacts();
             },
             child: DragTarget<BoardArtefact>(
-              onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-                int artifactIndex =
-                    _linearBoardController.artifacts.indexOf(details.data);
-                if (artifactIndex != -1) {
-                  _linearBoardController.removeArtifact(artifactIndex);
-                }
-                _disableTrashcanAnimation();
-              },
+                onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) async {
+                  int artifactIndex =
+                      _linearBoardController.artifacts.indexOf(details.data);
+                  if (artifactIndex != -1) {
+                    // Remove locally first
+                    final removed = _linearBoardController.artifacts[artifactIndex];
+                    _linearBoardController.removeArtifact(artifactIndex);
+
+                    // If session artefact, delete from server too
+                    try {
+                      if (removed?.baseArtefact?.categoryId == 'Session-Artefact') {
+                        final artefactController = GetIt.instance.get<ArtefactController>();
+                        // Ask for confirmation before deleting from DB
+                        await artefactController.deleteArtefact(context, removed!.baseArtefact!);
+                      }
+                    } catch (e) {
+                      debugPrint('Failed to delete session artefact from server: $e');
+                    }
+                  }
+                  _disableTrashcanAnimation();
+                },
               onWillAcceptWithDetails: (details) {
                 _enableTrashcanAnimation();
                 return true;

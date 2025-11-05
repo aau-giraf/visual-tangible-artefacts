@@ -156,7 +156,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                           ),
                         ),
                       ),
-                      QuickAddArtefactButton(artefactController: artifactController),
+                      QuickAddArtefactButton(artefactController: artifactController, onArtifactAdded: controller.addArtifactToCurrentBoard),
                       const QuickChatButton(),
                     ],
                   ),

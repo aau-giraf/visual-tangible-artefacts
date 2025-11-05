@@ -107,7 +107,7 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
-Future<void> newArtifact(BuildContext context, String categoryId) async {
+Future<void> newArtifact(BuildContext context, String categoryId, {Function(Artefact)? onCreated}) async {
     var popup = AddItemPopup(
         isCategory: false,
         title: 'Tilføj artefakt',
@@ -120,12 +120,17 @@ Future<void> newArtifact(BuildContext context, String categoryId) async {
                 image: imageBytes,
                 sound: soundBytes,
                 name: name);
-            await _model.postArtefact(newArtefact,
+            var created = await _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
               if (context.mounted) {
                 _showSuccessActionSnackBar(context, 'Artefact tilføjet');
               }
             notifyListeners();
+            if (onCreated != null) {
+              try {
+                onCreated(created);
+              } catch (_) {}
+            }
           } catch (e) {
             if (context.mounted) {
               _showErrorSnackBar(context, e.toString());
@@ -163,6 +168,7 @@ Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
       );
     }
   }
+ 
 
   Future<void> updateArtefact(
     BuildContext context, 

@@ -399,9 +399,21 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                               width: _isDraggingOverTrashCan ? 120 : 50,
                             );
                           },
-                          onAcceptWithDetails: (details) {
+                          onAcceptWithDetails: (details) async {
                             var artefact = details.data;
+                            // remove locally first for immediate UI feedback
                             widget.controller.removeArtifact(artefact);
+
+                            // If this is a session artefact, delete it from the server as well
+                            try {
+                              if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
+                                final artefactController = GetIt.instance.get<ArtefactController>();
+                                await artefactController.deleteArtefact(context, artefact.baseArtefact!);
+                              }
+                            } catch (e) {
+                              debugPrint('Failed to delete session artefact from server: $e');
+                            }
+
                             _animationController.reverse();
                             _animationController.addStatusListener((status) {
                               if (status == AnimationStatus.dismissed) {
