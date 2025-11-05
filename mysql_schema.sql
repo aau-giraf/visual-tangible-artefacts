@@ -1,5 +1,5 @@
 -- MySQL 8.0+ schema for VTA (utf8mb4_0900_ai_ci)
--- Creates database and tables: user, category, artefact
+-- Creates database and tables: user, category, artefact, savedBoard, savedArtefact
 -- Safe to run multiple times if the DB doesn't already exist (will error if it does)
 -- Adjust the database name if needed.
 
@@ -10,7 +10,9 @@ USE dev_vta;
 -- Make sure the session uses the desired charset/collation
 SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
--- Drop in dependency order (artefact -> category/user)
+-- Drop in dependency order (savedArtefact -> savedBoard -> artefact -> category/user)
+DROP TABLE IF EXISTS savedArtefact;
+DROP TABLE IF EXISTS savedBoard;
 DROP TABLE IF EXISTS artefact;
 DROP TABLE IF EXISTS category;
 DROP TABLE IF EXISTS user;
@@ -72,3 +74,54 @@ CREATE TABLE artefact (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
+-- SAVED BOARD
+CREATE TABLE savedBoard (
+  id               VARCHAR(36)  NOT NULL,
+  name             VARCHAR(255) NOT NULL,
+  userId           VARCHAR(36)  NOT NULL,
+  savedArtefactId  VARCHAR(36)  NULL,
+  snapshotPath     VARCHAR(255) NULL,
+  createdDate      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  modifiedDate     DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY userId (userId),
+  CONSTRAINT savedBoard_ibfk_1
+    FOREIGN KEY (userId) REFERENCES user(id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_0900_ai_ci;
+
+-- SAVED ARTEFACT
+CREATE TABLE savedArtefact (
+  id          VARCHAR(36)  NOT NULL,
+  artefactId  VARCHAR(36)  NOT NULL,
+  boardId     VARCHAR(36)  NOT NULL,
+  posX        FLOAT        NOT NULL DEFAULT 0,
+  posY        FLOAT        NOT NULL DEFAULT 0,
+  createdDate DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY artefactId (artefactId),
+  KEY boardId (boardId),
+  CONSTRAINT savedArtefact_ibfk_1
+    FOREIGN KEY (artefactId) REFERENCES artefact(artefactId)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  CONSTRAINT savedArtefact_ibfk_2
+    FOREIGN KEY (boardId) REFERENCES savedBoard(id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  UNIQUE KEY unique_artefact_board (artefactId, boardId)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_0900_ai_ci;
+
+-- Add foreign key constraint from savedBoard to savedArtefact
+-- (done after savedArtefact table is created to avoid circular dependency)
+ALTER TABLE savedBoard
+  ADD CONSTRAINT savedBoard_ibfk_2
+    FOREIGN KEY (savedArtefactId) REFERENCES savedArtefact(id)
+    ON DELETE SET NULL
+    ON UPDATE RESTRICT;
