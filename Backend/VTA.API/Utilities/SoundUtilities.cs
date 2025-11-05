@@ -14,7 +14,8 @@ public static class SoundUtilities
             return null;
         }
 
-        string fileName = soundId + Path.GetExtension(soundFile.FileName);
+        // Add "sound_" prefix to filename for clarity
+        string fileName = "sound_" + soundId + Path.GetExtension(soundFile.FileName);
         // Create user-specific folder structure: Assets/Sounds/{userId}/
         string soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
@@ -38,7 +39,8 @@ public static class SoundUtilities
             return null;
         }
 
-        string fileName = soundId + fileExtension;
+        // Add "sound_" prefix to filename for clarity
+        string fileName = "sound_" + soundId + fileExtension;
         // Create user-specific folder structure: Assets/Sounds/{userId}/
         string soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
@@ -60,8 +62,9 @@ public static class SoundUtilities
             return null;
         }
 
+        // Look for files with "sound_" prefix
         var file = Directory.EnumerateFiles(path)
-                    .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(soundId, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals("sound_" + soundId, StringComparison.OrdinalIgnoreCase));
         if (file == null) return null;
         File.Delete(file);
         return true;

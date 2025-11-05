@@ -80,8 +80,8 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(artefact.ArtefactId, retrievedArtefact.ArtefactId);
         Assert.Equal(loginData.userId, retrievedArtefact.UserId);
 
-        // File is now stored in user-specific folder: Assets/Artefacts/{userId}/
-        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"{artefact.ArtefactId}.jpg");
+        // File is now stored in user-specific folder with "image_" prefix: Assets/Artefacts/{userId}/image_{artefactId}.jpg
+        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"image_{artefact.ArtefactId}.jpg");
 
         await Task.Delay(1000); // Increased delay for slower systems
 
@@ -393,8 +393,8 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             await _client.SendAsync(request);
 
-            // File is stored in user-specific folder: Assets/Artefacts/{userId}/
-            var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"{artefact.ArtefactId}.jpg");
+            // File is stored in user-specific folder with "image_" prefix: Assets/Artefacts/{userId}/image_{artefactId}.jpg
+            var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"image_{artefact.ArtefactId}.jpg");
             if (File.Exists(assetsPath))
             {
                 File.Delete(assetsPath);
