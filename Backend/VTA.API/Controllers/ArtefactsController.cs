@@ -69,6 +69,13 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
         var artefact = context.Artefacts.Find(dto.ArtefactId);
 
         if (artefact == null)
@@ -88,21 +95,22 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             artefact.NameShown = dto.NameShown;
         }
-        if (dto.Image != null)
+
+        if (dto.Image != null && !string.IsNullOrEmpty(artefact.CategoryId))
         {
-            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories");
-            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories");
+            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories", userId);
+            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories", userId);
         }
         if (dto.Sound != null)
         {
             // Delete any existing sound for this artefact
             try
             {
-                SoundUtilities.DeleteSound(artefact.ArtefactId);
+                SoundUtilities.DeleteSound(artefact.ArtefactId, userId);
             }
             catch { }
             // Save sound file using SoundUtilities: ArtefactId + extension in Assets/Sounds
-            var soundPath = SoundUtilities.AddSound(dto.Sound, artefact.ArtefactId);
+            var soundPath = SoundUtilities.AddSound(dto.Sound, artefact.ArtefactId, userId);
             artefact.SoundPath = soundPath;
         }
 
@@ -114,7 +122,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!ArtefactExists(artefact.CategoryId))
+            if (!ArtefactExists(artefact.ArtefactId))
             {
                 return NotFound();
             }
@@ -151,19 +159,19 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return Forbid();
         }
 
-        
+
 
         string artefactId = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts");
+        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
         string? soundUrl = null;
-        
+
         // Debug logging for sound data
         Console.WriteLine($"Debug: PostArtefact - Sound data present: {artefactPostDTO.Sound != null}");
         if (artefactPostDTO.Sound != null)
         {
             Console.WriteLine($"Debug: PostArtefact - Sound file size: {artefactPostDTO.Sound.Length} bytes");
             Console.WriteLine($"Debug: PostArtefact - Sound file name: {artefactPostDTO.Sound.FileName}");
-            soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId);
+            soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId, userId);
             Console.WriteLine($"Debug: PostArtefact - Sound saved to: {soundUrl}");
         }
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
@@ -223,11 +231,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             return Forbid();
         }
-        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", userId);
         // Also remove associated sound file if present
         try
         {
-            SoundUtilities.DeleteSound(artefact.ArtefactId);
+            SoundUtilities.DeleteSound(artefact.ArtefactId, userId);
         }
         catch { }
 
@@ -252,7 +260,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate text input
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         try
@@ -275,8 +283,8 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
-                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
 
@@ -312,18 +320,24 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate input
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         if (string.IsNullOrWhiteSpace(request.ArtefactId))
         {
-            return BadRequest("ArtefactId cannot be empty");
+            return BadRequest(new { error = "ArtefactId cannot be empty" });
         }
 
         try
         {
             // Check if artefact exists and user owns it
             var userId = User.FindFirst("id")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
             var artefact = await context.Artefacts
                 .Where(a => a.UserId == userId && a.ArtefactId == request.ArtefactId)
                 .FirstOrDefaultAsync();
@@ -351,8 +365,8 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (xj6X4BCUsv9oxohm1E8o)
-                modelId: "eleven_multilingual_v2", // Use multilingual v2 model
+                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
 
@@ -362,8 +376,8 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId);
-            
+            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId, userId);
+
             if (soundUrl == null)
             {
                 return StatusCode(500, "Failed to save generated audio file");
@@ -398,15 +412,22 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate input
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         try
         {
+            var userId = User.FindFirst("id")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
             // Get ElevenLabs API key from configuration
             var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
             var apiKey = configuration["ElevenLabs:ApiKey"];
-            
+
             if (string.IsNullOrEmpty(apiKey))
             {
                 return StatusCode(500, "ElevenLabs API key not configured");
@@ -417,11 +438,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
-            // Generate speech
+            // Generate speech using v2.5 turbo model which supports audio tags
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
                 voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
-                modelId: "eleven_monolingual_v1"
+                modelId: "eleven_turbo_v2_5" // v2.5 model supports audio tags like <break>, <emphasis>, etc.
             );
 
             if (audioData == null)
@@ -431,10 +452,10 @@ public class ArtefactsController(VTAContext context) : ControllerBase
 
             // Generate unique ID for the sound file
             var soundId = Guid.NewGuid().ToString();
-            
+
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, soundId);
-            
+            var soundUrl = SoundUtilities.AddSound(audioData, soundId, userId);
+
             if (soundUrl == null)
             {
                 return StatusCode(500, "Failed to save generated audio file");
@@ -542,7 +563,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         // Validate text input
         if (string.IsNullOrWhiteSpace(ttsDto.Text))
         {
-            return BadRequest("Text cannot be empty");
+            return BadRequest(new { error = "Text cannot be empty" });
         }
 
         try
@@ -579,7 +600,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             // Delete any existing sound for this artefact
             try
             {
-                SoundUtilities.DeleteSound(artefact.ArtefactId);
+                SoundUtilities.DeleteSound(artefact.ArtefactId, userId);
             }
             catch { }
 
@@ -597,12 +618,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             };
 
             // Save using existing sound utilities
-            var soundPath = SoundUtilities.AddSound(formFile, artefact.ArtefactId);
+            var soundPath = SoundUtilities.AddSound(formFile, artefact.ArtefactId, userId);
             if (soundPath != null)
             {
                 artefact.SoundPath = soundPath;
                 artefact.ModifiedDate = DateTime.UtcNow;
-                
+
                 context.Entry(artefact).State = EntityState.Modified;
                 await context.SaveChangesAsync();
             }
