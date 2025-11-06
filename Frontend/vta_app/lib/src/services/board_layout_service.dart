@@ -60,6 +60,10 @@ class BoardLayoutService {
   /// Save a new board layout
   Future<BoardLayoutResponse?> saveBoard(SaveBoardRequest request) async {
     try {
+      print('Debug: Attempting to save board with ${request.artefacts.length} artefacts');
+      print('Debug: API URL: ${_apiProvider.baseUrl}Users/Boards');
+      print('Debug: Token available: ${_token.value != null}');
+      
       final response = await _apiProvider.postAsJson(
         'Users/Boards',
         headers: {
@@ -67,6 +71,11 @@ class BoardLayoutService {
         },
         body: request.toJson(),
       );
+
+      print('Debug: Save board response status: ${response?.statusCode}');
+      if (response != null) {
+        print('Debug: Save board response body: ${response.body}');
+      }
 
       if (response != null && response.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(response.body);

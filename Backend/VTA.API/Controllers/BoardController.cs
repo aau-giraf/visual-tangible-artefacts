@@ -123,67 +123,87 @@ public class BoardController : ControllerBase
             return BadRequest("Board name is required");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // Create the board
-            var board = new SavedBoard
+            // Use execution strategy to handle the transaction properly
+            var strategy = _context.Database.CreateExecutionStrategy();
+            var response = await strategy.ExecuteAsync(async () =>
             {
-                Id = Guid.NewGuid().ToString(),
-                Name = request.Name,
-                UserId = userId,
-                CreatedDate = DateTime.UtcNow
-            };
-
-            _context.SavedBoards.Add(board);
-            await _context.SaveChangesAsync();
-
-            // Add artefacts to the board
-            foreach (var artefactLayout in request.Artefacts)
-            {
-                // Verify the artefact exists and belongs to the user
-                var artefactExists = await _context.Artefacts
-                    .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
-
-                if (!artefactExists)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    return BadRequest($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
+                    // Create the board
+                    var board = new SavedBoard
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Name = request.Name,
+                        UserId = userId,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    _context.SavedBoards.Add(board);
+                    await _context.SaveChangesAsync();
+
+                    // Add artefacts to the board
+                    foreach (var artefactLayout in request.Artefacts)
+                    {
+                        // Verify the artefact exists and belongs to the user
+                        var artefactExists = await _context.Artefacts
+                            .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
+
+                        if (!artefactExists)
+                        {
+                            throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
+                        }
+
+                        var savedArtefact = new SavedArtefact
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            ArtefactId = artefactLayout.ArtefactId,
+                            BoardId = board.Id,
+                            PosX = artefactLayout.PosX,
+                            PosY = artefactLayout.PosY,
+                            Width = artefactLayout.Width,
+                            Height = artefactLayout.Height,
+                            CreatedDate = DateTime.UtcNow
+                        };
+
+                        _context.SavedArtefacts.Add(savedArtefact);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // Return the created board
+                    return new BoardLayoutResponseDTO
+                    {
+                        BoardId = board.Id,
+                        Name = board.Name,
+                        CreatedDate = board.CreatedDate,
+                        ModifiedDate = board.ModifiedDate,
+                        Artefacts = request.Artefacts
+                    };
                 }
-
-                var savedArtefact = new SavedArtefact
+                catch
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    ArtefactId = artefactLayout.ArtefactId,
-                    BoardId = board.Id,
-                    PosX = artefactLayout.PosX,
-                    PosY = artefactLayout.PosY,
-                    Width = artefactLayout.Width,
-                    Height = artefactLayout.Height,
-                    CreatedDate = DateTime.UtcNow
-                };
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
 
-                _context.SavedArtefacts.Add(savedArtefact);
-            }
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            // Return the created board
-            var response = new BoardLayoutResponseDTO
-            {
-                BoardId = board.Id,
-                Name = board.Name,
-                CreatedDate = board.CreatedDate,
-                ModifiedDate = board.ModifiedDate,
-                Artefacts = request.Artefacts
-            };
-
-            return CreatedAtAction(nameof(GetBoard), new { boardId = board.Id }, response);
+            return CreatedAtAction(nameof(GetBoard), new { boardId = response.BoardId }, response);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             Console.WriteLine($"Error saving board: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            // Check if it's a database column issue
+            if (ex.Message.Contains("Unknown column") || ex.Message.Contains("width") || ex.Message.Contains("height"))
+            {
+                return StatusCode(500, "Database schema needs migration. Please run the migration endpoint first.");
+            }
+            
             return StatusCode(500, "Error saving board");
         }
     }
@@ -213,62 +233,82 @@ public class BoardController : ControllerBase
             return NotFound("Board not found");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // Update board properties
-            board.Name = request.Name;
-            board.ModifiedDate = DateTime.UtcNow;
-
-            // Remove existing artefact layouts
-            _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
-
-            // Add updated artefact layouts
-            foreach (var artefactLayout in request.Artefacts)
+            // Use execution strategy to handle the transaction properly
+            var strategy = _context.Database.CreateExecutionStrategy();
+            var response = await strategy.ExecuteAsync(async () =>
             {
-                // Verify the artefact exists and belongs to the user
-                var artefactExists = await _context.Artefacts
-                    .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
-
-                if (!artefactExists)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    return BadRequest($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
+                    // Update board properties
+                    board.Name = request.Name;
+                    board.ModifiedDate = DateTime.UtcNow;
+
+                    // Remove existing artefact layouts
+                    _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
+
+                    // Add updated artefact layouts
+                    foreach (var artefactLayout in request.Artefacts)
+                    {
+                        // Verify the artefact exists and belongs to the user
+                        var artefactExists = await _context.Artefacts
+                            .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
+
+                        if (!artefactExists)
+                        {
+                            throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
+                        }
+
+                        var savedArtefact = new SavedArtefact
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            ArtefactId = artefactLayout.ArtefactId,
+                            BoardId = board.Id,
+                            PosX = artefactLayout.PosX,
+                            PosY = artefactLayout.PosY,
+                            Width = artefactLayout.Width,
+                            Height = artefactLayout.Height,
+                            CreatedDate = DateTime.UtcNow
+                        };
+
+                        _context.SavedArtefacts.Add(savedArtefact);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // Return the updated board
+                    return new BoardLayoutResponseDTO
+                    {
+                        BoardId = board.Id,
+                        Name = board.Name,
+                        CreatedDate = board.CreatedDate,
+                        ModifiedDate = board.ModifiedDate,
+                        Artefacts = request.Artefacts
+                    };
                 }
-
-                var savedArtefact = new SavedArtefact
+                catch
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    ArtefactId = artefactLayout.ArtefactId,
-                    BoardId = board.Id,
-                    PosX = artefactLayout.PosX,
-                    PosY = artefactLayout.PosY,
-                    Width = artefactLayout.Width,
-                    Height = artefactLayout.Height,
-                    CreatedDate = DateTime.UtcNow
-                };
-
-                _context.SavedArtefacts.Add(savedArtefact);
-            }
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            // Return the updated board
-            var response = new BoardLayoutResponseDTO
-            {
-                BoardId = board.Id,
-                Name = board.Name,
-                CreatedDate = board.CreatedDate,
-                ModifiedDate = board.ModifiedDate,
-                Artefacts = request.Artefacts
-            };
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             Console.WriteLine($"Error updating board: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            // Check if it's a database column issue
+            if (ex.Message.Contains("Unknown column") || ex.Message.Contains("width") || ex.Message.Contains("height"))
+            {
+                return StatusCode(500, "Database schema needs migration. Please run the migration endpoint first.");
+            }
+            
             return StatusCode(500, "Error updating board");
         }
     }

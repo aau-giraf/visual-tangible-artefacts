@@ -67,6 +67,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       parent: _animationController,
       curve: Curves.easeIn,
     ));
+
+    // Try to load the current board on initialization
+    _loadCurrentBoard();
   }
 
   @override
@@ -253,15 +256,19 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
 
   /// Auto-save the current board layout
   Future<void> _autoSaveBoardLayout() async {
-    if (_currentBoardId == null) {
-      print('Debug: No current board ID set, skipping auto-save');
-      return;
-    }
-
     final layoutData = _getCurrentBoardLayout();
     if (layoutData.isEmpty) {
       print('Debug: No artefacts to save');
       return;
+    }
+
+    // If no current board ID, create a default board first
+    if (_currentBoardId == null) {
+      await _createDefaultBoard();
+      if (_currentBoardId == null) {
+        print('Debug: Failed to create default board, skipping auto-save');
+        return;
+      }
     }
 
     try {
@@ -285,13 +292,74 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
   }
 
+  /// Try to load the current board on initialization
+  Future<void> _loadCurrentBoard() async {
+    try {
+      final boards = await _boardLayoutService.getBoards();
+      if (boards != null && boards.isNotEmpty) {
+        // Look for a board named "Current Board" or use the most recent one
+        final currentBoard = boards.firstWhere(
+          (board) => board.name == 'Current Board',
+          orElse: () => boards.first, // Fallback to first board if no "Current Board" found
+        );
+        
+        _currentBoardId = currentBoard.boardId;
+        print('Debug: Loaded existing board "${currentBoard.name}" with ID: ${currentBoard.boardId}');
+        
+        // Don't apply positions automatically on startup to avoid overriding user's current layout
+        // The board ID is set so auto-save will work from now on
+      }
+    } catch (e) {
+      print('Debug: No existing boards found or error loading: $e');
+      // This is fine - a new board will be created when first needed
+    }
+  }
+
+  /// Create a default board for auto-saving
+  Future<void> _createDefaultBoard() async {
+    try {
+      final defaultBoardName = 'Current Board';
+      final layoutData = _getCurrentBoardLayout();
+      
+      final request = SaveBoardRequest(
+        name: defaultBoardName,
+        artefacts: layoutData,
+      );
+
+      final response = await _boardLayoutService.saveBoard(request);
+      if (response != null) {
+        _currentBoardId = response.boardId;
+        print('Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
+      } else {
+        print('Debug: Failed to create default board');
+      }
+    } catch (e) {
+      print('Debug: Error creating default board: $e');
+    }
+  }
+
   /// Get current board layout data from the artifacts
   List<BoardArtefactLayout> _getCurrentBoardLayout() {
-    return artifacts
+    // Get artifacts from the controller, not the local artifacts list
+    final currentArtifacts = widget.controller.value;
+    print('Debug: Total artifacts on board: ${currentArtifacts.length}');
+    
+    // Debug each artifact
+    for (int i = 0; i < currentArtifacts.length; i++) {
+      final artifact = currentArtifacts[i];
+      print('Debug: Artifact $i - baseArtefact: ${artifact.baseArtefact != null}');
+      if (artifact.baseArtefact != null) {
+        print('Debug: Artifact $i - artefactId: ${artifact.baseArtefact!.artefactId}');
+      }
+    }
+    
+    final validArtifacts = currentArtifacts
         .where((artifact) => artifact.baseArtefact != null && artifact.baseArtefact!.artefactId != null)
         .map((artifact) {
       final position = artifact.position ?? Offset.zero;
       final size = artifact.sizeNotifier.value;
+      
+      print('Debug: Saving artifact ${artifact.baseArtefact!.artefactId} at position (${position.dx}, ${position.dy}) with size (${size.width}, ${size.height})');
       
       return BoardArtefactLayout(
         artefactId: artifact.baseArtefact!.artefactId!,
@@ -301,6 +369,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         height: size.height,
       );
     }).toList();
+    
+    print('Debug: Valid artifacts for saving: ${validArtifacts.length}');
+    return validArtifacts;
   }
 
   /// Save the current board as a new saved board
@@ -332,9 +403,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       if (boardLayout != null) {
         _currentBoardId = boardId;
         
-        // Update artifact positions and sizes
+        // Update artifact positions and sizes using the controller's artifacts
+        final currentArtifacts = widget.controller.value;
         for (final artefactLayout in boardLayout.artefacts) {
-          final artifact = artifacts.firstWhere(
+          final artifact = currentArtifacts.firstWhere(
             (a) => a.baseArtefact?.artefactId == artefactLayout.artefactId,
             orElse: () => throw StateError('Artefact not found'),
           );
