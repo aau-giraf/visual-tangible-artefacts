@@ -382,10 +382,10 @@ Widget _buildImageGrid(Category category) {
             child: GridView.builder(
               padding: const EdgeInsets.all(10),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
+              crossAxisCount: 8,
+              crossAxisSpacing: 50,
+              mainAxisSpacing: 50, 
+),
               itemCount: totalItems,
               itemBuilder: (context, index) {
                 if (index == 0) {
@@ -429,7 +429,6 @@ Widget _buildImageGrid(Category category) {
     );
   });
 }
-
 Widget _buildImageGridItem(
   BuildContext context,
   int index,
@@ -459,62 +458,72 @@ Widget _buildImageGridItem(
 
   return GestureDetector(
     onLongPress: onLongPress,
-    child: MouseRegion(
-      onEnter: (_) => onHoverChange(index),
-      onExit: (_) => onHoverChange(null),
-      cursor: SystemMouseCursors.click,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          AnimatedContainer(
-            duration: Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            transform: Matrix4.identity()
-              ..translate(
-                isHovered ? 2.0 : 0.0,
-                isHovered ? -2.0 : 0.0,
-              )
-              ..scale(isHovered ? 1.08 : 1.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: GestureDetector(
-                onTap: isInDeletionMode
-                    ? null
-                    : () {
-                        widget.onArtifactAdded(boardArtefacts[index]);
-                        Navigator.pop(context);
-                      },
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          transform: Matrix4.identity()
+            ..translate(
+              isHovered ? 4.0 : 0.0,
+              isHovered ? -4.0 : 0.0,
+            )
+            ..scale(isHovered ? 1.15 : 1.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: GestureDetector(
+  onTap: isInDeletionMode
+      ? null
+      : () async {
+                // Trigger hover effect on tap
+                onHoverChange(index);
+
+                  await Future.delayed(Duration(milliseconds: 150));
+                  widget.onArtifactAdded(boardArtefacts[index]);
+                  Navigator.pop(context);
+                  onHoverChange(null);
+                 },
+              // hold-down effect on mobile
+              onTapDown: (_) => onHoverChange(index),
+              onTapUp: (_) => onHoverChange(null),
+              onTapCancel: () => onHoverChange(null),
+              child: MouseRegion(
+                 // Desktop hover support
+                onEnter: (_) => onHoverChange(index),
+                onExit: (_) => onHoverChange(null),
+                cursor: SystemMouseCursors.click,
                 child: boardArtefacts[index].content,
               ),
             ),
           ),
-          if (isInDeletionMode)
-            Positioned(
-              right: -10,
-              top: -10,
-              child: Material(
-                color: Colors.transparent,
-                child: IconButton(
-                  icon: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+        ),
+        if (isInDeletionMode)
+          Positioned(
+            right: -10,
+            top: -10,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton(
+                icon: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
                   ),
-                  onPressed: () async {
-                    await widget.artefactController
-                        .deleteArtefact(context, category.artefacts![index]);
-                  },
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
+                onPressed: () async {
+                  await widget.artefactController
+                      .deleteArtefact(context, category.artefacts![index]);
+                },
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     ),
   );
 }
