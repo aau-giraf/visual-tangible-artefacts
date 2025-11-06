@@ -40,6 +40,14 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
             .HasColumnName("posY")
             .HasDefaultValue(0f);
 
+        builder.Property(e => e.Width)
+            .HasColumnName("width")
+            .HasDefaultValue(200f);
+
+        builder.Property(e => e.Height)
+            .HasColumnName("height")
+            .HasDefaultValue(200f);
+
         builder.Property(e => e.CreatedDate)
             .HasColumnType("datetime")
             .HasColumnName("createdDate")

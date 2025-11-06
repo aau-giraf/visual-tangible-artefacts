@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +8,8 @@ import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:vta_app/src/models/board_layout.dart';
+import 'package:vta_app/src/services/board_layout_service.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 
@@ -42,6 +45,11 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   bool _isDraggingOverTrashCan = false;
   bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final BoardLayoutService _boardLayoutService = BoardLayoutService();
+  String? _currentBoardId; // Track the current board being edited
+  
+  // Debounce timer for auto-save
+  Timer? _saveTimer;
 
   @override
   void initState() {
@@ -65,12 +73,18 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   void dispose() {
     _animationController.dispose();
     _audioPlayer.dispose();
+    _saveTimer?.cancel();
     super.dispose();
   }
 
   void addArtifact(BoardArtefact artifact) {
     setState(() {
       artifacts.add(artifact);
+      
+      // Add listener for size changes to trigger auto-save
+      artifact.sizeNotifier.addListener(() {
+        _scheduleAutoSave();
+      });
     });
   }
 
@@ -137,6 +151,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     setState(() {
       artifact.position = Offset(x, y);
     });
+    
+    // Auto-save the board layout after a position change
+    _scheduleAutoSave();
   }
 
   /// Play all artefact sounds on the board sequentially
@@ -224,6 +241,125 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
 
     print('Debug: Finished playing all artefact sounds on TalkingMat');
+  }
+
+  /// Auto-save board layout with debouncing to avoid too frequent saves
+  void _scheduleAutoSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(seconds: 2), () {
+      _autoSaveBoardLayout();
+    });
+  }
+
+  /// Auto-save the current board layout
+  Future<void> _autoSaveBoardLayout() async {
+    if (_currentBoardId == null) {
+      print('Debug: No current board ID set, skipping auto-save');
+      return;
+    }
+
+    final layoutData = _getCurrentBoardLayout();
+    if (layoutData.isEmpty) {
+      print('Debug: No artefacts to save');
+      return;
+    }
+
+    try {
+      for (final artefactLayout in layoutData) {
+        final request = UpdateArtefactLayoutRequest(
+          artefactId: artefactLayout.artefactId,
+          posX: artefactLayout.posX,
+          posY: artefactLayout.posY,
+          width: artefactLayout.width,
+          height: artefactLayout.height,
+        );
+
+        final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
+        if (!success) {
+          print('Debug: Failed to auto-save layout for artefact ${artefactLayout.artefactId}');
+        }
+      }
+      print('Debug: Auto-saved board layout for ${layoutData.length} artefacts');
+    } catch (e) {
+      print('Debug: Error auto-saving board layout: $e');
+    }
+  }
+
+  /// Get current board layout data from the artifacts
+  List<BoardArtefactLayout> _getCurrentBoardLayout() {
+    return artifacts
+        .where((artifact) => artifact.baseArtefact != null)
+        .map((artifact) {
+      final position = artifact.position ?? Offset.zero;
+      final size = artifact.sizeNotifier.value;
+      
+      return BoardArtefactLayout(
+        artefactId: artifact.baseArtefact!.artefactId,
+        posX: position.dx,
+        posY: position.dy,
+        width: size.width,
+        height: size.height,
+      );
+    }).toList();
+  }
+
+  /// Save the current board as a new saved board
+  Future<String?> saveBoardAs(String boardName) async {
+    final layoutData = _getCurrentBoardLayout();
+    
+    final request = SaveBoardRequest(
+      name: boardName,
+      artefacts: layoutData,
+    );
+
+    try {
+      final response = await _boardLayoutService.saveBoard(request);
+      if (response != null) {
+        _currentBoardId = response.boardId;
+        print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
+        return response.boardId;
+      }
+    } catch (e) {
+      print('Debug: Error saving board: $e');
+    }
+    return null;
+  }
+
+  /// Load a saved board layout
+  Future<void> loadBoard(String boardId) async {
+    try {
+      final boardLayout = await _boardLayoutService.getBoard(boardId);
+      if (boardLayout != null) {
+        _currentBoardId = boardId;
+        
+        // Update artifact positions and sizes
+        for (final artefactLayout in boardLayout.artefacts) {
+          final artifact = artifacts.firstWhere(
+            (a) => a.baseArtefact?.artefactId == artefactLayout.artefactId,
+            orElse: () => throw StateError('Artefact not found'),
+          );
+          
+          setState(() {
+            artifact.position = Offset(artefactLayout.posX, artefactLayout.posY);
+            artifact.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
+          });
+        }
+        
+        print('Debug: Loaded board "${boardLayout.name}" with ${boardLayout.artefacts.length} artefacts');
+      }
+    } catch (e) {
+      print('Debug: Error loading board: $e');
+    }
+  }
+
+  /// Get list of all saved boards
+  Future<List<BoardLayoutResponse>?> getSavedBoards() async {
+    try {
+      return await _boardLayoutService.getBoards();
+    } catch (e) {
+      print('Debug: Error getting saved boards: $e');
+      return null;
+    }
   }
 
   // Access the size of the artifact's content after it has been rendered

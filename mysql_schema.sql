@@ -101,6 +101,8 @@ CREATE TABLE savedArtefact (
   boardId     VARCHAR(36)  NOT NULL,
   posX        FLOAT        NOT NULL DEFAULT 0,
   posY        FLOAT        NOT NULL DEFAULT 0,
+  width       FLOAT        NOT NULL DEFAULT 200,
+  height      FLOAT        NOT NULL DEFAULT 200,
   createdDate DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY artefactId (artefactId),
