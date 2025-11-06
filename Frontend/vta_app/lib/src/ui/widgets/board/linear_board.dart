@@ -333,24 +333,27 @@ class LinearBoardState extends State<LinearBoard>
             onTap: () {
               confirmRemoveAllArtifacts();
             },
-            child: DragTarget<BoardArtefact>(
+              child: DragTarget<BoardArtefact>(
                 onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) async {
-                  int artifactIndex =
-                      _linearBoardController.artifacts.indexOf(details.data);
+                  int artifactIndex = _linearBoardController.artifacts.indexOf(details.data);
                   if (artifactIndex != -1) {
-                    // Remove locally first
-                    final removed = _linearBoardController.artifacts[artifactIndex];
-                    _linearBoardController.removeArtifact(artifactIndex);
+                    final candidate = _linearBoardController.artifacts[artifactIndex];
 
-                    // If session artefact, delete from server too
-                    try {
-                      if (removed?.baseArtefact?.categoryId == 'Session-Artefact') {
+                    if (candidate?.baseArtefact?.categoryId == 'Session-Artefact') {
+                      try {
                         final artefactController = GetIt.instance.get<ArtefactController>();
-                        // Ask for confirmation before deleting from DB
-                        await artefactController.deleteArtefact(context, removed!.baseArtefact!);
+                        final deleted = await artefactController.deleteArtefact(context, candidate!.baseArtefact!);
+                        if (deleted) {
+                          _linearBoardController.removeArtifact(artifactIndex);
+                        } else {
+                          // User cancelled deletion: leave artifact in place
+                        }
+                      } catch (e) {
+                        debugPrint('Failed to delete session artefact from server: $e');
                       }
-                    } catch (e) {
-                      debugPrint('Failed to delete session artefact from server: $e');
+                    } else {
+                      // Non-session artefacts: remove locally immediately
+                      _linearBoardController.removeArtifact(artifactIndex);
                     }
                   }
                   _disableTrashcanAnimation();

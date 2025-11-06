@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -208,7 +208,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
               // Wait for the audio to complete before playing the next one
               await _audioPlayer.playerStateStream
                   .firstWhere((state) => state.processingState == ProcessingState.completed);
-
+                  
               print('Debug: Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
             }
           } catch (e) {
@@ -222,9 +222,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         _isPlayingAllSounds = false;
       });
     }
-
+    
     print('Debug: Finished playing all artefact sounds on TalkingMat');
   }
+
 
   // Access the size of the artifact's content after it has been rendered
   void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
@@ -376,6 +377,23 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                 children: [
                   ...itemWidgets,
                   Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await _playAllArtefactSounds();
+                        },
+                        icon: Icon(_isPlayingAllSounds ? Icons.stop : Icons.play_arrow),
+                        label: Text(_isPlayingAllSounds ? 'Stop' : 'Play All'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Align(
                     alignment: Alignment.lerp(
                             Alignment.bottomCenter, Alignment.center, 0.1) ??
                         Alignment.bottomCenter,
@@ -401,17 +419,24 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           },
                           onAcceptWithDetails: (details) async {
                             var artefact = details.data;
-                            // remove locally first for immediate UI feedback
-                            widget.controller.removeArtifact(artefact);
 
-                            // If this is a session artefact, delete it from the server as well
-                            try {
-                              if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
+                            // If this is a session artefact, ask the controller to delete it
+                            // server-side first. Only remove locally after confirmation.
+                            if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
+                              try {
                                 final artefactController = GetIt.instance.get<ArtefactController>();
-                                await artefactController.deleteArtefact(context, artefact.baseArtefact!);
+                                final deleted = await artefactController.deleteArtefact(context, artefact.baseArtefact!);
+                                if (deleted) {
+                                  widget.controller.removeArtifact(artefact);
+                                } else {
+                                  // Deletion cancelled or failed -> leave artefact on the board (restored)
+                                }
+                              } catch (e) {
+                                debugPrint('Failed to delete session artefact from server: $e');
                               }
-                            } catch (e) {
-                              debugPrint('Failed to delete session artefact from server: $e');
+                            } else {
+                              // Non-session artefacts are removed locally immediately
+                              widget.controller.removeArtifact(artefact);
                             }
 
                             _animationController.reverse();

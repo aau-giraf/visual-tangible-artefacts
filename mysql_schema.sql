@@ -28,8 +28,6 @@ CREATE TABLE user (
   COLLATE=utf8mb4_0900_ai_ci;
 
 -- Insert a system user and a default "Session-Artefact" category if they don't already exist.
--- The category needs a valid userId because of the foreign key constraint, so we create
--- a lightweight system user and then create the category referencing it.
 INSERT INTO user (id, name, password, guardianKey, username)
 SELECT 'system', 'System', '', NULL, 'system'
 FROM DUAL
