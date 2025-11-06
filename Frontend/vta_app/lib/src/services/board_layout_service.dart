@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/models/board_layout.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'package:vta_app/src/utilities/token.dart';
+import 'package:vta_app/src/singletons/token.dart';
 
 class BoardLayoutService {
   final ApiProvider _apiProvider;
@@ -19,7 +19,7 @@ class BoardLayoutService {
       final response = await _apiProvider.fetchAsJson(
         'Users/Boards',
         headers: {
-          'Authorization': 'Bearer ${_token.getToken()}',
+          'Authorization': 'Bearer ${_token.value}',
         },
       );
 
@@ -42,7 +42,7 @@ class BoardLayoutService {
       final response = await _apiProvider.fetchAsJson(
         'Users/Boards/$boardId',
         headers: {
-          'Authorization': 'Bearer ${_token.getToken()}',
+          'Authorization': 'Bearer ${_token.value}',
         },
       );
 
@@ -63,7 +63,7 @@ class BoardLayoutService {
       final response = await _apiProvider.postAsJson(
         'Users/Boards',
         headers: {
-          'Authorization': 'Bearer ${_token.getToken()}',
+          'Authorization': 'Bearer ${_token.value}',
         },
         body: request.toJson(),
       );
@@ -85,7 +85,7 @@ class BoardLayoutService {
       final response = await _apiProvider.patchAsJson(
         'Users/Boards/$boardId',
         headers: {
-          'Authorization': 'Bearer ${_token.getToken()}',
+          'Authorization': 'Bearer ${_token.value}',
         },
         body: request.toJson(),
       );
@@ -107,7 +107,7 @@ class BoardLayoutService {
       final response = await _apiProvider.patchAsJson(
         'Users/Boards/$boardId/artefacts',
         headers: {
-          'Authorization': 'Bearer ${_token.getToken()}',
+          'Authorization': 'Bearer ${_token.value}',
         },
         body: request.toJson(),
       );
@@ -125,7 +125,7 @@ class BoardLayoutService {
       final response = await _apiProvider.delete(
         'Users/Boards/$boardId',
         headers: {
-          'Authorization': 'Bearer ${_token.getToken()}',
+          'Authorization': 'Bearer ${_token.value}',
         },
       );
 

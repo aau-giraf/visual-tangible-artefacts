@@ -288,13 +288,13 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   /// Get current board layout data from the artifacts
   List<BoardArtefactLayout> _getCurrentBoardLayout() {
     return artifacts
-        .where((artifact) => artifact.baseArtefact != null)
+        .where((artifact) => artifact.baseArtefact != null && artifact.baseArtefact!.artefactId != null)
         .map((artifact) {
       final position = artifact.position ?? Offset.zero;
       final size = artifact.sizeNotifier.value;
       
       return BoardArtefactLayout(
-        artefactId: artifact.baseArtefact!.artefactId,
+        artefactId: artifact.baseArtefact!.artefactId!,
         posX: position.dx,
         posY: position.dy,
         width: size.width,
