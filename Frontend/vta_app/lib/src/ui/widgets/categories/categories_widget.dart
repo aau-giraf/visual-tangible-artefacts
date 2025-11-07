@@ -360,130 +360,173 @@ void _showCategoryEditModal(BuildContext context, Category category) {
     );
   }
 
-  Widget _buildImageGrid(Category category) {
-    bool isInDeletionMode = false;
+Widget _buildImageGrid(Category category) {
+  bool isInDeletionMode = false;
+  int? hoveredIndex;
 
-    return StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-      int totalItems = (category.artefacts?.length ?? 0) + 1;
-
-      return GestureDetector(
-        onTap: () {
-          if (isInDeletionMode) {
-            setState(() {
-              isInDeletionMode = false;
-            });
-          }
-        },
-        child: Column(
-          children: [
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(10),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 8,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: totalItems,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return _buildAddArtifactButton(category);
-                  } else {
-                    final artifactIndex = index - 1;
-                    if (artifactIndex >= category.artefacts!.length) {
-                      return SizedBox();
-                    }
-                    return GestureDetector(
-                      onLongPress: () {
-                        setState(() {
-                          isInDeletionMode = true;
-                        });
-                      },
-                      child: _buildImageGridItem(
-                        context,
-                        artifactIndex,
-                        category,
-                        isInDeletionMode,
-                        () => setState(() {
-                          isInDeletionMode = true;
-                        }),
-                        onDelete: () {
-                          setState(() {});
-                        },
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildImageGridItem(BuildContext context, int index, Category category,
-      bool isInDeletionMode, VoidCallback onLongPress,
-      {required VoidCallback onDelete}) {
-    var headers = <String, String>{
-      'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
-    };
-
-    if (index >= category.artefacts!.length) {
-      return SizedBox(); // Safety check
-    }
-
-    var boardArtefacts = category.artefacts!
-        .map((artefact) =>
-            BoardArtefact.fromArtefact(artefact, headers: headers))
-        .toList();
+  return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+    int totalItems = (category.artefacts?.length ?? 0) + 1;
 
     return GestureDetector(
-      onLongPress: onLongPress,
-      child: Stack(
+      onTap: () {
+        if (isInDeletionMode) {
+          setState(() {
+            isInDeletionMode = false;
+          });
+        }
+      },
+      child: Column(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: TextButton(
-              onPressed: isInDeletionMode
-                  ? null
-                  : () {
-                      widget.onArtifactAdded(boardArtefacts[index]);
-                      Navigator.pop(context);
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(10),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 8,
+              crossAxisSpacing: 50,
+              mainAxisSpacing: 50, 
+),
+              itemCount: totalItems,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _buildAddArtifactButton(category);
+                } else {
+                  final artifactIndex = index - 1;
+                  if (artifactIndex >= category.artefacts!.length) {
+                    return SizedBox();
+                  }
+                  return GestureDetector(
+                    onLongPress: () {
+                      setState(() {
+                        isInDeletionMode = true;
+                      });
                     },
-              child: boardArtefacts[index].content,
+                    child: _buildImageGridItem(
+                      context,
+                      artifactIndex,
+                      category,
+                      isInDeletionMode,
+                      () => setState(() {
+                        isInDeletionMode = true;
+                      }),
+                      onDelete: () {
+                        setState(() {});
+                      },
+                      hoveredIndex: hoveredIndex,
+                      onHoverChange: (index) {
+                        setState(() {
+                          hoveredIndex = index;
+                        });
+                      },
+                    ),
+                  );
+                }
+              },
             ),
           ),
-          if (isInDeletionMode)
-            Positioned(
-              right: -10,
-              top: -10,
-              child: Material(
-                color: Colors.transparent,
-                child: IconButton(
-                  icon: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                  onPressed: () async {
-                    await widget.artefactController
-                        .deleteArtefact(context, category.artefacts![index]);
-                  },
-                ),
-              ),
-            ),
         ],
       ),
     );
+  });
+}
+Widget _buildImageGridItem(
+  BuildContext context,
+  int index,
+  Category category,
+  bool isInDeletionMode,
+  VoidCallback onLongPress, {
+  required VoidCallback onDelete,
+  int? hoveredIndex,
+  required Function(int?) onHoverChange,
+}) {
+  var authState = Provider.of<AuthState>(context);
+  var artifactState = Provider.of<ArtifactState>(context, listen: false);
+  var headers = <String, String>{
+    'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
+  };
+
+  if (index >= category.artefacts!.length) {
+    return SizedBox(); // Safety check
   }
+
+  var boardArtefacts = category.artefacts!
+      .map((artefact) =>
+          BoardArtefact.fromArtefact(artefact, headers: headers))
+      .toList();
+
+  bool isHovered = hoveredIndex == index;
+
+  return GestureDetector(
+    onLongPress: onLongPress,
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          transform: Matrix4.identity()
+            ..translate(
+              isHovered ? 4.0 : 0.0,
+              isHovered ? -4.0 : 0.0,
+            )
+            ..scale(isHovered ? 1.15 : 1.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: GestureDetector(
+  onTap: isInDeletionMode
+      ? null
+      : () async {
+                // Trigger hover effect on tap
+                onHoverChange(index);
+
+                  await Future.delayed(Duration(milliseconds: 150));
+                  widget.onArtifactAdded(boardArtefacts[index]);
+                  Navigator.pop(context);
+                  onHoverChange(null);
+                 },
+              // hold-down effect on mobile
+              onTapDown: (_) => onHoverChange(index),
+              onTapUp: (_) => onHoverChange(null),
+              onTapCancel: () => onHoverChange(null),
+              child: MouseRegion(
+                 // Desktop hover support
+                onEnter: (_) => onHoverChange(index),
+                onExit: (_) => onHoverChange(null),
+                cursor: SystemMouseCursors.click,
+                child: boardArtefacts[index].content,
+              ),
+            ),
+          ),
+        ),
+        if (isInDeletionMode)
+          Positioned(
+            right: -10,
+            top: -10,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton(
+                icon: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                onPressed: () async {
+                  await widget.artefactController
+                      .deleteArtefact(context, category.artefacts![index]);
+                },
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
 
   Widget _buildAddArtifactButton(Category category) {
     return TextButton(
