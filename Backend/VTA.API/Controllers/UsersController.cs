@@ -31,11 +31,11 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         {
             return BadRequest();
         }
-        
+
         User? user = await context.Users. //_context.Users (In the users table)
             FirstOrDefaultAsync( //find the first user
             u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
-        
+
         if (user == null)//If user not found
         {
             return NotFound();
@@ -85,6 +85,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         context.Users.Add(user);
+
+        var defaultBoard = new SavedBoard
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Board1",
+            UserId = user.Id,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        context.SavedBoards.Add(defaultBoard);
+
         try
         {
             await context.SaveChangesAsync();
@@ -103,7 +114,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
         return await AutoSignIn(user);
     }
-    
+
     /// <summary>
     /// Requested by the front-end. The intended functionality is pretty clear.
     /// </summary>
