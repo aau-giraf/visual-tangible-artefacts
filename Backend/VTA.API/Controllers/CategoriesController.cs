@@ -8,7 +8,9 @@ using VTA.API.Models;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
-
+/// <summary>
+/// Controller for managing categories owned by a user.
+/// </summary>
 [Authorize]
 [Route("api/Users/Categories")]//We designed the route so that *Users* OWNS *Categories* and this route reflects it
 [ApiController]

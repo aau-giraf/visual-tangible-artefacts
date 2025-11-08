@@ -11,6 +11,9 @@ using VTA.API.Models;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
+/// <summary>
+/// Controller responsible for user-related endpoints.
+/// </summary>
 //Mark the entire controller to require a valid token
 [Authorize]
 [Route("api/Users")]//Define where all endpoints are
