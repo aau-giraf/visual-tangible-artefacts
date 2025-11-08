@@ -104,4 +104,80 @@ public static class DTOConverter
         };
     }
 
+    public static BoardGetDTO MapSavedBoardToBoardGetDTO(SavedBoard board, string scheme, string host)
+    {
+        var savedArtefactDTOs = new List<SavedArtefactGetDTO>();
+        foreach (var savedArtefact in board.SavedArtefacts)
+        {
+            savedArtefactDTOs.Add(MapSavedArtefactToSavedArtefactGetDTO(savedArtefact, scheme, host));
+        }
+
+        return new BoardGetDTO
+        {
+            Id = board.Id,
+            Name = board.Name,
+            UserId = board.UserId,
+            SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath)
+                ? null
+                : $"{scheme}://{host}{board.SnapshotPath}",
+            CreatedDate = board.CreatedDate,
+            ModifiedDate = board.ModifiedDate,
+            SavedArtefacts = savedArtefactDTOs
+        };
+    }
+
+    public static BoardListItemDTO MapSavedBoardToBoardListItemDTO(SavedBoard board, string scheme, string host)
+    {
+        return new BoardListItemDTO
+        {
+            Id = board.Id,
+            Name = board.Name,
+            SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath)
+                ? null
+                : $"{scheme}://{host}{board.SnapshotPath}",
+            CreatedDate = board.CreatedDate,
+            ModifiedDate = board.ModifiedDate
+        };
+    }
+
+    public static SavedBoard MapBoardPostDTOToSavedBoard(BoardPostDTO dto, string id, string userId)
+    {
+        return new SavedBoard
+        {
+            Id = id,
+            Name = dto.Name,
+            UserId = userId,
+            SnapshotPath = dto.SnapshotPath,
+            CreatedDate = DateTime.UtcNow,
+            ModifiedDate = null
+        };
+    }
+
+    public static SavedArtefactGetDTO MapSavedArtefactToSavedArtefactGetDTO(SavedArtefact savedArtefact, string scheme, string host)
+    {
+        return new SavedArtefactGetDTO
+        {
+            Id = savedArtefact.Id,
+            ArtefactId = savedArtefact.ArtefactId,
+            BoardId = savedArtefact.BoardId,
+            PosX = savedArtefact.PosX,
+            PosY = savedArtefact.PosY,
+            CreatedDate = savedArtefact.CreatedDate,
+            Artefact = MapArtefactToArtefactGetDTO(savedArtefact.Artefact, scheme, host)
+        };
+    }
+
+    public static SavedArtefact MapSavedArtefactPostDTOToSavedArtefact(SavedArtefactPostDTO dto, string id, string boardId)
+    {
+        return new SavedArtefact
+        {
+            Id = id,
+            ArtefactId = dto.ArtefactId,
+            BoardId = boardId,
+            PosX = dto.PosX,
+            PosY = dto.PosY,
+            CreatedDate = DateTime.UtcNow
+        };
+    }
+
 }
