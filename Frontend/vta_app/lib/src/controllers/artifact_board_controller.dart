@@ -112,6 +112,8 @@ class ArtifactBoardController {
 
   /// Add an artifact to the currently active board
   void addArtifactToCurrentBoard(BoardArtefact artifact) {
+    // Apply current setting for name visibility to the new artefact before adding
+    artifact.nameVisible = settingsController.textUnderImages;
     if (showDirectional) {
       linearBoardController.addArtifact(artifact);
     } else {
