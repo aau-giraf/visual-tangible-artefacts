@@ -21,5 +21,10 @@ public class SavedBoard
 
     public virtual SavedArtefact? SavedArtefact { get; set; }
 
+    // JSON array containing artefact IDs present on this board (e.g. ["id1","id2",...])
+    // This is used for quick lookup of which artefacts exist on the board without joining
+    // to the savedArtefact table. It is nullable and kept in sync by the controller.
+    public string? ArtefactIds { get; set; }
+
     public virtual ICollection<SavedArtefact> SavedArtefacts { get; set; } = new List<SavedArtefact>();
 }

@@ -34,6 +34,10 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasMaxLength(255)
             .HasColumnName("snapshotPath");
 
+        builder.Property(e => e.ArtefactIds)
+            .HasColumnType("json")
+            .HasColumnName("artefactIds");
+
         builder.Property(e => e.CreatedDate)
             .HasColumnType("datetime")
             .HasColumnName("createdDate")

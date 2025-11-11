@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
+using System.Text.Json;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
@@ -145,6 +146,8 @@ public class BoardController : ControllerBase
                     await _context.SaveChangesAsync();
 
                     // Add artefacts to the board
+                    string? firstSavedArtefactId = null;
+                    var artefactIds = new List<string>();
                     foreach (var artefactLayout in request.Artefacts)
                     {
                         // Verify the artefact exists and belongs to the user
@@ -169,8 +172,25 @@ public class BoardController : ControllerBase
                         };
 
                         _context.SavedArtefacts.Add(savedArtefact);
+
+                        // Track artefactId for the board-level JSON array
+                        artefactIds.Add(artefactLayout.ArtefactId);
+
+                        // If this is the first artefact, set the board's SavedArtefactId
+                        if (firstSavedArtefactId == null)
+                        {
+                            firstSavedArtefactId = savedArtefact.Id;
+                            board.SavedArtefactId = firstSavedArtefactId;
+                            // Ensure EF tracks the updated board so the savedArtefactId is persisted
+                            _context.SavedBoards.Update(board);
+                        }
                     }
 
+                    // Serialize list of artefact IDs into JSON for quick lookup
+                    board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
+
+                    // Persist everything
+                    _context.SavedBoards.Update(board);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -250,6 +270,8 @@ public class BoardController : ControllerBase
                     _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
 
                     // Add updated artefact layouts
+                    string? firstSavedArtefactId = null;
+                    var artefactIds = new List<string>();
                     foreach (var artefactLayout in request.Artefacts)
                     {
                         // Verify the artefact exists and belongs to the user
@@ -274,7 +296,23 @@ public class BoardController : ControllerBase
                         };
 
                         _context.SavedArtefacts.Add(savedArtefact);
+
+                        // Track artefact id
+                        artefactIds.Add(artefactLayout.ArtefactId);
+
+                        // Set board.SavedArtefactId to the first saved artefact in the updated list
+                        if (firstSavedArtefactId == null)
+                        {
+                            firstSavedArtefactId = savedArtefact.Id;
+                            board.SavedArtefactId = firstSavedArtefactId;
+                            // Ensure EF tracks the updated board so the savedArtefactId is persisted
+                            _context.SavedBoards.Update(board);
+                        }
                     }
+
+                    // Persist artefactIds as JSON
+                    board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
+                    _context.SavedBoards.Update(board);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -365,6 +403,25 @@ public class BoardController : ControllerBase
             };
 
             _context.SavedArtefacts.Add(savedArtefact);
+            
+            // Update board.ArtefactIds to include this artefact
+            var boardForArtefactUpdate = await _context.SavedBoards.FindAsync(boardId);
+            if (boardForArtefactUpdate != null)
+            {
+                var artefactIdsList = await _context.SavedArtefacts
+                    .Where(sa => sa.BoardId == boardId)
+                    .Select(sa => sa.ArtefactId)
+                    .ToListAsync();
+
+                // include the one we just added (in case SaveChanges hasn't been called yet)
+                if (!artefactIdsList.Contains(savedArtefact.ArtefactId))
+                {
+                    artefactIdsList.Add(savedArtefact.ArtefactId);
+                }
+
+                boardForArtefactUpdate.ArtefactIds = artefactIdsList.Count > 0 ? JsonSerializer.Serialize(artefactIdsList) : null;
+                _context.SavedBoards.Update(boardForArtefactUpdate);
+            }
         }
         else
         {
