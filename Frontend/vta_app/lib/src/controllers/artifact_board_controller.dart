@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/linear_board_controller.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/settings/settings_service.dart';
+import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
@@ -30,9 +31,10 @@ class ArtifactBoardController {
 
   // Callback to notify the view to update UI
   final VoidCallback notifyView;
+  final SettingsController settingsController;
 
   // Constructor
-  ArtifactBoardController({required this.notifyView}) {
+  ArtifactBoardController({required this.notifyView, required this.settingsController}) {
     // Initialize keys
     talkingMatKey = GlobalKey<TalkingMatState>();
     linearBoardKey = GlobalKey<LinearBoardState>();
@@ -58,7 +60,20 @@ class ArtifactBoardController {
     // Initialize configuration
     _setupLinearBoardController();
     getCurrentBoardStatus();
+
+    // Apply initial setting for text under images (default false)
+    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
+    // Listen for changes to settings and sync name visibility
+    settingsController.addListener(_onSettingsChanged);
   }
+
+  void _onSettingsChanged() {
+    // When the setting toggles, update all current artefacts' name visibility
+    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
+    // Optionally notify view in case other UI depends on settings
+    notifyView();
+  }
+
 
   /// Function for setting up the linear board
   void _setupLinearBoardController() async {
@@ -209,6 +224,7 @@ class ArtifactBoardController {
 
   /// Dispose of resources
   void dispose() {
+    try { settingsController.removeListener(_onSettingsChanged); } catch (_) {}
     _audioPlayer.dispose();
   }
 }

@@ -53,6 +53,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _showName = widget.artifact.nameVisible;
   }
 
+  @override
+  void didUpdateWidget(covariant LongPressOptionWheel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Always sync with external changes; the artefact instance is the same and mutated in place
+    _showName = widget.artifact.nameVisible;
+  }
+
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
     _showPersistentWheel();

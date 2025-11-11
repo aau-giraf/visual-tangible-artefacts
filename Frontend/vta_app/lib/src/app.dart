@@ -3,16 +3,12 @@ import 'package:vta_app/src/localization/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
-import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/views/splash_view.dart';
 import 'package:vta_app/theme/app_theme.dart';
-import 'sample_feature/sample_item_details_view.dart';
-import 'sample_feature/sample_item_list_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
-import 'functions/auth.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -92,6 +88,7 @@ class MyApp extends StatelessWidget {
                     return ArtifactBoardScreen(
                       artifactController: artifactController,
                       authController: authController,
+                      settingsController: settingsController,
                     );
                   default:
                     return SplashView(controller: authController);
