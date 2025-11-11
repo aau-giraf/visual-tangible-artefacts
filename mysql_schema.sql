@@ -81,6 +81,7 @@ CREATE TABLE savedBoard (
   name             VARCHAR(255) NOT NULL,
   userId           VARCHAR(36)  NOT NULL,
   savedArtefactId  VARCHAR(36)  NULL,
+  artefactIds      JSON         NULL,
   snapshotPath     VARCHAR(255) NULL,
   createdDate      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   modifiedDate     DATETIME     NULL,
@@ -127,3 +128,10 @@ ALTER TABLE savedBoard
     FOREIGN KEY (savedArtefactId) REFERENCES savedArtefact(id)
     ON DELETE SET NULL
     ON UPDATE CASCADE;
+UPDATE savedBoard sb
+SET artefactIds = (
+  SELECT JSON_ARRAYAGG(sa.artefactId)
+  FROM savedArtefact sa
+  WHERE sa.boardId = sb.id
+)
+WHERE EXISTS (SELECT 1 FROM savedArtefact sa WHERE sa.boardId = sb.id);
