@@ -434,7 +434,9 @@ public class BoardController : ControllerBase
             return NotFound("Board not found");
         }
 
-        // Find or create the saved artefact entry. Prefer explicit SavedArtefactId when provided
+        // Find the saved artefact entry when an explicit SavedArtefactId is provided.
+        // IMPORTANT: do NOT fallback to matching by ArtefactId — when SavedArtefactId is missing we should create a new instance
+        // (PATCH must target a specific instance). This prevents accidental updates of the wrong instance when duplicates exist.
         SavedArtefact? savedArtefact = null;
 
         if (!string.IsNullOrEmpty(request.SavedArtefactId))
@@ -445,74 +447,17 @@ public class BoardController : ControllerBase
 
         if (savedArtefact == null)
         {
-            // fallback: try to find any existing instance for this artefact on the board
-            savedArtefact = await _context.SavedArtefacts
-                .FirstOrDefaultAsync(sa => sa.BoardId == boardId && sa.ArtefactId == request.ArtefactId);
+            // Do NOT create a new saved artefact via PATCH. The client must create new instances via PUT (UpdateBoard)
+            // or POST (SaveBoard). Returning BadRequest prevents PATCH from silently creating duplicates when the client
+            // accidentally omits the SavedArtefactId for duplicates.
+            return BadRequest("SavedArtefactId is required to update an existing saved artefact. Create a new saved artefact via updating the board.");
         }
 
-        if (savedArtefact == null)
-        {
-            // Create new entry if it doesn't exist
-            var artefactExists = await _context.Artefacts
-                .AnyAsync(a => a.ArtefactId == request.ArtefactId && a.UserId == userId);
-
-            if (!artefactExists)
-            {
-                return BadRequest("Artefact not found or doesn't belong to user");
-            }
-
-            savedArtefact = new SavedArtefact
-            {
-                Id = Guid.NewGuid().ToString(),
-                ArtefactId = request.ArtefactId,
-                BoardId = boardId,
-                PosX = request.PosX,
-                PosY = request.PosY,
-                Width = request.Width,
-                Height = request.Height,
-                CreatedDate = DateTime.UtcNow
-            };
-
-            _context.SavedArtefacts.Add(savedArtefact);
-
-            // Update board.ArtefactIds and board.SavedArtefactIds to include this artefact/instance
-            var boardForArtefactUpdate = await _context.SavedBoards.FindAsync(boardId);
-            if (boardForArtefactUpdate != null)
-            {
-                var artefactIdsList = await _context.SavedArtefacts
-                    .Where(sa => sa.BoardId == boardId)
-                    .Select(sa => sa.ArtefactId)
-                    .ToListAsync();
-
-                var savedInstanceIds = await _context.SavedArtefacts
-                    .Where(sa => sa.BoardId == boardId)
-                    .Select(sa => sa.Id)
-                    .ToListAsync();
-
-                // include the one we just added (in case SaveChanges hasn't been called yet)
-                if (!artefactIdsList.Contains(savedArtefact.ArtefactId))
-                {
-                    artefactIdsList.Add(savedArtefact.ArtefactId);
-                }
-
-                if (!savedInstanceIds.Contains(savedArtefact.Id))
-                {
-                    savedInstanceIds.Add(savedArtefact.Id);
-                }
-
-                boardForArtefactUpdate.ArtefactIds = artefactIdsList.Count > 0 ? JsonSerializer.Serialize(artefactIdsList) : null;
-                boardForArtefactUpdate.SavedArtefactIds = savedInstanceIds.Count > 0 ? JsonSerializer.Serialize(savedInstanceIds) : null;
-                _context.SavedBoards.Update(boardForArtefactUpdate);
-            }
-        }
-        else
-        {
-            // Update existing entry
-            savedArtefact.PosX = request.PosX;
-            savedArtefact.PosY = request.PosY;
-            savedArtefact.Width = request.Width;
-            savedArtefact.Height = request.Height;
-        }
+        // Update existing entry
+        savedArtefact.PosX = request.PosX;
+        savedArtefact.PosY = request.PosY;
+        savedArtefact.Width = request.Width;
+        savedArtefact.Height = request.Height;
 
         // Update board modified date
         var board = await _context.SavedBoards.FindAsync(boardId);

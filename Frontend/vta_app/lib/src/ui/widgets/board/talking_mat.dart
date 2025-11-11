@@ -51,6 +51,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   
   // Debounce timer for auto-save
   Timer? _saveTimer;
+  // Inhibit auto-save while delete/clear operations are in progress to avoid races
+  bool _inhibitAutoSave = false;
 
   @override
   void initState() {
@@ -249,6 +251,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
 
   /// Auto-save board layout with debouncing to avoid too frequent saves
   void _scheduleAutoSave() {
+    if (_inhibitAutoSave) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 2), () {
       _autoSaveBoardLayout();
@@ -273,7 +276,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
 
     try {
-      for (final artefactLayout in layoutData) {
+      // Partition layouts into those with saved IDs (update via PATCH) and those without (create via PUT)
+      final toPatch = layoutData.where((l) => l.savedArtefactId != null).toList();
+      final toCreate = layoutData.where((l) => l.savedArtefactId == null).toList();
+
+      // First, update existing saved instances via PATCH
+      for (final artefactLayout in toPatch) {
         final request = UpdateArtefactLayoutRequest(
           savedArtefactId: artefactLayout.savedArtefactId,
           artefactId: artefactLayout.artefactId,
@@ -288,6 +296,23 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
           print('Debug: Failed to auto-save layout for artefact ${artefactLayout.artefactId}');
         }
       }
+
+      // If there are artefacts without saved IDs, perform a full board update (PUT) to create them in one go
+      if (toCreate.isNotEmpty) {
+        final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
+        final updatedBoard = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
+        if (updatedBoard != null) {
+          // Map returned saved IDs onto local instances
+          try {
+            _assignReturnedSavedIdsToLocal(updatedBoard.artefacts);
+          } catch (e) {
+            print('Debug: Error mapping returned saved ids after update: $e');
+          }
+        } else {
+          print('Debug: Failed to update board to create missing artefact instances');
+        }
+      }
+
       print('Debug: Auto-saved board layout for ${layoutData.length} artefacts');
     } catch (e) {
       print('Debug: Error auto-saving board layout: $e');
@@ -321,16 +346,45 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   Future<void> _restoreArtefactsFromBoard(BoardLayoutResponse boardLayout) async {
     print('Debug: Restoring ${boardLayout.artefacts.length} artefact instances from saved board');
     
-    // Clear the current board first to avoid conflicts
-    widget.controller.value.clear();
-    
-    // Add each saved artefact instance to the board
+  // Try to match saved artefacts to existing local instances first (by artefactId + closest position)
+  // Do NOT clear the controller here — we want to match against the current local instances
+  final current = widget.controller.value;
+    final unmatchedLocal = <BoardArtefact>[];
+    unmatchedLocal.addAll(current);
+
     for (final artefactLayout in boardLayout.artefacts) {
       try {
-        // Always fetch and add each artefact instance from the saved layout
-        // This ensures we restore the exact number of instances that were saved
-        await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
-        print('Debug: Restored artefact instance ${artefactLayout.artefactId} at position (${artefactLayout.posX}, ${artefactLayout.posY})');
+        // Find the best local match: same artefactId and smallest distance between positions
+        BoardArtefact? best;
+        double bestDist = double.infinity;
+        for (final local in unmatchedLocal) {
+          if (local.baseArtefact?.artefactId == artefactLayout.artefactId) {
+            final localPos = local.position ?? Offset.zero;
+            final dx = localPos.dx - artefactLayout.posX;
+            final dy = localPos.dy - artefactLayout.posY;
+            final dist = dx * dx + dy * dy; // squared distance
+            if (dist < bestDist) {
+              bestDist = dist;
+              best = local;
+            }
+          }
+        }
+
+        if (best != null) {
+          // Assign position/size/saved id to matched local instance
+          setState(() {
+            best!.position = Offset(artefactLayout.posX, artefactLayout.posY);
+            best.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
+            best.savedArtefactId = artefactLayout.savedArtefactId;
+          });
+          // remove from unmatched list so we don't match it again
+          unmatchedLocal.remove(best);
+          print('Debug: Matched existing local artefact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
+        } else {
+          // No local match found: fetch and add a fresh instance
+          await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
+          print('Debug: Added new artefact instance ${artefactLayout.artefactId} at position (${artefactLayout.posX}, ${artefactLayout.posY})');
+        }
       } catch (e) {
         print('Debug: Error restoring artefact instance ${artefactLayout.artefactId}: $e');
       }
@@ -365,9 +419,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         headers: {'Authorization': 'Bearer ${token.value}'},
       );
 
-      // Set the position and size from the saved layout
-      boardArtefact.position = Offset(layout.posX, layout.posY);
-      boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
+  // Set the position and size from the saved layout
+  boardArtefact.position = Offset(layout.posX, layout.posY);
+  boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
   // Set the saved instance id so future updates target this specific instance
   boardArtefact.savedArtefactId = layout.savedArtefactId;
 
@@ -378,6 +432,36 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       
     } catch (e) {
       print('Debug: Error adding artefact to board: $e');
+    }
+  }
+
+  /// Assign returned savedArtefactIds (from server) to local BoardArtefact instances by best-match
+  void _assignReturnedSavedIdsToLocal(List<BoardArtefactLayout> returned) {
+    final current = widget.controller.value;
+    final unmatchedLocal = <BoardArtefact>[]..addAll(current);
+
+    for (final artefactLayout in returned) {
+      BoardArtefact? best;
+      double bestDist = double.infinity;
+      for (final local in unmatchedLocal) {
+        if (local.baseArtefact?.artefactId == artefactLayout.artefactId && local.savedArtefactId == null) {
+          final localPos = local.position ?? Offset.zero;
+          final dx = localPos.dx - artefactLayout.posX;
+          final dy = localPos.dy - artefactLayout.posY;
+          final dist = dx * dx + dy * dy;
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = local;
+          }
+        }
+      }
+
+      if (best != null) {
+        setState(() {
+          best!.savedArtefactId = artefactLayout.savedArtefactId;
+        });
+        unmatchedLocal.remove(best);
+      }
     }
   }
 
@@ -396,14 +480,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       if (response != null) {
         _currentBoardId = response.boardId;
         print('Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
-        // Map returned saved artefact instance ids back onto the local artifacts
+        // Map returned saved artefact instance ids back onto the local artifacts by best-match
         try {
-          final current = widget.controller.value;
-          final returned = response.artefacts;
-          final count = math.min(current.length, returned.length);
-          for (var i = 0; i < count; i++) {
-            current[i].savedArtefactId = returned[i].savedArtefactId;
-          }
+          _assignReturnedSavedIdsToLocal(response.artefacts);
         } catch (_) {
           // ignore mapping errors
         }
@@ -466,14 +545,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       if (response != null) {
         _currentBoardId = response.boardId;
         print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
-        // Map returned saved artefact instance ids back onto local artifacts
+        // Map returned saved artefact instance ids back onto local artifacts by best-match
         try {
-          final current = widget.controller.value;
-          final returned = response.artefacts;
-          final count = math.min(current.length, returned.length);
-          for (var i = 0; i < count; i++) {
-            current[i].savedArtefactId = returned[i].savedArtefactId;
-          }
+          _assignReturnedSavedIdsToLocal(response.artefacts);
         } catch (_) {}
 
         return response.boardId;
@@ -490,21 +564,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       final boardLayout = await _boardLayoutService.getBoard(boardId);
       if (boardLayout != null) {
         _currentBoardId = boardId;
-        
-        // Update artifact positions and sizes using the controller's artifacts
-        final currentArtifacts = widget.controller.value;
-        for (final artefactLayout in boardLayout.artefacts) {
-          final artifact = currentArtifacts.firstWhere(
-            (a) => a.baseArtefact?.artefactId == artefactLayout.artefactId,
-            orElse: () => throw StateError('Artefact not found'),
-          );
-          
-          setState(() {
-            artifact.position = Offset(artefactLayout.posX, artefactLayout.posY);
-            artifact.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
-          });
-        }
-        
+        await _restoreArtefactsFromBoard(boardLayout);
         print('Debug: Loaded board "${boardLayout.name}" with ${boardLayout.artefacts.length} artefacts');
       }
     } catch (e) {
@@ -710,6 +770,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           if (shouldDelete == true) {
                             // If we have a saved board id, attempt server-side clear first
                             if (_currentBoardId != null) {
+                              _inhibitAutoSave = true;
                               try {
                                 final ok = await _boardLayoutService.deleteAllSavedArtefacts(_currentBoardId!);
                                 if (!ok) {
@@ -717,6 +778,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                                 }
                               } catch (e) {
                                 print('Debug: Error clearing board on server: $e');
+                              } finally {
+                                _inhibitAutoSave = false;
                               }
                             }
 
@@ -739,14 +802,20 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                             // Persist deletion on server if we have a board id and a saved instance id
                             try {
                               if (_currentBoardId != null && artefact.savedArtefactId != null) {
-                                final success = await _boardLayoutService.deleteSavedArtefact(
-                                  _currentBoardId!,
-                                  artefact.savedArtefactId!,
-                                );
+                                // prevent auto-save races while we delete
+                                _inhibitAutoSave = true;
+                                try {
+                                  final success = await _boardLayoutService.deleteSavedArtefact(
+                                    _currentBoardId!,
+                                    artefact.savedArtefactId!,
+                                  );
 
-                                if (!success) {
-                                  print('Debug: Failed to delete saved artefact ${artefact.savedArtefactId} on server');
-                                  // Still remove locally to reflect user's action, but log for further debugging
+                                  if (!success) {
+                                    print('Debug: Failed to delete saved artefact ${artefact.savedArtefactId} on server');
+                                    // Still remove locally to reflect user's action, but log for further debugging
+                                  }
+                                } finally {
+                                  _inhibitAutoSave = false;
                                 }
                               }
                             } catch (e) {
