@@ -275,6 +275,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     try {
       for (final artefactLayout in layoutData) {
         final request = UpdateArtefactLayoutRequest(
+          savedArtefactId: artefactLayout.savedArtefactId,
           artefactId: artefactLayout.artefactId,
           posX: artefactLayout.posX,
           posY: artefactLayout.posY,
@@ -367,6 +368,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       // Set the position and size from the saved layout
       boardArtefact.position = Offset(layout.posX, layout.posY);
       boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
+  // Set the saved instance id so future updates target this specific instance
+  boardArtefact.savedArtefactId = layout.savedArtefactId;
 
       // Add it to the controller
       widget.controller.addArtifact(boardArtefact);
@@ -393,6 +396,17 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       if (response != null) {
         _currentBoardId = response.boardId;
         print('Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
+        // Map returned saved artefact instance ids back onto the local artifacts
+        try {
+          final current = widget.controller.value;
+          final returned = response.artefacts;
+          final count = math.min(current.length, returned.length);
+          for (var i = 0; i < count; i++) {
+            current[i].savedArtefactId = returned[i].savedArtefactId;
+          }
+        } catch (_) {
+          // ignore mapping errors
+        }
       } else {
         print('Debug: Failed to create default board');
       }
@@ -423,8 +437,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       final size = artifact.sizeNotifier.value;
       
       print('Debug: Saving artifact ${artifact.baseArtefact!.artefactId} at position (${position.dx}, ${position.dy}) with size (${size.width}, ${size.height})');
-      
+
       return BoardArtefactLayout(
+        savedArtefactId: artifact.savedArtefactId,
         artefactId: artifact.baseArtefact!.artefactId!,
         posX: position.dx,
         posY: position.dy,
@@ -451,6 +466,16 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       if (response != null) {
         _currentBoardId = response.boardId;
         print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
+        // Map returned saved artefact instance ids back onto local artifacts
+        try {
+          final current = widget.controller.value;
+          final returned = response.artefacts;
+          final count = math.min(current.length, returned.length);
+          for (var i = 0; i < count; i++) {
+            current[i].savedArtefactId = returned[i].savedArtefactId;
+          }
+        } catch (_) {}
+
         return response.boardId;
       }
     } catch (e) {
@@ -660,8 +685,46 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                                   color: const Color.fromARGB(255, 235, 32, 18))
                               : null),
                       GestureDetector(
-                        onTap: () {
-                          widget.controller.removeAllArtifacts(context: context);
+                        onTap: () async {
+                          // Confirm with the user before deleting everything
+                          final shouldDelete = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) {
+                              return AlertDialog(
+                                title: const Text('Slet alle artefakter'),
+                                content: const Text('Er du sikker på, at du vil slette alle artefakter på denne tavle?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                                    child: const Text('Annuller'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                                    child: const Text('Slet'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          if (shouldDelete == true) {
+                            // If we have a saved board id, attempt server-side clear first
+                            if (_currentBoardId != null) {
+                              try {
+                                final ok = await _boardLayoutService.deleteAllSavedArtefacts(_currentBoardId!);
+                                if (!ok) {
+                                  print('Debug: Server failed to clear board ${_currentBoardId}');
+                                }
+                              } catch (e) {
+                                print('Debug: Error clearing board on server: $e');
+                              }
+                            }
+
+                            // Clear local UI state
+                            widget.controller.value.clear();
+                            widget.controller.notifyListeners();
+                            setState(() {});
+                          }
                         },
                         child: DragTarget<BoardArtefact>(
                           builder: (context, data, rejectedData) {
@@ -670,9 +733,29 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                               width: _isDraggingOverTrashCan ? 120 : 50,
                             );
                           },
-                          onAcceptWithDetails: (details) {
+                          onAcceptWithDetails: (details) async {
                             var artefact = details.data;
+
+                            // Persist deletion on server if we have a board id and a saved instance id
+                            try {
+                              if (_currentBoardId != null && artefact.savedArtefactId != null) {
+                                final success = await _boardLayoutService.deleteSavedArtefact(
+                                  _currentBoardId!,
+                                  artefact.savedArtefactId!,
+                                );
+
+                                if (!success) {
+                                  print('Debug: Failed to delete saved artefact ${artefact.savedArtefactId} on server');
+                                  // Still remove locally to reflect user's action, but log for further debugging
+                                }
+                              }
+                            } catch (e) {
+                              print('Debug: Error while deleting saved artefact on server: $e');
+                            }
+
+                            // Remove from the local controller (this updates the UI)
                             widget.controller.removeArtifact(artefact);
+
                             _animationController.reverse();
                             _animationController.addStatusListener((status) {
                               if (status == AnimationStatus.dismissed) {

@@ -8,6 +8,11 @@ public class BoardArtefactLayoutDTO
     /// <summary>
     /// The ID of the artefact
     /// </summary>
+    /// <summary>
+    /// The ID of the saved artefact instance (nullable when creating a board)
+    /// </summary>
+    public string? SavedArtefactId { get; set; }
+
     public required string ArtefactId { get; set; }
 
     /// <summary>
@@ -83,6 +88,15 @@ public class BoardLayoutResponseDTO
 /// </summary>
 public class UpdateArtefactLayoutDTO
 {
+    /// <summary>
+    /// The ID of the artefact to update
+    /// </summary>
+    /// <summary>
+    /// Optional saved artefact instance id. If provided, the update will target that specific instance.
+    /// If not provided, the API will try to match by ArtefactId (may create a new instance when ambiguous).
+    /// </summary>
+    public string? SavedArtefactId { get; set; }
+
     /// <summary>
     /// The ID of the artefact to update
     /// </summary>

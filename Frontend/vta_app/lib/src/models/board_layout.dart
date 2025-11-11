@@ -1,5 +1,6 @@
 // Models for board layout data
 class BoardArtefactLayout {
+  final String? savedArtefactId;
   final String artefactId;
   final double posX;
   final double posY;
@@ -7,6 +8,7 @@ class BoardArtefactLayout {
   final double height;
 
   BoardArtefactLayout({
+    this.savedArtefactId,
     required this.artefactId,
     required this.posX,
     required this.posY,
@@ -16,6 +18,7 @@ class BoardArtefactLayout {
 
   factory BoardArtefactLayout.fromJson(Map<String, dynamic> json) {
     return BoardArtefactLayout(
+      savedArtefactId: json['savedArtefactId'] as String?,
       artefactId: json['artefactId'] as String,
       posX: (json['posX'] as num).toDouble(),
       posY: (json['posY'] as num).toDouble(),
@@ -26,6 +29,7 @@ class BoardArtefactLayout {
 
   Map<String, dynamic> toJson() {
     return {
+      if (savedArtefactId != null) 'savedArtefactId': savedArtefactId,
       'artefactId': artefactId,
       'posX': posX,
       'posY': posY,
@@ -99,6 +103,7 @@ class BoardLayoutResponse {
 }
 
 class UpdateArtefactLayoutRequest {
+  final String? savedArtefactId;
   final String artefactId;
   final double posX;
   final double posY;
@@ -106,6 +111,7 @@ class UpdateArtefactLayoutRequest {
   final double height;
 
   UpdateArtefactLayoutRequest({
+    this.savedArtefactId,
     required this.artefactId,
     required this.posX,
     required this.posY,
@@ -114,12 +120,16 @@ class UpdateArtefactLayoutRequest {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'artefactId': artefactId,
       'posX': posX,
       'posY': posY,
       'width': width,
       'height': height,
     };
+    if (savedArtefactId != null) {
+      map['savedArtefactId'] = savedArtefactId;
+    }
+    return map;
   }
 }

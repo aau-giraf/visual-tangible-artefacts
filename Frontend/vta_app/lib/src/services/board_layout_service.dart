@@ -144,4 +144,38 @@ class BoardLayoutService {
       return false;
     }
   }
+
+  /// Delete a specific saved artefact instance from a board
+  Future<bool> deleteSavedArtefact(String boardId, String savedArtefactId) async {
+    try {
+      final response = await _apiProvider.delete(
+        'Users/Boards/$boardId/artefacts/$savedArtefactId',
+        headers: {
+          'Authorization': 'Bearer ${_token.value}',
+        },
+      );
+
+      return response != null && response.statusCode == 200;
+    } catch (e) {
+      print('Error deleting saved artefact: $e');
+      return false;
+    }
+  }
+
+  /// Delete all saved artefacts on a board (clear board)
+  Future<bool> deleteAllSavedArtefacts(String boardId) async {
+    try {
+      final response = await _apiProvider.delete(
+        'Users/Boards/$boardId/artefacts',
+        headers: {
+          'Authorization': 'Bearer ${_token.value}',
+        },
+      );
+
+      return response != null && response.statusCode == 200;
+    } catch (e) {
+      print('Error deleting all saved artefacts: $e');
+      return false;
+    }
+  }
 }

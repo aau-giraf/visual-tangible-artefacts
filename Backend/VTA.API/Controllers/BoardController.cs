@@ -37,7 +37,7 @@ public class BoardController : ControllerBase
             return Unauthorized("Invalid token");
         }
 
-        var boards = await _context.SavedBoards
+            var boards = await _context.SavedBoards
             .Where(b => b.UserId == userId)
             .Include(b => b.SavedArtefacts)
                 .ThenInclude(sa => sa.Artefact)
@@ -47,14 +47,15 @@ public class BoardController : ControllerBase
                 Name = b.Name,
                 CreatedDate = b.CreatedDate,
                 ModifiedDate = b.ModifiedDate,
-                Artefacts = b.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
-                {
-                    ArtefactId = sa.ArtefactId,
-                    PosX = sa.PosX,
-                    PosY = sa.PosY,
-                    Width = sa.Width,
-                    Height = sa.Height
-                }).ToList()
+                    Artefacts = b.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
+                    {
+                        SavedArtefactId = sa.Id,
+                        ArtefactId = sa.ArtefactId,
+                        PosX = sa.PosX,
+                        PosY = sa.PosY,
+                        Width = sa.Width,
+                        Height = sa.Height
+                    }).ToList()
             })
             .ToListAsync();
 
@@ -94,6 +95,7 @@ public class BoardController : ControllerBase
             ModifiedDate = board.ModifiedDate,
             Artefacts = board.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
             {
+                SavedArtefactId = sa.Id,
                 ArtefactId = sa.ArtefactId,
                 PosX = sa.PosX,
                 PosY = sa.PosY,
@@ -188,14 +190,27 @@ public class BoardController : ControllerBase
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // Return the created board
+                    // Reload the saved artefacts so we return the instance ids
+                    var createdBoard = await _context.SavedBoards
+                        .Where(b => b.Id == board.Id)
+                        .Include(b => b.SavedArtefacts)
+                        .FirstOrDefaultAsync();
+
                     return new BoardLayoutResponseDTO
                     {
-                        BoardId = board.Id,
-                        Name = board.Name,
-                        CreatedDate = board.CreatedDate,
-                        ModifiedDate = board.ModifiedDate,
-                        Artefacts = request.Artefacts
+                        BoardId = createdBoard!.Id,
+                        Name = createdBoard.Name,
+                        CreatedDate = createdBoard.CreatedDate,
+                        ModifiedDate = createdBoard.ModifiedDate,
+                        Artefacts = createdBoard.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
+                        {
+                            SavedArtefactId = sa.Id,
+                            ArtefactId = sa.ArtefactId,
+                            PosX = sa.PosX,
+                            PosY = sa.PosY,
+                            Width = sa.Width,
+                            Height = sa.Height
+                        }).ToList()
                     };
                 }
                 catch
@@ -348,14 +363,27 @@ public class BoardController : ControllerBase
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // Return the updated board
+                    // Reload updated saved artefacts to include instance ids
+                    var updatedBoard = await _context.SavedBoards
+                        .Where(b => b.Id == board.Id)
+                        .Include(b => b.SavedArtefacts)
+                        .FirstOrDefaultAsync();
+
                     return new BoardLayoutResponseDTO
                     {
-                        BoardId = board.Id,
-                        Name = board.Name,
-                        CreatedDate = board.CreatedDate,
-                        ModifiedDate = board.ModifiedDate,
-                        Artefacts = request.Artefacts
+                        BoardId = updatedBoard!.Id,
+                        Name = updatedBoard.Name,
+                        CreatedDate = updatedBoard.CreatedDate,
+                        ModifiedDate = updatedBoard.ModifiedDate,
+                        Artefacts = updatedBoard.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
+                        {
+                            SavedArtefactId = sa.Id,
+                            ArtefactId = sa.ArtefactId,
+                            PosX = sa.PosX,
+                            PosY = sa.PosY,
+                            Width = sa.Width,
+                            Height = sa.Height
+                        }).ToList()
                     };
                 }
                 catch
@@ -406,9 +434,21 @@ public class BoardController : ControllerBase
             return NotFound("Board not found");
         }
 
-        // Find the saved artefact entry
-        var savedArtefact = await _context.SavedArtefacts
-            .FirstOrDefaultAsync(sa => sa.BoardId == boardId && sa.ArtefactId == request.ArtefactId);
+        // Find or create the saved artefact entry. Prefer explicit SavedArtefactId when provided
+        SavedArtefact? savedArtefact = null;
+
+        if (!string.IsNullOrEmpty(request.SavedArtefactId))
+        {
+            savedArtefact = await _context.SavedArtefacts
+                .FirstOrDefaultAsync(sa => sa.Id == request.SavedArtefactId && sa.BoardId == boardId);
+        }
+
+        if (savedArtefact == null)
+        {
+            // fallback: try to find any existing instance for this artefact on the board
+            savedArtefact = await _context.SavedArtefacts
+                .FirstOrDefaultAsync(sa => sa.BoardId == boardId && sa.ArtefactId == request.ArtefactId);
+        }
 
         if (savedArtefact == null)
         {
@@ -434,8 +474,8 @@ public class BoardController : ControllerBase
             };
 
             _context.SavedArtefacts.Add(savedArtefact);
-            
-            // Update board.ArtefactIds to include this artefact
+
+            // Update board.ArtefactIds and board.SavedArtefactIds to include this artefact/instance
             var boardForArtefactUpdate = await _context.SavedBoards.FindAsync(boardId);
             if (boardForArtefactUpdate != null)
             {
@@ -444,13 +484,24 @@ public class BoardController : ControllerBase
                     .Select(sa => sa.ArtefactId)
                     .ToListAsync();
 
+                var savedInstanceIds = await _context.SavedArtefacts
+                    .Where(sa => sa.BoardId == boardId)
+                    .Select(sa => sa.Id)
+                    .ToListAsync();
+
                 // include the one we just added (in case SaveChanges hasn't been called yet)
                 if (!artefactIdsList.Contains(savedArtefact.ArtefactId))
                 {
                     artefactIdsList.Add(savedArtefact.ArtefactId);
                 }
 
+                if (!savedInstanceIds.Contains(savedArtefact.Id))
+                {
+                    savedInstanceIds.Add(savedArtefact.Id);
+                }
+
                 boardForArtefactUpdate.ArtefactIds = artefactIdsList.Count > 0 ? JsonSerializer.Serialize(artefactIdsList) : null;
+                boardForArtefactUpdate.SavedArtefactIds = savedInstanceIds.Count > 0 ? JsonSerializer.Serialize(savedInstanceIds) : null;
                 _context.SavedBoards.Update(boardForArtefactUpdate);
             }
         }
