@@ -139,93 +139,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     });
   }
 
-  /// Play all artefact sounds on the board sequentially
-  Future<void> _playAllArtefactSounds() async {
-    if (_isPlayingAllSounds) {
-      // If already playing, stop the current playback
-      await _audioPlayer.stop();
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isPlayingAllSounds = true;
-    });
-
-    print('Debug: TalkingMat - Total artefacts on board: ${widget.controller.value.length}');
-
-    // Debug each artefact
-    for (var artifact in widget.controller.value) {
-      print('Debug: TalkingMat - Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
-    }
-
-    final artefacts = widget.controller.value
-        .where((artifact) => artifact.baseArtefact?.soundUrl?.isNotEmpty == true)
-        .toList();
-
-    if (artefacts.isEmpty) {
-      print('Debug: TalkingMat - No artefacts with sound found on the board');
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    print('Debug: Playing ${artefacts.length} artefact sounds sequentially on TalkingMat');
-
-    try {
-      for (var boardArtefact in artefacts) {
-        if (_isPlayingAllSounds) {
-          try {
-            final token = GetIt.instance.get<Token>().value;
-            final apiProvider = GetIt.instance.get<ApiProvider>();
-
-            if (token != null) {
-              final audioUrl = '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
-              print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
-
-              // Fetch audio data with proper authentication
-              final response = await http.get(
-                Uri.parse(audioUrl),
-                headers: {
-                  'Authorization': 'Bearer $token',
-                },
-              );
-
-              if (response.statusCode == 200) {
-                // Set audio source from bytes and play
-                await _audioPlayer.setAudioSource(
-                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
-                );
-                await _audioPlayer.play();
-              } else {
-                print('Debug: Failed to fetch audio - Status: ${response.statusCode}');
-                continue; // Skip to next artefact
-              }
-
-              // Wait for the audio to complete before playing the next one
-              await _audioPlayer.playerStateStream
-                  .firstWhere((state) => state.processingState == ProcessingState.completed);
-                  
-              print('Debug: Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
-            }
-          } catch (e) {
-            print('Debug: Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
-            // Continue to next artefact even if this one fails
-          }
-        }
-      }
-    } finally {
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-    }
-    
-    print('Debug: Finished playing all artefact sounds on TalkingMat');
-  }
-
 
   // Access the size of the artifact's content after it has been rendered
   void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
@@ -256,7 +169,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     return insideHoriz && insideVert;
   }
 
-  // name offset calculation based on text metrics
+  // name offset calculation based on text
   double _getNameDisplayOffset(String name, BuildContext context) {
     if (name.isEmpty) return 0.0;
     final TextPainter textPainter = TextPainter(
@@ -377,23 +290,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                 children: [
                   ...itemWidgets,
                   Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await _playAllArtefactSounds();
-                        },
-                        icon: Icon(_isPlayingAllSounds ? Icons.stop : Icons.play_arrow),
-                        label: Text(_isPlayingAllSounds ? 'Stop' : 'Play All'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Align(
                     alignment: Alignment.lerp(
                             Alignment.bottomCenter, Alignment.center, 0.1) ??
                         Alignment.bottomCenter,
@@ -420,8 +316,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           onAcceptWithDetails: (details) async {
                             var artefact = details.data;
 
-                            // If this is a session artefact, ask the controller to delete it
-                            // server-side first. Only remove locally after confirmation.
+                            // If session artefact, controller delete it server-side first. Only remove locally after confirmation.
                             if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
                               try {
                                 final artefactController = GetIt.instance.get<ArtefactController>();
@@ -429,7 +324,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                                 if (deleted) {
                                   widget.controller.removeArtifact(artefact);
                                 } else {
-                                  // Deletion cancelled or failed -> leave artefact on the board (restored)
+                                  // Leave on board
                                 }
                               } catch (e) {
                                 debugPrint('Failed to delete session artefact from server: $e');

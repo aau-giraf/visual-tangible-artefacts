@@ -352,7 +352,7 @@ class LinearBoardState extends State<LinearBoard>
                         debugPrint('Failed to delete session artefact from server: $e');
                       }
                     } else {
-                      // Non-session artefacts: remove locally immediately
+                      // Non-session artefacts: remove locally
                       _linearBoardController.removeArtifact(artifactIndex);
                     }
                   }
