@@ -80,7 +80,7 @@ CREATE TABLE savedBoard (
   id               VARCHAR(36)  NOT NULL,
   name             VARCHAR(255) NOT NULL,
   userId           VARCHAR(36)  NOT NULL,
-  savedArtefactId  VARCHAR(36)  NULL,
+  savedArtefactIds JSON         NULL,
   artefactIds      JSON         NULL,
   snapshotPath     VARCHAR(255) NULL,
   createdDate      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -115,23 +115,11 @@ CREATE TABLE savedArtefact (
   CONSTRAINT savedArtefact_ibfk_2
     FOREIGN KEY (boardId) REFERENCES savedBoard(id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  UNIQUE KEY unique_artefact_board (artefactId, boardId)
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
--- Add foreign key constraint from savedBoard to savedArtefact
--- (done after savedArtefact table is created to avoid circular dependency)
-ALTER TABLE savedBoard
-  ADD CONSTRAINT savedBoard_ibfk_2
-    FOREIGN KEY (savedArtefactId) REFERENCES savedArtefact(id)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE;
-UPDATE savedBoard sb
-SET artefactIds = (
-  SELECT JSON_ARRAYAGG(sa.artefactId)
-  FROM savedArtefact sa
-  WHERE sa.boardId = sb.id
-)
-WHERE EXISTS (SELECT 1 FROM savedArtefact sa WHERE sa.boardId = sb.id);
+-- Schema creation complete
+-- Note: The artefactIds and savedArtefactIds JSON columns will be populated 
+-- automatically by the application when boards are created/updated

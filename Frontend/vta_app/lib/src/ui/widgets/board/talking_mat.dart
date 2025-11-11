@@ -10,6 +10,7 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/models/board_layout.dart';
 import 'package:vta_app/src/services/board_layout_service.dart';
+import 'package:vta_app/src/utilities/data/data_repository.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 
@@ -304,14 +305,76 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         );
         
         _currentBoardId = currentBoard.boardId;
-        print('Debug: Loaded existing board "${currentBoard.name}" with ID: ${currentBoard.boardId}');
+        print('Debug: Found existing board "${currentBoard.name}" with ID: ${currentBoard.boardId}');
         
-        // Don't apply positions automatically on startup to avoid overriding user's current layout
-        // The board ID is set so auto-save will work from now on
+        // Actually restore the board layout on startup
+        await _restoreArtefactsFromBoard(currentBoard);
       }
     } catch (e) {
       print('Debug: No existing boards found or error loading: $e');
       // This is fine - a new board will be created when first needed
+    }
+  }
+
+  /// Restore artefacts from a saved board layout
+  Future<void> _restoreArtefactsFromBoard(BoardLayoutResponse boardLayout) async {
+    print('Debug: Restoring ${boardLayout.artefacts.length} artefact instances from saved board');
+    
+    // Clear the current board first to avoid conflicts
+    widget.controller.value.clear();
+    
+    // Add each saved artefact instance to the board
+    for (final artefactLayout in boardLayout.artefacts) {
+      try {
+        // Always fetch and add each artefact instance from the saved layout
+        // This ensures we restore the exact number of instances that were saved
+        await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
+        print('Debug: Restored artefact instance ${artefactLayout.artefactId} at position (${artefactLayout.posX}, ${artefactLayout.posY})');
+      } catch (e) {
+        print('Debug: Error restoring artefact instance ${artefactLayout.artefactId}: $e');
+      }
+    }
+    
+    // Notify listeners that the board has been restored
+    setState(() {});
+  }
+
+  /// Add an artefact to the board by ID with saved layout
+  Future<void> _addArtefactToBoard(String artefactId, BoardArtefactLayout layout) async {
+    try {
+      // Get token for API call
+      final token = GetIt.instance.get<Token>();
+      if (token.value == null) {
+        print('Debug: No auth token available for fetching artefact');
+        return;
+      }
+
+      // Fetch the artefact data from the API
+      final artifactRepository = ArtifactRepository();
+      final artefact = await artifactRepository.fetchArtefact(artefactId, token: token.value!);
+      
+      if (artefact == null) {
+        print('Debug: Could not fetch artefact $artefactId from API');
+        return;
+      }
+
+      // Create BoardArtefact from the fetched Artefact
+      final boardArtefact = BoardArtefact.fromArtefact(
+        artefact,
+        headers: {'Authorization': 'Bearer ${token.value}'},
+      );
+
+      // Set the position and size from the saved layout
+      boardArtefact.position = Offset(layout.posX, layout.posY);
+      boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
+
+      // Add it to the controller
+      widget.controller.addArtifact(boardArtefact);
+
+      print('Debug: Successfully added artefact $artefactId to board at position (${layout.posX}, ${layout.posY})');
+      
+    } catch (e) {
+      print('Debug: Error adding artefact to board: $e');
     }
   }
 

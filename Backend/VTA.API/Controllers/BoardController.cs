@@ -146,8 +146,9 @@ public class BoardController : ControllerBase
                     await _context.SaveChangesAsync();
 
                     // Add artefacts to the board
-                    string? firstSavedArtefactId = null;
                     var artefactIds = new List<string>();
+                    var savedArtefactIds = new List<string>();
+                    
                     foreach (var artefactLayout in request.Artefacts)
                     {
                         // Verify the artefact exists and belongs to the user
@@ -173,21 +174,14 @@ public class BoardController : ControllerBase
 
                         _context.SavedArtefacts.Add(savedArtefact);
 
-                        // Track artefactId for the board-level JSON array
+                        // Track both artefactId and savedArtefactId for the board-level JSON arrays
                         artefactIds.Add(artefactLayout.ArtefactId);
-
-                        // If this is the first artefact, set the board's SavedArtefactId
-                        if (firstSavedArtefactId == null)
-                        {
-                            firstSavedArtefactId = savedArtefact.Id;
-                            board.SavedArtefactId = firstSavedArtefactId;
-                            // Ensure EF tracks the updated board so the savedArtefactId is persisted
-                            _context.SavedBoards.Update(board);
-                        }
+                        savedArtefactIds.Add(savedArtefact.Id);
                     }
 
-                    // Serialize list of artefact IDs into JSON for quick lookup
+                    // Serialize lists into JSON for quick lookup
                     board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
+                    board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
 
                     // Persist everything
                     _context.SavedBoards.Update(board);
@@ -266,14 +260,57 @@ public class BoardController : ControllerBase
                     board.Name = request.Name;
                     board.ModifiedDate = DateTime.UtcNow;
 
-                    // Remove existing artefact layouts
-                    _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
+                    // Smart cleanup: only remove/add what has actually changed
+                    var existingSavedArtefacts = board.SavedArtefacts.ToList();
+                    var newArtefactLayouts = request.Artefacts.ToList();
 
-                    // Add updated artefact layouts
-                    string? firstSavedArtefactId = null;
-                    var artefactIds = new List<string>();
-                    foreach (var artefactLayout in request.Artefacts)
+                    // Find saved artefacts to remove (those not in the new layout)
+                    var artefactsToRemove = existingSavedArtefacts.Where(existing =>
+                        !newArtefactLayouts.Any(newLayout => 
+                            newLayout.ArtefactId == existing.ArtefactId &&
+                            Math.Abs(newLayout.PosX - existing.PosX) < 0.001f &&
+                            Math.Abs(newLayout.PosY - existing.PosY) < 0.001f &&
+                            Math.Abs(newLayout.Width - existing.Width) < 0.001f &&
+                            Math.Abs(newLayout.Height - existing.Height) < 0.001f
+                        )
+                    ).ToList();
+
+                    // Remove outdated saved artefacts
+                    if (artefactsToRemove.Any())
                     {
+                        _context.SavedArtefacts.RemoveRange(artefactsToRemove);
+                    }
+
+                    // Prepare lists for JSON serialization
+                    var artefactIds = new List<string>();
+                    var savedArtefactIds = new List<string>();
+
+                    // Keep existing saved artefacts that haven't changed
+                    var keptSavedArtefacts = existingSavedArtefacts.Except(artefactsToRemove).ToList();
+                    foreach (var keptArtefact in keptSavedArtefacts)
+                    {
+                        artefactIds.Add(keptArtefact.ArtefactId);
+                        savedArtefactIds.Add(keptArtefact.Id);
+                    }
+                    
+                    // Add only new artefact layouts (those not already on the board)
+                    foreach (var artefactLayout in newArtefactLayouts)
+                    {
+                        // Check if this exact artefact layout already exists
+                        var alreadyExists = keptSavedArtefacts.Any(existing =>
+                            existing.ArtefactId == artefactLayout.ArtefactId &&
+                            Math.Abs(artefactLayout.PosX - existing.PosX) < 0.001f &&
+                            Math.Abs(artefactLayout.PosY - existing.PosY) < 0.001f &&
+                            Math.Abs(artefactLayout.Width - existing.Width) < 0.001f &&
+                            Math.Abs(artefactLayout.Height - existing.Height) < 0.001f
+                        );
+
+                        if (alreadyExists)
+                        {
+                            // This artefact layout already exists, skip creating it
+                            continue;
+                        }
+
                         // Verify the artefact exists and belongs to the user
                         var artefactExists = await _context.Artefacts
                             .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
@@ -283,6 +320,7 @@ public class BoardController : ControllerBase
                             throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
                         }
 
+                        // Create new saved artefact
                         var savedArtefact = new SavedArtefact
                         {
                             Id = Guid.NewGuid().ToString(),
@@ -297,21 +335,14 @@ public class BoardController : ControllerBase
 
                         _context.SavedArtefacts.Add(savedArtefact);
 
-                        // Track artefact id
+                        // Track the new artefact in the JSON arrays
                         artefactIds.Add(artefactLayout.ArtefactId);
-
-                        // Set board.SavedArtefactId to the first saved artefact in the updated list
-                        if (firstSavedArtefactId == null)
-                        {
-                            firstSavedArtefactId = savedArtefact.Id;
-                            board.SavedArtefactId = firstSavedArtefactId;
-                            // Ensure EF tracks the updated board so the savedArtefactId is persisted
-                            _context.SavedBoards.Update(board);
-                        }
+                        savedArtefactIds.Add(savedArtefact.Id);
                     }
 
-                    // Persist artefactIds as JSON
+                    // Serialize lists into JSON for quick lookup
                     board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
+                    board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
                     _context.SavedBoards.Update(board);
 
                     await _context.SaveChangesAsync();
@@ -452,6 +483,117 @@ public class BoardController : ControllerBase
     }
 
     /// <summary>
+    /// Remove a specific artefact from a board
+    /// </summary>
+    /// <param name="boardId">The ID of the board</param>
+    /// <param name="savedArtefactId">The ID of the saved artefact to remove</param>
+    /// <returns>Success message</returns>
+    [HttpDelete("{boardId}/artefacts/{savedArtefactId}")]
+    public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
+    {
+        var userId = User.FindFirst("id")?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Invalid token");
+        }
+
+        var board = await _context.SavedBoards
+            .Where(b => b.Id == boardId && b.UserId == userId)
+            .Include(b => b.SavedArtefacts)
+            .FirstOrDefaultAsync();
+
+        if (board == null)
+        {
+            return NotFound("Board not found");
+        }
+
+        var savedArtefactToRemove = board.SavedArtefacts
+            .FirstOrDefault(sa => sa.Id == savedArtefactId);
+
+        if (savedArtefactToRemove == null)
+        {
+            return NotFound("Saved artefact not found on this board");
+        }
+
+        try
+        {
+            // Remove the specific saved artefact
+            _context.SavedArtefacts.Remove(savedArtefactToRemove);
+            
+            // Update the board's JSON arrays
+            var remainingSavedArtefacts = board.SavedArtefacts
+                .Where(sa => sa.Id != savedArtefactId)
+                .ToList();
+
+            var artefactIds = remainingSavedArtefacts.Select(sa => sa.ArtefactId).ToList();
+            var savedArtefactIds = remainingSavedArtefacts.Select(sa => sa.Id).ToList();
+
+            board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
+            board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
+            board.ModifiedDate = DateTime.UtcNow;
+
+            _context.SavedBoards.Update(board);
+            await _context.SaveChangesAsync();
+            
+            return Ok(new { message = "Artefact removed from board successfully" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing artefact from board: {ex.Message}");
+            return StatusCode(500, "Error removing artefact from board");
+        }
+    }
+
+    /// <summary>
+    /// Clear all artefacts from a board (without deleting the board itself)
+    /// </summary>
+    /// <param name="boardId">The ID of the board to clear</param>
+    /// <returns>Success message</returns>
+    [HttpDelete("{boardId}/artefacts")]
+    public async Task<IActionResult> ClearBoard(string boardId)
+    {
+        var userId = User.FindFirst("id")?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Invalid token");
+        }
+
+        var board = await _context.SavedBoards
+            .Where(b => b.Id == boardId && b.UserId == userId)
+            .Include(b => b.SavedArtefacts)
+            .FirstOrDefaultAsync();
+
+        if (board == null)
+        {
+            return NotFound("Board not found");
+        }
+
+        try
+        {
+            // Remove all saved artefacts from the board
+            if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
+            {
+                _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
+            }
+            
+            // Clear the JSON arrays
+            board.ArtefactIds = null;
+            board.SavedArtefactIds = null;
+            board.ModifiedDate = DateTime.UtcNow;
+
+            _context.SavedBoards.Update(board);
+            await _context.SaveChangesAsync();
+            
+            return Ok(new { message = "Board cleared successfully" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing board: {ex.Message}");
+            return StatusCode(500, "Error clearing board");
+        }
+    }
+
+    /// <summary>
     /// Delete a saved board
     /// </summary>
     /// <param name="boardId">The ID of the board to delete</param>
@@ -467,6 +609,7 @@ public class BoardController : ControllerBase
 
         var board = await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
+            .Include(b => b.SavedArtefacts)
             .FirstOrDefaultAsync();
 
         if (board == null)
@@ -476,6 +619,13 @@ public class BoardController : ControllerBase
 
         try
         {
+            // First remove all associated saved artefacts
+            if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
+            {
+                _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
+            }
+            
+            // Then remove the board itself
             _context.SavedBoards.Remove(board);
             await _context.SaveChangesAsync();
             return Ok(new { message = "Board deleted successfully" });
