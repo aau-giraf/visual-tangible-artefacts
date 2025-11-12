@@ -247,6 +247,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var user = await context.Users
             .Include(u => u.Categories)
                 .ThenInclude(c => c.Artefacts)
+            .Include(u => u.SavedBoards)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
@@ -269,6 +270,23 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
                 catch { }
             }
             ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
+        }
+
+        foreach (var savedBoard in user.SavedBoards)
+        {
+            if (!string.IsNullOrEmpty(savedBoard.SnapshotPath))
+            {
+                try
+                {
+                    // Delete snapshot file if it exists
+                    var snapshotPath = Path.Combine("wwwroot", savedBoard.SnapshotPath.TrimStart('/'));
+                    if (System.IO.File.Exists(snapshotPath))
+                    {
+                        System.IO.File.Delete(snapshotPath);
+                    }
+                }
+                catch { }
+            }
         }
 
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
