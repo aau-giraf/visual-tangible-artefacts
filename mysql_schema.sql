@@ -29,6 +29,12 @@ CREATE TABLE user (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
+-- Insert a system user and a default "Session-Artefact" category if they don't already exist.
+INSERT INTO user (id, name, password, guardianKey, username)
+SELECT 'system', 'System', '', NULL, 'system'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM user WHERE id = 'system');
+
 -- CATEGORY
 CREATE TABLE category (
   categoryId     VARCHAR(36)  NOT NULL,
@@ -48,6 +54,12 @@ CREATE TABLE category (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO category (categoryId, categoryIndex, userId, name, imagePath, modifiedDate, usageCount, lastUsedDate)
+SELECT 'Session-Artefact', 0, 'system', 'Session Artefacts', NULL, NOW(), 0, NULL
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM category WHERE categoryId = 'Session-Artefact');
+
 
 -- ARTEFACT
 CREATE TABLE artefact (
