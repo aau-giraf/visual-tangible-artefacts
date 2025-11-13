@@ -2,6 +2,8 @@ namespace VTA.API.Utilities;
 
 public static class SoundUtilities
 {
+    // Cache the base assets path to avoid repeated Directory.GetCurrentDirectory() calls
+    private static readonly string BaseAssetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
     private static string _Dir = "Sounds";
 
     public static async Task<string?> AddSound(IFormFile? soundFile, string soundId, string userId)
@@ -17,7 +19,7 @@ public static class SoundUtilities
         // Add "sound_" prefix to filename for clarity
         string fileName = "sound_" + soundId + Path.GetExtension(soundFile.FileName);
         // Create user-specific folder structure: Assets/Sounds/{userId}/
-        string soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+        string soundFolder = Path.Combine(BaseAssetsPath, _Dir, userId);
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
@@ -42,7 +44,7 @@ public static class SoundUtilities
         // Add "sound_" prefix to filename for clarity
         string fileName = "sound_" + soundId + fileExtension;
         // Create user-specific folder structure: Assets/Sounds/{userId}/
-        string soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+        string soundFolder = Path.Combine(BaseAssetsPath, _Dir, userId);
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
@@ -54,7 +56,7 @@ public static class SoundUtilities
     public static bool? DeleteSound(string soundId, string userId)
     {
         // Search in user-specific directory: Assets/Sounds/{userId}/
-        string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+        string path = Path.Combine(BaseAssetsPath, _Dir, userId);
 
         // Ensure user directory exists before searching
         if (!Directory.Exists(path))
