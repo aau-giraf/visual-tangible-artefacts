@@ -12,6 +12,10 @@ public class SavedArtefact
 
     public float PosY { get; set; } = 0;
 
+    public float Width { get; set; } = 200;
+
+    public float Height { get; set; } = 200;
+
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

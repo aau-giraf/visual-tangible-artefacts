@@ -8,6 +8,7 @@ class BoardArtefact {
   Offset? position;
   Size? renderedSize;
   Artefact? baseArtefact;
+  String? savedArtefactId;
   final ValueNotifier<Size> sizeNotifier;
   final ValueNotifier<bool> showResizeHandle;
 
@@ -90,6 +91,8 @@ class BoardArtefact {
       initialSize: const Size(200, 200),
     );
   }
+
+  // (artefactId getter already defined below)
 }
 
 class _BoardArtefactContent extends StatefulWidget {
