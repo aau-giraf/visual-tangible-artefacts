@@ -14,7 +14,7 @@ public static class ImageUtilities
     /// <param name="dir">The dir to upload it (Artefact or Category image)</param>
     /// <param name="userId">The user ID for organizing files by user</param>
     /// <returns>null if nothing image is null <br/>The file path for the image that was</returns>
-    public static string? AddImage(IFormFile? image, string artefactId, string dir, string userId)
+    public static async Task<string?> AddImage(IFormFile? image, string artefactId, string dir, string userId)
     {
         _Dir = dir;
         string _APIEndpoint = "/api/Assets/" + _Dir + "/";
@@ -35,7 +35,7 @@ public static class ImageUtilities
 
             using (FileStream stream = new FileStream(filePath, FileMode.Create))
             {
-                image.CopyTo(stream);
+                await image.CopyToAsync(stream);
             }
             return $"{_APIEndpoint}{userId}/{fileName}";
         }

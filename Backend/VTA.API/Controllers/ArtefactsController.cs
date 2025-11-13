@@ -105,7 +105,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         if (dto.Image != null && !string.IsNullOrEmpty(artefact.CategoryId))
         {
             ImageUtilities.DeleteImage(artefact.CategoryId, "Categories", userId);
-            ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories", userId);
+            await ImageUtilities.AddImage(dto.Image, artefact.CategoryId, "Categories", userId);
         }
         if (dto.Sound != null)
         {
@@ -116,7 +116,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
             catch { }
             // Save sound file using SoundUtilities: ArtefactId + extension in Assets/Sounds
-            var soundPath = SoundUtilities.AddSound(dto.Sound, artefact.ArtefactId, userId);
+            var soundPath = await SoundUtilities.AddSound(dto.Sound, artefact.ArtefactId, userId);
             artefact.SoundPath = soundPath;
         }
 
@@ -168,7 +168,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
 
 
         string artefactId = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
+        string? imageUrl = await ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
         string? soundUrl = null;
 
         // Debug logging for sound data
@@ -177,7 +177,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             Console.WriteLine($"Debug: PostArtefact - Sound file size: {artefactPostDTO.Sound.Length} bytes");
             Console.WriteLine($"Debug: PostArtefact - Sound file name: {artefactPostDTO.Sound.FileName}");
-            soundUrl = SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId, userId);
+            soundUrl = await SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId, userId);
             Console.WriteLine($"Debug: PostArtefact - Sound saved to: {soundUrl}");
         }
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
@@ -382,7 +382,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             }
 
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, request.ArtefactId, userId);
+            var soundUrl = await SoundUtilities.AddSound(audioData, request.ArtefactId, userId);
 
             if (soundUrl == null)
             {
@@ -460,7 +460,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var soundId = Guid.NewGuid().ToString();
 
             // Save the audio data to file system using SoundUtilities
-            var soundUrl = SoundUtilities.AddSound(audioData, soundId, userId);
+            var soundUrl = await SoundUtilities.AddSound(audioData, soundId, userId);
 
             if (soundUrl == null)
             {
@@ -624,7 +624,7 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             };
 
             // Save using existing sound utilities
-            var soundPath = SoundUtilities.AddSound(formFile, artefact.ArtefactId, userId);
+            var soundPath = await SoundUtilities.AddSound(formFile, artefact.ArtefactId, userId);
             if (soundPath != null)
             {
                 artefact.SoundPath = soundPath;

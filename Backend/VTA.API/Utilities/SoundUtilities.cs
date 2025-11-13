@@ -4,13 +4,13 @@ public static class SoundUtilities
 {
     private static string _Dir = "Sounds";
 
-    public static string? AddSound(IFormFile? soundFile, string soundId, string userId)
+    public static async Task<string?> AddSound(IFormFile? soundFile, string soundId, string userId)
     {
-        
+
 
         if (soundFile == null || soundFile.Length == 0)
         {
-            
+
             return null;
         }
 
@@ -21,18 +21,18 @@ public static class SoundUtilities
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
-        
+
 
         using (FileStream stream = new FileStream(filePath, FileMode.Create))
         {
-            soundFile.CopyTo(stream);
+            await soundFile.CopyToAsync(stream);
         }
 
-        
+
         return $"/api/Assets/Sounds/{userId}/{fileName}";
     }
 
-    public static string? AddSound(byte[]? soundData, string soundId, string userId, string fileExtension = ".mp3")
+    public static async Task<string?> AddSound(byte[]? soundData, string soundId, string userId, string fileExtension = ".mp3")
     {
         if (soundData == null || soundData.Length == 0)
         {
@@ -46,7 +46,7 @@ public static class SoundUtilities
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
-        File.WriteAllBytes(filePath, soundData);
+        await File.WriteAllBytesAsync(filePath, soundData);
 
         return $"/api/Assets/Sounds/{userId}/{fileName}";
     }

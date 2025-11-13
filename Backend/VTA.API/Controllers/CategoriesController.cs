@@ -102,7 +102,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         if (dto.Image != null)
         {
             ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
-            ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId);
+            await ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId);
         }
 
         context.Entry(category).State = EntityState.Modified;
@@ -148,7 +148,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         }
 
         string id = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
+        string? imageUrl = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
 
         // Image is optional - allow null imageUrl
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
