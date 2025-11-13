@@ -2,49 +2,53 @@ namespace VTA.API.Utilities;
 
 public static class SoundUtilities
 {
+    // Cache the base assets path to avoid repeated Directory.GetCurrentDirectory() calls
+    private static readonly string BaseAssetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
     private static string _Dir = "Sounds";
 
-    public static string? AddSound(IFormFile? soundFile, string soundId, string userId)
+    public static async Task<string?> AddSound(IFormFile? soundFile, string soundId, string userId)
     {
-        Console.WriteLine($"Debug: SoundUtilities.AddSound called with soundFile: {soundFile != null}, soundId: {soundId}, userId: {userId}");
+
 
         if (soundFile == null || soundFile.Length == 0)
         {
-            Console.WriteLine($"Debug: SoundUtilities.AddSound - No sound file provided");
+
             return null;
         }
 
-        string fileName = soundId + Path.GetExtension(soundFile.FileName);
+        // Add "sound_" prefix to filename for clarity
+        string fileName = "sound_" + soundId + Path.GetExtension(soundFile.FileName);
         // Create user-specific folder structure: Assets/Sounds/{userId}/
-        string soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+        string soundFolder = Path.Combine(BaseAssetsPath, _Dir, userId);
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
-        Console.WriteLine($"Debug: SoundUtilities.AddSound - Saving to: {filePath}");
+
 
         using (FileStream stream = new FileStream(filePath, FileMode.Create))
         {
-            soundFile.CopyTo(stream);
+            await soundFile.CopyToAsync(stream);
         }
 
-        Console.WriteLine($"Debug: SoundUtilities.AddSound - File saved successfully, size: {new FileInfo(filePath).Length} bytes");
+
         return $"/api/Assets/Sounds/{userId}/{fileName}";
     }
 
-    public static string? AddSound(byte[]? soundData, string soundId, string userId, string fileExtension = ".mp3")
+    public static async Task<string?> AddSound(byte[]? soundData, string soundId, string userId, string fileExtension = ".mp3")
     {
         if (soundData == null || soundData.Length == 0)
         {
             return null;
         }
 
-        string fileName = soundId + fileExtension;
+        // Add "sound_" prefix to filename for clarity
+        string fileName = "sound_" + soundId + fileExtension;
         // Create user-specific folder structure: Assets/Sounds/{userId}/
-        string soundFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+        string soundFolder = Path.Combine(BaseAssetsPath, _Dir, userId);
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
-        File.WriteAllBytes(filePath, soundData);
+        await File.WriteAllBytesAsync(filePath, soundData);
 
         return $"/api/Assets/Sounds/{userId}/{fileName}";
     }
@@ -52,7 +56,7 @@ public static class SoundUtilities
     public static bool? DeleteSound(string soundId, string userId)
     {
         // Search in user-specific directory: Assets/Sounds/{userId}/
-        string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+        string path = Path.Combine(BaseAssetsPath, _Dir, userId);
 
         // Ensure user directory exists before searching
         if (!Directory.Exists(path))
@@ -60,8 +64,9 @@ public static class SoundUtilities
             return null;
         }
 
+        // Look for files with "sound_" prefix
         var file = Directory.EnumerateFiles(path)
-                    .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(soundId, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals("sound_" + soundId, StringComparison.OrdinalIgnoreCase));
         if (file == null) return null;
         File.Delete(file);
         return true;
