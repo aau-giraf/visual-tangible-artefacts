@@ -531,12 +531,28 @@ public class BoardController : ControllerBase
 
         try
         {
+            // Collect artefact ids referenced by this board before removing saved instances
+            var artefactIdsOnBoard = board.SavedArtefacts?.Select(sa => sa.ArtefactId).Where(id => !string.IsNullOrEmpty(id)).ToList() ?? new List<string>();
+
             // Remove all saved artefacts from the board
             if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
             {
                 _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
             }
-            
+
+            // Also delete any session artefacts (category == 'Session-Artefact') that belong to this user
+            if (artefactIdsOnBoard.Any())
+            {
+                var sessionArtefacts = await _context.Artefacts
+                    .Where(a => artefactIdsOnBoard.Contains(a.ArtefactId) && a.UserId == userId && a.CategoryId == "Session-Artefact")
+                    .ToListAsync();
+
+                if (sessionArtefacts != null && sessionArtefacts.Any())
+                {
+                    _context.Artefacts.RemoveRange(sessionArtefacts);
+                }
+            }
+
             // Clear the JSON arrays
             board.ArtefactIds = null;
             board.SavedArtefactIds = null;
@@ -544,7 +560,7 @@ public class BoardController : ControllerBase
 
             _context.SavedBoards.Update(board);
             await _context.SaveChangesAsync();
-            
+
             return Ok(new { message = "Board cleared successfully" });
         }
         catch (Exception)
