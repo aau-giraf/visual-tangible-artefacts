@@ -70,7 +70,9 @@ class ArtifactBoardController {
   void _onSettingsChanged() {
     // When the setting toggles, update all current artefacts' name visibility
     talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
-    // Optionally notify view in case other UI depends on settings
+    // Sync linear board field count when setting changes
+    linearBoardController.setFieldCount(settingsController.linearArtifactCount);
+    // Optionally notify view in case other UI depends on settings 
     notifyView();
   }
 
@@ -82,10 +84,8 @@ class ArtifactBoardController {
     // If count is not current count, update controller
     if (count != linearBoardFieldCount) {
       linearBoardFieldCount = count;
-      // Update the controller with new artifact list and field count
-      linearBoardController.artifacts =
-      List<BoardArtefact?>.filled(linearBoardFieldCount!, null, growable: false);
-      linearBoardController.fieldCount = linearBoardFieldCount!;
+      // Update the controller with new field count, resizing the artifacts list
+      linearBoardController.setFieldCount(linearBoardFieldCount!);
       notifyView();
     }
   }
