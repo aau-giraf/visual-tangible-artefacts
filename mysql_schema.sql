@@ -125,3 +125,16 @@ ALTER TABLE savedBoard
     FOREIGN KEY (savedArtefactId) REFERENCES savedArtefact(id)
     ON DELETE SET NULL
     ON UPDATE CASCADE;
+
+-- Performance Indexes
+-- Username is frequently used for login lookups
+CREATE INDEX idx_user_username ON user(username);
+
+-- Category queries often filter by userId and order by categoryIndex
+CREATE INDEX idx_category_userid_index ON category(userId, categoryIndex);
+
+-- Artefact queries often filter by userId and categoryId together
+CREATE INDEX idx_artefact_userid_categoryid ON artefact(userID, categoryId);
+
+-- Artefact index is used for ordering
+CREATE INDEX idx_artefact_index ON artefact(artefactIndex);
