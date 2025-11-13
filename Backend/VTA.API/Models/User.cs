@@ -15,4 +15,6 @@ public class User
     public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
 
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
+
+    public virtual ICollection<SavedBoard> SavedBoards { get; set; } = new List<SavedBoard>();
 }

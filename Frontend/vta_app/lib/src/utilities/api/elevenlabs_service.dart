@@ -29,7 +29,7 @@ class ElevenLabsService {
       
       final ElevenLabsRequest request = ElevenLabsRequest(
         text: text,
-        modelId: modelId ?? 'eleven_monolingual_v1',
+        modelId: modelId ?? 'eleven_v3',
         voiceSettings: voiceSettings ?? VoiceSettings(),
         seed: seed,
       );

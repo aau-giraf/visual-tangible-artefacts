@@ -18,4 +18,6 @@ public class Artefact
     public virtual Category? Category { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<SavedArtefact> SavedArtefacts { get; set; } = new List<SavedArtefact>();
 }
