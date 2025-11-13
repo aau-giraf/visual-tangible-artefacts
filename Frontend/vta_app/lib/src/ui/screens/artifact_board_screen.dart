@@ -121,7 +121,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   PopupMenuItem(
                                     child: ListTile(
                                       leading: Icon(Icons.settings, size: 20),
-                                      title: const Text('Instillinger'),
+                                      title: const Text('Indstillinger'),
                                       onTap: () {
                                         Navigator.of(context)
                                             .pushNamed('/settings');
