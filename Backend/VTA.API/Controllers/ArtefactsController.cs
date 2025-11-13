@@ -31,11 +31,11 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             return NotFound();
         }
-        List<ArtefactGetDTO> artefactGetDTOs = new List<ArtefactGetDTO>();
-        foreach (Artefact artefact in artefacts)
-        {
-            artefactGetDTOs.Add(DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString()));
-        }
+
+        var artefactGetDTOs = artefacts
+            .Select(artefact => DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString()))
+            .ToList();
+
         return artefactGetDTOs;
     }
 

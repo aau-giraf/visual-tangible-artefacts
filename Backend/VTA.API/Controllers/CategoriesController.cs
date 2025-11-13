@@ -33,11 +33,10 @@ public class CategoriesController(VTAContext context) : ControllerBase
         {
             return NotFound();
         }
-        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-        foreach (Category category in categories)
-        {
-            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
-        }
+
+        var categoryGetDTOs = categories
+            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+            .ToList();
 
         return categoryGetDTOs;
     }
@@ -299,11 +298,9 @@ public class CategoriesController(VTAContext context) : ControllerBase
             return NotFound();
         }
 
-        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-        foreach (Category category in categories)
-        {
-            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
-        }
+        var categoryGetDTOs = categories
+            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+            .ToList();
 
         return categoryGetDTOs;
     }

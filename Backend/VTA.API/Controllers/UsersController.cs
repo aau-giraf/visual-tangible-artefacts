@@ -139,11 +139,11 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         List<User> users = await context.Users
             .AsNoTracking()
             .ToListAsync();
-        List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
-        foreach (User user in users)
-        {
-            userGetDTOs.Add(DTOConverter.MapUserToUserGetDTO(user));
-        }
+
+        var userGetDTOs = users
+            .Select(user => DTOConverter.MapUserToUserGetDTO(user))
+            .ToList();
+
         return userGetDTOs;
     }
 
