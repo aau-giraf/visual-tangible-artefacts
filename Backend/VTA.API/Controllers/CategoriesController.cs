@@ -24,7 +24,11 @@ public class CategoriesController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Category>? categories = await context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
+        List<Category>? categories = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .Include(c => c.Artefacts)
+            .ToListAsync();
         if (categories == null)
         {
             return NotFound();
@@ -50,6 +54,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         var category = await context.Categories
+            .AsNoTracking()
             .Where(c => c.CategoryId == categoryId && c.UserId == userId)
             .Include(c => c.Artefacts)
             .FirstOrDefaultAsync();
@@ -281,6 +286,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         List<Category>? categories = await context.Categories
+            .AsNoTracking()
             .Where(c => c.UserId == userId)
             .Include(c => c.Artefacts)
             .OrderByDescending(c => c.UsageCount)

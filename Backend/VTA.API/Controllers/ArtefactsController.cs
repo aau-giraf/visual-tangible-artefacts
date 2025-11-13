@@ -23,7 +23,10 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Artefact>? artefacts = await context.Artefacts.Where(a => a.UserId == userId).ToListAsync();
+        List<Artefact>? artefacts = await context.Artefacts
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .ToListAsync();
         if (artefacts == null)
         {
             return NotFound();
@@ -47,7 +50,10 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        var artefact = await context.Artefacts.Where(a => a.UserId == userId).FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
+        var artefact = await context.Artefacts
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .FirstOrDefaultAsync(a => a.ArtefactId == artefactId);
         if (artefact == null)
         {
             return NotFound();
