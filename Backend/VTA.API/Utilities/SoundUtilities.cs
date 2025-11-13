@@ -6,11 +6,11 @@ public static class SoundUtilities
 
     public static string? AddSound(IFormFile? soundFile, string soundId, string userId)
     {
-        Console.WriteLine($"Debug: SoundUtilities.AddSound called with soundFile: {soundFile != null}, soundId: {soundId}, userId: {userId}");
+        
 
         if (soundFile == null || soundFile.Length == 0)
         {
-            Console.WriteLine($"Debug: SoundUtilities.AddSound - No sound file provided");
+            
             return null;
         }
 
@@ -21,14 +21,14 @@ public static class SoundUtilities
         if (!Directory.Exists(soundFolder)) Directory.CreateDirectory(soundFolder);
         string filePath = Path.Combine(soundFolder, fileName);
 
-        Console.WriteLine($"Debug: SoundUtilities.AddSound - Saving to: {filePath}");
+        
 
         using (FileStream stream = new FileStream(filePath, FileMode.Create))
         {
             soundFile.CopyTo(stream);
         }
 
-        Console.WriteLine($"Debug: SoundUtilities.AddSound - File saved successfully, size: {new FileInfo(filePath).Length} bytes");
+        
         return $"/api/Assets/Sounds/{userId}/{fileName}";
     }
 
