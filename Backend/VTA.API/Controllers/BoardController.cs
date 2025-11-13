@@ -224,9 +224,6 @@ public class BoardController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving board: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            
             // Check if it's a database column issue
             if (ex.Message.Contains("Unknown column") || ex.Message.Contains("width") || ex.Message.Contains("height"))
             {
@@ -275,57 +272,20 @@ public class BoardController : ControllerBase
                     board.Name = request.Name;
                     board.ModifiedDate = DateTime.UtcNow;
 
-                    // Smart cleanup: only remove/add what has actually changed
-                    var existingSavedArtefacts = board.SavedArtefacts.ToList();
-                    var newArtefactLayouts = request.Artefacts.ToList();
-
-                    // Find saved artefacts to remove (those not in the new layout)
-                    var artefactsToRemove = existingSavedArtefacts.Where(existing =>
-                        !newArtefactLayouts.Any(newLayout => 
-                            newLayout.ArtefactId == existing.ArtefactId &&
-                            Math.Abs(newLayout.PosX - existing.PosX) < 0.001f &&
-                            Math.Abs(newLayout.PosY - existing.PosY) < 0.001f &&
-                            Math.Abs(newLayout.Width - existing.Width) < 0.001f &&
-                            Math.Abs(newLayout.Height - existing.Height) < 0.001f
-                        )
-                    ).ToList();
-
-                    // Remove outdated saved artefacts
-                    if (artefactsToRemove.Any())
+                    // Remove ALL existing saved artefacts and recreate them
+                    // This ensures we don't have conflicts with the smart diff logic
+                    if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
                     {
-                        _context.SavedArtefacts.RemoveRange(artefactsToRemove);
+                        _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
                     }
 
                     // Prepare lists for JSON serialization
                     var artefactIds = new List<string>();
                     var savedArtefactIds = new List<string>();
-
-                    // Keep existing saved artefacts that haven't changed
-                    var keptSavedArtefacts = existingSavedArtefacts.Except(artefactsToRemove).ToList();
-                    foreach (var keptArtefact in keptSavedArtefacts)
-                    {
-                        artefactIds.Add(keptArtefact.ArtefactId);
-                        savedArtefactIds.Add(keptArtefact.Id);
-                    }
                     
-                    // Add only new artefact layouts (those not already on the board)
-                    foreach (var artefactLayout in newArtefactLayouts)
+                    // Add all artefact layouts from the request
+                    foreach (var artefactLayout in request.Artefacts)
                     {
-                        // Check if this exact artefact layout already exists
-                        var alreadyExists = keptSavedArtefacts.Any(existing =>
-                            existing.ArtefactId == artefactLayout.ArtefactId &&
-                            Math.Abs(artefactLayout.PosX - existing.PosX) < 0.001f &&
-                            Math.Abs(artefactLayout.PosY - existing.PosY) < 0.001f &&
-                            Math.Abs(artefactLayout.Width - existing.Width) < 0.001f &&
-                            Math.Abs(artefactLayout.Height - existing.Height) < 0.001f
-                        );
-
-                        if (alreadyExists)
-                        {
-                            // This artefact layout already exists, skip creating it
-                            continue;
-                        }
-
                         // Verify the artefact exists and belongs to the user
                         var artefactExists = await _context.Artefacts
                             .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
@@ -358,6 +318,7 @@ public class BoardController : ControllerBase
                     // Serialize lists into JSON for quick lookup
                     board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
                     board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
+                    
                     _context.SavedBoards.Update(board);
 
                     await _context.SaveChangesAsync();
@@ -397,9 +358,6 @@ public class BoardController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error updating board: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            
             // Check if it's a database column issue
             if (ex.Message.Contains("Unknown column") || ex.Message.Contains("width") || ex.Message.Contains("height"))
             {
@@ -453,27 +411,35 @@ public class BoardController : ControllerBase
             return BadRequest("SavedArtefactId is required to update an existing saved artefact. Create a new saved artefact via updating the board.");
         }
 
-        // Update existing entry
-        savedArtefact.PosX = request.PosX;
-        savedArtefact.PosY = request.PosY;
-        savedArtefact.Width = request.Width;
-        savedArtefact.Height = request.Height;
+        // Check if values are actually different before updating
+        bool hasChanges = savedArtefact.PosX != request.PosX ||
+                         savedArtefact.PosY != request.PosY ||
+                         savedArtefact.Width != request.Width ||
+                         savedArtefact.Height != request.Height;
 
-        // Update board modified date
-        var board = await _context.SavedBoards.FindAsync(boardId);
-        if (board != null)
+        if (hasChanges)
         {
-            board.ModifiedDate = DateTime.UtcNow;
+            // Update existing entry
+            savedArtefact.PosX = request.PosX;
+            savedArtefact.PosY = request.PosY;
+            savedArtefact.Width = request.Width;
+            savedArtefact.Height = request.Height;
+
+            // Update board modified date
+            var board = await _context.SavedBoards.FindAsync(boardId);
+            if (board != null)
+            {
+                board.ModifiedDate = DateTime.UtcNow;
+            }
         }
 
         try
         {
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Artefact layout updated successfully" });
+            return Ok(new { message = hasChanges ? "Artefact layout updated successfully" : "No changes detected, layout already up to date" });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error updating artefact layout: {ex.Message}");
             return StatusCode(500, "Error updating artefact layout");
         }
     }
@@ -533,9 +499,8 @@ public class BoardController : ControllerBase
             
             return Ok(new { message = "Artefact removed from board successfully" });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error removing artefact from board: {ex.Message}");
             return StatusCode(500, "Error removing artefact from board");
         }
     }
@@ -582,9 +547,8 @@ public class BoardController : ControllerBase
             
             return Ok(new { message = "Board cleared successfully" });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error clearing board: {ex.Message}");
             return StatusCode(500, "Error clearing board");
         }
     }
@@ -626,9 +590,8 @@ public class BoardController : ControllerBase
             await _context.SaveChangesAsync();
             return Ok(new { message = "Board deleted successfully" });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error deleting board: {ex.Message}");
             return StatusCode(500, "Error deleting board");
         }
     }

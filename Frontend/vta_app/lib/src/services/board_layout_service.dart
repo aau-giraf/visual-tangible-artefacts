@@ -91,7 +91,13 @@ class BoardLayoutService {
   /// Update an existing board layout
   Future<BoardLayoutResponse?> updateBoard(String boardId, SaveBoardRequest request) async {
     try {
-      final response = await _apiProvider.patchAsJson(
+      print('Debug: Updating board $boardId with ${request.artefacts.length} artefacts');
+      for (int i = 0; i < request.artefacts.length; i++) {
+        final artefact = request.artefacts[i];
+        print('Debug: Request artefact $i: ${artefact.artefactId} at (${artefact.posX}, ${artefact.posY})');
+      }
+      
+      final response = await _apiProvider.putAsJson(
         'Users/Boards/$boardId',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
