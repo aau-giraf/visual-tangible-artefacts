@@ -29,6 +29,12 @@ CREATE TABLE user (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
+-- Insert a system user and a default "Session-Artefact" category if they don't already exist.
+INSERT INTO user (id, name, password, guardianKey, username)
+SELECT 'system', 'System', '', NULL, 'system'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM user WHERE id = 'system');
+
 -- CATEGORY
 CREATE TABLE category (
   categoryId     VARCHAR(36)  NOT NULL,
@@ -48,6 +54,12 @@ CREATE TABLE category (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO category (categoryId, categoryIndex, userId, name, imagePath, modifiedDate, usageCount, lastUsedDate)
+SELECT 'Session-Artefact', 0, 'system', 'Session Artefacts', NULL, NOW(), 0, NULL
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM category WHERE categoryId = 'Session-Artefact');
+
 
 -- ARTEFACT
 CREATE TABLE artefact (
@@ -80,7 +92,8 @@ CREATE TABLE savedBoard (
   id               VARCHAR(36)  NOT NULL,
   name             VARCHAR(255) NOT NULL,
   userId           VARCHAR(36)  NOT NULL,
-  savedArtefactId  VARCHAR(36)  NULL,
+  savedArtefactIds JSON         NULL,
+  artefactIds      JSON         NULL,
   snapshotPath     VARCHAR(255) NULL,
   createdDate      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   modifiedDate     DATETIME     NULL,
@@ -101,6 +114,8 @@ CREATE TABLE savedArtefact (
   boardId     VARCHAR(36)  NOT NULL,
   posX        FLOAT        NOT NULL DEFAULT 0,
   posY        FLOAT        NOT NULL DEFAULT 0,
+  width       FLOAT        NOT NULL DEFAULT 200,
+  height      FLOAT        NOT NULL DEFAULT 200,
   createdDate DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY artefactId (artefactId),
@@ -112,16 +127,19 @@ CREATE TABLE savedArtefact (
   CONSTRAINT savedArtefact_ibfk_2
     FOREIGN KEY (boardId) REFERENCES savedBoard(id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  UNIQUE KEY unique_artefact_board (artefactId, boardId)
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
--- Add foreign key constraint from savedBoard to savedArtefact
--- (done after savedArtefact table is created to avoid circular dependency)
-ALTER TABLE savedBoard
-  ADD CONSTRAINT savedBoard_ibfk_2
-    FOREIGN KEY (savedArtefactId) REFERENCES savedArtefact(id)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE;
+-- Username is frequently used for login lookups
+CREATE INDEX idx_user_username ON user(username);
+
+-- Category queries often filter by userId and order by categoryIndex
+CREATE INDEX idx_category_userid_index ON category(userId, categoryIndex);
+
+-- Artefact queries often filter by userId and categoryId together
+CREATE INDEX idx_artefact_userid_categoryid ON artefact(userID, categoryId);
+
+-- Artefact index is used for ordering
+CREATE INDEX idx_artefact_index ON artefact(artefactIndex);

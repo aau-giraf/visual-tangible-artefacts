@@ -1,5 +1,4 @@
-import 'dart:io';
-import 'dart:typed_data';
+// unused imports removed
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -107,7 +106,7 @@ class ArtefactController extends ChangeNotifier {
     }
   }
 
-Future<void> newArtifact(BuildContext context, String categoryId) async {
+Future<void> newArtifact(BuildContext context, String categoryId, {Function(Artefact)? onCreated}) async {
     var popup = AddItemPopup(
         isCategory: false,
         title: 'Tilføj artefakt',
@@ -120,12 +119,17 @@ Future<void> newArtifact(BuildContext context, String categoryId) async {
                 image: imageBytes,
                 sound: soundBytes,
                 name: name);
-            await _model.postArtefact(newArtefact,
+            var created = await _model.postArtefact(newArtefact,
                 token: GetIt.I.get<Token>().value!);
-              if (context.mounted) {
-                _showSuccessActionSnackBar(context, 'Artefact tilføjet');
-              }
+            if (context.mounted) {
+              _showSuccessActionSnackBar(context, 'Artefact tilføjet');
+            }
             notifyListeners();
+            if (onCreated != null) {
+              try {
+                onCreated(created);
+              } catch (_) {}
+            }
           } catch (e) {
             if (context.mounted) {
               _showErrorSnackBar(context, e.toString());
@@ -140,13 +144,13 @@ Future<void> newArtifact(BuildContext context, String categoryId) async {
         });
   }
 
-Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
+  Future<bool> deleteArtefact(BuildContext context, Artefact artefact) async {
     // Save ScaffoldMessenger reference before dialog
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     try {
-      await _showDeleteConfirmationDialog(context, onDelete: () async {
+      final confirmed = await _showDeleteConfirmationDialog(context, onDelete: () async {
         await _model.deleteArtefact(artefact, token: GetIt.I.get<Token>().value!);
         notifyListeners();
         _showSuccessSnackBarAfterAsync(
@@ -155,14 +159,17 @@ Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
           'Artefact slettet',
         );
       });
+      return confirmed;
     } catch (e) {
       _showErrorSnackBarAfterAsync(
         scaffoldMessenger,
         screenHeight,
         e.toString(),
       );
+      return false;
     }
   }
+ 
 
   Future<void> updateArtefact(
     BuildContext context, 
@@ -209,7 +216,7 @@ Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
     try {
       await _model.updateArtefact(artefact, token: token.value!);
     } catch (e) {
-      if (context != null && context.mounted) {
+      if (context.mounted) {
         _showErrorSnackBar(context, e.toString());
       }
     }
@@ -264,34 +271,47 @@ Future<void> deleteArtefact(BuildContext context, Artefact artefact) async {
   }
 
   // This can be used for category or artefact deletion by passing the appropriate delete action
-  Future<void> _showDeleteConfirmationDialog(
+  /// Shows a confirmation dialog and returns true if the user confirmed and
+  /// the provided [onDelete] callback was executed successfully. Returns
+  /// false if the user cancelled or if an error occurred.
+  Future<bool> _showDeleteConfirmationDialog(
     BuildContext context, {
     required Future<void> Function() onDelete,
   }) async {
-    await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Slet'),
-          content: const Text('Er du sikker på du vil slette denne?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Annuller'),
-            ),
-            TextButton(
-              onPressed: () async {
-                // Call the provided delete callback
-                await onDelete();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Slet'),
-            ),
-          ],
-        );
-      },
-    );
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Slet'),
+            content: const Text('Er du sikker på du vil slette denne?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(false);
+                },
+                child: const Text('Annuller'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await onDelete();
+                    Navigator.of(dialogContext).pop(true);
+                  } catch (_) {
+                    // If delete fails, close dialog and bubble up the error
+                    Navigator.of(dialogContext).pop(false);
+                  }
+                },
+                child: const Text('Slet'),
+              ),
+            ],
+          );
+        },
+      );
+
+      return result == true;
+    } catch (e) {
+      return false;
+    }
   }
 }

@@ -4,6 +4,8 @@ namespace VTA.API.Utilities;
 
 public static class ImageUtilities
 {
+    // Cache the base assets path to avoid repeated Directory.GetCurrentDirectory() calls
+    private static readonly string BaseAssetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
     //private static string _APIEndpoint = "";
     private static string _Dir = "";
     /// <summary>
@@ -14,7 +16,7 @@ public static class ImageUtilities
     /// <param name="dir">The dir to upload it (Artefact or Category image)</param>
     /// <param name="userId">The user ID for organizing files by user</param>
     /// <returns>null if nothing image is null <br/>The file path for the image that was</returns>
-    public static string? AddImage(IFormFile? image, string artefactId, string dir, string userId)
+    public static async Task<string?> AddImage(IFormFile? image, string artefactId, string dir, string userId)
     {
         _Dir = dir;
         string _APIEndpoint = "/api/Assets/" + _Dir + "/";
@@ -23,7 +25,7 @@ public static class ImageUtilities
             // Add "image_" prefix to filename for clarity
             string fileName = "image_" + artefactId + Path.GetExtension(image.FileName);
             // Create user-specific folder structure: Assets/{dir}/{userId}/
-            string imageFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);
+            string imageFolder = Path.Combine(BaseAssetsPath, _Dir, userId);
 
             // Ensure user directory exists
             if (!Directory.Exists(imageFolder))
@@ -35,7 +37,7 @@ public static class ImageUtilities
 
             using (FileStream stream = new FileStream(filePath, FileMode.Create))
             {
-                image.CopyTo(stream);
+                await image.CopyToAsync(stream);
             }
             return $"{_APIEndpoint}{userId}/{fileName}";
         }
@@ -56,7 +58,7 @@ public static class ImageUtilities
 
         if (file == null) { return null; }
 
-        string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId, file);
+        string path = Path.Combine(BaseAssetsPath, _Dir, userId, file);
         File.Delete(path);
 
         return true;
@@ -73,7 +75,7 @@ public static class ImageUtilities
         try
         {
             // Search in user-specific directory: Assets/{dir}/{userId}/
-            string path = Path.Combine(Directory.GetCurrentDirectory(), "Assets", _Dir, userId);//Path.Combine makes the code compatible with all Operating systems (Some OS's uses / for path seperation, while some use \ for path seperation)
+            string path = Path.Combine(BaseAssetsPath, _Dir, userId);//Path.Combine makes the code compatible with all Operating systems (Some OS's uses / for path seperation, while some use \ for path seperation)
 
             // Ensure user directory exists before searching
             if (!Directory.Exists(path))

@@ -5,6 +5,7 @@ import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 
+
 class ArtifactModel {
   List<Category>? categories;
   List<Category>? mostUsedCategories;
@@ -80,7 +81,7 @@ class ArtifactModel {
     }
   }
 
-  Future<void> postArtefact(Artefact artefact, {required String token}) async {
+  Future<Artefact> postArtefact(Artefact artefact, {required String token}) async {
     try {
       // Ensure we pass the sound bytes with the key 'Sound' to match backend IFormFile binding
       var body = artefact.toJson();
@@ -91,13 +92,31 @@ class ArtifactModel {
       var response = await apiProvider.sendAsMultiPart(
           'POST', "Users/Artefacts",
           body: body, headers: {'Authorization': 'Bearer $token'});
+
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);
-        categories
-            ?.firstWhere((item) => item.categoryId == newArtefact.categoryId)
-            .artefacts
-            ?.add(newArtefact);
+        final catId = newArtefact.categoryId;
+
+        if (catId == 'Session-Artefact') {
+          // Do not add to categories list!!! session artefacts are treated as uncategorized.
+        } else {
+          if (categories != null) {
+            final idx = categories!.indexWhere((item) => item.categoryId == catId);
+            if (idx != -1) {
+              categories![idx].artefacts ??= [];
+              categories![idx].artefacts!.add(newArtefact);
+            } else {
+              // Category wrapper to hold the artefact locally
+              categories!.add(Category(categoryId: catId, artefacts: [newArtefact]));
+            }
+          } else {
+            // No categories cached at all - create the list with a single category
+            categories = [Category(categoryId: catId, artefacts: [newArtefact])];
+          }
+        }
+
+        return newArtefact;
       } else {
         throw ArtifactException(
             message:
@@ -116,11 +135,12 @@ class ArtifactModel {
           "Users/Artefacts/${artefact.artefactId}",
           headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
-        categories
-            ?.firstWhere(
-                (category) => category.categoryId == artefact.categoryId)
-            .artefacts
-            ?.removeWhere((a) => a.artefactId == artefact.artefactId);
+        if (categories != null) {
+          final idx = categories!.indexWhere((c) => c.categoryId == artefact.categoryId);
+          if (idx != -1 && categories![idx].artefacts != null) {
+            categories![idx].artefacts!.removeWhere((a) => a.artefactId == artefact.artefactId);
+          }
+        }
       } else {
         throw ArtifactException(
             message:
