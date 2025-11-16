@@ -16,9 +16,7 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
 
         builder.HasIndex(e => e.BoardId, "boardId");
 
-        // Unique constraint: one artefact per board
-        builder.HasIndex(e => new { e.ArtefactId, e.BoardId }, "unique_artefact_board")
-            .IsUnique();
+        // Note: No unique constraint to allow multiple instances of the same artefact on a board
 
         builder.Property(e => e.Id)
             .HasMaxLength(36)
@@ -39,6 +37,14 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
         builder.Property(e => e.PosY)
             .HasColumnName("posY")
             .HasDefaultValue(0f);
+
+        builder.Property(e => e.Width)
+            .HasColumnName("width")
+            .HasDefaultValue(200f);
+
+        builder.Property(e => e.Height)
+            .HasColumnName("height")
+            .HasDefaultValue(200f);
 
         builder.Property(e => e.CreatedDate)
             .HasColumnType("datetime")

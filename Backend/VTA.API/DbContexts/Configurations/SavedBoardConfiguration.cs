@@ -26,13 +26,17 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasMaxLength(36)
             .HasColumnName("userId");
 
-        builder.Property(e => e.SavedArtefactId)
-            .HasMaxLength(36)
-            .HasColumnName("savedArtefactId");
-
         builder.Property(e => e.SnapshotPath)
             .HasMaxLength(255)
             .HasColumnName("snapshotPath");
+
+        builder.Property(e => e.SavedArtefactIds)
+            .HasColumnType("json")
+            .HasColumnName("savedArtefactIds");
+
+        builder.Property(e => e.ArtefactIds)
+            .HasColumnType("json")
+            .HasColumnName("artefactIds");
 
         builder.Property(e => e.CreatedDate)
             .HasColumnType("datetime")
@@ -57,12 +61,5 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasForeignKey(p => p.BoardId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Relationship: SavedBoard -> SavedArtefact single reference (many-to-one, optional)
-        // This uses the savedArtefactId FK in SavedBoard table
-        builder.HasOne(d => d.SavedArtefact)
-            .WithMany()
-            .HasForeignKey(d => d.SavedArtefactId)
-            .OnDelete(DeleteBehavior.SetNull)
-            .HasConstraintName("savedBoard_ibfk_2");
     }
 }
