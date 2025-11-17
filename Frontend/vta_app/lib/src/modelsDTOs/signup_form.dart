@@ -1,24 +1,26 @@
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
+enum UserRole { child, caregiver, admin }
+
 class SignupForm implements JsonSerializable {
   String username;
   String password;
   String name;
-  String guardianKey;
+  UserRole role;
 
   SignupForm(
       {required this.username,
       required this.password,
       required this.name,
-      required this.guardianKey});
+      this.role = UserRole.child});
 
   @override
   Map<String, dynamic> toJson() {
     return {
-      'username': username,
-      'password': password,
-      'name': name,
-      'guardianKey': guardianKey
+      'Username': username,
+      'Password': password,
+      'Name': name,
+      'Role': role.index
     };
   }
 }

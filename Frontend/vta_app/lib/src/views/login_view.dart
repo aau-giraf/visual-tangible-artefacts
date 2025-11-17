@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/modelsDTOs/signup_form.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:get_it/get_it.dart';
 
 class LoginView extends StatefulWidget {
   static const String routeName = '/login';
@@ -17,6 +20,7 @@ class _LoginViewState extends State<LoginView> {
   final sharedPasswordController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
+  UserRole _selectedRole = UserRole.child;
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +156,6 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _signupForm(AuthController controller) {
     final TextEditingController nameController = TextEditingController();
-    final TextEditingController guardianKeyController = TextEditingController();
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     return Form(
       key: formKey,
@@ -204,14 +207,31 @@ class _LoginViewState extends State<LoginView> {
             },
           ),
           SizedBox(height: 16),
-          TextFormField(
-            controller: guardianKeyController,
+          DropdownButtonFormField<UserRole>(
+            value: _selectedRole,
             decoration: InputDecoration(
-              labelText: 'Værgenøgle',
+              labelText: 'Rolle',
             ),
+            items: [
+              DropdownMenuItem(
+                value: UserRole.child,
+                child: Text('Barn'),
+              ),
+              DropdownMenuItem(
+                value: UserRole.caregiver,
+                child: Text('caregiver?'),
+              ),
+            ],
+            onChanged: (UserRole? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedRole = newValue;
+                });
+              }
+            },
             validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Indtast venligst en værgenøgle';
+              if (value == null) {
+                return 'Vælg venligst en rolle';
               }
               return null;
             },
@@ -228,10 +248,38 @@ class _LoginViewState extends State<LoginView> {
                       final username = sharedUsernameController.text;
                       final password = sharedPasswordController.text;
                       final name = nameController.text;
-                      final guardianKey = guardianKeyController.text;
-                      await controller.signup(
-                          username, password, name, guardianKey,
-                          context: context);
+
+                      final signupForm = SignupForm(
+                        username: username,
+                        password: password,
+                        name: name,
+                        role: _selectedRole,
+                      );
+                      try {
+                        final apiProvider = GetIt.instance.get<ApiProvider>();
+                        final response = await apiProvider.postAsJson(
+                          'Users/SignUp',
+                          body: signupForm.toJson(),
+                        );
+
+                        if (response != null &&
+                            (response.statusCode == 200 ||
+                                response.statusCode == 201)) {
+                          setState(() {
+                            _isLogin = true;
+                          });
+                        } else {
+                          throw Exception('Registration failed');
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Fejl ved oprettelse af konto: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                       setState(() {
                         _isLoading = false;
                       });

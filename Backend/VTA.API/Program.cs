@@ -32,7 +32,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 //register our singleton
 builder.Services.AddSingleton(provider =>
-    { 
+    {
         var secretsSingleton = SecretsProvider.Instance;
         secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
         return secretsSingleton;
@@ -80,11 +80,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFlutterApp", policy =>
+    options.AddPolicy("AllowAllOrigins", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:8080")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -152,9 +153,9 @@ app.UseSwaggerUI();
 //app.UseHttpsRedirection();
 
 app.UseResponseCompression();
+app.UseCors("AllowAllOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("AllowFlutterApp");
 
 
 app.MapControllers();

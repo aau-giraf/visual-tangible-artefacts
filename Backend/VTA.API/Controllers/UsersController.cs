@@ -13,7 +13,7 @@ using VTA.API.Utilities;
 namespace VTA.API.Controllers;
 //Mark the entire controller to require a valid token
 [Authorize]
-[Route("api/Users")]//Define where all endpoints are
+[Route("api/[controller]")]//Define where all endpoints are
 [ApiController]
 public class UsersController(VTAContext context, IConfiguration config) : ControllerBase
 {
@@ -23,20 +23,19 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// <param name="userLoginForm">username and password</param>
     /// <returns>A login object</returns>
     [AllowAnonymous]//Allows a user to not have a JWT
-    [Route("Login")] // = api/Users/Login
-    [HttpPost]
+    [HttpPost("Login")] // = api/Users/Login
     public async Task<ActionResult<UserLoginResponseDTO>> Login(UserLoginDTO userLoginForm)
     {
         if (userLoginForm == null)
         {
             return BadRequest();
         }
-        
+
         User? user = await context.Users //_context.Users (In the users table)
             .AsNoTracking() // Read-only query for login
             .FirstOrDefaultAsync( //find the first user
             u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
-        
+
         if (user == null)//If user not found
         {
             return NotFound();
@@ -47,7 +46,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             return NotFound(); //We aren't telling them the password is wrong, just that *something* is wrong
         }
 
-        var token = GenerateJwt(user.Id, user.Name);
+        var token = GenerateJwt(user);
         return new UserLoginResponseDTO
         {
             Token = token,
@@ -104,7 +103,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
         return await AutoSignIn(user);
     }
-    
+
     /// <summary>
     /// Requested by the front-end. The intended functionality is pretty clear.
     /// </summary>
@@ -117,7 +116,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
     {
         var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
-        var token = GenerateJwt(user.Id, user.Name);
+        var token = GenerateJwt(user);
         return new UserLoginResponseDTO
         {
             Token = token,
@@ -133,7 +132,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// This could be alted to get all users tied to a parent/pedagogue/teacher
     /// </remarks>
     /// <returns>A list of users</returns>
-    [HttpGet("Users")]
+    [HttpGet]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
     {
         List<User> users = await context.Users
@@ -152,14 +151,16 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// Get information about a specific user
     /// </summary>
     /// <returns>A user</returns>
-    [HttpGet]
-    public async Task<ActionResult<UserGetDTO>> GetUser()
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserGetDTO>> GetUser(string id)
     {
         var userId = User.FindFirst("id")?.Value;
 
+        // This logic might need adjustment depending on whether an admin can fetch any user
+        // For now, it's restricted to the logged-in user, but the route supports getting any user.
         User? user = await context.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == userId);
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
@@ -280,11 +281,10 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// <summary>
     /// Generates a Json Web Token used for granting access to the API endpoints marked with [Authorize]
     /// </summary>
-    /// <param name="userId">The users ID, used within the encoded within the webtoken, both to create uniqueness but also to extract in functions</param>
-    /// <param name="name">Only used to create more uniqueness</param>
+    /// <param name="user">The user object containing ID, name, and role information</param>
     /// <returns>A valid JWT for this user</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private string GenerateJwt(string userId, string name)
+    private string GenerateJwt(User user)
     {
         var secretKey = config.GetValue<string>("Secret:SecretKey")
                         ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables 
@@ -299,7 +299,8 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
         var claims = new[]
         {
-        new Claim("id", userId),
+        new Claim("id", user.Id),
+        new Claim(ClaimTypes.Role, user.Role.ToString()),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
     };
