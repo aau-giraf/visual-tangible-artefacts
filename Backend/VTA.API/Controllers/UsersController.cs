@@ -34,9 +34,10 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         {
             return BadRequest();
         }
-
-        User? user = await context.Users. //_context.Users (In the users table)
-            FirstOrDefaultAsync( //find the first user
+        
+        User? user = await context.Users //_context.Users (In the users table)
+            .AsNoTracking() // Read-only query for login
+            .FirstOrDefaultAsync( //find the first user
             u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
 
         if (user == null)//If user not found
@@ -149,12 +150,14 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     [HttpGet("Users")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
     {
-        List<User> users = await context.Users.ToListAsync();
-        List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
-        foreach (User user in users)
-        {
-            userGetDTOs.Add(DTOConverter.MapUserToUserGetDTO(user));
-        }
+        List<User> users = await context.Users
+            .AsNoTracking()
+            .ToListAsync();
+
+        var userGetDTOs = users
+            .Select(user => DTOConverter.MapUserToUserGetDTO(user))
+            .ToList();
+
         return userGetDTOs;
     }
 
@@ -168,7 +171,9 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     {
         var userId = User.FindFirst("id")?.Value;
 
-        User user = await context.Users.FindAsync(userId);
+        User? user = await context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
         {

@@ -15,6 +15,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add response compression for better bandwidth usage
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
 // Add HttpClient services for ElevenLabs API integration
 builder.Services.AddHttpClient();
 
@@ -171,6 +177,7 @@ app.UseSwaggerUI();
 
 //app.UseHttpsRedirection();
 
+app.UseResponseCompression();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseCors("AllowFlutterApp");

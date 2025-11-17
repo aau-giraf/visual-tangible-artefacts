@@ -140,6 +140,25 @@ class ArtifactRepository extends ApiDataRepository {
     }
   }
 
+  Future<Artefact?> fetchArtefact(String artefactId,
+      {required String token}) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Users/Artefacts/$artefactId',
+          headers: headers);
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body);
+        return Artefact.fromJson(jsonResponse);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("An error occurred while fetching artefact: $e");
+      return null;
+    }
+  }
+
   Future<Artefact?> addArtifact(Artefact artefact,
       {required String token}) async {
     try {

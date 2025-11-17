@@ -26,16 +26,19 @@ public class CategoriesController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Category>? categories = await context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
+        List<Category>? categories = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .Include(c => c.Artefacts)
+            .ToListAsync();
         if (categories == null)
         {
             return NotFound();
         }
-        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-        foreach (Category category in categories)
-        {
-            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
-        }
+
+        var categoryGetDTOs = categories
+            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+            .ToList();
 
         return categoryGetDTOs;
     }
@@ -52,6 +55,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         var category = await context.Categories
+            .AsNoTracking()
             .Where(c => c.CategoryId == categoryId && c.UserId == userId)
             .Include(c => c.Artefacts)
             .FirstOrDefaultAsync();
@@ -99,7 +103,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         if (dto.Image != null)
         {
             ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
-            ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId);
+            await ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId);
         }
 
         context.Entry(category).State = EntityState.Modified;
@@ -145,7 +149,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         }
 
         string id = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
+        string? imageUrl = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
 
         // Image is optional - allow null imageUrl
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
@@ -283,6 +287,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         List<Category>? categories = await context.Categories
+            .AsNoTracking()
             .Where(c => c.UserId == userId)
             .Include(c => c.Artefacts)
             .OrderByDescending(c => c.UsageCount)
@@ -295,11 +300,9 @@ public class CategoriesController(VTAContext context) : ControllerBase
             return NotFound();
         }
 
-        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-        foreach (Category category in categories)
-        {
-            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
-        }
+        var categoryGetDTOs = categories
+            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+            .ToList();
 
         return categoryGetDTOs;
     }
