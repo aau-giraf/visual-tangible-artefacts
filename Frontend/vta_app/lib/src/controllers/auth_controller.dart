@@ -6,6 +6,7 @@ import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
 
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
@@ -31,9 +32,25 @@ class AuthController extends ChangeNotifier {
 
       if (context != null && context.mounted) {
         await artifactController.updateArtifacts(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
+
         await artifactController.updateMostUsedCategories(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
+
+        // ⭐ Connect to SignalR with logged-in user's id
+        final userId = _model.userInfo.userId;
+        if (userId != null && userId.isNotEmpty) {
+          try {
+            await SignalRService().connect(userId);
+            debugPrint("SignalR: connected & registered user $userId");
+          } catch (e) {
+            debugPrint("SignalR: connect failed => $e");
+          }
+        } else {
+          debugPrint("WARNING: No userId available for SignalR connection");
+        }
+
+        if (!context.mounted) return;
         Navigator.of(context)
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }

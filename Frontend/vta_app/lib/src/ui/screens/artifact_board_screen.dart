@@ -3,9 +3,11 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
+import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
@@ -116,6 +118,19 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             itemBuilder: (context) => [
                                   PopupMenuItem(
                                     child: ListTile(
+                                      leading: Icon(Icons.call, size: 20),
+                                      title: const Text('Start Opkald'),
+                                      onTap: () {
+                                        SignalRService()
+                                            .setOwnerBoardController(
+                                                controller);
+                                        Navigator.of(context).pushNamed(
+                                            RemoteSessionScreen.routeName);
+                                      },
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    child: ListTile(
                                       leading: Icon(Icons.settings, size: 20),
                                       title: const Text('Instillinger'),
                                       onTap: () {
@@ -135,7 +150,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ]),
                       ),
-                      
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
@@ -146,17 +160,22 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             },
                             icon: controller.showDirectional
                                 ? const Icon(
-                              IconData(0xf685, fontFamily: 'MaterialIcons'),
-                              size: 24.0,
-                            )
+                                    IconData(0xf685,
+                                        fontFamily: 'MaterialIcons'),
+                                    size: 24.0,
+                                  )
                                 : const Icon(
-                              IconData(0xf601, fontFamily: 'MaterialIcons'),
-                              size: 24.0,
-                            ),
+                                    IconData(0xf601,
+                                        fontFamily: 'MaterialIcons'),
+                                    size: 24.0,
+                                  ),
                           ),
                         ),
                       ),
-                      QuickAddArtefactButton(artefactController: artifactController, onArtifactAdded: controller.addArtifactToCurrentBoard),
+                      QuickAddArtefactButton(
+                          artefactController: artifactController,
+                          onArtifactAdded:
+                              controller.addArtifactToCurrentBoard),
                       const QuickChatButton(),
                     ],
                   ),

@@ -1,44 +1,52 @@
+// SyncService/Hubs/BoardHub.cs
+
 using Microsoft.AspNetCore.SignalR;
 
 namespace SyncService.Hubs
 {
     public class BoardHub : Hub
     {
-        private static Dictionary<string, string> userConnections = new();  // userId -> connectionId
-        private static Dictionary<string, string> activeSessions = new();   // sessionId -> userId pair
-        private static Dictionary<string, BoardSession> boardSessions = new();
+        private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId
+        private static readonly Dictionary<string, BoardSession> boardSessions = new(); // sessionId -> session
 
         public class BoardSession
         {
-            public string SessionId { get; set; }
-            public string User1Id { get; set; }
-            public string User2Id { get; set; }
-            public List<string> Connections { get; set; } = new();
+            public required string SessionId { get; init; }
+            public required string User1Id { get; init; }
+            public required string User2Id { get; init; }
+            public HashSet<string> Connections { get; set; } = new();
         }
 
-        // User registers their connection
         public async Task RegisterUser(string userId)
         {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Console.WriteLine("[Hub] Reject RegisterUser: EMPTY userId");
+                return;
+            }
+
             userConnections[userId] = Context.ConnectionId;
-            await Clients.All.SendAsync("UserOnline", userId);
+            Console.WriteLine($"[Hub] RegisterUser => UserId={userId} Conn={Context.ConnectionId}");
         }
 
-        // User A sends a session request to User B
         public async Task RequestSession(string fromUserId, string toUserId)
         {
-            if (userConnections.TryGetValue(toUserId, out var toConnectionId))
+            Console.WriteLine($"[Hub] RequestSession => {fromUserId} → {toUserId}");
+
+            if (userConnections.TryGetValue(toUserId, out var toConn))
             {
-                await Clients.Client(toConnectionId).SendAsync("SessionRequested", fromUserId);
+                await Clients.Client(toConn).SendAsync("SessionRequested", fromUserId);
             }
             else
             {
-                await Clients.Caller.SendAsync("UserOffline", toUserId);
+                await Clients.Client(Context.ConnectionId).SendAsync("UserOffline", toUserId);
             }
         }
 
-        // User B accepts the request and they both join the session
         public async Task AcceptSession(string sessionId, string fromUserId, string toUserId)
         {
+            Console.WriteLine($"[Hub] AcceptSession => {sessionId} from {fromUserId} + {toUserId}");
+
             var session = new BoardSession
             {
                 SessionId = sessionId,
@@ -46,54 +54,66 @@ namespace SyncService.Hubs
                 User2Id = toUserId
             };
 
+            // Add CALLER (fromUserId) to group
+            if (userConnections.TryGetValue(fromUserId, out var fromConn))
+            {
+                await Groups.AddToGroupAsync(fromConn, sessionId);
+                session.Connections.Add(fromConn);
+                Console.WriteLine($"[Hub] Added {fromUserId} to group {sessionId}");
+            }
+            else
+            {
+                Console.WriteLine($"[Hub] WARNING: {fromUserId} not found in connections");
+            }
+
+            // Add RECEIVER (toUserId - the current user accepting) to group
+            if (userConnections.TryGetValue(toUserId, out var toConn))
+            {
+                await Groups.AddToGroupAsync(toConn, sessionId);
+                session.Connections.Add(toConn);
+                Console.WriteLine($"[Hub] Added {toUserId} to group {sessionId}");
+            }
+            else
+            {
+                Console.WriteLine($"[Hub] WARNING: {toUserId} not found in connections");
+            }
+
             boardSessions[sessionId] = session;
 
-            // Add both users to the session group
-            if (userConnections.TryGetValue(fromUserId, out var fromConnectionId))
-            {
-                await Groups.AddToGroupAsync(fromConnectionId, sessionId);
-                session.Connections.Add(fromConnectionId);
-            }
-
-            if (userConnections.TryGetValue(toUserId, out var toConnectionId))
-            {
-                await Groups.AddToGroupAsync(toConnectionId, sessionId);
-                session.Connections.Add(toConnectionId);
-            }
-
-            // Notify both that session started
+            // Broadcast to BOTH users in the group
             await Clients.Group(sessionId).SendAsync("SessionStarted", sessionId);
+            Console.WriteLine($"[Hub] Broadcasted SessionStarted to group {sessionId}");
         }
 
-        // Reject the request
         public async Task RejectSession(string fromUserId)
         {
-            if (userConnections.TryGetValue(fromUserId, out var connectionId))
-            {
-                await Clients.Client(connectionId).SendAsync("SessionRejected");
-            }
+            Console.WriteLine($"[Hub] RejectSession => {fromUserId}");
+
+            if (userConnections.TryGetValue(fromUserId, out var conn))
+                await Clients.Client(conn).SendAsync("SessionRejected");
         }
 
-        // During active session: sync board updates
         public async Task UpdateBoard(string sessionId, object boardData)
         {
+            Console.WriteLine($"[Hub] UpdateBoard => sessionId={sessionId}");
             await Clients.Group(sessionId).SendAsync("BoardUpdated", boardData);
+            Console.WriteLine($"[Hub] Broadcasted BoardUpdated to group {sessionId}");
         }
 
-        // End session
         public async Task EndSession(string sessionId)
         {
+            Console.WriteLine($"[Hub] EndSession => {sessionId}");
             await Clients.Group(sessionId).SendAsync("SessionEnded");
             boardSessions.Remove(sessionId);
         }
 
-        public override async Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            var userToRemove = userConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
-            if (userToRemove != null)
+            var user = userConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
+            if (user != null)
             {
-                userConnections.Remove(userToRemove);
-                await Clients.All.SendAsync("UserOffline", userToRemove);
+                userConnections.Remove(user);
+                Console.WriteLine($"[Hub] User disconnected => {user}");
             }
 
             await base.OnDisconnectedAsync(exception);
