@@ -81,27 +81,44 @@ public static class DTOConverter
         };
     }
 
-    public static User MapUserSignUpDTOToUser(UserSignupDTO dto, string id)
+    // Note: User is now abstract. Use specific types (Admin, Caregiver, Child) when creating new users
+    // These methods are kept for backward compatibility but should be replaced with specific implementations
+    public static Admin MapUserSignUpDTOToAdmin(UserSignupDTO dto, string id)
     {
-        return new User
+        return new Admin
         {
             Id = id,
-            Name = dto.Name,
+            FirstName = dto.Name,
             Password = dto.Password,
             Username = dto.Username,
-            GuardianKey = dto.GuardianKey
-        };
-    }
-    public static User MapUserPostDTOToUser(UserPostDTO user, string id)
-    {
-        return new User
-        {
-            Id = id,
-            Name = user.Name,
-            Password = user.Password,
-            GuardianKey = user.GuardianKey,
-            Username = user.Username
+            GuardianKey = dto.GuardianKey,
+            Role = VTA.API.Enums.UserRole.Admin
         };
     }
 
+    public static Caregiver MapUserSignUpDTOToCaregiver(UserSignupDTO dto, string id)
+    {
+        return new Caregiver
+        {
+            Id = id,
+            FirstName = dto.Name,
+            Password = dto.Password,
+            Username = dto.Username,
+            GuardianKey = dto.GuardianKey,
+            Role = VTA.API.Enums.UserRole.Caregiver
+        };
+    }
+
+    public static Child MapUserSignUpDTOToChild(UserSignupDTO dto, string id)
+    {
+        return new Child
+        {
+            Id = id,
+            FirstName = dto.Name,
+            Password = dto.Password,
+            Username = dto.Username,
+            GuardianKey = dto.GuardianKey,
+            Role = VTA.API.Enums.UserRole.Child
+        };
+    }
 }

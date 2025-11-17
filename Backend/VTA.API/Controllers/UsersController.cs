@@ -76,7 +76,10 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         {
             return Conflict("Username already exists");
         }
-        User user = DTOConverter.MapUserSignUpDTOToUser(userSignUp, Guid.NewGuid().ToString());
+        
+        // Default to creating a Caregiver user for backward compatibility
+        // In the future, this should be specified in the DTO
+        User user = DTOConverter.MapUserSignUpDTOToCaregiver(userSignUp, Guid.NewGuid().ToString());
 
         while (UserIdExists(user.Id))
         {

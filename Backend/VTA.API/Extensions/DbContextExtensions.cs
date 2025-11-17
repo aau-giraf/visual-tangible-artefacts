@@ -78,12 +78,14 @@ public static class DbContextExtensions
 
         if (testUserExist) return context;
         
-        var testUser = new User
+        // Create test user as Admin (User is now abstract)
+        var testUser = new Admin
         {
             Id = Guid.NewGuid().ToString(),
-            Name = giraf,
+            FirstName = giraf,
             Password = giraf,
-            Username = giraf
+            Username = giraf,
+            Role = VTA.API.Enums.UserRole.Admin
         };
         
         testUser.Password = BCrypt.Net.BCrypt.HashPassword(testUser.Password);
