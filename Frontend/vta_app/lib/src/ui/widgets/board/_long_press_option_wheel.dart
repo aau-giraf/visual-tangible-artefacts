@@ -49,7 +49,14 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   @override
   void initState() {
     super.initState();
-    _showName = widget.artifact.baseArtefact?.nameShown ?? false;
+    _showName = widget.artifact.nameVisible;
+  }
+
+  @override
+  void didUpdateWidget(covariant LongPressOptionWheel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Always sync with external changes; the artefact instance is the same and mutated in place
+    _showName = widget.artifact.nameVisible;
   }
 
   // finding artifact center and showing wheel
@@ -164,12 +171,9 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) async {
-                widget.artifact.baseArtefact?.nameShown = val;
-                setState(() {
-                  _showName = val;
-                });
-                // Persist the change to backend
-                await widget.artifactController.updateArtifact(widget.artifact.baseArtefact!, context);
+                  // Toggle per-instance, do not persist visibility to backend.
+                  widget.artifact.nameVisible = val;
+                  setState(() { _showName = val; });
               },
               playSound: () async {
                 await _soundPlayer.playArtefactSound(widget.artifact.baseArtefact!);

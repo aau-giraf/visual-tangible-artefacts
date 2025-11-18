@@ -733,11 +733,27 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                 );
               }).toList();
 
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ...itemWidgets,
-                  Align(
+              return DragTarget<BoardArtefact>(
+                onWillAcceptWithDetails: (details) => true,
+                onMove: (details) {
+                  final artefact = details.data;
+                  // Adjust anchoring if name is shown so pointer aligns with image
+                  Offset adjusted = details.offset;
+                  if (artefact.nameVisible == true) {
+                    final double nameOffset = _getNameDisplayOffset(
+                      artefact.baseArtefact?.name ?? '',
+                      context,
+                    );
+                    adjusted = Offset(details.offset.dx, details.offset.dy - nameOffset);
+                  }
+                  _updateArtifactPosition(artefact, adjusted);
+                },
+                builder: (context, candidate, rejected) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ...itemWidgets,
+                      Align(
                     alignment: Alignment.lerp(
                             Alignment.bottomCenter, Alignment.center, 0.1) ??
                         Alignment.bottomCenter,
@@ -874,8 +890,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                         ),
                       ),
                     ]),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               );
             },
           ),
