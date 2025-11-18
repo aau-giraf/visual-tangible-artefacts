@@ -116,7 +116,7 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
   Offset? _startPointer;
 
   static const double _minWidth = 100.0;
-  static const double _maxWidth = 1000.0;
+  static const double _maxWidth = 500.0;
   static const double _handleSize = 36.0;
 
   void _onPointerDown(PointerDownEvent event) {
