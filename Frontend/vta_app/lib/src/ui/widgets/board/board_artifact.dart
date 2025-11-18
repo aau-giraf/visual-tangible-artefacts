@@ -40,6 +40,8 @@ class BoardArtefact {
         },
         image: NetworkImage(artefact.imageUrl!, headers: headers),
         placeholder: const AssetImage('assets/images/flutter_logo.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
     }
     // If no image but has sound, show speaker icon
@@ -146,7 +148,14 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            SizedBox(width: size.width, height: size.height, child: child),
+            SizedBox(
+              width: size.width, 
+              height: size.height, 
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: child,
+              ),
+            ),
             ValueListenableBuilder<bool>(
               valueListenable: widget.showResizeNotifier,
               builder: (context, visible, _) {
