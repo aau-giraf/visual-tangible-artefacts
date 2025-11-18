@@ -297,9 +297,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         );
 
         final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
+        // TODO: pause timer while resizing or dragging as they cause problems.
+        /*
         if (!success) {
           print('Debug: Failed to auto-save layout for artefact ${artefactLayout.artefactId}');
         }
+        */
       }
 
       // If there are artefacts without saved IDs, perform a full board update (PUT) to create them in one go
@@ -663,54 +666,67 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                     controller: widget.controller,
                     artifactKey: measurementKey,
                     artifactController: GetIt.instance<ArtefactController>(),
-                    child: Draggable<BoardArtefact>(
-                      data: artefact,
-                      feedback: Transform.scale(
-                        scale: 1.2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 4),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: artefact.showResizeHandle,
+                      builder: (context, isResizing, child) {
+                        // When resizing, render content directly without Draggable
+                        if (isResizing) {
+                          return RepaintBoundary(
+                            key: measurementKey,
+                            child: artefact.content,
+                          );
+                        }
+                        // When not resizing, wrap in Draggable
+                        return Draggable<BoardArtefact>(
+                          data: artefact,
+                          feedback: Transform.scale(
+                            scale: 1.2,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    spreadRadius: 0,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ],
+                              child: Opacity(
+                                opacity: 0.5,
+                                child: artefact.content,
+                              ),
+                            ),
                           ),
-                          child: Opacity(
-                            opacity: 0.5,
+                          childWhenDragging: const SizedBox.shrink(),
+                          child: RepaintBoundary(
+                            key: measurementKey,
                             child: artefact.content,
                           ),
-                        ),
-                      ),
-                      childWhenDragging: const SizedBox.shrink(),
-                      child: RepaintBoundary(
-                        key: measurementKey,
-                        child: artefact.content,
-                      ),
-                      onDragStarted: () {
-                        setState(() {
-                          _zOrder[artefact] = ++_zTick; // bring instance to front
-                        });
-                      },
-                      onDragEnd: (details) {
-                        final Size artSize = artefact.renderedSize ?? const Size(200, 200);
-                        if (_isInsideMat(details.offset, artefactSize: artSize)) {
-                          Offset adjustedPosition = details.offset;
-                          if (artefact.baseArtefact?.nameShown == true) {
-                            final double nameOffset = _getNameDisplayOffset(
-                              artefact.baseArtefact?.name ?? '',
-                              context,
-                            );
-                            adjustedPosition = Offset(
-                              details.offset.dx,
-                              details.offset.dy - nameOffset,
-                            );
-                          }
-                          _updateArtifactPosition(artefact, adjustedPosition);
-                        }
+                          onDragStarted: () {
+                            setState(() {
+                              _zOrder[artefact] = ++_zTick; // bring instance to front
+                            });
+                          },
+                          onDragEnd: (details) {
+                            final Size artSize = artefact.renderedSize ?? const Size(200, 200);
+                            if (_isInsideMat(details.offset, artefactSize: artSize)) {
+                              Offset adjustedPosition = details.offset;
+                              if (artefact.baseArtefact?.nameShown == true) {
+                                final double nameOffset = _getNameDisplayOffset(
+                                  artefact.baseArtefact?.name ?? '',
+                                  context,
+                                );
+                                adjustedPosition = Offset(
+                                  details.offset.dx,
+                                  details.offset.dy - nameOffset,
+                                );
+                              }
+                              _updateArtifactPosition(artefact, adjustedPosition);
+                            }
+                          },
+                        );
                       },
                     ),
                   ),
