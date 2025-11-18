@@ -6,6 +6,7 @@ import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
+import '../widgets/board/quick_add_artefact.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
@@ -160,6 +161,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                           ),
                         ),
                       ),
+                      QuickAddArtefactButton(artefactController: artifactController, onArtifactAdded: controller.addArtifactToCurrentBoard),
                       const QuickChatButton(),
                     ],
                   ),

@@ -5,6 +5,7 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
+import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -34,9 +35,7 @@ class LongPressOptionWheel extends StatefulWidget {
 
 class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   OverlayEntry? _overlayEntry;
-  OverlayEntry? _resizeCaptureEntry;
-  VoidCallback? _resizeListener;
-  PointerRoute? _globalPointerRoute;
+  final _resizeOverlay = ResizeOverlay();
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
   Size? _resizeStartSize;
@@ -63,106 +62,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   // finding artifact center and showing wheel
   void _onLongPressStart(LongPressStartDetails details) {
     _showPersistentWheel();
-  }
-
-  void _showResizeCaptureOverlay() {
-    if (_resizeCaptureEntry != null) return;
-
-    _resizeCaptureEntry = OverlayEntry(builder: (context) {
-      final RenderBox? artifactBox = widget.artifactKey.currentContext?.findRenderObject() as RenderBox?;
-      if (artifactBox == null) return const SizedBox.shrink();
-
-      return Positioned.fill(
-        child: Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: (PointerDownEvent event) {
-            // record starting size and pointer for delta calculations
-            try {
-              _resizeStartSize = widget.artifact.sizeNotifier.value;
-            } catch (_) {
-              _resizeStartSize = null;
-            }
-            _resizeStartPointer = event.position;
-          },
-          onPointerMove: (PointerMoveEvent event) {
-            if (_resizeStartPointer == null || _resizeStartSize == null) return;
-            final dx = event.position.dx - _resizeStartPointer!.dx;
-            final double aspect = _resizeStartSize!.height / _resizeStartSize!.width;
-            double newWidth = (_resizeStartSize!.width + dx).clamp(_minResizeWidth, _maxResizeWidth);
-            double newHeight = (newWidth * aspect).clamp(_minResizeWidth * aspect, _maxResizeWidth * aspect);
-            try {
-              widget.artifact.sizeNotifier.value = Size(newWidth, newHeight);
-            } catch (_) {}
-            _resizeCaptureEntry?.markNeedsBuild();
-          },
-          onPointerUp: (PointerUpEvent event) {
-            // finish resizing
-            try {
-              widget.artifact.showResizeHandle.value = false;
-            } catch (_) {}
-            _resizeStartPointer = null;
-            _resizeStartSize = null;
-            _hideResizeCaptureOverlay();
-          },
-          child: Container(color: Colors.transparent),
-        ),
-      );
-    });
-
-    Overlay.of(context).insert(_resizeCaptureEntry!);
-
-    // Also install a global pointer route as a robust fallback to capture
-    // pointer-up events when some platforms dispatch differently.
-    _globalPointerRoute = (PointerEvent event) {
-      if (event is PointerUpEvent) {
-        try {
-          widget.artifact.showResizeHandle.value = false;
-        } catch (_) {}
-        _hideResizeCaptureOverlay();
-      }
-    };
-    GestureBinding.instance.pointerRouter.addGlobalRoute(_globalPointerRoute!);
-
-    // Keep overlay in sync with artifact size changes (optional)
-    _resizeListener = () {
-      _resizeCaptureEntry?.markNeedsBuild();
-    };
-    try {
-      widget.artifact.sizeNotifier.addListener(_resizeListener!);
-    } catch (_) {}
-  }
-
-  void _hideResizeCaptureOverlay() {
-    _resizeCaptureEntry?.remove();
-    _resizeCaptureEntry = null;
-    if (_globalPointerRoute != null) {
-      try {
-        GestureBinding.instance.pointerRouter.removeGlobalRoute(_globalPointerRoute!);
-      } catch (_) {}
-      _globalPointerRoute = null;
-    }
-    if (_resizeListener != null) {
-      try {
-        widget.artifact.sizeNotifier.removeListener(_resizeListener!);
-      } catch (_) {}
-      _resizeListener = null;
-    }
-    try {
-      widget.artifact.showResizeHandle.value = false;
-    } catch (_) {}
-    _resizeStartPointer = null;
-    _resizeStartSize = null;
-  }
-
-  @override
-  void dispose() {
-    try {
-      _hidePersistentWheel();
-    } catch (_) {}
-    try {
-      _hideResizeCaptureOverlay();
-    } catch (_) {}
-    super.dispose();
   }
 
  @override
@@ -281,7 +180,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               },
               onResize: () {
                 widget.artifact.showResizeHandle.value = true;
-                _showResizeCaptureOverlay();
+                _resizeOverlay.show(context, widget.artifact, widget.artifactKey);
                 _hidePersistentWheel();
               },
               onPressed: _hidePersistentWheel,

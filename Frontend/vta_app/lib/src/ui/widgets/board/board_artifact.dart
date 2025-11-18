@@ -8,6 +8,7 @@ class BoardArtefact {
   Offset? position;
   Size? renderedSize;
   Artefact? baseArtefact;
+  String? savedArtefactId;
   final ValueNotifier<Size> sizeNotifier;
   final ValueNotifier<bool> showResizeHandle;
   // Per-instance display state (e.g., show name above the artefact)
@@ -50,6 +51,8 @@ class BoardArtefact {
         },
         image: NetworkImage(artefact.imageUrl!, headers: headers),
         placeholder: const AssetImage('assets/images/flutter_logo.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
     }
     // If no image but has sound, show speaker icon
@@ -121,6 +124,8 @@ class BoardArtefact {
     }
     return cloned;
   }
+
+  // (artefactId getter already defined below)
 }
 
 class _BoardArtefactContent extends StatefulWidget {
@@ -149,7 +154,7 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
   bool _autoSizedDone = false;
 
   static const double _minWidth = 100.0;
-  static const double _maxWidth = 1000.0;
+  static const double _maxWidth = 500.0;
   static const double _handleSize = 36.0;
 
   @override
@@ -230,7 +235,14 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            SizedBox(width: size.width, height: size.height, child: child),
+            SizedBox(
+              width: size.width, 
+              height: size.height, 
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: child,
+              ),
+            ),
             ValueListenableBuilder<bool>(
               valueListenable: widget.showResizeNotifier,
               builder: (context, visible, _) {

@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
@@ -185,7 +187,7 @@ class LinearBoardState extends State<LinearBoard>
                     }
                   },
                   icon: Icon(_isPlayingAllSounds ? Icons.stop : Icons.play_arrow),
-                  label: Text(_isPlayingAllSounds ? 'Stop Audio' : 'Play All Sounds'),
+                  label: Text(_isPlayingAllSounds ? 'Stop Lyde' : 'Afspil Alle Lyde'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isPlayingAllSounds ? Colors.red : Colors.blue,
                     foregroundColor: Colors.white,
@@ -331,15 +333,31 @@ class LinearBoardState extends State<LinearBoard>
             onTap: () {
               confirmRemoveAllArtifacts();
             },
-            child: DragTarget<BoardArtefact>(
-              onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-                int artifactIndex =
-                    _linearBoardController.artifacts.indexOf(details.data);
-                if (artifactIndex != -1) {
-                  _linearBoardController.removeArtifact(artifactIndex);
-                }
-                _disableTrashcanAnimation();
-              },
+              child: DragTarget<BoardArtefact>(
+                onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) async {
+                  int artifactIndex = _linearBoardController.artifacts.indexOf(details.data);
+                  if (artifactIndex != -1) {
+                    final candidate = _linearBoardController.artifacts[artifactIndex];
+
+                    if (candidate?.baseArtefact?.categoryId == 'Session-Artefact') {
+                      try {
+                        final artefactController = GetIt.instance.get<ArtefactController>();
+                        final deleted = await artefactController.deleteArtefact(context, candidate!.baseArtefact!);
+                        if (deleted) {
+                          _linearBoardController.removeArtifact(artifactIndex);
+                        } else {
+                          // User cancelled deletion: leave artifact in place
+                        }
+                      } catch (e) {
+                        debugPrint('Failed to delete session artefact from server: $e');
+                      }
+                    } else {
+                      // Non-session artefacts: remove locally
+                      _linearBoardController.removeArtifact(artifactIndex);
+                    }
+                  }
+                  _disableTrashcanAnimation();
+                },
               onWillAcceptWithDetails: (details) {
                 _enableTrashcanAnimation();
                 return true;

@@ -20,6 +20,10 @@ public partial class VTAContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<SavedBoard> SavedBoards { get; set; }
+
+    public virtual DbSet<SavedArtefact> SavedArtefacts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder
             .UseCollation("utf8mb4_0900_ai_ci")
