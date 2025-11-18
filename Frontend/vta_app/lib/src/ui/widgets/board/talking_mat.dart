@@ -297,9 +297,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         );
 
         final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
+        // TODO: pause timer while resizing or dragging as they cause problems.
+        /*
         if (!success) {
           print('Debug: Failed to auto-save layout for artefact ${artefactLayout.artefactId}');
         }
+        */
       }
 
       // If there are artefacts without saved IDs, perform a full board update (PUT) to create them in one go
