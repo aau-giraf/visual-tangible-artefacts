@@ -2,10 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
-import 'package:vta_app/src/singletons/token.dart';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/controllers/artifact_controller.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
@@ -25,12 +24,9 @@ class LinearBoard extends StatefulWidget {
 }
 
 class LinearBoardState extends State<LinearBoard>
-    with TickerProviderStateMixin, ArtefactSoundPlayer {
+    with ArtefactSoundPlayer {
   late LinearBoardController _linearBoardController;
 
-  late AnimationController _animationController;
-  late Animation<Offset> _offsetAnimation;
-  bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
   bool _isHoveringTrashCan = false;
   bool _isPlayingAllSounds = false;
@@ -46,143 +42,13 @@ class LinearBoardState extends State<LinearBoard>
         setState(() {});
       }
     });
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(-2.5, 0),
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     _audioPlayer.dispose();
     cleanupArtefactSounds();
     super.dispose();
-  }
-
-  /// Play audio for artefact if it has sound attached
-  Future<void> _playArtefactAudio(BoardArtefact artefact) async {
-    if (artefact.baseArtefact?.artefactId == null) return;
-    
-    try {
-      final token = GetIt.instance.get<Token>().value;
-      if (token == null) return;
-
-      final artefactId = artefact.baseArtefact!.artefactId!;
-      final audioUrl = 'Remote/Users/Artefacts/$artefactId/play-audio';
-      
-      print('Debug: Playing audio for artefact $artefactId');
-      
-      // Set the audio source to the backend endpoint
-      await _audioPlayer.setUrl(audioUrl, headers: {
-        'Authorization': 'Bearer $token',
-      });
-      
-      // Play the audio
-      await _audioPlayer.play();
-      print('Debug: Audio playback started successfully');
-      
-    } catch (e) {
-      print('Debug: Error playing artefact audio: $e');
-      // Don't show error to user, just log it - this is optional functionality
-    }
-  }
-
-  /// Play all artefact sounds on the board sequentially
-  Future<void> _playAllArtefactSounds() async {
-    if (_isPlayingAllSounds) {
-      // If already playing, stop the current playback
-      await _audioPlayer.stop();
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isPlayingAllSounds = true;
-    });
-
-    print('Debug: LinearBoard - Total artefacts on board: ${_linearBoardController.artifacts.length}');
-    
-    // Debug each artefact
-    for (var artifact in _linearBoardController.artifacts) {
-      if (artifact != null) {
-        print('Debug: LinearBoard - Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
-      }
-    }
-    
-    final artefacts = _linearBoardController.artifacts
-        .where((artifact) => artifact?.baseArtefact?.soundUrl?.isNotEmpty == true)
-        .toList();
-
-    if (artefacts.isEmpty) {
-      print('Debug: LinearBoard - No artefacts with sound found on the board');
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    print('Debug: Playing ${artefacts.length} artefact sounds sequentially');
-
-    try {
-      for (var boardArtefact in artefacts) {
-        if (boardArtefact != null && _isPlayingAllSounds) {
-          try {
-            final token = GetIt.instance.get<Token>().value;
-            
-            if (token != null) {
-              final audioUrl = 'http://localhost:5192/api/Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
-              print('Debug: Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
-              
-              // Fetch audio data with proper authentication
-              final response = await http.get(
-                Uri.parse(audioUrl),
-                headers: {
-                  'Authorization': 'Bearer $token',
-                },
-              );
-              
-              if (response.statusCode == 200) {
-                // Set audio source from bytes and play
-                await _audioPlayer.setAudioSource(
-                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
-                );
-                await _audioPlayer.play();
-              } else {
-                print('Debug: Failed to fetch audio - Status: ${response.statusCode}');
-                continue; // Skip to next artefact
-              }
-              
-              // Wait for the audio to complete before playing the next one
-              await _audioPlayer.playerStateStream
-                  .firstWhere((state) => state.processingState == ProcessingState.completed);
-              
-              print('Debug: Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
-            }
-          } catch (e) {
-            print('Debug: Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
-            // Continue to next artefact even if this one fails
-          }
-        }
-      }
-    } finally {
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-    }
-    
-    print('Debug: Finished playing all artefact sounds');
   }
 
   /// Confirmation dialog for removing all artifacts on the board
@@ -237,24 +103,14 @@ class LinearBoardState extends State<LinearBoard>
   /// Helper function for enabling the trashcan animation
   void _enableTrashcanAnimation() {
     setState(() {
-      _showDeleteHover = true;
       _isDraggingOverTrashCan = true;
     });
-    _animationController.forward();
   }
 
   /// Helper function for disabling the animation
   void _disableTrashcanAnimation() {
-    _animationController.reverse();
-    _isDraggingOverTrashCan = false;
-    // Listen for the animation status
-    _animationController.addStatusListener((status) {
-      if (status == AnimationStatus.dismissed) {
-        // Wait until animation is fully reversed
-        setState(() {
-          _showDeleteHover = false;
-        });
-      }
+    setState(() {
+      _isDraggingOverTrashCan = false;
     });
   }
 
@@ -267,21 +123,47 @@ class LinearBoardState extends State<LinearBoard>
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.only(bottom: 8.0),
               child: Center(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Play sounds for all artifacts in order
+                  onPressed: () async {
                     final artifacts = _linearBoardController.artifacts
                         .where((a) => a != null && a.baseArtefact != null)
                         .map((a) => a!.baseArtefact!)
                         .toList();
-                    playArtefactSoundsInOrder(artifacts);
+
+                    if (_isPlayingAllSounds) {
+                      await cleanupArtefactSounds();
+                      setState(() {
+                        _isPlayingAllSounds = false;
+                      });
+                      return;
+                    }
+
+                    // Start playback
+                    setState(() {
+                      _isPlayingAllSounds = true;
+                    });
+
+                    try {
+                      for (final artefact in artifacts) {
+                        if (!_isPlayingAllSounds) break;
+                        await playArtefactSoundAndWait(artefact);
+                      }
+                    } catch (e) {
+                      debugPrint('Error occurred while playing artefact sounds: $e');
+                    } finally {
+                      if (mounted) {
+                        setState(() {
+                          _isPlayingAllSounds = false;
+                        });
+                      }
+                    }
                   },
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Play All Sounds'),
+                  icon: Icon(_isPlayingAllSounds ? Icons.stop : Icons.play_arrow),
+                  label: Text(_isPlayingAllSounds ? 'Stop Lyde' : 'Afspil Alle Lyde'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: _isPlayingAllSounds ? Colors.red : Colors.blue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -348,8 +230,6 @@ class LinearBoardState extends State<LinearBoard>
           if (currentIndex != -1) {
             _linearBoardController.moveArtifact(currentIndex, index);
           }
-          // Play audio when artefact is placed on the board
-          _playArtefactAudio(details.data);
         },
         builder: (BuildContext context, List<BoardArtefact?> candidateData,
             List<dynamic> rejectedData) {
@@ -429,7 +309,7 @@ class LinearBoardState extends State<LinearBoard>
       ),
     );
   }
-
+  
   Widget _buildVerticalDivider(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.44,
@@ -441,26 +321,35 @@ class LinearBoardState extends State<LinearBoard>
   Widget _buildInteractiveTrashcan(BuildContext context) {
     return Align(
         alignment: Alignment.bottomCenter,
-        child: Stack(alignment: Alignment.center, children: [
-          SlideTransition(
-            position: _offsetAnimation,
-            child: _showDeleteHover
-                ? buildTrashCan(
-                    height: 30,
-                    width: 30,
-                    color: const Color.fromARGB(255, 235, 32, 18),
-                  )
-                : SizedBox.shrink(),
-          ),
-          DragTarget<BoardArtefact>(
-              onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) {
-                int artifactIndex =
-                    _linearBoardController.artifacts.indexOf(details.data);
-                if (artifactIndex != -1) {
-                  _linearBoardController.removeArtifact(artifactIndex);
-                }
-                _disableTrashcanAnimation();
-              },
+        child: GestureDetector(
+            onTap: () {
+              confirmRemoveAllArtifacts();
+            },
+              child: DragTarget<BoardArtefact>(
+                onAcceptWithDetails: (DragTargetDetails<BoardArtefact> details) async {
+                  int artifactIndex = _linearBoardController.artifacts.indexOf(details.data);
+                  if (artifactIndex != -1) {
+                    final candidate = _linearBoardController.artifacts[artifactIndex];
+
+                    if (candidate?.baseArtefact?.categoryId == 'Session-Artefact') {
+                      try {
+                        final artefactController = GetIt.instance.get<ArtefactController>();
+                        final deleted = await artefactController.deleteArtefact(context, candidate!.baseArtefact!);
+                        if (deleted) {
+                          _linearBoardController.removeArtifact(artifactIndex);
+                        } else {
+                          // User cancelled deletion: leave artifact in place
+                        }
+                      } catch (e) {
+                        debugPrint('Failed to delete session artefact from server: $e');
+                      }
+                    } else {
+                      // Non-session artefacts: remove locally
+                      _linearBoardController.removeArtifact(artifactIndex);
+                    }
+                  }
+                  _disableTrashcanAnimation();
+                },
               onWillAcceptWithDetails: (details) {
                 _enableTrashcanAnimation();
                 return true;
@@ -484,7 +373,8 @@ class LinearBoardState extends State<LinearBoard>
                 );
               },
             ),
-        ]));
+          ),
+    );
   }
 
   Widget buildTrashCan(

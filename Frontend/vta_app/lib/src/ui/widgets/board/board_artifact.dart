@@ -1,40 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 
+/// Internal widget that wraps the base content with size notifiers
+class _BoardArtefactContent extends StatelessWidget {
+  final Widget baseContent;
+  final ValueNotifier<Size> sizeNotifier;
+  final ValueNotifier<bool> showResizeNotifier;
+  final String? imageUrlForSizing;
+  final Map<String, String>? imageHeadersForSizing;
+
+  const _BoardArtefactContent({
+    required this.baseContent,
+    required this.sizeNotifier,
+    required this.showResizeNotifier,
+    this.imageUrlForSizing,
+    this.imageHeadersForSizing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return baseContent;
+  }
+}
+
 class BoardArtefact {
-  final Widget content;
+  final Widget baseContent;
   Offset? position;
-  final GlobalKey key;
   Size? renderedSize;
   Artefact? baseArtefact;
+  String? savedArtefactId;
+  final ValueNotifier<Size> sizeNotifier;
+  final ValueNotifier<bool> showResizeHandle;
+  // Per-instance display state (e.g., show name above the artefact)
+  bool nameVisible;
+  // Used for auto-sizing images on first render
+  final String? imageUrlForSizing;
+  final Map<String, String>? imageHeadersForSizing;
 
   BoardArtefact({
-    required this.content,
+    required this.baseContent,
     this.position,
     this.baseArtefact,
-  }) : key = GlobalKey();
+    this.imageUrlForSizing,
+    this.imageHeadersForSizing,
+    Size? initialSize,
+    bool? nameVisible,
+  })  : sizeNotifier = ValueNotifier<Size>(initialSize ?? const Size(200, 200)),
+        showResizeHandle = ValueNotifier<bool>(false),
+        nameVisible = nameVisible ?? false;
 
   String get artefactId => baseArtefact?.artefactId ?? '';
+
+  Widget get content => _BoardArtefactContent(
+        baseContent: baseContent,
+        sizeNotifier: sizeNotifier,
+        showResizeNotifier: showResizeHandle,
+    imageUrlForSizing: imageUrlForSizing,
+    imageHeadersForSizing: imageHeadersForSizing,
+      );
 
   factory BoardArtefact.fromArtefact(Artefact artefact,
       {Map<String, String>? headers, BuildContext? context}) {
     
-    Widget content;
+    Widget innerContent;
     
     // Check if artefact has an image
     if (artefact.imageUrl != null && artefact.imageUrl!.isNotEmpty) {
-      content = FadeInImage(
+      innerContent = FadeInImage(
         imageErrorBuilder: (context, error, stackTrace) {
           return Image.asset('assets/images/flutter_logo.png');
         },
         image: NetworkImage(artefact.imageUrl!, headers: headers),
-        placeholder: AssetImage('assets/images/flutter_logo.png'),
+        placeholder: const AssetImage('assets/images/flutter_logo.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
-    } 
+    }
     // If no image but has sound, show speaker icon
     else if (artefact.soundUrl != null && artefact.soundUrl!.isNotEmpty) {
-      content = GestureDetector(
+      innerContent = GestureDetector(
         onTap: () async {
           // Play the sound when clicked
           try {
@@ -42,7 +88,7 @@ class BoardArtefact {
             await player.setUrl(artefact.soundUrl!);
             await player.play();
           } catch (e) {
-            print('Error playing sound: $e');
+            debugPrint('Error playing sound: $e');
           }
         },
         child: Container(
@@ -59,7 +105,7 @@ class BoardArtefact {
                 width: 80,
                 height: 80,
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Icon(
                 Icons.play_circle_fill,
                 color: Colors.blue.shade600,
@@ -72,7 +118,7 @@ class BoardArtefact {
     }
     // Fallback to default image
     else {
-      content = Image.asset('assets/images/flutter_logo.png');
+      innerContent = Image.asset('assets/images/flutter_logo.png');
     }
     
     // Create flexible content that adapts to parent constraints
@@ -97,13 +143,13 @@ class BoardArtefact {
               )
             : FittedBox(
                 fit: BoxFit.contain,
-                child: content,
+                child: innerContent,
               ),
       ),
     );
     
     return BoardArtefact(
-        content: responsiveContent,
+        baseContent: responsiveContent,
         baseArtefact: artefact);
   }
 }

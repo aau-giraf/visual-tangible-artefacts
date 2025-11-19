@@ -24,16 +24,19 @@ public class CategoriesController(VTAContext context) : ControllerBase
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Category>? categories = await context.Categories.Where(c => c.UserId == userId).Include(c => c.Artefacts).ToListAsync();
+        List<Category>? categories = await context.Categories
+            .AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .Include(c => c.Artefacts)
+            .ToListAsync();
         if (categories == null)
         {
             return NotFound();
         }
-        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-        foreach (Category category in categories)
-        {
-            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
-        }
+
+        var categoryGetDTOs = categories
+            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+            .ToList();
 
         return categoryGetDTOs;
     }
@@ -50,6 +53,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         var category = await context.Categories
+            .AsNoTracking()
             .Where(c => c.CategoryId == categoryId && c.UserId == userId)
             .Include(c => c.Artefacts)
             .FirstOrDefaultAsync();
@@ -96,8 +100,8 @@ public class CategoriesController(VTAContext context) : ControllerBase
         //if the image is not null, replace it. (I considered creating/adding an algorithm that checks if it's the same image, but i chose not to bother (it should be simple enough though))
         if (dto.Image != null)
         {
-            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
-            ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories");
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
+            await ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId);
         }
 
         context.Entry(category).State = EntityState.Modified;
@@ -143,8 +147,9 @@ public class CategoriesController(VTAContext context) : ControllerBase
         }
 
         string id = Guid.NewGuid().ToString();
-        string? imageUrl = ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories");
+        string? imageUrl = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
 
+        // Image is optional - allow null imageUrl
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);
 
         context.Categories.Add(category);
@@ -170,6 +175,11 @@ public class CategoriesController(VTAContext context) : ControllerBase
             }
         }
         var cat = await context.Categories.FindAsync(id);
+
+        if (cat == null)
+        {
+            return NotFound();
+        }
 
         CategoryGetDTO returnCat = DTOConverter.MapCategoryToCategoryGetDTO(cat, Request.Scheme, Request.Host.ToString());
 
@@ -205,10 +215,10 @@ public class CategoriesController(VTAContext context) : ControllerBase
         * Therefore we remove all the images from the filesystem before we loose the refs*/
         foreach (var artefact in category.Artefacts)
         {
-            ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+            ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", userId);
         }
 
-        ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+        ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
 
         context.Categories.Remove(category);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
         await context.SaveChangesAsync();
@@ -275,6 +285,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         var userId = User.FindFirst("id")?.Value;
 
         List<Category>? categories = await context.Categories
+            .AsNoTracking()
             .Where(c => c.UserId == userId)
             .Include(c => c.Artefacts)
             .OrderByDescending(c => c.UsageCount)
@@ -287,11 +298,9 @@ public class CategoriesController(VTAContext context) : ControllerBase
             return NotFound();
         }
 
-        List<CategoryGetDTO> categoryGetDTOs = new List<CategoryGetDTO>();
-        foreach (Category category in categories)
-        {
-            categoryGetDTOs.Add(DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()));
-        }
+        var categoryGetDTOs = categories
+            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+            .ToList();
 
         return categoryGetDTOs;
     }

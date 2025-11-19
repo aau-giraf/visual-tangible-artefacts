@@ -357,13 +357,13 @@ class _LoginViewState extends State<LoginView> {
               ),
               obscureText: _obscureSignupPassword,
               onChanged: (_) {
-                setState(() {}); // Update password strength indicator (StatefulBuilder's setState is safe)
+                setState(() {}); // Update password strength indicator 
               },
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Indtast venligst et kodeord';
                 }
-                // Commented out for flexibility with autistic children - may be re-enabled if needed
+                // Commented out for flexibility, maybe re-enable if Emil/ Egebakken thinks it's needed
                 // if (value.length < 6) {
                 //   return 'Kodeord skal være mindst 6 tegn';
                 // }

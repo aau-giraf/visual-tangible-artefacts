@@ -288,10 +288,15 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         builder: (BuildContext context) {
           return Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: FractionallySizedBox(
-              heightFactor: 0.8,
-              child: _buildImageGrid(category),
-            ),
+                          child: ListenableBuilder(
+                listenable: widget.artefactController,
+                builder: (context, child) {
+                  // Find the updated category from the controller
+                  Category? updatedCategory = widget.artefactController.categories
+                      ?.firstWhere((cat) => cat.categoryId == category.categoryId);
+                  return _buildImageGrid(updatedCategory ?? category);
+                },
+              ),
           );
         },
       );
@@ -299,15 +304,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
 // ModalSheet for editing and deleting categories
-  void _showCategoryEditModal(BuildContext context, Category category) {
-    final categoriesEdit = CategoriesEdit(
-      categoryName: category.name!,
-      imageUrl: category.imageUrl,
-      categoryId: category.categoryId!,
-      onEdit: () {
-        MaterialPageRoute(builder: (context) => AddPicturePage());
-      }, // Pass edit functionality if needed
-    );
+void _showCategoryEditModal(BuildContext context, Category category) {
     showModalBottomSheet(
       backgroundColor: Colors.white,
       isScrollControlled: true,
@@ -363,12 +360,20 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  Widget _buildImageGrid(Category category) {
-    bool isInDeletionMode = false;
+Widget _buildImageGrid(Category category) {
+  bool isInDeletionMode = false;
+  int? hoveredIndex;
 
-    return StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-      int totalItems = (category.artefacts?.length ?? 0) + 1;
+  return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+    int totalItems = (category.artefacts?.length ?? 0) + 1;
+
+    // Callback to update hovered index
+    void onHoverChange(int? index) {
+      setState(() {
+        hoveredIndex = index;
+      });
+    }
 
       return GestureDetector(
         onTap: () {
@@ -421,6 +426,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                         () => setState(() {
                           isInDeletionMode = true;
                         }),
+                        hoveredIndex: hoveredIndex,
+                        onHoverChange: onHoverChange,
                         onDelete: () {
                           setState(() {});
                         },
@@ -440,67 +447,98 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
 
   Widget _buildImageGridItem(BuildContext context, int index, Category category,
       bool isInDeletionMode, VoidCallback onLongPress,
-      {required VoidCallback onDelete}) {
-    var authState = Provider.of<AuthState>(context);
-    var artifactState = Provider.of<ArtifactState>(context, listen: false);
+      {required VoidCallback onDelete, int? hoveredIndex, required Function(int?) onHoverChange}) {
     var headers = <String, String>{
       'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
     };
 
-    if (index >= category.artefacts!.length) {
-      return SizedBox(); // Safety check
-    }
+  if (index >= category.artefacts!.length) {
+    return SizedBox(); // Safety check
+  }
 
-    var boardArtefacts = category.artefacts!
-        .map((artefact) =>
-            BoardArtefact.fromArtefact(artefact, headers: headers))
-        .toList();
+  var boardArtefacts = category.artefacts!
+      .map((artefact) =>
+          BoardArtefact.fromArtefact(artefact, headers: headers))
+      .toList();
 
-    return GestureDetector(
-      onLongPress: onLongPress,
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: TextButton(
-              onPressed: isInDeletionMode
-                  ? null
-                  : () {
-                      widget.onArtifactAdded(boardArtefacts[index]);
-                      Navigator.pop(context);
-                    },
-              child: boardArtefacts[index].content,
-            ),
+  bool isHovered = hoveredIndex == index;
+
+  return GestureDetector(
+    onLongPress: onLongPress,
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Transform.translate(
+          offset: Offset(
+            isHovered ? 4.0 : 0.0,
+            isHovered ? -4.0 : 0.0,
           ),
-          if (isInDeletionMode)
-            Positioned(
-              right: -10,
-              top: -10,
-              child: Material(
-                color: Colors.transparent,
-                child: IconButton(
-                  icon: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                  onPressed: () async {
-                    await widget.artefactController
-                        .deleteArtefact(context, category.artefacts![index]);
-                  },
-                ),
+          child: Transform.scale(
+            scale: isHovered ? 1.15 : 1.0,
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: GestureDetector(
+  onTap: isInDeletionMode
+      ? null
+      : () async {
+                // Trigger hover effect on tap
+                onHoverChange(index);
+
+                  await Future.delayed(Duration(milliseconds: 150));
+                  widget.onArtifactAdded(boardArtefacts[index]);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                  onHoverChange(null);
+                 },
+              // hold-down effect on mobile
+              onTapDown: (_) => onHoverChange(index),
+              onTapUp: (_) => onHoverChange(null),
+              onTapCancel: () => onHoverChange(null),
+              child: MouseRegion(
+                 // Desktop hover support
+                onEnter: (_) => onHoverChange(index),
+                onExit: (_) => onHoverChange(null),
+                cursor: SystemMouseCursors.click,
+                child: boardArtefacts[index].content,
               ),
             ),
-        ],
-      ),
-    );
-  }
+          ),
+            ),
+          ),
+        ),
+        if (isInDeletionMode)
+          Positioned(
+            right: -10,
+            top: -10,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton(
+                icon: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                onPressed: () async {
+                  await widget.artefactController
+                      .deleteArtefact(context, category.artefacts![index]);
+                },
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
 
   Widget _buildAddArtifactButton(Category category) {
     return TextButton(
@@ -518,11 +556,12 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showAddCategoryPopup(BuildContext context) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
           title: 'Tilføj kategori',
-          onSubmit: (name, imageBytes, soundBytes) {
+          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -541,12 +580,13 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showEditCategoryPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: true,
           title: 'Rediger kategori',
           category: category,
-          onSubmit: (name, imageBytes, soundBytes) {
+          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -567,10 +607,11 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   void _showAddArtifactPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (BuildContext context) {
         return AddItemPopup(
           isCategory: false,
-          onSubmit: (name, bytes, sound) async {
+          onSubmit: (String name, Uint8List? bytes, Uint8List? sound) async {
             var artifactState =
                 Provider.of<ArtifactState>(context, listen: false);
             var authState = Provider.of<AuthState>(context, listen: false);
@@ -582,7 +623,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
             await artifactState.addArtifact(newArtifact,
                 token: authState.token!);
           },
-          title: "Tilføj Artifakt",
+          title: "Tilføj Artefakt",
         );
       },
     );

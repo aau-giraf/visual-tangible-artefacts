@@ -13,6 +13,7 @@ class Artefact implements JsonSerializable {
   Uint8List? image;
   Uint8List? sound;
   String? name;
+  bool? nameShown;
   
   Artefact({
     this.artefactIndex,
@@ -24,6 +25,7 @@ class Artefact implements JsonSerializable {
     this.image,
     this.sound,
     this.name,
+    this.nameShown,
   });
 
     String get displayName => artefactId ?? 'Artefact #${artefactIndex ?? ''}';
@@ -42,7 +44,8 @@ class Artefact implements JsonSerializable {
       sound: json['sound'] != null
           ? Uint8List.fromList(json['sound'].cast<int>())
           : null,
-      name: json['name'] as String?
+      name: json['name'] as String?,
+      nameShown: json['nameShown'] as bool? ?? json['NameShown'] as bool?,
     );
     // handle sound bytes if provided
   // Note: some endpoints may return soundUrl instead of raw bytes; this keeps raw bytes support
@@ -63,6 +66,7 @@ class Artefact implements JsonSerializable {
       'image': image,
       'sound': sound,
       'name': name,
+      'nameShown': nameShown,
     };
   }
 }

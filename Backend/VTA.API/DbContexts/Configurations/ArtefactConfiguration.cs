@@ -26,6 +26,9 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
         builder.Property(e => e.ImagePath)
             .HasMaxLength(255)
             .HasColumnName("imagePath");
+        builder.Property(e => e.SoundPath)
+            .HasMaxLength(255)
+            .HasColumnName("soundPath");
         builder.Property(e => e.ModifiedDate)
             .HasColumnType("datetime")
             .HasColumnName("modifiedDate");
@@ -35,6 +38,8 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
         builder.Property(e => e.Name)
             .HasMaxLength(255)
             .HasColumnName("name");
+        builder.Property(e => e.NameShown)
+            .HasColumnName("nameShown");
 
         builder.HasOne(d => d.Category).WithMany(p => p.Artefacts)
             .HasForeignKey(d => d.CategoryId)
@@ -45,5 +50,9 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
             .HasForeignKey(d => d.UserId)
             .OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("artefact_ibfk_1");
+
+        builder.HasMany(d => d.SavedArtefacts).WithOne(p => p.Artefact)
+            .HasForeignKey(p => p.ArtefactId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
