@@ -30,12 +30,9 @@ class TalkingMat extends StatefulWidget {
   createState() => TalkingMatState();
 }
 
-class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
+class TalkingMatState extends State<TalkingMat> {
   late List<BoardArtefact> artifacts;
   bool isGestureInsideMat = false;
-  late AnimationController _animationController;
-  late Animation<Offset> _offsetAnimation;
-  bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
   bool _isHoveringTrashCan = false;
   bool _isPlayingAllSounds = false;
@@ -45,23 +42,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     artifacts = widget.artifacts ?? [];
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(-2.5, 0),
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -509,67 +493,41 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                 Align(
                   alignment: Alignment.lerp(
                           Alignment.bottomCenter, Alignment.center, 0.1) ??
                       Alignment.bottomCenter,
-                  child: Stack(alignment: Alignment.center, children: [
-                    SlideTransition(
-                        position: _offsetAnimation,
-                        child: _showDeleteHover
-                            ? buildTrashCan(
-                                height: MediaQuery.of(context).size.width > 600 ? 30 : 25,
-                                width: MediaQuery.of(context).size.width > 600 ? 30 : 25,
-                                color: const Color.fromARGB(255, 235, 32, 18))
-                            : null),
-                    DragTarget<BoardArtefact>(
+                  child: DragTarget<BoardArtefact>(
                         builder: (context, data, rejectedData) {
                           double screenWidth = MediaQuery.of(context).size.width;
                           double baseSize = screenWidth > 600 ? 50 : 35;
                           double expandedSize = screenWidth > 600 ? 120 : 80;
+                          final size = _isDraggingOverTrashCan ? expandedSize : baseSize;
                           return buildTrashCan(
-                            height: _isDraggingOverTrashCan ? expandedSize : baseSize,
-                            width: _isDraggingOverTrashCan ? expandedSize : baseSize,
+                            height: size,
+                            width: size,
                           );
                         },
                         onAcceptWithDetails: (details) {
                           var artefact = details.data;
                           widget.controller.removeArtifact(artefact);
-                          _animationController.reverse();
-                          // Listen for the animation status
-                          _animationController.addStatusListener((status) {
-                            if (status == AnimationStatus.dismissed) {
-                              // Wait until animation is fully reversed
-                              setState(() {
-                                _showDeleteHover = false;
-                              });
-                            }
+                          setState(() {
+                            _isDraggingOverTrashCan = false;
                           });
                         },
                         onWillAcceptWithDetails: (details) {
                           setState(() {
-                            _showDeleteHover = true;
                             _isDraggingOverTrashCan = true;
                           });
-                          _animationController.forward();
                           return true;
                         },
                         onLeave: (details) {
-                          _animationController.reverse();
-                          _isDraggingOverTrashCan = false;
-                          // Listen for the animation status
-                          _animationController.addStatusListener((status) {
-                            if (status == AnimationStatus.dismissed) {
-                              // Wait until animation is fully reversed
-                              setState(() {
-                                _showDeleteHover = false;
-                              });
-                            }
+                          setState(() {
+                            _isDraggingOverTrashCan = false;
                           });
                         },
                     ),
-                  ]),
                 ),
 
               ],

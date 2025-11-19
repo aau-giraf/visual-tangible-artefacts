@@ -381,13 +381,23 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         child: Column(
           children: [
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(10),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 8,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  // Responsive grid: 3 columns on mobile, 4 on tablet, 8 on desktop
+                  final crossAxisCount = screenWidth < 600 
+                      ? 3 
+                      : screenWidth < 900 
+                          ? 4 
+                          : 8;
+                  
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(10),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
                 itemCount: totalItems,
                 itemBuilder: (context, index) {
                   if (index == 0) {
@@ -417,6 +427,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
                       ),
                     );
                   }
+                },
+                );
                 },
               ),
             ),

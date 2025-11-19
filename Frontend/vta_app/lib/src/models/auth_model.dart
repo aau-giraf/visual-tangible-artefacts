@@ -43,8 +43,17 @@ class AuthModel {
         _throwAuthException(response?.statusCode);
       }
     } catch (e) {
+      if (e is AuthException) {
+        rethrow;
+      }
       debugPrint('$e');
-      rethrow;
+      // Handle network errors and other exceptions
+      if (e.toString().contains('SocketException') || 
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw AuthException(message: 'Ingen internetforbindelse. Tjek dit netværk og prøv igen.');
+      }
+      throw AuthException(message: 'En fejl opstod ved login: ${e.toString()}');
     }
   }
 
@@ -90,12 +99,20 @@ class AuthModel {
         userInfo.userId = model.userId;
         cacheData(token: token.value, userId: userInfo.userId);
       } else {
-        throw Exception(
-            'Mislykkedes at oprette bruger, status kode: ${response?.statusCode}');
+        _throwAuthException(response?.statusCode);
       }
     } catch (e) {
+      if (e is AuthException) {
+        rethrow;
+      }
       debugPrint('$e');
-      rethrow;
+      // Handle network errors and other exceptions
+      if (e.toString().contains('SocketException') || 
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw AuthException(message: 'Ingen internetforbindelse. Tjek dit netværk og prøv igen.');
+      }
+      throw AuthException(message: 'En fejl opstod ved oprettelse af bruger: ${e.toString()}');
     }
   }
 
@@ -103,15 +120,21 @@ class AuthModel {
   void _throwAuthException(int? statusCode) {
     String message;
     if (statusCode == null) {
-      message = 'Ingen respons fra server';
-    } else if (statusCode == 409) {
-      message = 'Dette brugernavn eksisterer allerede, vælg et andet';
+      message = 'Ingen respons fra server. Tjek din internetforbindelse og prøv igen.';
+    } else if (statusCode == 400) {
+      message = 'Ugyldig anmodning. Tjek at alle felter er korrekt udfyldt.';
+    } else if (statusCode == 401) {
+      message = 'Forkert brugernavn eller kodeord';
     } else if (statusCode == 404) {
       message = 'Forkert brugernavn eller kodeord';
-    } else if (statusCode <= 500) {
-      message = 'En serverfejl opstod';
+    } else if (statusCode == 409) {
+      message = 'Dette brugernavn eksisterer allerede. Vælg et andet brugernavn.';
+    } else if (statusCode == 422) {
+      message = 'Ugyldige data. Tjek at alle felter er korrekt udfyldt.';
+    } else if (statusCode >= 500) {
+      message = 'En serverfejl opstod. Prøv igen senere.';
     } else {
-      message = 'En ukendt fejl opstod';
+      message = 'En ukendt fejl opstod. Status kode: $statusCode';
     }
     throw AuthException(message: message);
   }

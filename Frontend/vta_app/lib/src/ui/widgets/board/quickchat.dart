@@ -75,22 +75,21 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
                   ElevatedButton.icon(
                     onPressed: () => _playAudio('assets/sound/dårligt.mp3'),
                     icon: const Icon(Icons.sick, color: Colors.white),
-                    label: const Flexible( // allows text to wrap if needed
-                      child: Text(
+                    label: const Text(
                       'Har det ikke godt',
                       style: TextStyle(color: Colors.white),
-                      overflow: TextOverflow.visible, // ensures wrapping instead of clipping
-                      ),
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
                     ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black.withOpacity(0.2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  minimumSize: const Size(double.infinity, 50),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black.withOpacity(0.2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      alignment: Alignment.centerLeft,
+                      minimumSize: const Size(double.infinity, 50),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(

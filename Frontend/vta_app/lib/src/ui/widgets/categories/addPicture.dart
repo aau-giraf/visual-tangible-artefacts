@@ -381,14 +381,21 @@ class AddPicturePage extends StatelessWidget {
                             showDialog(
                               context: context,
                               builder: (BuildContext context) {
+                                final screenSize = MediaQuery.of(context).size;
+                                final dialogWidth = (screenSize.width * 0.9).clamp(300.0, 760.0);
+                                final dialogHeight = (screenSize.height * 0.8).clamp(400.0, 500.0);
                                 return Dialog(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(60),
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760,
-                                    height: 500,
+                                    width: dialogWidth,
+                                    height: dialogHeight,
+                                    constraints: BoxConstraints(
+                                      maxWidth: dialogWidth,
+                                      maxHeight: dialogHeight,
+                                    ),
                                     child: const AIPage(),
                                   ),
                                 );
@@ -404,14 +411,21 @@ class AddPicturePage extends StatelessWidget {
                             showDialog(
                               context: context,
                               builder: (BuildContext context) {
+                                final screenSize = MediaQuery.of(context).size;
+                                final dialogWidth = (screenSize.width * 0.9).clamp(300.0, 760.0);
+                                final dialogHeight = (screenSize.height * 0.8).clamp(400.0, 500.0);
                                 return Dialog(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760,
-                                    height: 500,
+                                    width: dialogWidth,
+                                    height: dialogHeight,
+                                    constraints: BoxConstraints(
+                                      maxWidth: dialogWidth,
+                                      maxHeight: dialogHeight,
+                                    ),
                                     child: const AIPage(),
                                   ),
                                 );

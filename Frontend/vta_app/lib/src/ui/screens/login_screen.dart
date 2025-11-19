@@ -56,9 +56,16 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: Container(
-              width: 400, // Set a fixed width for the box
-              padding: EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                minWidth: 300,
+              ),
+              child: Container(
+                width: MediaQuery.of(context).size.width > 600 
+                    ? 400 
+                    : MediaQuery.of(context).size.width * 0.9,
+                padding: EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -164,6 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),

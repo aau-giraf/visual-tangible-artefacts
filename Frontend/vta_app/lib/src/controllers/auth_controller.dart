@@ -30,6 +30,7 @@ class AuthController extends ChangeNotifier {
       await _model.login(username, password);
 
       if (context != null && context.mounted) {
+        _showSuccessSnackBar(context, 'Login succesfuldt! Velkommen tilbage.');
         await artifactController.updateArtifacts(context: context);
         if(!context.mounted) return;
         await artifactController.updateMostUsedCategories(context: context);
