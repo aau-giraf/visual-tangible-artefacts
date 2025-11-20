@@ -6,6 +6,8 @@ class User implements JsonSerializable {
   String? name;
   String guardianKey;
   String username;
+  bool nameVisible;
+  int fieldCount;
   List<Category>? categories;
 
   User({
@@ -13,6 +15,8 @@ class User implements JsonSerializable {
     this.name,
     required this.guardianKey,
     required this.username,
+    required this.nameVisible,
+    required this.fieldCount,
     this.categories,
   });
 
@@ -22,6 +26,8 @@ class User implements JsonSerializable {
       name: json['name'] as String?,
       guardianKey: json['guardianKey'] as String,
       username: json['username'] as String,
+      nameVisible: json['nameVisible'] as bool? ?? false,
+      fieldCount: json['fieldCount'] as int? ?? 4,
       categories: (json['categories'] as List<dynamic>?)
           ?.map(
               (category) => Category.fromJson(category as Map<String, dynamic>))
