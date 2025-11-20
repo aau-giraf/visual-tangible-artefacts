@@ -16,12 +16,16 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
   /// Set the visibility of the name label for all artefacts currently on the board.
   /// This only affects the in-memory board instances (not persisted to backend).
   void setNamesVisibleForAll(bool visible) {
+    bool changed = false;
     for (final artefact in value) {
-      if(artefact.nameVisible != visible){
+      if (artefact.nameVisible != visible) {
         artefact.nameVisible = visible;
+        changed = true;
       }
     }
-    notifyListeners();
+    if (changed) {
+      notifyListeners();
+    }
   }
 
   void removeArtifact(BoardArtefact artefact) {

@@ -105,7 +105,8 @@ class BoardArtefact {
       imageHeadersForSizing: headers,
       initialSize: const Size(200, 200),
 
-      nameVisible: false,
+      // Default per-tile visibility from the underlying artefact's global setting
+      nameVisible: artefact.nameShown ?? false,
     );
   }
 
@@ -117,7 +118,8 @@ class BoardArtefact {
       imageUrlForSizing: imageUrlForSizing,
       imageHeadersForSizing: imageHeadersForSizing,
       initialSize: sizeNotifier.value,
-      nameVisible: false,
+      // Preserve the current tile's name visibility when cloning
+      nameVisible: nameVisible,
     );
     if (keepPosition) {
       cloned.position = position == null ? null : Offset(position!.dx, position!.dy);

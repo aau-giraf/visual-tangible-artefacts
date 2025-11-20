@@ -208,6 +208,14 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     _autoSaveBoardLayout(); // Save immediately
   }
 
+  /// Public helper to allow external controllers (e.g., settings or option wheels)
+  /// to immediately persist the current board layout, including nameVisible flags.
+  Future<void> forceAutoSave() async {
+    if (_inhibitAutoSave) return;
+    _saveTimer?.cancel();
+    await _autoSaveBoardLayout();
+  }
+
   /// Handle app lifecycle changes to save when app loses focus (mobile/tablet specific)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -244,7 +252,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     return lastSaved.posX != layout.posX ||
            lastSaved.posY != layout.posY ||
            lastSaved.width != layout.width ||
-           lastSaved.height != layout.height;
+           lastSaved.height != layout.height ||
+           lastSaved.nameVisible != layout.nameVisible;
   }
 
   /// Update tracking of last saved layout data
@@ -259,6 +268,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         posY: layout.posY,
         width: layout.width,
         height: layout.height,
+        nameVisible: layout.nameVisible,
       );
     }
   }
@@ -294,6 +304,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
           posY: artefactLayout.posY,
           width: artefactLayout.width,
           height: artefactLayout.height,
+          nameVisible: artefactLayout.nameVisible,
         );
 
         final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
@@ -381,6 +392,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
             best!.position = Offset(artefactLayout.posX, artefactLayout.posY);
             best.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
             best.savedArtefactId = artefactLayout.savedArtefactId;
+            // Restore per-instance name visibility if provided
+            if (artefactLayout.nameVisible != null) {
+              best.nameVisible = artefactLayout.nameVisible!;
+            }
           });
           // remove from unmatched list so we don't match it again
           unmatchedLocal.remove(best);
@@ -428,6 +443,10 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
   // Set the saved instance id so future updates target this specific instance
   boardArtefact.savedArtefactId = layout.savedArtefactId;
+  // Restore per-instance name visibility if provided
+  if (layout.nameVisible != null) {
+    boardArtefact.nameVisible = layout.nameVisible!;
+  }
 
       // Add it to the controller
       widget.controller.addArtifact(boardArtefact);
@@ -518,6 +537,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         posY: position.dy,
         width: size.width,
         height: size.height,
+        nameVisible: artifact.nameVisible,
       );
     }).toList();
     
@@ -713,7 +733,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                             final Size artSize = artefact.renderedSize ?? const Size(200, 200);
                             if (_isInsideMat(details.offset, artefactSize: artSize)) {
                               Offset adjustedPosition = details.offset;
-                              if (artefact.baseArtefact?.nameShown == true) {
+                              if (artefact.nameVisible == true) {
                                 final double nameOffset = _getNameDisplayOffset(
                                   artefact.baseArtefact?.name ?? '',
                                   context,

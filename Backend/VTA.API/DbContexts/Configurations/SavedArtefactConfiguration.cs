@@ -51,6 +51,9 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
             .HasColumnName("createdDate")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+        builder.Property(e => e.NameVisible)
+            .HasColumnName("nameVisible");
+
         // Relationship: SavedArtefact -> Artefact (many-to-one)
         builder.HasOne(d => d.Artefact)
             .WithMany(p => p.SavedArtefacts)

@@ -42,7 +42,7 @@ class SettingsView extends StatelessWidget {
     return SwitchSettingsTile(
       settingKey: 'textUnderImagesSwitch',
       title: 'Text under billeder',
-      subtitle: 'Vis billed navne under billeder',
+      subtitle: 'Vis billed navne over billeder',
       leading: Icon(Icons.text_fields),
       onChange: _onToggleTextUnderImages,
     );

@@ -54,7 +54,8 @@ public class BoardController : ControllerBase
                         PosX = sa.PosX,
                         PosY = sa.PosY,
                         Width = sa.Width,
-                        Height = sa.Height
+                        Height = sa.Height,
+                        NameVisible = sa.NameVisible
                     }).ToList()
             })
             .ToListAsync();
@@ -100,7 +101,8 @@ public class BoardController : ControllerBase
                 PosX = sa.PosX,
                 PosY = sa.PosY,
                 Width = sa.Width,
-                Height = sa.Height
+                Height = sa.Height,
+                NameVisible = sa.NameVisible
             }).ToList()
         };
 
@@ -171,7 +173,8 @@ public class BoardController : ControllerBase
                             PosY = artefactLayout.PosY,
                             Width = artefactLayout.Width,
                             Height = artefactLayout.Height,
-                            CreatedDate = DateTime.UtcNow
+                            CreatedDate = DateTime.UtcNow,
+                            NameVisible = artefactLayout.NameVisible
                         };
 
                         _context.SavedArtefacts.Add(savedArtefact);
@@ -209,7 +212,8 @@ public class BoardController : ControllerBase
                             PosX = sa.PosX,
                             PosY = sa.PosY,
                             Width = sa.Width,
-                            Height = sa.Height
+                            Height = sa.Height,
+                            NameVisible = sa.NameVisible
                         }).ToList()
                     };
                 }
@@ -305,7 +309,8 @@ public class BoardController : ControllerBase
                             PosY = artefactLayout.PosY,
                             Width = artefactLayout.Width,
                             Height = artefactLayout.Height,
-                            CreatedDate = DateTime.UtcNow
+                            CreatedDate = DateTime.UtcNow,
+                            NameVisible = artefactLayout.NameVisible
                         };
 
                         _context.SavedArtefacts.Add(savedArtefact);
@@ -343,7 +348,8 @@ public class BoardController : ControllerBase
                             PosX = sa.PosX,
                             PosY = sa.PosY,
                             Width = sa.Width,
-                            Height = sa.Height
+                            Height = sa.Height,
+                            NameVisible = sa.NameVisible
                         }).ToList()
                     };
                 }
@@ -411,11 +417,12 @@ public class BoardController : ControllerBase
             return BadRequest("SavedArtefactId is required to update an existing saved artefact. Create a new saved artefact via updating the board.");
         }
 
-        // Check if values are actually different before updating
-        bool hasChanges = savedArtefact.PosX != request.PosX ||
-                         savedArtefact.PosY != request.PosY ||
-                         savedArtefact.Width != request.Width ||
-                         savedArtefact.Height != request.Height;
+    // Check if values are actually different before updating
+    bool hasChanges = savedArtefact.PosX != request.PosX ||
+             savedArtefact.PosY != request.PosY ||
+             savedArtefact.Width != request.Width ||
+             savedArtefact.Height != request.Height ||
+             savedArtefact.NameVisible != request.NameVisible;
 
         if (hasChanges)
         {
@@ -424,6 +431,7 @@ public class BoardController : ControllerBase
             savedArtefact.PosY = request.PosY;
             savedArtefact.Width = request.Width;
             savedArtefact.Height = request.Height;
+            savedArtefact.NameVisible = request.NameVisible;
 
             // Update board modified date
             var board = await _context.SavedBoards.FindAsync(boardId);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
@@ -171,9 +172,13 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) async {
-                  // Toggle per-instance, do not persist visibility to backend.
+                  // Toggle per-instance visibility and trigger board auto-save so it persists.
                   widget.artifact.nameVisible = val;
                   setState(() { _showName = val; });
+
+                  // Ask the owning TalkingMat (if available) to persist the change.
+                  final matState = context.findAncestorStateOfType<TalkingMatState>();
+                  await matState?.forceAutoSave();
               },
               playSound: () async {
                 await _soundPlayer.playArtefactSound(widget.artifact.baseArtefact!);
