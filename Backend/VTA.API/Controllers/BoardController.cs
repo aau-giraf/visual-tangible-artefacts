@@ -37,7 +37,14 @@ public class BoardController : ControllerBase
             return Unauthorized("Invalid token");
         }
 
-            var boards = await _context.SavedBoards
+            // Get user settings for inheritance
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return Unauthorized("User not found");
+        }
+
+        var boards = await _context.SavedBoards
             .Where(b => b.UserId == userId)
             .Include(b => b.SavedArtefacts)
                 .ThenInclude(sa => sa.Artefact)
@@ -55,7 +62,8 @@ public class BoardController : ControllerBase
                         PosY = sa.PosY,
                         Width = sa.Width,
                         Height = sa.Height,
-                        NameVisible = sa.NameVisible
+                        // Resolve inheritance: use saved value if not null, otherwise inherit from user settings
+                        NameVisible = sa.NameVisible ?? user.NameVisible
                     }).ToList()
             })
             .ToListAsync();
@@ -75,6 +83,13 @@ public class BoardController : ControllerBase
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized("Invalid token");
+        }
+
+        // Get user settings for inheritance
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return Unauthorized("User not found");
         }
 
         var board = await _context.SavedBoards
@@ -102,7 +117,8 @@ public class BoardController : ControllerBase
                 PosY = sa.PosY,
                 Width = sa.Width,
                 Height = sa.Height,
-                NameVisible = sa.NameVisible
+                // Resolve inheritance: use saved value if not null, otherwise inherit from user settings
+                NameVisible = sa.NameVisible ?? user.NameVisible
             }).ToList()
         };
 
@@ -130,6 +146,16 @@ public class BoardController : ControllerBase
 
         try
         {
+            // Get user's default settings for inheriting by new artefacts
+            var user = await _context.Users
+                .Where(u => u.Id == userId)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return Unauthorized("User not found");
+            }
+
             // Use execution strategy to handle the transaction properly
             var strategy = _context.Database.CreateExecutionStrategy();
             var response = await strategy.ExecuteAsync(async () =>
@@ -174,7 +200,8 @@ public class BoardController : ControllerBase
                             Width = artefactLayout.Width,
                             Height = artefactLayout.Height,
                             CreatedDate = DateTime.UtcNow,
-                            NameVisible = artefactLayout.NameVisible
+                            // Use provided value, or inherit from user's default setting for new artefacts
+                            NameVisible = artefactLayout.NameVisible ?? user.NameVisible
                         };
 
                         _context.SavedArtefacts.Add(savedArtefact);
@@ -263,6 +290,16 @@ public class BoardController : ControllerBase
             return NotFound("Board not found");
         }
 
+        // Get user's default settings for inheriting by new artefacts
+        var user = await _context.Users
+            .Where(u => u.Id == userId)
+            .FirstOrDefaultAsync();
+
+        if (user == null)
+        {
+            return Unauthorized("User not found");
+        }
+
         try
         {
             // Use execution strategy to handle the transaction properly
@@ -310,7 +347,8 @@ public class BoardController : ControllerBase
                             Width = artefactLayout.Width,
                             Height = artefactLayout.Height,
                             CreatedDate = DateTime.UtcNow,
-                            NameVisible = artefactLayout.NameVisible
+                            // Use provided value, or inherit from user's default setting for new artefacts
+                            NameVisible = artefactLayout.NameVisible ?? user.NameVisible
                         };
 
                         _context.SavedArtefacts.Add(savedArtefact);

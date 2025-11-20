@@ -21,6 +21,10 @@ public partial class UserGetDTO
 
     public string Username { get; set; } = null!;
 
+    public bool NameVisible { get; set; }
+
+    public int FieldCount { get; set; }
+
     public virtual ICollection<CategoryGetDTO> Categories { get; set; } = new List<CategoryGetDTO>();
 }
 

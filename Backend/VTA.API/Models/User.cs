@@ -12,6 +12,10 @@ public class User
 
     public string Username { get; set; } = null!;
 
+    public bool NameVisible { get; set; } = false;
+
+    public int FieldCount { get; set; } = 4;
+
     public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
 
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();

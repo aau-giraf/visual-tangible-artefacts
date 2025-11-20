@@ -27,5 +27,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(e => e.Username)
             .HasMaxLength(50)
             .HasColumnName("username");
+        builder.Property(e => e.NameVisible)
+            .HasColumnName("nameVisible")
+            .HasDefaultValue(false);
+        builder.Property(e => e.FieldCount)
+            .HasColumnName("fieldCount")
+            .HasDefaultValue(4);
     }
 }
