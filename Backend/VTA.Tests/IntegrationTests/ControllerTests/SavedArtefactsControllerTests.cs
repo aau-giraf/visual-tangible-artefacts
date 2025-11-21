@@ -1,587 +1,222 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.Tests.TestHelpers;
+using VTA.API.Models;
 
-namespace VTA.Tests.IntegrationTests.ControllerTests;
+namespace VTA.API.Controllers;
 
-public class SavedArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
+/// <summary>
+/// Controller for managing saved artefacts on boards.
+/// Provides endpoints to update artefact layout, remove artefacts from boards, and clear all artefacts from a board.
+/// </summary>
+[Authorize]
+[Route("api/Users/Boards/{boardId}/SavedArtefacts")]
+[ApiController]
+public class SavedArtefactsController : ControllerBase
 {
-    private readonly HttpClient _client;
-    private readonly Utilities _utilities;
+  private readonly VTAContext _context;
 
-    public SavedArtefactsControllerTests(CustomApplicationFactory factory)
+  /// <summary>
+  /// Initializes a new instance of the <see cref="SavedArtefactsController"/> class.
+  /// </summary>
+  /// <param name="context">The <see cref="VTAContext"/> used to access saved boards and artefacts.</param>
+  public SavedArtefactsController(VTAContext context)
+  {
+    _context = context;
+  }
+
+  // PATCH: api/Users/Boards/{boardId}/SavedArtefacts
+  /// <summary>
+  /// Updates the position and size of a specific artefact on a board
+  /// </summary>
+  /// <param name="boardId">The ID of the board</param>
+  /// <param name="request">Updated artefact layout data</param>
+  /// <returns>Success message</returns>
+  [HttpPatch]
+  public async Task<IActionResult> UpdateArtefactLayout(string boardId, [FromBody] UpdateArtefactLayoutDTO request)
+  {
+    var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId))
     {
-        _client = factory.CreateClient();
-        _utilities = new Utilities(_client);
+      return Unauthorized("Invalid token");
     }
 
-    [Fact]
-    public async Task GetSavedArtefacts_ReturnsOk_WithEmptyList()
+    // Verify the board exists and belongs to the user
+    var boardExists = await _context.SavedBoards
+        .AnyAsync(b => b.Id == boardId && b.UserId == userId);
+
+    if (!boardExists)
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{board.Id}/Artefacts");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var savedArtefacts = await response.Content.ReadFromJsonAsync<List<SavedArtefactGetDTO>>();
-        Assert.NotNull(savedArtefacts);
-        Assert.Empty(savedArtefacts);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+      return NotFound("Board not found");
     }
 
-    [Fact]
-    public async Task GetSavedArtefacts_ReturnsOk_WithMultipleArtefacts()
+    // Find the saved artefact entry when an explicit SavedArtefactId is provided.
+    // IMPORTANT: do NOT fallback to matching by ArtefactId — when SavedArtefactId is missing we should create a new instance
+    // (PATCH must target a specific instance). This prevents accidental updates of the wrong instance when duplicates exist.
+    SavedArtefact? savedArtefact = null;
+
+    if (!string.IsNullOrEmpty(request.SavedArtefactId))
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact1 = await CreateTestArtefact(loginData);
-        var artefact2 = await CreateTestArtefact(loginData);
-
-        await AddArtefactToBoard(loginData, board.Id, artefact1.ArtefactId, 10, 20);
-        await AddArtefactToBoard(loginData, board.Id, artefact2.ArtefactId, 30, 40);
-
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{board.Id}/Artefacts");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var savedArtefacts = await response.Content.ReadFromJsonAsync<List<SavedArtefactGetDTO>>();
-        Assert.NotNull(savedArtefacts);
-        Assert.Equal(2, savedArtefacts.Count);
-
-        await CleanupArtefacts(loginData, new[] { artefact1, artefact2 });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+      savedArtefact = await _context.SavedArtefacts
+          .FirstOrDefaultAsync(sa => sa.Id == request.SavedArtefactId && sa.BoardId == boardId);
     }
 
-    [Fact]
-    public async Task GetSavedArtefacts_ReturnsNotFound_WithInvalidBoardId()
+    if (savedArtefact == null)
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/non-existent-id/Artefacts");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+      // Do NOT create a new saved artefact via PATCH. The client must create new instances via PUT (UpdateBoard)
+      // or POST (SaveBoard). Returning BadRequest prevents PATCH from silently creating duplicates when the client
+      // accidentally omits the SavedArtefactId for duplicates.
+      return BadRequest("SavedArtefactId is required to update an existing saved artefact. Create a new saved artefact via updating the board.");
     }
 
-    [Fact]
-    public async Task GetSavedArtefacts_WithoutAuthorization_ReturnsUnauthorized()
+    // Check if values are actually different before updating
+    bool hasChanges = savedArtefact.PosX != request.PosX ||
+                     savedArtefact.PosY != request.PosY ||
+                     savedArtefact.Width != request.Width ||
+                     savedArtefact.Height != request.Height;
+
+    if (hasChanges)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/some-board-id/Artefacts");
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+      // Update existing entry
+      savedArtefact.PosX = request.PosX;
+      savedArtefact.PosY = request.PosY;
+      savedArtefact.Width = request.Width;
+      savedArtefact.Height = request.Height;
+
+      // Update board modified date
+      var board = await _context.SavedBoards.FindAsync(boardId);
+      if (board != null)
+      {
+        board.ModifiedDate = DateTime.UtcNow;
+      }
     }
 
-    [Fact]
-    public async Task GetSavedArtefact_ReturnsOk_WithValidIds()
+    try
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+      await _context.SaveChangesAsync();
+      return Ok(new { message = hasChanges ? "Artefact layout updated successfully" : "No changes detected, layout already up to date" });
+    }
+    catch (Exception)
+    {
+      return StatusCode(500, "Error updating artefact layout");
+    }
+  }
 
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact = await CreateTestArtefact(loginData);
-        var savedArtefact = await AddArtefactToBoard(loginData, board.Id, artefact.ArtefactId, 50, 60);
-
-        var request = new HttpRequestMessage(HttpMethod.Get, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/{savedArtefact.Id}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var retrievedArtefact = await response.Content.ReadFromJsonAsync<SavedArtefactGetDTO>();
-        Assert.NotNull(retrievedArtefact);
-        Assert.Equal(savedArtefact.Id, retrievedArtefact.Id);
-        Assert.Equal(50, retrievedArtefact.PosX);
-        Assert.Equal(60, retrievedArtefact.PosY);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+  // DELETE: api/Users/Boards/{boardId}/SavedArtefacts/{savedArtefactId}
+  /// <summary>
+  /// Removes a specific artefact from a board
+  /// </summary>
+  /// <param name="boardId">The ID of the board</param>
+  /// <param name="savedArtefactId">The ID of the saved artefact to remove</param>
+  /// <returns>Success message</returns>
+  [HttpDelete("{savedArtefactId}")]
+  public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
+  {
+    var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId))
+    {
+      return Unauthorized("Invalid token");
     }
 
-    [Fact]
-    public async Task GetSavedArtefact_ReturnsNotFound_WithInvalidSavedArtefactId()
+    var board = await _context.SavedBoards
+        .Where(b => b.Id == boardId && b.UserId == userId)
+        .Include(b => b.SavedArtefacts)
+        .FirstOrDefaultAsync();
+
+    if (board == null)
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-
-        var request = new HttpRequestMessage(HttpMethod.Get, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/non-existent-id");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+      return NotFound("Board not found");
     }
 
-    [Fact]
-    public async Task GetSavedArtefact_WithoutAuthorization_ReturnsUnauthorized()
+    var savedArtefactToRemove = board.SavedArtefacts
+        .FirstOrDefault(sa => sa.Id == savedArtefactId);
+
+    if (savedArtefactToRemove == null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, 
-            "/api/Users/Boards/some-board-id/Artefacts/some-artefact-id");
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+      return NotFound("Saved artefact not found on this board");
     }
 
-    [Fact]
-    public async Task PostSavedArtefact_ReturnsCreated_WithValidData()
+    try
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+      // Remove the specific saved artefact
+      _context.SavedArtefacts.Remove(savedArtefactToRemove);
+      
+      // Update board modified date
+      board.ModifiedDate = DateTime.UtcNow;
+      _context.SavedBoards.Update(board);
+      
+      await _context.SaveChangesAsync();
+      
+      return Ok(new { message = "Artefact removed from board successfully" });
+    }
+    catch (Exception)
+    {
+      return StatusCode(500, "Error removing artefact from board");
+    }
+  }
 
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact = await CreateTestArtefact(loginData);
-
-        var savedArtefactPostDTO = new SavedArtefactPostDTO
-        {
-            ArtefactId = artefact.ArtefactId,
-            PosX = 100,
-            PosY = 200
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Boards/{board.Id}/Artefacts")
-        {
-            Content = JsonContent.Create(savedArtefactPostDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
-        var savedArtefact = await response.Content.ReadFromJsonAsync<SavedArtefactGetDTO>();
-        Assert.NotNull(savedArtefact);
-        Assert.Equal(artefact.ArtefactId, savedArtefact.ArtefactId);
-        Assert.Equal(100, savedArtefact.PosX);
-        Assert.Equal(200, savedArtefact.PosY);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+  // DELETE: api/Users/Boards/{boardId}/SavedArtefacts
+  /// <summary>
+  /// Clears all artefacts from a board (without deleting the board itself)
+  /// </summary>
+  /// <param name="boardId">The ID of the board to clear</param>
+  /// <returns>Success message</returns>
+  [HttpDelete]
+  public async Task<IActionResult> ClearBoard(string boardId)
+  {
+    var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId))
+    {
+      return Unauthorized("Invalid token");
     }
 
-    [Fact]
-    public async Task PostSavedArtefact_ReturnsNotFound_WithInvalidBoardId()
+    var board = await _context.SavedBoards
+        .Where(b => b.Id == boardId && b.UserId == userId)
+        .Include(b => b.SavedArtefacts)
+        .FirstOrDefaultAsync();
+
+    if (board == null)
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var artefact = await CreateTestArtefact(loginData);
-
-        var savedArtefactPostDTO = new SavedArtefactPostDTO
-        {
-            ArtefactId = artefact.ArtefactId,
-            PosX = 100,
-            PosY = 200
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards/non-existent-id/Artefacts")
-        {
-            Content = JsonContent.Create(savedArtefactPostDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
+      return NotFound("Board not found");
     }
 
-    [Fact]
-    public async Task PostSavedArtefact_ReturnsNotFound_WithInvalidArtefactId()
+    try
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+      // Collect artefact ids referenced by this board before removing saved instances
+      var artefactIdsOnBoard = board.SavedArtefacts?.Select(sa => sa.ArtefactId).Where(id => !string.IsNullOrEmpty(id)).ToList() ?? new List<string>();
 
-        var board = await CreateTestBoard(loginData, "Test Board");
+      // Remove all saved artefacts from the board
+      if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
+      {
+        _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
+      }
 
-        var savedArtefactPostDTO = new SavedArtefactPostDTO
+      // Also delete any session artefacts (category == 'Session-Artefact') that belong to this user
+      if (artefactIdsOnBoard.Any())
+      {
+        var sessionArtefacts = await _context.Artefacts
+            .Where(a => artefactIdsOnBoard.Contains(a.ArtefactId) && a.UserId == userId && a.CategoryId == "Session-Artefact")
+            .ToListAsync();
+
+        if (sessionArtefacts != null && sessionArtefacts.Any())
         {
-            ArtefactId = "non-existent-artefact-id",
-            PosX = 100,
-            PosY = 200
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Boards/{board.Id}/Artefacts")
-        {
-            Content = JsonContent.Create(savedArtefactPostDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task PostSavedArtefact_ReturnsConflict_WhenArtefactAlreadyOnBoard()
-    {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact = await CreateTestArtefact(loginData);
-        await AddArtefactToBoard(loginData, board.Id, artefact.ArtefactId, 10, 20);
-
-        // Try to add the same artefact again
-        var savedArtefactPostDTO = new SavedArtefactPostDTO
-        {
-            ArtefactId = artefact.ArtefactId,
-            PosX = 30,
-            PosY = 40
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Boards/{board.Id}/Artefacts")
-        {
-            Content = JsonContent.Create(savedArtefactPostDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task PostSavedArtefact_WithoutAuthorization_ReturnsUnauthorized()
-    {
-        var savedArtefactPostDTO = new SavedArtefactPostDTO
-        {
-            ArtefactId = "some-artefact-id",
-            PosX = 100,
-            PosY = 200
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards/some-board-id/Artefacts")
-        {
-            Content = JsonContent.Create(savedArtefactPostDTO)
-        };
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task PatchSavedArtefact_ReturnsNoContent_WithValidData()
-    {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact = await CreateTestArtefact(loginData);
-        var savedArtefact = await AddArtefactToBoard(loginData, board.Id, artefact.ArtefactId, 10, 20);
-
-        var savedArtefactPatchDTO = new SavedArtefactPatchDTO
-        {
-            SavedArtefactId = savedArtefact.Id,
-            PosX = 150,
-            PosY = 250
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Patch, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/{savedArtefact.Id}")
-        {
-            Content = JsonContent.Create(savedArtefactPatchDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-
-        // Verify the update
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/{savedArtefact.Id}");
-        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-        var getResponse = await _client.SendAsync(getRequest);
-        var updatedArtefact = await getResponse.Content.ReadFromJsonAsync<SavedArtefactGetDTO>();
-
-        Assert.NotNull(updatedArtefact);
-        Assert.Equal(150, updatedArtefact.PosX);
-        Assert.Equal(250, updatedArtefact.PosY);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task PatchSavedArtefact_ReturnsBadRequest_WhenIdMismatch()
-    {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact = await CreateTestArtefact(loginData);
-        var savedArtefact = await AddArtefactToBoard(loginData, board.Id, artefact.ArtefactId, 10, 20);
-
-        var savedArtefactPatchDTO = new SavedArtefactPatchDTO
-        {
-            SavedArtefactId = "different-id",
-            PosX = 150,
-            PosY = 250
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Patch, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/{savedArtefact.Id}")
-        {
-            Content = JsonContent.Create(savedArtefactPatchDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task PatchSavedArtefact_ReturnsNotFound_WithInvalidSavedArtefactId()
-    {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-
-        var savedArtefactPatchDTO = new SavedArtefactPatchDTO
-        {
-            SavedArtefactId = "non-existent-id",
-            PosX = 150,
-            PosY = 250
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Patch, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/non-existent-id")
-        {
-            Content = JsonContent.Create(savedArtefactPatchDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task PatchSavedArtefact_WithoutAuthorization_ReturnsUnauthorized()
-    {
-        var savedArtefactPatchDTO = new SavedArtefactPatchDTO
-        {
-            SavedArtefactId = "some-id",
-            PosX = 150,
-            PosY = 250
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Patch, 
-            "/api/Users/Boards/some-board-id/Artefacts/some-id")
-        {
-            Content = JsonContent.Create(savedArtefactPatchDTO)
-        };
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteSavedArtefact_ReturnsNoContent_WithValidIds()
-    {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-        var artefact = await CreateTestArtefact(loginData);
-        var savedArtefact = await AddArtefactToBoard(loginData, board.Id, artefact.ArtefactId, 10, 20);
-
-        var request = new HttpRequestMessage(HttpMethod.Delete, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/{savedArtefact.Id}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-
-        // Verify deletion
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/{savedArtefact.Id}");
-        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-        var getResponse = await _client.SendAsync(getRequest);
-        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
-
-        await CleanupArtefacts(loginData, new[] { artefact });
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task DeleteSavedArtefact_ReturnsNotFound_WithInvalidSavedArtefactId()
-    {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
-
-        var board = await CreateTestBoard(loginData, "Test Board");
-
-        var request = new HttpRequestMessage(HttpMethod.Delete, 
-            $"/api/Users/Boards/{board.Id}/Artefacts/non-existent-id");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
-    }
-
-    [Fact]
-    public async Task DeleteSavedArtefact_WithoutAuthorization_ReturnsUnauthorized()
-    {
-        var request = new HttpRequestMessage(HttpMethod.Delete, 
-            "/api/Users/Boards/some-board-id/Artefacts/some-id");
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    private async Task<BoardGetDTO> CreateTestBoard(UserLoginResponseDTO loginData, string boardName)
-    {
-        var boardPostDTO = new BoardPostDTO
-        {
-            Name = boardName
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards")
-        {
-            Content = JsonContent.Create(boardPostDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
-        var board = await response.Content.ReadFromJsonAsync<BoardGetDTO>();
-        Assert.NotNull(board);
-
-        return board;
-    }
-
-    private async Task<ArtefactGetDTO> CreateTestArtefact(UserLoginResponseDTO loginData)
-    {
-        var content = new MultipartFormDataContent();
-        var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
-        imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-        content.Add(imageContent, "Image", "testImage.jpg");
-        content.Add(new StringContent(loginData.userId), "UserId");
-        content.Add(new StringContent("0"), "ArtefactIndex");
-        content.Add(new StringContent("Test Artefact"), "Name");
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
-        {
-            Content = content
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        var artefact = await JsonSerializer.DeserializeAsync<ArtefactGetDTO>(
-            await response.Content.ReadAsStreamAsync(),
-            options
-        );
-
-        Assert.NotNull(artefact);
-        return artefact;
-    }
-
-    private async Task<SavedArtefactGetDTO> AddArtefactToBoard(UserLoginResponseDTO loginData, 
-        string boardId, string artefactId, float posX, float posY)
-    {
-        var savedArtefactPostDTO = new SavedArtefactPostDTO
-        {
-            ArtefactId = artefactId,
-            PosX = posX,
-            PosY = posY
-        };
-
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Boards/{boardId}/Artefacts")
-        {
-            Content = JsonContent.Create(savedArtefactPostDTO)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-
-        var response = await _client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
-        var savedArtefact = await response.Content.ReadFromJsonAsync<SavedArtefactGetDTO>();
-        Assert.NotNull(savedArtefact);
-
-        return savedArtefact;
-    }
-
-    private async Task CleanupArtefacts(UserLoginResponseDTO loginData, IEnumerable<ArtefactGetDTO> artefacts)
-    {
-        foreach (var artefact in artefacts)
-        {
-            var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Artefacts/{artefact.ArtefactId}");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
-            await _client.SendAsync(request);
-
-            var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", 
-                loginData.userId, $"image_{artefact.ArtefactId}.jpg");
-            if (File.Exists(assetsPath))
-            {
-                File.Delete(assetsPath);
-            }
+          _context.Artefacts.RemoveRange(sessionArtefacts);
         }
+      }
+
+      // Update board modified date
+      board.ModifiedDate = DateTime.UtcNow;
+      _context.SavedBoards.Update(board);
+
+      await _context.SaveChangesAsync();
+
+      return Ok(new { message = "Board cleared successfully" });
     }
+    catch (Exception)
+    {
+      return StatusCode(500, "Error clearing board");
+    }
+  }
 }

@@ -6,11 +6,13 @@ using VTA.API.DTOs;
 using VTA.API.Models;
 
 namespace VTA.API.Controllers;
+
 /// <summary>
-/// Controller for managing saved artefacts placed on user boards.
+/// Controller for managing saved artefacts on boards.
+/// Provides endpoints to update artefact layout, remove artefacts from boards, and clear all artefacts from a board.
 /// </summary>
 [Authorize]
-[Route("api/Users/Boards/{boardId}/Artefacts")]
+[Route("api/Users/Boards/{boardId}/SavedArtefacts")]
 [ApiController]
 public class SavedArtefactsController : ControllerBase
 {
@@ -19,285 +21,202 @@ public class SavedArtefactsController : ControllerBase
   /// <summary>
   /// Initializes a new instance of the <see cref="SavedArtefactsController"/> class.
   /// </summary>
-  /// <param name="context">The VTA database context.</param>
+  /// <param name="context">The <see cref="VTAContext"/> used to access saved boards and artefacts.</param>
   public SavedArtefactsController(VTAContext context)
   {
     _context = context;
   }
 
-  // GET: api/Users/Boards/{boardId}/Artefacts
+  // PATCH: api/Users/Boards/{boardId}/SavedArtefacts
   /// <summary>
-  /// Gets all artefacts placed on a specific board
+  /// Updates the position and size of a specific artefact on a board
   /// </summary>
-  /// <param name="boardId">The board ID</param>
-  /// <returns>A collection of saved artefacts on the board</returns>
-  [HttpGet]
-  public async Task<ActionResult<IEnumerable<SavedArtefactGetDTO>>> GetSavedArtefacts(string boardId)
+  /// <param name="boardId">The ID of the board</param>
+  /// <param name="request">Updated artefact layout data</param>
+  /// <returns>Success message</returns>
+  [HttpPatch]
+  public async Task<IActionResult> UpdateArtefactLayout(string boardId, [FromBody] UpdateArtefactLayoutDTO request)
   {
     var userId = User.FindFirst("id")?.Value;
-
     if (string.IsNullOrEmpty(userId))
     {
-      return Unauthorized();
+      return Unauthorized("Invalid token");
     }
 
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .FirstOrDefaultAsync();
+    // Verify the board exists and belongs to the user
+    var boardExists = await _context.SavedBoards
+        .AnyAsync(b => b.Id == boardId && b.UserId == userId);
 
-    if (board == null)
+    if (!boardExists)
     {
-      return NotFound("Board not found or you don't have permission to access it");
+      return NotFound("Board not found");
     }
 
-    var savedArtefacts = await _context.SavedArtefacts
-        .Where(sa => sa.BoardId == boardId)
-        .Include(sa => sa.Artefact)
-        .ToListAsync();
+    // Find the saved artefact entry when an explicit SavedArtefactId is provided.
+    // IMPORTANT: do NOT fallback to matching by ArtefactId — when SavedArtefactId is missing we should create a new instance
+    // (PATCH must target a specific instance). This prevents accidental updates of the wrong instance when duplicates exist.
+    SavedArtefact? savedArtefact = null;
 
-    var savedArtefactDTOs = new List<SavedArtefactGetDTO>();
-    foreach (var savedArtefact in savedArtefacts)
+    if (!string.IsNullOrEmpty(request.SavedArtefactId))
     {
-      savedArtefactDTOs.Add(DTOConverter.MapSavedArtefactToSavedArtefactGetDTO(savedArtefact, Request.Scheme, Request.Host.ToString()));
+      savedArtefact = await _context.SavedArtefacts
+          .FirstOrDefaultAsync(sa => sa.Id == request.SavedArtefactId && sa.BoardId == boardId);
     }
-
-    return Ok(savedArtefactDTOs);
-  }
-
-  // GET: api/Users/Boards/{boardId}/Artefacts/{savedArtefactId}
-  /// <summary>
-  /// Gets a specific saved artefact
-  /// </summary>
-  /// <param name="boardId">The board ID</param>
-  /// <param name="savedArtefactId">The saved artefact ID</param>
-  /// <returns>The specified saved artefact</returns>
-  [HttpGet("{savedArtefactId}")]
-  public async Task<ActionResult<SavedArtefactGetDTO>> GetSavedArtefact(string boardId, string savedArtefactId)
-  {
-    var userId = User.FindFirst("id")?.Value;
-
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
-
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound("Board not found or you don't have permission to access it");
-    }
-
-    var savedArtefact = await _context.SavedArtefacts
-        .Where(sa => sa.Id == savedArtefactId && sa.BoardId == boardId)
-        .Include(sa => sa.Artefact)
-        .FirstOrDefaultAsync();
 
     if (savedArtefact == null)
     {
-      return NotFound();
+      // Do NOT create a new saved artefact via PATCH. The client must create new instances via PUT (UpdateBoard)
+      // or POST (SaveBoard). Returning BadRequest prevents PATCH from silently creating duplicates when the client
+      // accidentally omits the SavedArtefactId for duplicates.
+      return BadRequest("SavedArtefactId is required to update an existing saved artefact. Create a new saved artefact via updating the board.");
     }
 
-    var savedArtefactDTO = DTOConverter.MapSavedArtefactToSavedArtefactGetDTO(savedArtefact, Request.Scheme, Request.Host.ToString());
+    // Check if values are actually different before updating
+    bool hasChanges = savedArtefact.PosX != request.PosX ||
+                     savedArtefact.PosY != request.PosY ||
+                     savedArtefact.Width != request.Width ||
+                     savedArtefact.Height != request.Height;
 
-    return Ok(savedArtefactDTO);
-  }
-
-  // POST: api/Users/Boards/{boardId}/Artefacts
-  /// <summary>
-  /// Places an artefact on a board at a specific position
-  /// </summary>
-  /// <param name="boardId">The board ID</param>
-  /// <param name="savedArtefactPostDTO">Artefact placement data</param>
-  /// <returns>The created saved artefact</returns>
-  [HttpPost]
-  public async Task<ActionResult<SavedArtefactGetDTO>> PostSavedArtefact(string boardId, [FromBody] SavedArtefactPostDTO savedArtefactPostDTO)
-  {
-    var userId = User.FindFirst("id")?.Value;
-
-    if (string.IsNullOrEmpty(userId))
+    if (hasChanges)
     {
-      return Unauthorized();
+      // Update existing entry
+      savedArtefact.PosX = request.PosX;
+      savedArtefact.PosY = request.PosY;
+      savedArtefact.Width = request.Width;
+      savedArtefact.Height = request.Height;
+
+      // Update board modified date
+      var board = await _context.SavedBoards.FindAsync(boardId);
+      if (board != null)
+      {
+        board.ModifiedDate = DateTime.UtcNow;
+      }
     }
-
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound("Board not found or you don't have permission to access it");
-    }
-
-    // Verify the artefact exists and belongs to the user
-    var artefact = await _context.Artefacts
-        .Where(a => a.ArtefactId == savedArtefactPostDTO.ArtefactId && a.UserId == userId)
-        .FirstOrDefaultAsync();
-
-    if (artefact == null)
-    {
-      return NotFound("Artefact not found or you don't have permission to use it");
-    }
-
-    // Check if artefact is already on this board
-    var existingSavedArtefact = await _context.SavedArtefacts
-        .Where(sa => sa.ArtefactId == savedArtefactPostDTO.ArtefactId && sa.BoardId == boardId)
-        .FirstOrDefaultAsync();
-
-    if (existingSavedArtefact != null)
-    {
-      return Conflict("This artefact is already placed on this board");
-    }
-
-    var savedArtefactId = Guid.NewGuid().ToString();
-    var savedArtefact = DTOConverter.MapSavedArtefactPostDTOToSavedArtefact(savedArtefactPostDTO, savedArtefactId, boardId);
-
-    _context.SavedArtefacts.Add(savedArtefact);
-
-    board.ModifiedDate = DateTime.UtcNow;
-
-    await _context.SaveChangesAsync();
-
-    // Fetch the created saved artefact with relationships
-    var createdSavedArtefact = await _context.SavedArtefacts
-        .Include(sa => sa.Artefact)
-        .FirstOrDefaultAsync(sa => sa.Id == savedArtefact.Id);
-
-    if (createdSavedArtefact == null)
-    {
-      return NotFound();
-    }
-
-    var savedArtefactGetDTO = DTOConverter.MapSavedArtefactToSavedArtefactGetDTO(createdSavedArtefact, Request.Scheme, Request.Host.ToString());
-
-    return CreatedAtAction(nameof(GetSavedArtefact), new { boardId = boardId, savedArtefactId = savedArtefact.Id }, savedArtefactGetDTO);
-  }
-
-  // PATCH: api/Users/Boards/{boardId}/Artefacts/{savedArtefactId}
-  /// <summary>
-  /// Updates a saved artefact's position on the board
-  /// </summary>
-  /// <param name="boardId">The board ID</param>
-  /// <param name="savedArtefactId">The saved artefact ID</param>
-  /// <param name="savedArtefactPatchDTO">Position update data</param>
-  /// <returns>No content on success</returns>
-  [HttpPatch("{savedArtefactId}")]
-  public async Task<IActionResult> PatchSavedArtefact(string boardId, string savedArtefactId, [FromBody] SavedArtefactPatchDTO savedArtefactPatchDTO)
-  {
-    var userId = User.FindFirst("id")?.Value;
-
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
-
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound("Board not found or you don't have permission to access it");
-    }
-
-    if (savedArtefactId != savedArtefactPatchDTO.SavedArtefactId)
-    {
-      return BadRequest("SavedArtefactId in URL does not match the one in the request body");
-    }
-
-    var savedArtefact = await _context.SavedArtefacts
-        .Where(sa => sa.Id == savedArtefactId && sa.BoardId == boardId)
-        .FirstOrDefaultAsync();
-
-    if (savedArtefact == null)
-    {
-      return NotFound();
-    }
-
-    // Update position if provided
-    if (savedArtefactPatchDTO.PosX.HasValue)
-    {
-      savedArtefact.PosX = savedArtefactPatchDTO.PosX.Value;
-    }
-
-    if (savedArtefactPatchDTO.PosY.HasValue)
-    {
-      savedArtefact.PosY = savedArtefactPatchDTO.PosY.Value;
-    }
-
-    // Update board's modified date
-    board.ModifiedDate = DateTime.UtcNow;
-
-    _context.Entry(savedArtefact).State = EntityState.Modified;
 
     try
     {
       await _context.SaveChangesAsync();
+      return Ok(new { message = hasChanges ? "Artefact layout updated successfully" : "No changes detected, layout already up to date" });
     }
-    catch (DbUpdateConcurrencyException)
+    catch (Exception)
     {
-      if (!SavedArtefactExists(savedArtefact.Id))
-      {
-        return NotFound();
-      }
-      else
-      {
-        throw;
-      }
+      return StatusCode(500, "Error updating artefact layout");
     }
-
-    return NoContent();
   }
 
-  // DELETE: api/Users/Boards/{boardId}/Artefacts/{savedArtefactId}
+  // DELETE: api/Users/Boards/{boardId}/SavedArtefacts/{savedArtefactId}
   /// <summary>
-  /// Removes an artefact from a board
+  /// Removes a specific artefact from a board
   /// </summary>
-  /// <param name="boardId">The board ID</param>
-  /// <param name="savedArtefactId">The saved artefact ID</param>
-  /// <returns>No content on success</returns>
+  /// <param name="boardId">The ID of the board</param>
+  /// <param name="savedArtefactId">The ID of the saved artefact to remove</param>
+  /// <returns>Success message</returns>
   [HttpDelete("{savedArtefactId}")]
-  public async Task<IActionResult> DeleteSavedArtefact(string boardId, string savedArtefactId)
+  public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
   {
     var userId = User.FindFirst("id")?.Value;
-
     if (string.IsNullOrEmpty(userId))
     {
-      return Unauthorized();
+      return Unauthorized("Invalid token");
     }
 
     var board = await _context.SavedBoards
         .Where(b => b.Id == boardId && b.UserId == userId)
+        .Include(b => b.SavedArtefacts)
         .FirstOrDefaultAsync();
 
     if (board == null)
     {
-      return NotFound("Board not found or you don't have permission to access it");
+      return NotFound("Board not found");
     }
 
-    var savedArtefact = await _context.SavedArtefacts
-        .Where(sa => sa.Id == savedArtefactId && sa.BoardId == boardId)
-        .FirstOrDefaultAsync();
+    var savedArtefactToRemove = board.SavedArtefacts
+        .FirstOrDefault(sa => sa.Id == savedArtefactId);
 
-    if (savedArtefact == null)
+    if (savedArtefactToRemove == null)
     {
-      return NotFound();
+      return NotFound("Saved artefact not found on this board");
     }
 
-    _context.SavedArtefacts.Remove(savedArtefact);
-
-    // Update board's modified date
-    board.ModifiedDate = DateTime.UtcNow;
-
-    await _context.SaveChangesAsync();
-
-    return NoContent();
+    try
+    {
+      // Remove the specific saved artefact
+      _context.SavedArtefacts.Remove(savedArtefactToRemove);
+      
+      // Update board modified date
+      board.ModifiedDate = DateTime.UtcNow;
+      _context.SavedBoards.Update(board);
+      
+      await _context.SaveChangesAsync();
+      
+      return Ok(new { message = "Artefact removed from board successfully" });
+    }
+    catch (Exception)
+    {
+      return StatusCode(500, "Error removing artefact from board");
+    }
   }
 
-  private bool SavedArtefactExists(string id)
+  // DELETE: api/Users/Boards/{boardId}/SavedArtefacts
+  /// <summary>
+  /// Clears all artefacts from a board (without deleting the board itself)
+  /// </summary>
+  /// <param name="boardId">The ID of the board to clear</param>
+  /// <returns>Success message</returns>
+  [HttpDelete]
+  public async Task<IActionResult> ClearBoard(string boardId)
   {
-    return _context.SavedArtefacts.Any(e => e.Id == id);
+    var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId))
+    {
+      return Unauthorized("Invalid token");
+    }
+
+    var board = await _context.SavedBoards
+        .Where(b => b.Id == boardId && b.UserId == userId)
+        .Include(b => b.SavedArtefacts)
+        .FirstOrDefaultAsync();
+
+    if (board == null)
+    {
+      return NotFound("Board not found");
+    }
+
+    try
+    {
+      // Collect artefact ids referenced by this board before removing saved instances
+      var artefactIdsOnBoard = board.SavedArtefacts?.Select(sa => sa.ArtefactId).Where(id => !string.IsNullOrEmpty(id)).ToList() ?? new List<string>();
+
+      // Remove all saved artefacts from the board
+      if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
+      {
+        _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
+      }
+
+      // Also delete any session artefacts (category == 'Session-Artefact') that belong to this user
+      if (artefactIdsOnBoard.Any())
+      {
+        var sessionArtefacts = await _context.Artefacts
+            .Where(a => artefactIdsOnBoard.Contains(a.ArtefactId) && a.UserId == userId && a.CategoryId == "Session-Artefact")
+            .ToListAsync();
+
+        if (sessionArtefacts != null && sessionArtefacts.Any())
+        {
+          _context.Artefacts.RemoveRange(sessionArtefacts);
+        }
+      }
+
+      // Update board modified date
+      board.ModifiedDate = DateTime.UtcNow;
+      _context.SavedBoards.Update(board);
+
+      await _context.SaveChangesAsync();
+
+      return Ok(new { message = "Board cleared successfully" });
+    }
+    catch (Exception)
+    {
+      return StatusCode(500, "Error clearing board");
+    }
   }
 }
