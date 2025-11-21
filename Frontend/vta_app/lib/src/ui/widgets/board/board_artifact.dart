@@ -11,14 +11,23 @@ class BoardArtefact {
   String? savedArtefactId;
   final ValueNotifier<Size> sizeNotifier;
   final ValueNotifier<bool> showResizeHandle;
+  // Per-instance display state (e.g., show name above the artefact)
+  bool nameVisible;
+  // Used for auto-sizing images on first render
+  final String? imageUrlForSizing;
+  final Map<String, String>? imageHeadersForSizing;
 
   BoardArtefact({
     required this.baseContent,
     this.position,
     this.baseArtefact,
+    this.imageUrlForSizing,
+    this.imageHeadersForSizing,
     Size? initialSize,
+    bool? nameVisible,
   })  : sizeNotifier = ValueNotifier<Size>(initialSize ?? const Size(200, 200)),
-        showResizeHandle = ValueNotifier<bool>(false);
+        showResizeHandle = ValueNotifier<bool>(false),
+        nameVisible = nameVisible ?? false;
 
   String get artefactId => baseArtefact?.artefactId ?? '';
 
@@ -26,6 +35,8 @@ class BoardArtefact {
         baseContent: baseContent,
         sizeNotifier: sizeNotifier,
         showResizeNotifier: showResizeHandle,
+    imageUrlForSizing: imageUrlForSizing,
+    imageHeadersForSizing: imageHeadersForSizing,
       );
 
   factory BoardArtefact.fromArtefact(Artefact artefact,
@@ -40,6 +51,8 @@ class BoardArtefact {
         },
         image: NetworkImage(artefact.imageUrl!, headers: headers),
         placeholder: const AssetImage('assets/images/flutter_logo.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
     }
     // If no image but has sound, show speaker icon
@@ -88,8 +101,28 @@ class BoardArtefact {
     return BoardArtefact(
       baseContent: innerContent,
       baseArtefact: artefact,
+      imageUrlForSizing: artefact.imageUrl,
+      imageHeadersForSizing: headers,
       initialSize: const Size(200, 200),
+
+      nameVisible: false,
     );
+  }
+
+ 
+  BoardArtefact clone({bool keepPosition = false}) {
+    final cloned = BoardArtefact(
+      baseContent: baseContent,
+      baseArtefact: baseArtefact,
+      imageUrlForSizing: imageUrlForSizing,
+      imageHeadersForSizing: imageHeadersForSizing,
+      initialSize: sizeNotifier.value,
+      nameVisible: false,
+    );
+    if (keepPosition) {
+      cloned.position = position == null ? null : Offset(position!.dx, position!.dy);
+    }
+    return cloned;
   }
 
   // (artefactId getter already defined below)
@@ -99,12 +132,16 @@ class _BoardArtefactContent extends StatefulWidget {
   final Widget baseContent;
   final ValueNotifier<Size> sizeNotifier;
   final ValueNotifier<bool> showResizeNotifier;
+  final String? imageUrlForSizing;
+  final Map<String, String>? imageHeadersForSizing;
 
   const _BoardArtefactContent({
     Key? key,
     required this.baseContent,
     required this.sizeNotifier,
     required this.showResizeNotifier,
+    this.imageUrlForSizing,
+    this.imageHeadersForSizing,
   }) : super(key: key);
 
   @override
@@ -114,10 +151,62 @@ class _BoardArtefactContent extends StatefulWidget {
 class _BoardArtefactContentState extends State<_BoardArtefactContent> {
   Size? _startSize;
   Offset? _startPointer;
+  bool _autoSizedDone = false;
 
   static const double _minWidth = 100.0;
-  static const double _maxWidth = 1000.0;
+  static const double _maxWidth = 500.0;
   static const double _handleSize = 36.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeAutoSizeFromImage();
+  }
+
+  void _maybeAutoSizeFromImage() {
+    // Only for network images, only once, and only if size is still default-ish
+    if (_autoSizedDone) return;
+    final initial = widget.sizeNotifier.value;
+    if (initial.width != 200 || initial.height != 200) return;
+    final url = widget.imageUrlForSizing;
+    if (url == null || url.isEmpty) return;
+
+    final ImageProvider provider = NetworkImage(url, headers: widget.imageHeadersForSizing);
+    final ImageStream stream = provider.resolve(const ImageConfiguration());
+    ImageStreamListener? listener;
+    listener = ImageStreamListener((ImageInfo info, bool syncCall) {
+      final int w = info.image.width;
+      final int h = info.image.height;
+      if (w > 0 && h > 0) {
+        final double ar = w / h;
+        // Choose category and base width for nicer boxes
+        double targetWidth;
+        if ((ar - 1.0).abs() < 0.1) {
+          // square
+          targetWidth = 220;
+        } else if (ar > 1.0) {
+          // landscape
+          targetWidth = 260;
+        } else {
+          // portrait
+          targetWidth = 180;
+        }
+        double targetHeight = targetWidth / ar;
+        // Clamp to limits
+        targetWidth = targetWidth.clamp(_minWidth, _maxWidth);
+        targetHeight = targetHeight.clamp(_minWidth * (1 / 3), _maxWidth * 2);
+        // Apply
+        try {
+          widget.sizeNotifier.value = Size(targetWidth, targetHeight);
+          _autoSizedDone = true;
+        } catch (_) {}
+      }
+      try { stream.removeListener(listener!); } catch (_) {}
+    }, onError: (dynamic _, __) {
+      try { stream.removeListener(listener!); } catch (_) {}
+    });
+    stream.addListener(listener);
+  }
 
   void _onPointerDown(PointerDownEvent event) {
     _startSize = widget.sizeNotifier.value;
@@ -146,7 +235,14 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            SizedBox(width: size.width, height: size.height, child: child),
+            SizedBox(
+              width: size.width, 
+              height: size.height, 
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: child,
+              ),
+            ),
             ValueListenableBuilder<bool>(
               valueListenable: widget.showResizeNotifier,
               builder: (context, visible, _) {

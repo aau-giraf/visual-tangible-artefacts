@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import '../widgets/board/relational_board_button.dart';
@@ -10,14 +11,17 @@ import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
 class ArtifactBoardScreen extends StatefulWidget {
-  const ArtifactBoardScreen(
-      {super.key,
-      required this.artifactController,
-      required this.authController});
+  const ArtifactBoardScreen({
+    super.key,
+    required this.artifactController,
+    required this.authController,
+    required this.settingsController,
+  });
   static const String routeName = "/boardview";
 
   final ArtefactController artifactController;
   final AuthController authController;
+  final SettingsController settingsController;
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
@@ -31,9 +35,10 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   void initState() {
     super.initState();
     // Initialize the controller with a callback to setState
-    controller = ArtifactBoardController(notifyView: () {
+    controller = ArtifactBoardController(
+        notifyView: () {
       setState(() {});
-    });
+    }, settingsController: widget.settingsController);
   }
 
   @override
@@ -117,7 +122,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   PopupMenuItem(
                                     child: ListTile(
                                       leading: Icon(Icons.settings, size: 20),
-                                      title: const Text('Instillinger'),
+                                      title: const Text('Indstillinger'),
                                       onTap: () {
                                         Navigator.of(context)
                                             .pushNamed('/settings');
