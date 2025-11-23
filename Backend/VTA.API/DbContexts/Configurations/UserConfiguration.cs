@@ -15,9 +15,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(e => e.Id)
             .HasMaxLength(36)
             .HasColumnName("id");
-        builder.Property(e => e.GuardianKey)
-            .HasMaxLength(255)
-            .HasColumnName("guardianKey");
+        builder.Property(e => e.Role)
+            .IsRequired()
+            .HasColumnName("role");
         builder.Property(e => e.Name)
             .HasMaxLength(50)
             .HasColumnName("name");
@@ -27,5 +27,21 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(e => e.Username)
             .HasMaxLength(50)
             .HasColumnName("username");
+
+        builder.Property(e => e.Role)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasColumnName("role")
+            .HasDefaultValue(UserRole.Child);
+
+        builder.HasMany(u => u.CaregiverRelations)
+            .WithOne(p => p.Caregiver)
+            .HasForeignKey(p => p.CaregiverId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(u => u.ChildRelations)
+            .WithOne(p => p.Child)
+            .HasForeignKey(p => p.ChildId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

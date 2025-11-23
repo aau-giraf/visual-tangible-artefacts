@@ -43,7 +43,7 @@ void main() async {
   // Set up the providers
   final apiProvider = ApiProvider(
       baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['Remote']);
+          ['Local']);
   GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
   // Set up the controllers

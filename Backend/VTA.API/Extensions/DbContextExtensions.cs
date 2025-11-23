@@ -37,20 +37,20 @@ public static class DbContextExtensions
     public static async Task<WebApplication> MigrateVTAContext(this WebApplication app)
     {
         const string environmentKey = "AUTO_CREATE_DATABASE";
-        
+
         var environmentVariable = Environment.GetEnvironmentVariable(environmentKey);
         var autoCreateDb = !string.IsNullOrWhiteSpace(environmentVariable) && bool.Parse(environmentVariable);
-        
+
         if (!autoCreateDb) return app;
-        
+
         using var scope = app.Services.CreateScope();
-            
+
         try
         {
             var vtaContext = await scope.MigrateVTAContext();
-            
+
             await vtaContext.SeedTestUser();
-            
+
             await vtaContext.SaveChangesAsync();
         }
         catch (Exception ex)
@@ -66,30 +66,57 @@ public static class DbContextExtensions
     {
         var vtaContext = scope.ServiceProvider.GetRequiredService<VTAContext>();
         await vtaContext.Database.EnsureCreatedAsync();
-        
+
         return vtaContext;
     }
 
     private static async Task<VTAContext> SeedTestUser(this VTAContext context)
     {
         const string giraf = "giraf";
-        
         var testUserExist = await context.Users.AnyAsync(u => u.Username == giraf);
-
-        if (testUserExist) return context;
-        
-        var testUser = new User
+        if (!testUserExist)
         {
-            Id = Guid.NewGuid().ToString(),
-            Name = giraf,
-            Password = giraf,
-            Username = giraf
-        };
-        
-        testUser.Password = BCrypt.Net.BCrypt.HashPassword(testUser.Password);
-                
-        context.Users.Add(testUser);
-        
+            var testUser = new User
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = giraf,
+                Password = BCrypt.Net.BCrypt.HashPassword(giraf),
+                Username = giraf,
+                Role = UserRole.Child
+            };
+            context.Users.Add(testUser);
+        }
+
+        const string admin = "admin";
+        var adminUserExist = await context.Users.AnyAsync(u => u.Username == admin);
+        if (!adminUserExist)
+        {
+            var adminUser = new User
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Admin User",
+                Password = BCrypt.Net.BCrypt.HashPassword(admin),
+                Username = admin,
+                Role = UserRole.Admin
+            };
+            context.Users.Add(adminUser);
+        }
+
+        const string caregiver = "caregiver";
+        var caregiverUserExist = await context.Users.AnyAsync(u => u.Username == caregiver);
+        if (!caregiverUserExist)
+        {
+            var caregiverUser = new User
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Test Caregiver",
+                Password = BCrypt.Net.BCrypt.HashPassword(caregiver),
+                Username = caregiver,
+                Role = UserRole.Caregiver
+            };
+            context.Users.Add(caregiverUser);
+        }
+
         return context;
     }
 }
