@@ -2,6 +2,10 @@
 
 // 1. Basic usage in a parent widget:
 
+import 'package:flutter/material.dart';
+import 'package:vta_app/src/models/board_layout.dart' show BoardLayoutResponse;
+import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+
 class BoardPage extends StatefulWidget {
   @override
   _BoardPageState createState() => _BoardPageState();
