@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
 using VTA.API.DbContexts;
@@ -9,6 +10,8 @@ using VTA.API.Extensions;
 using VTA.API.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
+
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // test comment test, test push, test
 
@@ -64,6 +67,7 @@ builder.Services.AddAuthentication(options =>
 
     .AddJwtBearer(options =>
             {
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -73,7 +77,8 @@ builder.Services.AddAuthentication(options =>
                     ValidIssuer = jwtIssuer,
                     ValidAudience = jwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero,
+                    RoleClaimType = "role"
                 };
             });
 

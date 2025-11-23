@@ -300,7 +300,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var claims = new[]
         {
         new Claim("id", user.Id),
-        new Claim(ClaimTypes.Role, user.Role.ToString()),
+        new Claim("role", user.Role.ToString()),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
     };

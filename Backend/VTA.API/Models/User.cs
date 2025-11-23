@@ -18,8 +18,6 @@ public class User
 
     public virtual ICollection<SavedBoard> SavedBoards { get; set; } = new List<SavedBoard>();
 
-    public UserRole Role { get; set; } = UserRole.Child;
-
     public virtual ICollection<Relation> CaregiverRelations { get; set; } = new List<Relation>();
 
     public virtual ICollection<Relation> ChildRelations { get; set; } = new List<Relation>();
