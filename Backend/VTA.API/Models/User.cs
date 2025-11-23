@@ -1,4 +1,4 @@
-﻿namespace VTA.API.Models;
+namespace VTA.API.Models;
 
 public class User
 {
@@ -9,6 +9,8 @@ public class User
     public required string Password { get; set; }
 
     public string Username { get; set; } = null!;
+
+    public UserRole Role { get; set; } = UserRole.Child;
 
     public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
 
