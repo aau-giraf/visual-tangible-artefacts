@@ -4,7 +4,7 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
-import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/ui/screens/welcome_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 
 /// Used to control the authentication process and store authentication data
@@ -36,7 +36,7 @@ class AuthController extends ChangeNotifier {
         await artifactController.updateMostUsedCategories(context: context);
         if(!context.mounted) return;
         Navigator.of(context)
-            .pushReplacementNamed(ArtifactBoardScreen.routeName);
+            .pushReplacementNamed(WelcomeScreen.routeName);
       }
     } catch (e) {
       if (context != null && context.mounted) {
