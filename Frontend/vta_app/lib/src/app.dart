@@ -70,6 +70,7 @@ class MyApp extends StatelessWidget {
                   case RemoteBoardScreen.routeName:
                     return RemoteBoardScreen(
                       artifactController: artifactController,
+                      settingsController: settingsController,
                     );
                   default:
                     return SplashView(controller: authController);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/utilities/services/signalr_service.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
 
 /// Component 2: CHILD - Accept/Decline Session Popup
 /// Pure popup notification card - no background, no scaffold
@@ -16,7 +16,8 @@ class ChildAcceptSessionScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ChildAcceptSessionScreen> createState() => _ChildAcceptSessionScreenState();
+  State<ChildAcceptSessionScreen> createState() =>
+      _ChildAcceptSessionScreenState();
 }
 
 class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
@@ -57,7 +58,8 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
   Future<void> _acceptSession() async {
     if (_pendingCaregiverRequest == null) return;
 
-    final sessionId = '${DateTime.now().millisecondsSinceEpoch}_${_pendingCaregiverRequest}_${widget.childId}';
+    final sessionId =
+        '${DateTime.now().millisecondsSinceEpoch}_${_pendingCaregiverRequest}_${widget.childId}';
 
     try {
       await _signalR.acceptSession(sessionId, _pendingCaregiverRequest!);

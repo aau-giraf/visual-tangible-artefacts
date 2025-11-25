@@ -3,6 +3,7 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/remote_artifact_board_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
@@ -17,10 +18,12 @@ class RemoteBoardScreen extends StatefulWidget {
     super.key,
     this.artifactController,
     this.boardController,
+    required this.settingsController,
   });
 
   final ArtefactController? artifactController;
   final ArtifactBoardController? boardController;
+  final SettingsController settingsController;
 
   @override
   State<RemoteBoardScreen> createState() => _RemoteBoardScreenState();
@@ -59,6 +62,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
           if (mounted) setState(() {});
         },
         existingController: existingController,
+        settingsController: widget.settingsController,
       );
     });
   }

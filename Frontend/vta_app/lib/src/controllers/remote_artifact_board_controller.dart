@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
@@ -15,14 +16,17 @@ class RemoteArtifactBoardController {
   final bool isOwner;
   final VoidCallback notifyView;
   late bool _initialized;
+  final SettingsController settingsController;
 
   RemoteArtifactBoardController({
     required this.sessionId,
     required this.notifyView,
+    required this.settingsController,
     required this.isOwner,
     ArtifactBoardController? existingController,
   })  : base = existingController ??
-            ArtifactBoardController(notifyView: notifyView),
+            ArtifactBoardController(
+                notifyView: notifyView, settingsController: settingsController),
         _initialized = false {
     SignalRService().onBoardUpdated = _handleRemoteUpdate;
 

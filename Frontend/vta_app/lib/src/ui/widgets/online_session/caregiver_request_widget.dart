@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/utilities/services/signalr_service.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
 
 /// Component 1: CAREGIVER - "Request Shared Session"
 /// Sidebar with list of children the caregiver can request sessions with
@@ -157,7 +157,8 @@ class _CaregiverRequestWidgetState extends State<CaregiverRequestWidget> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.people_outline, size: 60, color: Colors.grey[400]),
+                    Icon(Icons.people_outline,
+                        size: 60, color: Colors.grey[400]),
                     const SizedBox(height: 16),
                     Text(
                       'Ingen børn',
@@ -172,7 +173,8 @@ class _CaregiverRequestWidgetState extends State<CaregiverRequestWidget> {
           if (!_isConnecting && widget.children.isNotEmpty)
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 itemCount: widget.children.length,
                 itemBuilder: (context, index) {
                   final child = widget.children[index];
@@ -230,9 +232,12 @@ class _CaregiverRequestWidgetState extends State<CaregiverRequestWidget> {
           SizedBox(
             height: 48,
             child: ElevatedButton(
-              onPressed: isPending ? null : () => _requestSession(child.childId, child.childName),
+              onPressed: isPending
+                  ? null
+                  : () => _requestSession(child.childId, child.childName),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isPending ? Colors.grey[300] : Colors.blue[600],
+                backgroundColor:
+                    isPending ? Colors.grey[300] : Colors.blue[600],
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.grey[300],
                 shape: RoundedRectangleBorder(
@@ -249,7 +254,8 @@ class _CaregiverRequestWidgetState extends State<CaregiverRequestWidget> {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.grey),
                           ),
                         ),
                         SizedBox(width: 8),
