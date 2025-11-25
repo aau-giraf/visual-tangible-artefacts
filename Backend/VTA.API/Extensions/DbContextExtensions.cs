@@ -39,7 +39,7 @@ public static class DbContextExtensions
         const string environmentKey = "AUTO_CREATE_DATABASE";
 
         var environmentVariable = Environment.GetEnvironmentVariable(environmentKey);
-        var autoCreateDb = !string.IsNullOrWhiteSpace(environmentVariable) && bool.Parse(environmentVariable);
+        var autoCreateDb = string.IsNullOrWhiteSpace(environmentVariable) || bool.Parse(environmentVariable);
 
         if (!autoCreateDb) return app;
 
@@ -88,10 +88,10 @@ public static class DbContextExtensions
         }
 
         const string admin = "admin";
-        var adminUserExist = await context.Users.AnyAsync(u => u.Username == admin);
-        if (!adminUserExist)
+        var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Username == admin);
+        if (adminUser == null)
         {
-            var adminUser = new User
+            adminUser = new User
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = "Admin User",
@@ -100,6 +100,10 @@ public static class DbContextExtensions
                 Role = UserRole.Admin
             };
             context.Users.Add(adminUser);
+        }
+        else if (adminUser.Role != UserRole.Admin)
+        {
+            adminUser.Role = UserRole.Admin;
         }
 
         const string caregiver = "caregiver";
