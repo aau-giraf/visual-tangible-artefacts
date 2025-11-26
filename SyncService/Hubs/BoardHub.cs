@@ -1,9 +1,11 @@
 // SyncService/Hubs/BoardHub.cs
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace SyncService.Hubs
 {
+    [Authorize]
     public class BoardHub : Hub
     {
         private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId

@@ -2,8 +2,10 @@
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
+import 'package:vta_app/src/singletons/token.dart';
 
 class SignalRService {
   static final SignalRService _instance = SignalRService._internal();
@@ -49,9 +51,15 @@ class SignalRService {
     _currentUserId = userId;
     final hubUrl = _getHubUrl();
     debugPrint("SignalR: Connecting to $hubUrl as user=$userId");
-
-    _hubConnection =
-        HubConnectionBuilder().withUrl(hubUrl).withAutomaticReconnect().build();
+    var jwtToken = GetIt.instance.get<Token>();
+    _hubConnection = HubConnectionBuilder()
+        .withUrl(
+          hubUrl,
+          options: HttpConnectionOptions(
+              accessTokenFactory: () async => jwtToken.value!),
+        )
+        .withAutomaticReconnect()
+        .build();
 
     _registerEvents();
 
