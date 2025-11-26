@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
-import 'package:vta_app/src/controllers/artifact_board_controller.dart';
+import 'package:vta_app/src/utilities/data/data_repository.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RemoteSessionScreen extends StatefulWidget {
   static const String routeName = "/remote";
@@ -12,17 +14,17 @@ class RemoteSessionScreen extends StatefulWidget {
 }
 
 class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
-  Map<String, String> contacts = {
-    "Device 1": "35e42095-f30a-4e7a-a008-24eb2e261056",
-    "Device 2": "5d97e1fa-05b7-4a5d-9bd2-1680876a07dd",
-  };
+  Map<String, String> contacts = {};
+  List<User> users = [];
+  bool isLoading = true;
+  String? errorMessage;
 
   String searchQuery = "";
-  ArtifactBoardController? _boardController;
 
   @override
   void initState() {
     super.initState();
+    _loadContacts();
 
     // Incoming call handler
     SignalRService().onSessionRequested = (fromUserId) {
@@ -69,6 +71,55 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
         arguments: sessionId,
       );
     };
+  }
+
+  Future<void> _loadContacts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwtToken');
+
+      if (token == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = "Ikke logget ind";
+        });
+        return;
+      }
+
+      final fetchedUsers = await UserRepository().fetchAllUsers(token);
+
+      if (fetchedUsers == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = "Kunne ikke hente kontakter";
+        });
+        return;
+      }
+
+      // Convert users list to contacts map
+      final Map<String, String> newContacts = {};
+      for (var user in fetchedUsers) {
+        final displayName =
+            user.name?.isNotEmpty == true ? user.name! : user.username;
+        newContacts[displayName] = user.id;
+      }
+
+      setState(() {
+        users = fetchedUsers;
+        contacts = newContacts;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = "Fejl ved indlæsning af kontakter: $e";
+      });
+    }
   }
 
   @override
