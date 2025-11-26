@@ -281,4 +281,29 @@ class UserRepository extends ApiDataRepository {
       return null;
     }
   }
+
+  /// Fetch only related contacts for the current user
+  /// For caregivers: returns their connected children
+  /// For children: returns their connected caregivers
+  Future<List<User>?> fetchRelatedContacts(String token) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Users/related-contacts',
+          headers: headers);
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body) as List;
+        var users = jsonResponse
+            .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
+            .toList();
+        return users;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint("An error occured while fetching related contacts: $e");
+      return null;
+    }
+  }
 }

@@ -95,7 +95,7 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
         return;
       }
 
-      final fetchedUsers = await UserRepository().fetchAllUsers(token);
+      final fetchedUsers = await UserRepository().fetchRelatedContacts(token);
 
       if (fetchedUsers == null) {
         setState(() {

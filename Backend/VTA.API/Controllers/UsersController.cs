@@ -146,12 +146,70 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         return userGetDTOs;
     }
 
-    // GET: api/Users/5
+    // GET: api/Users/related-contacts
+    /// <summary>
+    /// Get related contacts for the current user.
+    /// For caregivers: returns their connected children.
+    /// For children: returns their connected caregivers.
+    /// </summary>
+    /// <returns>A list of related users (contacts)</returns>
+    [HttpGet("related-contacts")]
+    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetRelatedContacts()
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User ID not found in token");
+        }
+
+        var currentUser = await context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser == null)
+        {
+            return NotFound("Current user not found");
+        }
+
+        List<UserGetDTO> relatedUsers = new List<UserGetDTO>();
+
+        if (currentUser.Role == UserRole.Caregiver)
+        {
+            // Get all children connected to this caregiver
+            var children = await context.Relations
+                .Where(r => r.CaregiverId == userId && r.IsActive)
+                .Include(r => r.Child)
+                .AsNoTracking()
+                .ToListAsync();
+
+            relatedUsers = children
+                .Select(r => DTOConverter.MapUserToUserGetDTO(r.Child))
+                .ToList();
+        }
+        else if (currentUser.Role == UserRole.Child)
+        {
+            // Get all caregivers connected to this child
+            var caregivers = await context.Relations
+                .Where(r => r.ChildId == userId && r.IsActive)
+                .Include(r => r.Caregiver)
+                .AsNoTracking()
+                .ToListAsync();
+
+            relatedUsers = caregivers
+                .Select(r => DTOConverter.MapUserToUserGetDTO(r.Caregiver))
+                .ToList();
+        }
+
+        return relatedUsers;
+    }
+
+    // GET: api/Users/{id}
     /// <summary>
     /// Get information about a specific user
     /// </summary>
     /// <returns>A user</returns>
-    [HttpGet("{id}")]
+    [HttpGet("{id:regex(^(?!related-contacts).+$)}")]
     public async Task<ActionResult<UserGetDTO>> GetUser(string id)
     {
         var userId = User.FindFirst("id")?.Value;
