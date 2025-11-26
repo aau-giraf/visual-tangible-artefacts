@@ -5,7 +5,6 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_board_screen.dart';
-import 'package:vta_app/src/views/caregiver_dashboard_view.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/views/splash_view.dart';
 import 'package:vta_app/theme/app_theme.dart';
@@ -58,8 +57,6 @@ class MyApp extends StatelessWidget {
                     return SplashView(controller: authController);
                   case LoginView.routeName:
                     return LoginView(controller: authController);
-                  case CaregiverDashboardView.routeName:
-                    return const CaregiverDashboardView();
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
                   case ArtifactBoardScreen.routeName:

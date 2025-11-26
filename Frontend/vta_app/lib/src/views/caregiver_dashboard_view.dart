@@ -34,10 +34,10 @@ class _CaregiverDashboardViewState extends State<CaregiverDashboardView> {
     if (_userInfo.userId != null) {
       await _signalRService.connect(_userInfo.userId!);
 
-      _signalRService.onSessionStarted = (sessionId) {
+      _signalRService.onSessionStarted = (sessionId, boardId) {
         if (mounted) {
           Navigator.pushNamed(context, RemoteBoardScreen.routeName,
-              arguments: sessionId);
+              arguments: {'sessionId': sessionId, 'boardId': boardId});
         }
       };
     }

@@ -146,8 +146,8 @@ class ArtifactRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response = await apiProvider.fetchAsJson('Users/Artefacts/$artefactId',
-          headers: headers);
+      var response = await apiProvider
+          .fetchAsJson('Users/Artefacts/$artefactId', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
         return Artefact.fromJson(jsonResponse);
@@ -266,8 +266,7 @@ class UserRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response =
-          await apiProvider.fetchAsJson('Users/Users', headers: headers);
+      var response = await apiProvider.fetchAsJson('Users', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body) as List;
         var users = jsonResponse

@@ -5,7 +5,7 @@ import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
-import 'package:vta_app/src/views/caregiver_dashboard_view.dart';
+import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
@@ -54,7 +54,7 @@ class AuthController extends ChangeNotifier {
           final user = await _model.getUser(userId);
           if (user != null && user.role == user_model.UserRole.caregiver) {
             Navigator.of(context)
-                .pushReplacementNamed(CaregiverDashboardView.routeName);
+                .pushReplacementNamed(RemoteSessionScreen.routeName);
             return;
           }
         }

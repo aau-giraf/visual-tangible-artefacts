@@ -15,7 +15,6 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
-import 'package:vta_app/src/services/relation_service.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
@@ -46,8 +45,6 @@ void main() async {
       baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
           ['Local']);
   GetIt.I.registerSingleton<ApiProvider>(apiProvider);
-
-  GetIt.I.registerSingleton<RelationService>(RelationService());
 
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());
