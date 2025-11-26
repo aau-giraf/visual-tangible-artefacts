@@ -31,18 +31,17 @@ class RemoteBoardScreen extends StatefulWidget {
 
 class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   late RemoteArtifactBoardController controller;
-  late String sessionId;
-  late String boardId;
-  late bool isOwner;
+  String sessionId = '';
+  String boardId = '';
+  bool isOwner = false;
+  bool _isInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-
-    // Get sessionId and boardId from route arguments
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
       final args = ModalRoute.of(context)?.settings.arguments;
-      
+
       // Handle both old string format and new map format
       if (args is Map<String, dynamic>) {
         sessionId = args['sessionId'] as String;
@@ -50,7 +49,8 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       } else if (args is String) {
         // Fallback for old code - won't work without boardId
         sessionId = args;
-        boardId = 'error-no-board-id'; // This will cause an error, which is intended
+        boardId =
+            'error-no-board-id'; // This will cause an error, which is intended
       } else {
         sessionId = '';
         boardId = 'error-no-board-id';
@@ -78,7 +78,8 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
         existingController: existingController,
         settingsController: widget.settingsController,
       );
-    });
+      _isInitialized = true;
+    }
   }
 
   @override

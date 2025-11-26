@@ -5,8 +5,10 @@ import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/views/caregiver_dashboard_view.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
@@ -47,6 +49,16 @@ class AuthController extends ChangeNotifier {
           debugPrint("WARNING: No userId available for SignalR connection");
         }
         if (!context.mounted) return;
+
+        if (userId != null) {
+          final user = await _model.getUser(userId);
+          if (user != null && user.role == user_model.UserRole.caregiver) {
+            Navigator.of(context)
+                .pushReplacementNamed(CaregiverDashboardView.routeName);
+            return;
+          }
+        }
+
         Navigator.of(context)
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
