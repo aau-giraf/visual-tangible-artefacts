@@ -45,7 +45,7 @@ class _CaregiverRequestWidgetState extends State<CaregiverRequestWidget> {
       }
     };
 
-    _signalR.onSessionStarted = (sessionId) {
+    _signalR.onSessionStarted = (sessionId, boardId) {
       if (mounted && _pendingRequestToChildId != null) {
         final childId = _pendingRequestToChildId!;
         setState(() => _pendingRequestToChildId = null);

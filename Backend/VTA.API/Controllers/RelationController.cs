@@ -52,6 +52,33 @@ public class RelationController : ControllerBase
     }
 
     /// <summary>
+    /// Get pairings for a specific caregiver
+    /// </summary>
+    [HttpGet("caregiver/{caregiverId}")]
+    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairingsForCaregiver(string caregiverId)
+    {
+        var pairings = await _context.Relations
+            .Include(p => p.Caregiver)
+            .Include(p => p.Child)
+            .Where(p => p.CaregiverId == caregiverId && p.IsActive)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var pairingDtos = pairings.Select(p => new PairingDTO
+        {
+            Id = p.Id,
+            CaregiverId = p.CaregiverId,
+            ChildId = p.ChildId,
+            IsActive = p.IsActive,
+            CreatedAt = p.CreatedAt,
+            Caregiver = DTOConverter.MapUserToUserGetDTO(p.Caregiver),
+            Child = DTOConverter.MapUserToUserGetDTO(p.Child)
+        }).ToList();
+
+        return Ok(pairingDtos);
+    }
+
+    /// <summary>
     /// Create a new pairing between caregiver and child
     /// </summary>
     [HttpPost]

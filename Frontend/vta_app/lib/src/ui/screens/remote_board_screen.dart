@@ -31,17 +31,30 @@ class RemoteBoardScreen extends StatefulWidget {
 
 class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   late RemoteArtifactBoardController controller;
-  late String sessionId;
-  late bool isOwner;
+  String sessionId = '';
+  String boardId = '';
+  bool isOwner = false;
+  bool _isInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      final args = ModalRoute.of(context)?.settings.arguments;
 
-    // Get sessionId from route arguments
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as String? ?? '';
-      sessionId = args;
+      // Handle both old string format and new map format
+      if (args is Map<String, dynamic>) {
+        sessionId = args['sessionId'] as String;
+        boardId = args['boardId'] as String;
+      } else if (args is String) {
+        // Fallback for old code - won't work without boardId
+        sessionId = args;
+        boardId =
+            'error-no-board-id'; // This will cause an error, which is intended
+      } else {
+        sessionId = '';
+        boardId = 'error-no-board-id';
+      }
 
       // Determine if current user is the owner (initiator)
       final currentUserId = SignalRService().currentUserId;
@@ -49,7 +62,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       isOwner = currentUserId == initiatorId;
 
       debugPrint(
-          "RemoteBoard => sessionId=$sessionId, isOwner=$isOwner, currentUser=$currentUserId, initiator=$initiatorId");
+          "RemoteBoard => sessionId=$sessionId, boardId=$boardId, isOwner=$isOwner, currentUser=$currentUserId, initiator=$initiatorId");
 
       // For owner: use their existing board controller if available
       // For non-owner: create a new empty controller
@@ -58,13 +71,15 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       controller = RemoteArtifactBoardController(
         sessionId: sessionId,
         isOwner: isOwner,
+        sharedBoardId: boardId,
         notifyView: () {
           if (mounted) setState(() {});
         },
         existingController: existingController,
         settingsController: widget.settingsController,
       );
-    });
+      _isInitialized = true;
+    }
   }
 
   @override

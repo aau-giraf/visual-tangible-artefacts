@@ -16,6 +16,7 @@ namespace SyncService.Hubs
             public required string SessionId { get; init; }
             public required string User1Id { get; init; }
             public required string User2Id { get; init; }
+            public required string BoardId { get; init; }
             public HashSet<string> Connections { get; set; } = new();
         }
 
@@ -45,15 +46,16 @@ namespace SyncService.Hubs
             }
         }
 
-        public async Task AcceptSession(string sessionId, string fromUserId, string toUserId)
+        public async Task AcceptSession(string sessionId, string fromUserId, string toUserId, string boardId)
         {
-            Console.WriteLine($"[Hub] AcceptSession => {sessionId} from {fromUserId} + {toUserId}");
+            Console.WriteLine($"[Hub] AcceptSession => {sessionId} from {fromUserId} + {toUserId} with boardId={boardId}");
 
             var session = new BoardSession
             {
                 SessionId = sessionId,
                 User1Id = fromUserId,
-                User2Id = toUserId
+                User2Id = toUserId,
+                BoardId = boardId
             };
 
             // Add CALLER (fromUserId) to group
@@ -83,8 +85,8 @@ namespace SyncService.Hubs
             boardSessions[sessionId] = session;
 
             // Broadcast to BOTH users in the group
-            await Clients.Group(sessionId).SendAsync("SessionStarted", sessionId);
-            Console.WriteLine($"[Hub] Broadcasted SessionStarted to group {sessionId}");
+            await Clients.Group(sessionId).SendAsync("SessionStarted", sessionId, boardId);
+            Console.WriteLine($"[Hub] Broadcasted SessionStarted to group {sessionId} with boardId={boardId}");
         }
 
         public async Task RejectSession(string fromUserId)
