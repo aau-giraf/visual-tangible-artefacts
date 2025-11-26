@@ -32,16 +32,29 @@ class RemoteBoardScreen extends StatefulWidget {
 class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   late RemoteArtifactBoardController controller;
   late String sessionId;
+  late String boardId;
   late bool isOwner;
 
   @override
   void initState() {
     super.initState();
 
-    // Get sessionId from route arguments
+    // Get sessionId and boardId from route arguments
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as String? ?? '';
-      sessionId = args;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      
+      // Handle both old string format and new map format
+      if (args is Map<String, dynamic>) {
+        sessionId = args['sessionId'] as String;
+        boardId = args['boardId'] as String;
+      } else if (args is String) {
+        // Fallback for old code - won't work without boardId
+        sessionId = args;
+        boardId = 'error-no-board-id'; // This will cause an error, which is intended
+      } else {
+        sessionId = '';
+        boardId = 'error-no-board-id';
+      }
 
       // Determine if current user is the owner (initiator)
       final currentUserId = SignalRService().currentUserId;
@@ -49,7 +62,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       isOwner = currentUserId == initiatorId;
 
       debugPrint(
-          "RemoteBoard => sessionId=$sessionId, isOwner=$isOwner, currentUser=$currentUserId, initiator=$initiatorId");
+          "RemoteBoard => sessionId=$sessionId, boardId=$boardId, isOwner=$isOwner, currentUser=$currentUserId, initiator=$initiatorId");
 
       // For owner: use their existing board controller if available
       // For non-owner: create a new empty controller
@@ -58,6 +71,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       controller = RemoteArtifactBoardController(
         sessionId: sessionId,
         isOwner: isOwner,
+        sharedBoardId: boardId,
         notifyView: () {
           if (mounted) setState(() {});
         },

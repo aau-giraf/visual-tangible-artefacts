@@ -38,7 +38,7 @@ class SignalRService {
   // Callbacks
   void Function(String fromUserId)? onSessionRequested;
   void Function()? onSessionRejected;
-  void Function(String sessionId)? onSessionStarted;
+  void Function(String sessionId, String boardId)? onSessionStarted;
   void Function(dynamic boardData)? onBoardUpdated;
   void Function()? onSessionEnded;
 
@@ -88,7 +88,8 @@ class SignalRService {
   void _registerEvents() {
     _hubConnection!.on("SessionRequested", (args) {
       if (args == null || args.isEmpty) return;
-      onSessionRequested?.call(args[0] as String);
+      final fromUserId = args[0] as String;
+      onSessionRequested?.call(fromUserId);
     });
 
     _hubConnection!.on("SessionRejected", (_) {
@@ -96,9 +97,10 @@ class SignalRService {
     });
 
     _hubConnection!.on("SessionStarted", (args) {
-      if (args == null || args.isEmpty) return;
+      if (args == null || args.length < 2) return;
       _currentSessionId = args[0] as String;
-      onSessionStarted?.call(_currentSessionId!);
+      final boardId = args[1] as String;
+      onSessionStarted?.call(_currentSessionId!, boardId);
     });
 
     _hubConnection!.on("BoardUpdated", (args) {
@@ -129,7 +131,7 @@ class SignalRService {
   }
 
   Future<void> acceptSession(
-      String sessionId, String fromUserId, String toUserId) async {
+      String sessionId, String fromUserId, String toUserId, String boardId) async {
     if (!isConnected || _currentUserId == null) return;
 
     // Mark the one who initiated as the initiator
@@ -137,10 +139,10 @@ class SignalRService {
 
     await _hubConnection!.invoke(
       "AcceptSession",
-      args: <Object>[sessionId, fromUserId, toUserId],
+      args: <Object>[sessionId, fromUserId, toUserId, boardId],
     );
     debugPrint(
-        "SignalR: acceptSession => $sessionId from $fromUserId to $toUserId");
+        "SignalR: acceptSession => $sessionId from $fromUserId to $toUserId with boardId=$boardId");
   }
 
   Future<void> rejectSession(String fromUserId) async {

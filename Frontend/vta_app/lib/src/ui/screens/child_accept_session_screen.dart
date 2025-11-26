@@ -23,6 +23,7 @@ class ChildAcceptSessionScreen extends StatefulWidget {
 class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
   final SignalRService _signalR = SignalRService();
   String? _pendingCaregiverRequest;
+  String? _selectedBoardId; // Board to share when accepting
 
   @override
   void initState() {
@@ -35,15 +36,18 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
       if (mounted) {
         setState(() {
           _pendingCaregiverRequest = caregiverUserId;
+          // TODO: Show UI to let child select which board to share
+          // For now, we'll need to set _selectedBoardId before accepting
         });
       }
     };
 
-    _signalR.onSessionStarted = (sessionId) {
+    _signalR.onSessionStarted = (sessionId, boardId) {
       if (mounted) {
         widget.onSessionAccepted(sessionId);
         setState(() {
           _pendingCaregiverRequest = null;
+          _selectedBoardId = null;
         });
       }
     };
@@ -58,11 +62,24 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
   Future<void> _acceptSession() async {
     if (_pendingCaregiverRequest == null) return;
 
+    // TODO: Before calling this, child should select which board to share
+    // For now, using a placeholder - you need to implement board selection UI
+    if (_selectedBoardId == null) {
+      debugPrint('ERROR: No board selected to share');
+      // You should show a board selection dialog here
+      return;
+    }
+
     final sessionId =
         '${DateTime.now().millisecondsSinceEpoch}_${_pendingCaregiverRequest}_${widget.childId}';
 
     try {
-      await _signalR.acceptSession(sessionId, _pendingCaregiverRequest!);
+      await _signalR.acceptSession(
+        sessionId,
+        _pendingCaregiverRequest!,
+        widget.childId,
+        _selectedBoardId!,
+      );
     } catch (e) {
       debugPrint('Failed to accept session: $e');
     }

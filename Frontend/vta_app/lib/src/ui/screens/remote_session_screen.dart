@@ -47,10 +47,14 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
                   Navigator.of(dialogCtx).pop();
                   final sessionId =
                       DateTime.now().millisecondsSinceEpoch.toString();
+                  // TODO: Child needs to select which board to share
+                  // For now using placeholder - need to implement board selection
+                  const tempBoardId = 'placeholder-board-id';
                   await SignalRService().acceptSession(
                     sessionId,
                     fromUserId,
                     SignalRService().currentUserId!,
+                    tempBoardId,
                   );
                 },
                 child: const Text("Accepter"),
@@ -62,11 +66,11 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
     };
 
     // When a session is accepted (both sides navigate)
-    SignalRService().onSessionStarted = (sessionId) {
+    SignalRService().onSessionStarted = (sessionId, boardId) {
       if (!mounted) return;
       Navigator.of(context).pushNamed(
         "/remote-board",
-        arguments: sessionId,
+        arguments: {'sessionId': sessionId, 'boardId': boardId},
       );
     };
   }

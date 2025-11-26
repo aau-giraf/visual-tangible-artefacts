@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/services/board_layout_service.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
@@ -15,23 +16,26 @@ class RemoteArtifactBoardController {
   final String sessionId;
   final bool isOwner;
   final VoidCallback notifyView;
-  late bool _initialized;
   final SettingsController settingsController;
+  final BoardLayoutService _boardLayoutService;
+  final String sharedBoardId; // ID of the board to load from backend
 
   RemoteArtifactBoardController({
     required this.sessionId,
     required this.notifyView,
     required this.settingsController,
     required this.isOwner,
+    required this.sharedBoardId, // Required: board ID to load from backend
     ArtifactBoardController? existingController,
+    BoardLayoutService? boardLayoutService,
   })  : base = existingController ??
             ArtifactBoardController(
                 notifyView: notifyView, settingsController: settingsController),
-        _initialized = false {
+        _boardLayoutService = boardLayoutService ?? BoardLayoutService() {
     SignalRService().onBoardUpdated = _handleRemoteUpdate;
 
     debugPrint(
-        "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId)");
+        "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId, sharedBoardId=$sharedBoardId)");
     debugPrint(
         "RemoteSync => SignalR connected: ${SignalRService().isConnected}");
 
@@ -41,20 +45,9 @@ class RemoteArtifactBoardController {
       // This will be set up in initState when widgets are built
     }
 
-    if (isOwner) {
-      // Owner: load their existing board and send it
-      debugPrint("RemoteSync => Owner: sending current board snapshot...");
-      Future.delayed(const Duration(milliseconds: 100), () {
-        _pushFullBoard();
-        _initialized = true;
-      });
-    } else {
-      // Non-owner: clear their board and wait for owner's snapshot
-      _clearBoard();
-      _initialized = true;
-      debugPrint(
-          "RemoteSync => Non-owner: board cleared, waiting for update...");
-    }
+    // Load board from backend
+    debugPrint("RemoteSync => Loading shared board from backend: $sharedBoardId");
+    _loadBoardFromBackend(sharedBoardId);
   }
 
   void dispose() {
@@ -242,6 +235,77 @@ class RemoteArtifactBoardController {
       }
     } else {
       base.talkingmatController.value.clear();
+    }
+  }
+
+  // ---------------- Load board from backend ----------------
+
+  /// Loads a saved board from the backend database and applies it to the current board
+  Future<void> _loadBoardFromBackend(String boardId) async {
+    try {
+      debugPrint("RemoteSync => Fetching board $boardId from backend...");
+      final boardLayout = await _boardLayoutService.getBoard(boardId);
+
+      if (boardLayout == null) {
+        debugPrint("RemoteSync => ERROR: Failed to load board $boardId");
+        return;
+      }
+
+      debugPrint("RemoteSync => Loaded board: ${boardLayout.name} with ${boardLayout.artefacts.length} artefacts");
+
+      // Clear the current board
+      _clearBoard();
+
+      // Determine the board type based on saved positions
+      // If positions are non-zero, assume TalkingMat, otherwise LinearBoard
+      final hasTalkingMatPositions = boardLayout.artefacts.any((a) => a.posX != 0 || a.posY != 0);
+      
+      if (hasTalkingMatPositions && base.showDirectional) {
+        // Switch to TalkingMat mode
+        debugPrint("RemoteSync => Switching to TalkingMat mode");
+        base.switchCurrentBoard();
+      } else if (!hasTalkingMatPositions && !base.showDirectional) {
+        // Switch to LinearBoard mode
+        debugPrint("RemoteSync => Switching to LinearBoard mode");
+        base.switchCurrentBoard();
+      }
+
+      // Add artifacts to the board
+      for (final savedArtefact in boardLayout.artefacts) {
+        final artefact = Artefact(
+          artefactId: savedArtefact.artefactId,
+          name: '', // You may need to fetch full artefact details from another endpoint
+          imageUrl: null,
+          soundUrl: null,
+        );
+
+        final boardItem = BoardArtefact.fromArtefact(artefact);
+
+        // Set size
+        boardItem.sizeNotifier.value = Size(
+          savedArtefact.width,
+          savedArtefact.height,
+        );
+
+        // Set position (for TalkingMat)
+        boardItem.position = Offset(
+          savedArtefact.posX,
+          savedArtefact.posY,
+        );
+
+        base.addArtifactToCurrentBoard(boardItem);
+      }
+
+      notifyView();
+      debugPrint("RemoteSync => Board loaded successfully with ${boardLayout.artefacts.length} artefacts");
+
+      // If owner, push the loaded board to other participants
+      if (isOwner) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        _pushFullBoard();
+      }
+    } catch (e) {
+      debugPrint("RemoteSync => EXCEPTION loading board: $e");
     }
   }
 }
