@@ -9,12 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
-    "autoprefixer": "^10.4.22",
+    "@tailwindcss/vite": "^4.1.17",
+    "tailwindcss": "^4.1.17",
     "axios": "^1.13.2",
     "pinia": "^3.0.4",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17",
     "vue": "^3.5.12",
     "vue-router": "^4.6.3"
   },
