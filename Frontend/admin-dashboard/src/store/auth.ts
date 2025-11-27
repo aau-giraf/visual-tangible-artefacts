@@ -10,6 +10,17 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(!!token.value);
 
   async function login(credentials: UserLoginDTO) {
+    // LOCAL LOGIN - Comment out this block when pushing to GitHub
+    // ============================================================
+    token.value = 'local-mock-token';
+    user.value = { id: 'local-user-id' };
+    isAuthenticated.value = true;
+    localStorage.setItem('token', token.value);
+    localStorage.setItem('user', JSON.stringify(user.value));
+    router.push('/dashboard');
+    return;
+    // ============================================================
+
     try {
       const response = await apiLogin(credentials);
       token.value = response.token;
