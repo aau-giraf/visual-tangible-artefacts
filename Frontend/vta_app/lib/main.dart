@@ -20,6 +20,7 @@ import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/database/database_helper.dart';
 
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -30,7 +31,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
-
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 
