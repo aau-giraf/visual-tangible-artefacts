@@ -9,6 +9,7 @@ import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
+import 'package:vta_app/src/ui/screens/call_test_screen.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
@@ -131,6 +132,20 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                                 controller);
                                         Navigator.of(context).pushNamed(
                                             RemoteSessionScreen.routeName);
+                                      },
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    child: ListTile(
+                                      leading: Icon(Icons.videocam, size: 20),
+                                      title: const Text('Video Call Test'),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => CallTestScreen(),
+                                          ),
+                                        );
                                       },
                                     ),
                                   ),

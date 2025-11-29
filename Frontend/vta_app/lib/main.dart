@@ -14,6 +14,7 @@ import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
@@ -42,8 +43,7 @@ void main() async {
 
   // Set up the providers
   final apiProvider = ApiProvider(
-      baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['Local']);
+      baseUrl: PlatformUtils.getApiUrl());
   GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
   // Set up the controllers

@@ -84,4 +84,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<BoardHub>("/boardHub");
 
-app.Run("http://localhost:5002");
+app.Run("http://0.0.0.0:8080");
