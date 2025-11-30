@@ -26,6 +26,8 @@ public partial class VTAContext : DbContext
 
     public virtual DbSet<Relation> Relations { get; set; }
 
+    public virtual DbSet<Session> Sessions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder
             .UseCollation("utf8mb4_0900_ai_ci")
