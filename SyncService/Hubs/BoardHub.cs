@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 namespace SyncService.Hubs
 {
     [Authorize]
-    public class BoardHub : Hub
+    public class BoardHub(IConfiguration configuration) : Hub
     {
         private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId
         private static readonly Dictionary<string, BoardSession> boardSessions = new(); // sessionId -> session

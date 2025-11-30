@@ -23,8 +23,8 @@ var config = new ConfigurationBuilder()
     .Build();
 
 var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")
-                   ?? config["Secret:SecretKey"]; 
-                   
+                   ?? config["Secret:SecretKey"];
+
 
 if (string.IsNullOrEmpty(jwtSecretKey))
 {
@@ -84,4 +84,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<BoardHub>("/boardHub");
 
-app.Run("http://localhost:5002");
+await app.RunAsync();
