@@ -15,7 +15,7 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
+    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Local']);
   }
 
   bool responseOk(http.Response? response) {
