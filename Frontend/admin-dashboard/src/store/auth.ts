@@ -26,14 +26,14 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.token;
       // For simplicity, we're not fetching user details here.
       // In a real app, you'd likely fetch and store user info.
-      user.value = { id: response.userId }; 
+      user.value = { id: response.userId };
       isAuthenticated.value = true;
       localStorage.setItem('token', token.value);
       localStorage.setItem('user', JSON.stringify(user.value));
       router.push('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      // Handle login error (e.g., show a notification)
+      throw error;
     }
   }
 

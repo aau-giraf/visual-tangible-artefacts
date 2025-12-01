@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -10,15 +7,9 @@ import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
-import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
 import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
-import 'package:vta_app/src/utilities/services/camera_service.dart';
-import 'package:http/http.dart' as http;
 
 class CategoriesWidget extends StatefulWidget {
   final double widgetHeight;

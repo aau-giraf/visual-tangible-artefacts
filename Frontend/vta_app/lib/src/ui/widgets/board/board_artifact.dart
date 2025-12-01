@@ -101,11 +101,11 @@ class _BoardArtefactContent extends StatefulWidget {
   final ValueNotifier<bool> showResizeNotifier;
 
   const _BoardArtefactContent({
-    Key? key,
+    super.key,
     required this.baseContent,
     required this.sizeNotifier,
     required this.showResizeNotifier,
-  }) : super(key: key);
+  });
 
   @override
   State<_BoardArtefactContent> createState() => _BoardArtefactContentState();

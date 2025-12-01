@@ -39,7 +39,7 @@ class AddItemPopup extends StatefulWidget {
 
 class _LevelBar extends StatelessWidget {
   final double level; // 0.0 - 1.0
-  const _LevelBar({Key? key, required this.level}) : super(key: key);
+  const _LevelBar({super.key, required this.level});
 
   @override
   Widget build(BuildContext context) {

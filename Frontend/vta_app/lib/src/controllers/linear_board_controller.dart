@@ -7,7 +7,7 @@ import '../ui/widgets/board/board_artifact.dart';
 class LinearBoardController extends ChangeNotifier {
   List<BoardArtefact?> artifacts;
   int fieldCount;
-  Function(BoardArtefact)? _onArtefactAdded;
+  final Function(BoardArtefact)? _onArtefactAdded;
 
   LinearBoardController({
     required this.artifacts,
@@ -15,10 +15,6 @@ class LinearBoardController extends ChangeNotifier {
     Function(BoardArtefact)? onArtefactAdded,
   }) : _onArtefactAdded = onArtefactAdded;
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   /// Function for adding an artifact to the board. An index of location can be provided, if available
   void addArtifact(BoardArtefact artifact, {int? index}) {

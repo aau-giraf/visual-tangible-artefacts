@@ -208,7 +208,7 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<UserRole>(
-            value: _selectedRole,
+            initialValue: _selectedRole,
             decoration: InputDecoration(
               labelText: 'Rolle',
             ),

@@ -3,7 +3,6 @@ import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
-import 'categories_widget.dart';
 
 class CategoriesEdit extends StatelessWidget {
   final String categoryName;

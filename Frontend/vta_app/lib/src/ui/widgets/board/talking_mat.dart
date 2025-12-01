@@ -45,7 +45,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   late Animation<Offset> _offsetAnimation;
   bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
-  bool _isPlayingAllSounds = false;
+  final bool _isPlayingAllSounds = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final BoardLayoutService _boardLayoutService = BoardLayoutService();
   String? _currentBoardId; // Track the current board being edited
@@ -57,7 +57,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   // Inhibit auto-save while delete/clear operations are in progress to avoid races
   bool _inhibitAutoSave = false;
   // Track last saved layout data to detect changes
-  Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
+  final Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
 
   @override
   void initState() {
@@ -437,7 +437,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   /// Assign returned savedArtefactIds (from server) to local BoardArtefact instances by best-match
   void _assignReturnedSavedIdsToLocal(List<BoardArtefactLayout> returned) {
     final current = widget.controller.value;
-    final unmatchedLocal = <BoardArtefact>[]..addAll(current);
+    final unmatchedLocal = <BoardArtefact>[...current];
 
     for (final artefactLayout in returned) {
       BoardArtefact? best;
@@ -482,7 +482,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
+        print('Debug: Created default board "$defaultBoardName" with ID: ${response.boardId}');
         // Map returned saved artefact instance ids back onto the local artifacts by best-match
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
@@ -534,7 +534,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
+        print('Debug: Saved board "$boardName" with ID: ${response.boardId}');
         // Map returned saved artefact instance ids back onto local artifacts by best-match
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
@@ -764,7 +764,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                               try {
                                 final ok = await _boardLayoutService.deleteAllSavedArtefacts(_currentBoardId!);
                                 if (!ok) {
-                                  print('Debug: Server failed to clear board ${_currentBoardId}');
+                                  print('Debug: Server failed to clear board $_currentBoardId');
                                 }
                               } catch (e) {
                                 print('Debug: Error clearing board on server: $e');

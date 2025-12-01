@@ -8,6 +8,8 @@ import CaregiversView from '@/views/CaregiversView.vue';
 import PairingsView from '@/views/PairingsView.vue';
 import AdminsView from '@/views/AdminsView.vue';
 
+import OverviewView from '@/views/OverviewView.vue';
+
 const routes = [
   { path: '/login', name: 'Login', component: LoginView },
   {
@@ -15,7 +17,8 @@ const routes = [
     component: DashboardLayout,
     meta: { requiresAuth: true },
     children: [
-      { path: '', redirect: '/dashboard/users' },
+      { path: '', redirect: '/dashboard/overview' },
+      { path: 'overview', name: 'Overview', component: OverviewView },
       { path: 'users', name: 'Users', component: UsersView },
       { path: 'children', name: 'Children', component: ChildrenView },
       { path: 'caregivers', name: 'Caregivers', component: CaregiversView },

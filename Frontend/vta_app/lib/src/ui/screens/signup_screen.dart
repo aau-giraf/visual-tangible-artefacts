@@ -17,7 +17,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  UserRole _selectedRole = UserRole.child;
+  final UserRole _selectedRole = UserRole.child;
 
   // Future<void> _signup() async {
   //   if (_formKey.currentState!.validate()) {
