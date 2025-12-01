@@ -911,14 +911,12 @@ class _AddItemPopupState extends State<AddItemPopup> {
     }
 
     try {
-      print(
-          'Debug: Generating speech for text: "${text.substring(0, text.length > 50 ? 50 : text.length)}..."');
+        // generating speech for text (debug log removed)
 
       // Generate speech using backend API
       final audioData = await _generateSpeechViaBackend(text);
 
-      print(
-          'Debug: Audio data received: ${audioData != null ? '${audioData.length} bytes' : 'null'}');
+        // audio data received (debug log removed)
 
       if (audioData != null) {
         // Update main popup state
@@ -945,8 +943,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         _showErrorMessage('Kunne ikke generere lyd fra backend API');
       }
     } catch (e, stackTrace) {
-      print('Debug: Exception in _generateSpeechFromText: $e');
-      print('Debug: Stack trace: $stackTrace');
+      // exception in _generateSpeechFromText
 
       String errorMessage = 'Fejl ved generering af lyd';
       if (e.toString().contains('Authentication failed')) {
@@ -998,7 +995,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         throw Exception('User not authenticated');
       }
 
-      print('Debug: Using token: ${token.substring(0, 20)}...');
+      // using token for backend call (debug log removed)
 
       // Get API base URL from configuration
       final apiProvider = GetIt.instance.get<ApiProvider>();
@@ -1016,21 +1013,17 @@ class _AddItemPopupState extends State<AddItemPopup> {
         // voiceId removed - backend controls which voice to use
       });
 
-      print('Debug: Making request to: $url');
-      print('Debug: Request body: $body');
+      // making request to backend (debug logs removed)
 
       final response = await http.post(url, headers: headers, body: body);
 
-      print('Debug: Response status: ${response.statusCode}');
-      print('Debug: Response headers: ${response.headers}');
+      // response received from backend (debug logs removed)
 
       if (response.statusCode == 200) {
-        print(
-            'Debug: Success! Audio data length: ${response.bodyBytes.length}');
+        // success: audio data received
         return response.bodyBytes;
       } else if (response.statusCode == 401) {
-        print(
-            'Debug: Authentication failed - token might be expired or invalid');
+        // authentication failed - token might be expired or invalid
         throw Exception('Authentication failed. Please log in again.');
       } else {
         print('Backend API error: ${response.statusCode} ${response.body}');

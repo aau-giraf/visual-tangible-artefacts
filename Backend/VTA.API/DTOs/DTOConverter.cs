@@ -18,8 +18,8 @@ public static class DTOConverter
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
             NameShown = artefact.NameShown ?? false,
-            ImageUrl = scheme + "://" + host + artefact.ImagePath,
-            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
+            ImageUrl = string.IsNullOrEmpty(artefact.ImagePath) ? string.Empty : scheme + "://" + host + artefact.ImagePath,
+            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? string.Empty : scheme + "://" + host + artefact.SoundPath
         };
     }
 
@@ -117,11 +117,12 @@ public static class DTOConverter
             Id = board.Id,
             Name = board.Name,
             UserId = board.UserId,
+            // Return empty string instead of null to avoid client-side deserialization errors
             SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath)
-                ? null
+                ? string.Empty
                 : $"{scheme}://{host}{board.SnapshotPath}",
             CreatedDate = board.CreatedDate,
-            ModifiedDate = board.ModifiedDate,
+            ModifiedDate = board.ModifiedDate ?? board.CreatedDate,
             SavedArtefacts = savedArtefactDTOs
         };
     }
@@ -133,10 +134,10 @@ public static class DTOConverter
             Id = board.Id,
             Name = board.Name,
             SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath)
-                ? null
+                ? string.Empty
                 : $"{scheme}://{host}{board.SnapshotPath}",
             CreatedDate = board.CreatedDate,
-            ModifiedDate = board.ModifiedDate
+            ModifiedDate = board.ModifiedDate ?? board.CreatedDate
         };
     }
 
@@ -162,6 +163,8 @@ public static class DTOConverter
             BoardId = savedArtefact.BoardId,
             PosX = savedArtefact.PosX,
             PosY = savedArtefact.PosY,
+            Width = savedArtefact.Width,
+            Height = savedArtefact.Height,
             CreatedDate = savedArtefact.CreatedDate,
             Artefact = MapArtefactToArtefactGetDTO(savedArtefact.Artefact, scheme, host)
         };
