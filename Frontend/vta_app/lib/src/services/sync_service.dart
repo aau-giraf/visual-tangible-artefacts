@@ -1,0 +1,422 @@
+import 'dart:convert';
+import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/database/database.dart';
+import 'package:vta_app/src/singletons/user_info.dart';
+
+/// Model representing a file change record
+class FileChangeRecord {
+  final String fileId;
+  final String fileName;
+  final String fileType; // 'artefact' or 'board'
+  final DateTime? modifiedDate;
+  final String? imageUrl;
+  final String? soundUrl;
+
+  FileChangeRecord({
+    required this.fileId,
+    required this.fileName,
+    required this.fileType,
+    this.modifiedDate,
+    this.imageUrl,
+    this.soundUrl,
+  });
+
+  factory FileChangeRecord.fromJson(Map<String, dynamic> json) {
+    return FileChangeRecord(
+      fileId: json['fileId'] as String,
+      fileName: json['fileName'] as String,
+      fileType: json['fileType'] as String,
+      modifiedDate: json['modifiedDate'] != null 
+          ? DateTime.parse(json['modifiedDate'] as String)
+          : null,
+      imageUrl: json['imageUrl'] as String?,
+      soundUrl: json['soundUrl'] as String?,
+    );
+  }
+
+  factory FileChangeRecord.fromArtefact(Map<String, dynamic> json) {
+    return FileChangeRecord(
+      fileId: json['artefactId'] as String,
+      fileName: json['name'] as String? ?? 'Unnamed Artefact',
+      fileType: 'artefact',
+      modifiedDate: json['modifiedDate'] != null 
+          ? DateTime.parse(json['modifiedDate'] as String)
+          : null,
+      imageUrl: json['imageUrl'] as String?,
+      soundUrl: json['soundUrl'] as String?,
+    );
+  }
+
+  factory FileChangeRecord.fromBoard(Map<String, dynamic> json) {
+    return FileChangeRecord(
+      fileId: json['boardId'] as String,
+      fileName: json['name'] as String,
+      fileType: 'board',
+      modifiedDate: json['modifiedDate'] != null 
+          ? DateTime.parse(json['modifiedDate'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fileId': fileId,
+      'fileName': fileName,
+      'fileType': fileType,
+      'modifiedDate': modifiedDate?.toIso8601String(),
+      'imageUrl': imageUrl,
+      'soundUrl': soundUrl,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'FileChangeRecord(id: $fileId, name: $fileName, type: $fileType, modified: $modifiedDate)';
+  }
+}
+
+/// Response containing all changes since a specific date
+class SyncCheckResponse {
+  final List<FileChangeRecord> changedFiles;
+  final DateTime checkDate;
+  final int totalChanges;
+
+  SyncCheckResponse({
+    required this.changedFiles,
+    required this.checkDate,
+    required this.totalChanges,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'changedFiles': changedFiles.map((f) => f.toJson()).toList(),
+      'checkDate': checkDate.toIso8601String(),
+      'totalChanges': totalChanges,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'SyncCheckResponse(totalChanges: $totalChanges, checkDate: $checkDate)';
+  }
+}
+
+/// Service for checking file synchronization status
+/// Uses local SQLite database to cache data and track sync state
+class SyncService {
+  final ApiProvider _apiProvider;
+  final Token _token;
+  final UserInfo _userInfo;
+  final ArtefactRepository _artefactRepo;
+  final SavedBoardRepository _boardRepo;
+  final SyncMetadataRepository _syncMetaRepo;
+
+  SyncService({
+    ApiProvider? apiProvider,
+    Token? token,
+    UserInfo? userInfo,
+    ArtefactRepository? artefactRepo,
+    SavedBoardRepository? boardRepo,
+    SyncMetadataRepository? syncMetaRepo,
+  })  : _apiProvider = apiProvider ?? GetIt.instance.get<ApiProvider>(),
+        _token = token ?? GetIt.instance.get<Token>(),
+        _userInfo = userInfo ?? GetIt.instance.get<UserInfo>(),
+        _artefactRepo = artefactRepo ?? ArtefactRepository(),
+        _boardRepo = boardRepo ?? SavedBoardRepository(),
+        _syncMetaRepo = syncMetaRepo ?? SyncMetadataRepository();
+
+  /// Check for files that have been changed since a specific date
+  /// Returns a list of changed files with their modification dates
+  /// The filtering is done on the backend for better performance
+  /// Results are cached in the local SQLite database
+  Future<SyncCheckResponse?> checkForChanges(DateTime since) async {
+    try {
+      // Format the date as ISO 8601 for the query parameter
+      final sinceParam = since.toUtc().toIso8601String();
+      
+      final response = await _apiProvider.fetchAsJson(
+        'Users/Sync/changes?since=$sinceParam',
+        headers: {
+          'Authorization': 'Bearer ${_token.value}',
+        },
+      );
+
+      if (response != null && response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        
+        final changedFiles = (data['changedFiles'] as List<dynamic>)
+            .map((file) => FileChangeRecord.fromJson(file as Map<String, dynamic>))
+            .toList();
+        
+        // Update local database with fetched changes
+        await _updateLocalDatabase(changedFiles);
+        
+        // Update sync metadata
+        final userId = _userInfo.userId;
+        if (userId != null) {
+          await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
+        }
+        
+        return SyncCheckResponse(
+          changedFiles: changedFiles,
+          checkDate: DateTime.parse(data['checkDate'] as String),
+          totalChanges: data['totalChanges'] as int,
+        );
+      }
+      return null;
+    } catch (e) {
+      print('Error checking for changes: $e');
+      return null;
+    }
+  }
+
+  /// Query local database for changes since a specific date
+  /// This checks the local SQLite database without calling the API
+  Future<SyncCheckResponse?> checkLocalChanges(DateTime since) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return null;
+
+      final List<FileChangeRecord> changedFiles = [];
+      final sinceTimestamp = since.millisecondsSinceEpoch ~/ 1000;
+
+      // Query local artefacts
+      final artefacts = await _artefactRepo.getByUserId(userId);
+      for (final artefact in artefacts) {
+        if (artefact.modifiedDate != null && artefact.modifiedDate! > sinceTimestamp) {
+          changedFiles.add(FileChangeRecord(
+            fileId: artefact.artefactId,
+            fileName: artefact.name ?? 'Unnamed Artefact',
+            fileType: 'artefact',
+            modifiedDate: DateTime.fromMillisecondsSinceEpoch(artefact.modifiedDate! * 1000),
+            imageUrl: artefact.imagePath,
+            soundUrl: artefact.soundPath,
+          ));
+        }
+      }
+
+      // Query local boards
+      final boards = await _boardRepo.getByUserId(userId);
+      for (final board in boards) {
+        if (board.modifiedDate != null && board.modifiedDate! > sinceTimestamp) {
+          changedFiles.add(FileChangeRecord(
+            fileId: board.id,
+            fileName: board.name,
+            fileType: 'board',
+            modifiedDate: DateTime.fromMillisecondsSinceEpoch(board.modifiedDate! * 1000),
+          ));
+        }
+      }
+
+      // Sort by modification date (most recent first)
+      changedFiles.sort((a, b) {
+        if (a.modifiedDate == null && b.modifiedDate == null) return 0;
+        if (a.modifiedDate == null) return 1;
+        if (b.modifiedDate == null) return -1;
+        return b.modifiedDate!.compareTo(a.modifiedDate!);
+      });
+
+      return SyncCheckResponse(
+        changedFiles: changedFiles,
+        checkDate: DateTime.now(),
+        totalChanges: changedFiles.length,
+      );
+    } catch (e) {
+      print('Error checking local changes: $e');
+      return null;
+    }
+  }
+
+  /// Sync data from server to local database
+  /// Downloads changes from the server and updates the local SQLite database
+  Future<bool> syncFromServer({DateTime? since}) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return false;
+
+      // Use last sync date if not provided
+      final syncDate = since ?? 
+          await _syncMetaRepo.getLastSyncDate(userId, 'all') ?? 
+          DateTime.now().subtract(const Duration(days: 30));
+
+      // Fetch changes from server
+      final response = await checkForChanges(syncDate);
+      if (response == null) return false;
+
+      print('Synced ${response.totalChanges} items from server');
+      return true;
+    } catch (e) {
+      print('Error syncing from server: $e');
+      return false;
+    }
+  }
+
+  /// Update local database with fetched file changes
+  Future<void> _updateLocalDatabase(List<FileChangeRecord> changes) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return;
+
+      for (final change in changes) {
+        if (change.fileType == 'artefact') {
+          // Check if artefact exists locally
+          final existing = await _artefactRepo.getById(change.fileId);
+          
+          if (existing != null) {
+            // Update existing artefact
+            final updated = existing.copyWith(
+              name: change.fileName,
+              imagePath: change.imageUrl,
+              soundPath: change.soundUrl,
+              modifiedDate: change.modifiedDate != null 
+                  ? change.modifiedDate!.millisecondsSinceEpoch ~/ 1000 
+                  : null,
+            );
+            await _artefactRepo.update(updated);
+          } else {
+            // Note: We can't create new artefacts without full data
+            // This would require fetching the full artefact from the API
+            print('Artefact ${change.fileId} not in local database');
+          }
+        } else if (change.fileType == 'board') {
+          // Similar logic for boards
+          final existing = await _boardRepo.getById(change.fileId);
+          
+          if (existing != null) {
+            final updated = existing.copyWith(
+              name: change.fileName,
+              modifiedDate: change.modifiedDate != null 
+                  ? change.modifiedDate!.millisecondsSinceEpoch ~/ 1000 
+                  : null,
+            );
+            await _boardRepo.update(updated);
+          } else {
+            print('Board ${change.fileId} not in local database');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error updating local database: $e');
+    }
+  }
+
+  /// Get all changes grouped by file type
+  Future<Map<String, List<FileChangeRecord>>?> checkForChangesGrouped(
+      DateTime since) async {
+    final syncResponse = await checkForChanges(since);
+    
+    if (syncResponse == null) return null;
+
+    final Map<String, List<FileChangeRecord>> grouped = {
+      'artefact': [],
+      'board': [],
+    };
+
+    for (final change in syncResponse.changedFiles) {
+      grouped[change.fileType]?.add(change);
+    }
+
+    return grouped;
+  }
+
+  /// Get a summary of changes as a simple map
+  /// Uses the backend summary endpoint for better performance
+  Future<Map<String, int>?> getChangeSummary(DateTime since) async {
+    try {
+      final sinceParam = since.toUtc().toIso8601String();
+      
+      final response = await _apiProvider.fetchAsJson(
+        'Users/Sync/summary?since=$sinceParam',
+        headers: {
+          'Authorization': 'Bearer ${_token.value}',
+        },
+      );
+
+      if (response != null && response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        
+        return {
+          'total': data['totalChanges'] as int,
+          'artefacts': data['artefactChanges'] as int,
+          'boards': data['boardChanges'] as int,
+        };
+      }
+      return null;
+    } catch (e) {
+      print('Error getting change summary: $e');
+      return null;
+    }
+  }
+
+  /// Check if there are any changes since the given date
+  Future<bool> hasChanges(DateTime since) async {
+    final summary = await getChangeSummary(since);
+    return summary != null && summary['total']! > 0;
+  }
+
+  /// Get the last sync date for the current user
+  /// Returns null if no sync has been performed yet
+  Future<DateTime?> getLastSyncDate() async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return null;
+
+      return await _syncMetaRepo.getLastSyncDate(userId, 'all');
+    } catch (e) {
+      print('Error getting last sync date: $e');
+      return null;
+    }
+  }
+
+  /// Set the last sync date for the current user
+  Future<void> setLastSyncDate(DateTime date) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return;
+
+      await _syncMetaRepo.updateLastSyncDate(userId, 'all', date);
+    } catch (e) {
+      print('Error setting last sync date: $e');
+    }
+  }
+
+  /// Check if local database needs syncing
+  /// Returns true if last sync was more than the specified duration ago
+  Future<bool> needsSync({Duration threshold = const Duration(hours: 1)}) async {
+    final lastSync = await getLastSyncDate();
+    if (lastSync == null) return true;
+
+    final now = DateTime.now();
+    return now.difference(lastSync) > threshold;
+  }
+
+  /// Perform a full sync if needed
+  /// Checks if sync is needed based on threshold and performs sync if necessary
+  Future<bool> autoSync({Duration threshold = const Duration(hours: 1)}) async {
+    if (await needsSync(threshold: threshold)) {
+      return await syncFromServer();
+    }
+    return true; // Already synced recently
+  }
+
+  /// Get count of items in local database
+  Future<Map<String, int>> getLocalItemCounts() async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return {'artefacts': 0, 'boards': 0};
+
+      final artefacts = await _artefactRepo.getByUserId(userId);
+      final boards = await _boardRepo.getByUserId(userId);
+
+      return {
+        'artefacts': artefacts.length,
+        'boards': boards.length,
+      };
+    } catch (e) {
+      print('Error getting local item counts: $e');
+      return {'artefacts': 0, 'boards': 0};
+    }
+  }
+}
