@@ -491,9 +491,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   if (_recorder == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                           content: Text(
                               'Optager ikke tilgængelig på denne platform')),
@@ -505,7 +506,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     final bool hasPermission =
                         await (_recorder as dynamic).hasPermission();
                     if (!hasPermission) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      scaffoldMessenger.showSnackBar(
                         const SnackBar(
                             content: Text('Mangler mikrofon tilladelse')),
                       );
@@ -527,7 +528,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                         _levelPhase = 0.0;
                       });
                     } catch (startError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      scaffoldMessenger.showSnackBar(
                         SnackBar(
                             content: Text(
                                 'Kunne ikke starte optagelse: $startError')),
@@ -593,7 +594,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     }
                   }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Optagelse fejlede: $e')),
                   );
                   _recordTimer?.cancel();
@@ -785,6 +786,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                             children: [
                               ElevatedButton(
                                 onPressed: () async {
+                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
                                   try {
                                     // Stop and dispose the player, then create a new instance
                                     // This is more reliable on web than trying to reuse the same player
@@ -792,20 +794,20 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                       await _player.stop();
                                       await _player.dispose();
                                     } catch (_) {}
-                                    
+
                                     // Create a fresh player instance
                                     final tempPlayer = AudioPlayer();
-                                    
+
                                     try {
                                       // Use data URI - just_audio web should handle this
                                       final uri = Uri.dataFromBytes(
                                         soundBytes!,
                                         mimeType: 'audio/mpeg', // MP3 is most widely supported on web
                                       );
-                                      
+
                                       await tempPlayer.setAudioSource(AudioSource.uri(uri));
                                       await tempPlayer.play();
-                                      
+
                                       // Clean up when done
                                       tempPlayer.playerStateStream.listen((state) {
                                         if (state.processingState == ProcessingState.completed) {
@@ -815,7 +817,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                     } catch (e) {
                                       print('Playback error: $e');
                                       tempPlayer.dispose();
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      scaffoldMessenger.showSnackBar(
                                         SnackBar(
                                           content: Text('Afspilning fejlede. Lydformatet understøttes muligvis ikke i browseren.'),
                                         ),
@@ -823,7 +825,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                     }
                                   } catch (e) {
                                     print('Player initialization error: $e');
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    scaffoldMessenger.showSnackBar(
                                       SnackBar(
                                         content: Text('Kunne ikke initialisere afspiller: $e'),
                                       ),
@@ -1019,6 +1021,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   void _showErrorMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -1029,6 +1032,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   void _showSuccessMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

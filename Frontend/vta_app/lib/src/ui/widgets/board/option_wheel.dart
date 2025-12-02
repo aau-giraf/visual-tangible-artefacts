@@ -355,9 +355,11 @@ class _OptionWheelState extends State<OptionWheel>
   }
 
   Future<void> _showChangeSoundDialog(BuildContext context) async {
+    if (!context.mounted) return;
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     final rootContext = rootNavigator.context;
 
+    if (!rootContext.mounted) return;
     final result = await showDialog<_SoundOption>(
       context: rootContext,
       builder: (dialogContext) => AlertDialog(
@@ -413,6 +415,8 @@ class _OptionWheelState extends State<OptionWheel>
         ],
       ),
     );
+
+    if (!rootContext.mounted) return;
 
     if (result == _SoundOption.textToSpeech) {
       await _showTextToSpeechDialog(rootContext);
@@ -817,7 +821,9 @@ class _OptionWheelState extends State<OptionWheel>
                     setState(() {
                       recordedBytes = null;
                     });
-                    Navigator.of(dialogContext).pop();
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
                   },
                   child: const Text('Annuller'),
                 ),

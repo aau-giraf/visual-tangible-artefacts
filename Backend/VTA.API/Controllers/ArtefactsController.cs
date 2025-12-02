@@ -668,16 +668,30 @@ public class ArtefactsController(VTAContext context) : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(requestedVoiceId))
         {
+            Console.WriteLine("Warning: Empty or null voiceId requested. Using default voice.");
             return ElevenLabsService.DefaultVoiceId;
         }
 
-        if (AllowedVoiceIds.Contains(requestedVoiceId))
+        // Normalize the voice ID (trim whitespace and ensure consistent casing)
+        var normalizedVoiceId = requestedVoiceId.Trim();
+
+        if (AllowedVoiceIds.Contains(normalizedVoiceId))
         {
-            return requestedVoiceId;
+            Console.WriteLine($"Info: Using voice ID: {normalizedVoiceId}");
+            return normalizedVoiceId;
         }
 
-        Console.WriteLine($"Warning: Unsupported voiceId '{requestedVoiceId}' requested. Falling back to default.");
+        Console.WriteLine($"Warning: Unsupported voiceId '{requestedVoiceId}' requested. Falling back to default voice ID: {ElevenLabsService.DefaultVoiceId}");
         return ElevenLabsService.DefaultVoiceId;
+    }
+
+    private bool IsValidVoiceId(string? voiceId)
+    {
+        if (string.IsNullOrWhiteSpace(voiceId))
+        {
+            return false;
+        }
+        return AllowedVoiceIds.Contains(voiceId.Trim());
     }
 
     private bool ArtefactExists(string id)
