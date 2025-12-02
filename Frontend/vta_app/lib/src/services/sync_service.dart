@@ -111,6 +111,9 @@ class SyncService {
   final UserInfo _userInfo;
   final ArtefactRepository _artefactRepo;
   final SavedBoardRepository _boardRepo;
+  final CategoryRepository _categoryRepo;
+  final UserRepository _userRepo;
+  final SavedArtefactRepository _savedArtefactRepo;
   final SyncMetadataRepository _syncMetaRepo;
 
   SyncService({
@@ -119,12 +122,18 @@ class SyncService {
     UserInfo? userInfo,
     ArtefactRepository? artefactRepo,
     SavedBoardRepository? boardRepo,
+    CategoryRepository? categoryRepo,
+    UserRepository? userRepo,
+    SavedArtefactRepository? savedArtefactRepo,
     SyncMetadataRepository? syncMetaRepo,
   })  : _apiProvider = apiProvider ?? GetIt.instance.get<ApiProvider>(),
         _token = token ?? GetIt.instance.get<Token>(),
         _userInfo = userInfo ?? GetIt.instance.get<UserInfo>(),
         _artefactRepo = artefactRepo ?? ArtefactRepository(),
         _boardRepo = boardRepo ?? SavedBoardRepository(),
+        _categoryRepo = categoryRepo ?? CategoryRepository(),
+        _userRepo = userRepo ?? UserRepository(),
+        _savedArtefactRepo = savedArtefactRepo ?? SavedArtefactRepository(),
         _syncMetaRepo = syncMetaRepo ?? SyncMetadataRepository();
 
   /// Check for files that have been changed since a specific date
@@ -273,7 +282,7 @@ class SyncService {
   }
 
   /// Sync data from server to local database
-  /// Downloads changes from the server and updates the local SQLite database
+  /// Downloads complete entity data from the server and updates the local SQLite database
   Future<bool> syncFromServer({DateTime? since}) async {
     try {
       print('[SYNC-SERVER] syncFromServer called');
@@ -284,23 +293,61 @@ class SyncService {
         return false;
       }
 
-      // Use last sync date if not provided
-      final lastSyncDate = await _syncMetaRepo.getLastSyncDate(userId, 'all');
-      print('[SYNC-SERVER] Last sync date from metadata: $lastSyncDate');
-      final syncDate = since ?? 
-          lastSyncDate ?? 
-          DateTime.now().subtract(const Duration(days: 30));
+      final syncDate = since ?? DateTime.now().subtract(const Duration(days: 365));
       print('[SYNC-SERVER] Using sync date: $syncDate');
 
-      // Fetch changes from server
-      print('[SYNC-SERVER] Fetching changes from server...');
-      final response = await checkForChanges(syncDate);
-      if (response == null) {
-        print('[SYNC-SERVER] No response from server, sync failed');
-        return false;
+      // Sync all entities from API
+      int totalSynced = 0;
+      
+      // 1. Sync artefacts
+      print('[SYNC-SERVER] Fetching artefacts from API...');
+      final artefactsResponse = await _apiProvider.fetchAsJson(
+        'Artefacts',
+        headers: {'Authorization': 'Bearer ${_token.value}'},
+      );
+      if (artefactsResponse != null && artefactsResponse.statusCode == 200) {
+        final List<dynamic> artefactsData = json.decode(artefactsResponse.body);
+        print('[SYNC-SERVER] Received ${artefactsData.length} artefacts from API');
+        for (final data in artefactsData) {
+          await _syncArtefact(data);
+          totalSynced++;
+        }
       }
 
-      print('[SYNC-SERVER] Successfully synced ${response.totalChanges} items from server');
+      // 2. Sync categories
+      print('[SYNC-SERVER] Fetching categories from API...');
+      final categoriesResponse = await _apiProvider.fetchAsJson(
+        'Categories',
+        headers: {'Authorization': 'Bearer ${_token.value}'},
+      );
+      if (categoriesResponse != null && categoriesResponse.statusCode == 200) {
+        final List<dynamic> categoriesData = json.decode(categoriesResponse.body);
+        print('[SYNC-SERVER] Received ${categoriesData.length} categories from API');
+        for (final data in categoriesData) {
+          await _syncCategory(data);
+          totalSynced++;
+        }
+      }
+
+      // 3. Sync boards
+      print('[SYNC-SERVER] Fetching boards from API...');
+      final boardsResponse = await _apiProvider.fetchAsJson(
+        'Boards',
+        headers: {'Authorization': 'Bearer ${_token.value}'},
+      );
+      if (boardsResponse != null && boardsResponse.statusCode == 200) {
+        final List<dynamic> boardsData = json.decode(boardsResponse.body);
+        print('[SYNC-SERVER] Received ${boardsData.length} boards from API');
+        for (final data in boardsData) {
+          await _syncBoard(data);
+          totalSynced++;
+        }
+      }
+
+      // Update sync metadata
+      await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
+
+      print('[SYNC-SERVER] Successfully synced $totalSynced total items from server');
       return true;
     } catch (e) {
       print('[SYNC-SERVER] ERROR in syncFromServer: $e');
@@ -525,6 +572,175 @@ class SyncService {
       print('[SYNC-COUNTS] ERROR getting local item counts: $e');
       print('[SYNC-COUNTS] Stack trace: ${StackTrace.current}');
       return {'artefacts': 0, 'boards': 0};
+    }
+  }
+
+  /// Helper method to sync a single artefact from API data to local database
+  Future<void> _syncArtefact(Map<String, dynamic> data) async {
+    try {
+      final artefactId = data['artefactId'] as String?;
+      if (artefactId == null) return;
+
+      print('[SYNC-ARTEFACT] Syncing artefact: $artefactId');
+      
+      final existing = await _artefactRepo.getById(artefactId);
+      final artefact = ArtefactDB(
+        artefactId: artefactId,
+        artefactIndex: data['artefactIndex'] as int? ?? 0,
+        userId: data['userId'] as String? ?? _userInfo.userId ?? '',
+        categoryId: data['categoryId'] as String?,
+        imagePath: _extractFilename(data['imageUrl'] as String?),
+        soundPath: _extractFilename(data['soundUrl'] as String?),
+        modifiedDate: _parseDate(data['modifiedDate'] as String?),
+        name: data['name'] as String?,
+        nameShown: (data['nameShown'] as bool?) == true ? 1 : 0,
+        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+      );
+
+      if (existing != null) {
+        await _artefactRepo.update(artefact);
+        print('[SYNC-ARTEFACT] Updated artefact: $artefactId');
+      } else {
+        await _artefactRepo.insert(artefact);
+        print('[SYNC-ARTEFACT] Inserted new artefact: $artefactId');
+      }
+    } catch (e) {
+      print('[SYNC-ARTEFACT] ERROR syncing artefact: $e');
+    }
+  }
+
+  /// Helper method to sync a single category from API data to local database
+  Future<void> _syncCategory(Map<String, dynamic> data) async {
+    try {
+      final categoryId = data['categoryId'] as String?;
+      if (categoryId == null) return;
+
+      print('[SYNC-CATEGORY] Syncing category: $categoryId');
+      
+      final existing = await _categoryRepo.getById(categoryId);
+      final category = CategoryDB(
+        categoryId: categoryId,
+        categoryIndex: data['categoryIndex'] as int?,
+        userId: data['userId'] as String? ?? _userInfo.userId ?? '',
+        name: data['name'] as String?,
+        imagePath: _extractFilename(data['imageUrl'] as String?),
+        modifiedDate: _parseDate(data['modifiedDate'] as String?),
+        usageCount: data['usageCount'] as int? ?? 0,
+        lastUsedDate: _parseDate(data['lastUsedDate'] as String?),
+        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+      );
+
+      if (existing != null) {
+        await _categoryRepo.update(category);
+        print('[SYNC-CATEGORY] Updated category: $categoryId');
+      } else {
+        await _categoryRepo.insert(category);
+        print('[SYNC-CATEGORY] Inserted new category: $categoryId');
+      }
+    } catch (e) {
+      print('[SYNC-CATEGORY] ERROR syncing category: $e');
+    }
+  }
+
+  /// Helper method to sync a single board from API data to local database
+  Future<void> _syncBoard(Map<String, dynamic> data) async {
+    try {
+      final boardId = data['boardId'] as String? ?? data['id'] as String?;
+      if (boardId == null) return;
+
+      print('[SYNC-BOARD] Syncing board: $boardId');
+      
+      final existing = await _boardRepo.getById(boardId);
+      
+      // Parse artefact IDs and saved artefact data
+      final artefactIds = (data['artefactIds'] as List<dynamic>?)
+          ?.map((id) => id.toString())
+          .join(',');
+      final savedArtefactIds = (data['savedArtefactIds'] as List<dynamic>?)
+          ?.map((id) => id.toString())
+          .join(',');
+      
+      final board = SavedBoardDB(
+        id: boardId,
+        name: data['name'] as String? ?? 'Unnamed Board',
+        userId: data['userId'] as String? ?? _userInfo.userId ?? '',
+        savedArtefactIds: savedArtefactIds,
+        artefactIds: artefactIds,
+        snapshotPath: _extractFilename(data['snapshotUrl'] as String?),
+        createdDate: _parseDate(data['createdDate'] as String?) ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        modifiedDate: _parseDate(data['modifiedDate'] as String?),
+        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+      );
+
+      if (existing != null) {
+        await _boardRepo.update(board);
+        print('[SYNC-BOARD] Updated board: $boardId');
+      } else {
+        await _boardRepo.insert(board);
+        print('[SYNC-BOARD] Inserted new board: $boardId');
+      }
+
+      // Sync saved artefacts for this board
+      final savedArtefacts = data['savedArtefacts'] as List<dynamic>?;
+      if (savedArtefacts != null) {
+        for (final savedArtefactData in savedArtefacts) {
+          await _syncSavedArtefact(savedArtefactData, boardId);
+        }
+      }
+    } catch (e) {
+      print('[SYNC-BOARD] ERROR syncing board: $e');
+    }
+  }
+
+  /// Helper method to sync a saved artefact (board item placement)
+  Future<void> _syncSavedArtefact(Map<String, dynamic> data, String boardId) async {
+    try {
+      final id = data['id'] as String?;
+      if (id == null) return;
+
+      final savedArtefact = SavedArtefactDB(
+        id: id,
+        artefactId: data['artefactId'] as String? ?? '',
+        boardId: boardId,
+        posX: (data['posX'] as num?)?.toDouble() ?? 0.0,
+        posY: (data['posY'] as num?)?.toDouble() ?? 0.0,
+        width: (data['width'] as num?)?.toDouble() ?? 200.0,
+        height: (data['height'] as num?)?.toDouble() ?? 200.0,
+        createdDate: _parseDate(data['createdDate'] as String?) ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        modifiedDate: _parseDate(data['modifiedDate'] as String?),
+        nameVisible: (data['nameVisible'] as bool?) == true ? 1 : null,
+        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+      );
+
+      final existing = await _savedArtefactRepo.getById(id);
+      if (existing != null) {
+        await _savedArtefactRepo.update(savedArtefact);
+      } else {
+        await _savedArtefactRepo.insert(savedArtefact);
+      }
+    } catch (e) {
+      print('[SYNC-SAVED-ARTEFACT] ERROR syncing saved artefact: $e');
+    }
+  }
+
+  /// Helper to extract filename from URL
+  String? _extractFilename(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+    final segments = uri.pathSegments;
+    return segments.isNotEmpty ? segments.last : url;
+  }
+
+  /// Helper to parse date string to Unix timestamp (seconds)
+  int? _parseDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    try {
+      final dateTime = DateTime.parse(dateStr);
+      return dateTime.millisecondsSinceEpoch ~/ 1000;
+    } catch (e) {
+      print('[SYNC] Error parsing date: $dateStr - $e');
+      return null;
     }
   }
 }
