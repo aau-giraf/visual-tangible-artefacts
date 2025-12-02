@@ -63,6 +63,18 @@ services:
     networks:
       - vta-network
 
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn-local
+    restart: unless-stopped
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49152-65535:49152-65535/udp"
+    volumes:
+      - ./turnserver.local.conf:/etc/coturn/turnserver.local.conf
+    command: ["-c", "/etc/coturn/turnserver.local.conf"]
+
   # frontend:
   #   build:
   #     context: ./Frontend/vta_app
