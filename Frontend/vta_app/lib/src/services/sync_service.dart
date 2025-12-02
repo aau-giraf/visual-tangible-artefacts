@@ -141,16 +141,16 @@ class SyncService {
       print('[SYNC] Formatted date parameter: $sinceParam');
       
       print('[SYNC] Making API call to Users/Sync/changes...');
-      final response = await _apiProvider.fetchAsJson(
+      final apiResponse = await _apiProvider.fetchAsJson(
         'Users/Sync/changes?since=$sinceParam',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (apiResponse != null && apiResponse.statusCode == 200) {
         print('[SYNC] API response received with status 200');
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = json.decode(apiResponse.body);
         print('[SYNC] Response data: ${data.keys}');
         
         final changedFiles = (data['changedFiles'] as List<dynamic>)
@@ -174,15 +174,15 @@ class SyncService {
           print('[SYNC] Sync metadata updated');
         }
         
-        final response = SyncCheckResponse(
+        final syncResponse = SyncCheckResponse(
           changedFiles: changedFiles,
           checkDate: DateTime.parse(data['checkDate'] as String),
           totalChanges: data['totalChanges'] as int,
         );
-        print('[SYNC] checkForChanges completed successfully: ${response.totalChanges} total changes');
-        return response;
+        print('[SYNC] checkForChanges completed successfully: ${syncResponse.totalChanges} total changes');
+        return syncResponse;
       }
-      print('[SYNC] API response was null or not 200: ${response?.statusCode}');
+      print('[SYNC] API response was null or not 200: ${apiResponse?.statusCode}');
       return null;
     } catch (e) {
       print('[SYNC] ERROR in checkForChanges: $e');
