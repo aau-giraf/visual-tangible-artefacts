@@ -21,6 +21,7 @@ import 'src/settings/settings_service.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/database/database_helper.dart';
+import 'package:vta_app/src/database/database_debug_helper.dart';
 
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -37,6 +38,7 @@ void main() async {
     try {
       await DatabaseHelper.instance.database;
       print('✅ SQLite database initialized successfully');
+      await DatabaseDebugHelper.printDatabasePath();
     } catch (e) {
       print('❌ Failed to initialize SQLite database: $e');
     }
