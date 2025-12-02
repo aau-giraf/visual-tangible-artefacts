@@ -31,6 +31,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
+  
+  // Initialize SQLite database (only on mobile platforms, not web)
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    try {
+      await DatabaseHelper.instance.database;
+      print('✅ SQLite database initialized successfully');
+    } catch (e) {
+      print('❌ Failed to initialize SQLite database: $e');
+    }
+  }
+  
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 
