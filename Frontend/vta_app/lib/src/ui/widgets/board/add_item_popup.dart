@@ -14,6 +14,8 @@ import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/config/elevenlabs_config.dart';
+import 'package:vta_app/src/utilities/config/voice_config_validator.dart';
 import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import '../../../utilities/audio/recorder.dart';
 import 'package:just_audio/just_audio.dart';
@@ -87,6 +89,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
   // AI Text-to-Speech state
   bool _showTextToSpeechField = false;
   bool _isGeneratingSpeech = false;
+  String _selectedVoiceId = ElevenLabsConfig.defaultVoiceId;
 
   void setGeneratedImage(String bytes) {
     final decodedBytes = base64Decode(bytes);
@@ -108,6 +111,13 @@ class _AddItemPopupState extends State<AddItemPopup> {
     } catch (_) {
       _recorder = null;
     }
+    ElevenLabsConfig.getDefaultVoiceId().then((voiceId) {
+      if (mounted) {
+        setState(() {
+          _selectedVoiceId = VoiceConfigValidator.resolveVoiceId(voiceId);
+        });
+      }
+    });
     // listen for name changes to update submit button state
     nameController.addListener(_onFormChanged);
   }
@@ -481,9 +491,10 @@ class _AddItemPopupState extends State<AddItemPopup> {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   if (_recorder == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                           content: Text(
                               'Optager ikke tilgængelig på denne platform')),
@@ -495,7 +506,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     final bool hasPermission =
                         await (_recorder as dynamic).hasPermission();
                     if (!hasPermission) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      scaffoldMessenger.showSnackBar(
                         const SnackBar(
                             content: Text('Mangler mikrofon tilladelse')),
                       );
@@ -517,7 +528,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                         _levelPhase = 0.0;
                       });
                     } catch (startError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      scaffoldMessenger.showSnackBar(
                         SnackBar(
                             content: Text(
                                 'Kunne ikke starte optagelse: $startError')),
@@ -583,7 +594,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     }
                   }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Optagelse fejlede: $e')),
                   );
                   _recordTimer?.cancel();
@@ -658,6 +669,33 @@ class _AddItemPopupState extends State<AddItemPopup> {
                             fillColor: Colors.white,
                             contentPadding: EdgeInsets.all(12),
                           ),
+                        ),
+                        SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _selectedVoiceId,
+                          decoration: const InputDecoration(
+                            labelText: 'Vælg stemme',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: ElevenLabsConfig.defaultVoiceId,
+                              child: Text('Mand'),
+                            ),
+                            DropdownMenuItem(
+                              value: ElevenLabsConfig.alternateVoiceId,
+                              child: Text('Kvinde'),
+                            ),
+                          ],
+                          onChanged: (value) async {
+                            if (value == null) return;
+                            final resolvedVoiceId = VoiceConfigValidator.resolveVoiceId(value);
+                            setState(() {
+                              _selectedVoiceId = resolvedVoiceId;
+                            });
+                            setDialogState(() {});
+                            await ElevenLabsConfig.setDefaultVoiceId(resolvedVoiceId);
+                          },
                         ),
                         SizedBox(height: 8),
                         Row(
@@ -748,6 +786,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                             children: [
                               ElevatedButton(
                                 onPressed: () async {
+                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
                                   try {
                                     // Stop and dispose the player, then create a new instance
                                     // This is more reliable on web than trying to reuse the same player
@@ -755,20 +794,20 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                       await _player.stop();
                                       await _player.dispose();
                                     } catch (_) {}
-                                    
+
                                     // Create a fresh player instance
                                     final tempPlayer = AudioPlayer();
-                                    
+
                                     try {
                                       // Use data URI - just_audio web should handle this
                                       final uri = Uri.dataFromBytes(
                                         soundBytes!,
                                         mimeType: 'audio/mpeg', // MP3 is most widely supported on web
                                       );
-                                      
+
                                       await tempPlayer.setAudioSource(AudioSource.uri(uri));
                                       await tempPlayer.play();
-                                      
+
                                       // Clean up when done
                                       tempPlayer.playerStateStream.listen((state) {
                                         if (state.processingState == ProcessingState.completed) {
@@ -778,7 +817,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                     } catch (e) {
                                       print('Playback error: $e');
                                       tempPlayer.dispose();
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      scaffoldMessenger.showSnackBar(
                                         SnackBar(
                                           content: Text('Afspilning fejlede. Lydformatet understøttes muligvis ikke i browseren.'),
                                         ),
@@ -786,7 +825,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                     }
                                   } catch (e) {
                                     print('Player initialization error: $e');
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    scaffoldMessenger.showSnackBar(
                                       SnackBar(
                                         content: Text('Kunne ikke initialisere afspiller: $e'),
                                       ),
@@ -900,6 +939,13 @@ class _AddItemPopupState extends State<AddItemPopup> {
     final text = _textToSpeechController.text.trim();
     if (text.isEmpty) return;
 
+    final voiceIdToUse = VoiceConfigValidator.resolveVoiceId(_selectedVoiceId);
+
+    // Validate voice ID
+    if (!VoiceConfigValidator.isValidVoiceId(voiceIdToUse)) {
+      _showErrorMessage('Ugyldig stemme valgt. Bruger standardstemme.');
+    }
+
     // Update both dialog state and main popup state
     setState(() {
       _isGeneratingSpeech = true;
@@ -915,12 +961,15 @@ class _AddItemPopupState extends State<AddItemPopup> {
           'Debug: Generating speech for text: "${text.substring(0, text.length > 50 ? 50 : text.length)}..."');
 
       // Generate speech using backend API
-      final audioData = await _generateSpeechViaBackend(text);
+      final audioData = await _generateSpeechViaBackend(text, voiceIdToUse);
 
       print(
           'Debug: Audio data received: ${audioData != null ? '${audioData.length} bytes' : 'null'}');
 
       if (audioData != null) {
+        // Only save voice preference after successful generation
+        await ElevenLabsConfig.setDefaultVoiceId(voiceIdToUse);
+
         // Update main popup state
         setState(() {
           soundBytes =
@@ -972,6 +1021,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   void _showErrorMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -982,6 +1032,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   void _showSuccessMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -991,7 +1042,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
     );
   }
 
-  Future<Uint8List?> _generateSpeechViaBackend(String text) async {
+  Future<Uint8List?> _generateSpeechViaBackend(String text, String voiceId) async {
     try {
       final token = GetIt.instance.get<Token>().value;
       if (token == null) {
@@ -1011,13 +1062,15 @@ class _AddItemPopupState extends State<AddItemPopup> {
         'Authorization': 'Bearer $token',
       };
 
+      final resolvedVoiceId = VoiceConfigValidator.resolveVoiceId(voiceId);
       final body = json.encode({
         'text': text,
-        // voiceId removed - backend controls which voice to use
+        'voiceId': resolvedVoiceId,
       });
 
       print('Debug: Making request to: $url');
       print('Debug: Request body: $body');
+      print('Debug: Using voiceId: $resolvedVoiceId');
 
       final response = await http.post(url, headers: headers, body: body);
 
