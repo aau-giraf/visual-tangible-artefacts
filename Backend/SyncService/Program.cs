@@ -23,8 +23,8 @@ var config = new ConfigurationBuilder()
     .Build();
 
 var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")
-                   ?? config["Secret:SecretKey"]; 
-                   
+                   ?? config["Secret:SecretKey"];
+
 
 if (string.IsNullOrEmpty(jwtSecretKey))
 {

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/services/board_layout_service.dart';
@@ -8,6 +9,7 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/singletons/token.dart';
 
 typedef VoidCallback = void Function();
 
@@ -39,18 +41,26 @@ class RemoteArtifactBoardController {
     debugPrint(
         "RemoteSync => SignalR connected: ${SignalRService().isConnected}");
 
-    // Hook into talkingmat position changes for sync
-    if (isOwner && base.talkingMat != null) {
-      // Get the state to add the callback
-      // This will be set up in initState when widgets are built
-    }
+    // Disable auto-save during remote sessions
+    _setupRemoteSession();
 
-    // Load board from backend
-    debugPrint("RemoteSync => Loading shared board from backend: $sharedBoardId");
-    _loadBoardFromBackend(sharedBoardId);
+    if (isOwner) {
+      // Owner: send current board state to remote participant
+      debugPrint("RemoteSync => Owner sending current board state");
+      Future.delayed(const Duration(milliseconds: 200), () {
+        _pushFullBoard();
+      });
+    } else {
+      // Non-owner: wait for board state from owner via SignalR
+      debugPrint("RemoteSync => Non-owner waiting for board state from owner");
+      // Don't try to load from backend - just wait for SignalR updates
+    }
   }
 
   void dispose() {
+    // Re-enable auto-save when leaving remote session
+    _cleanupRemoteSession();
+    
     if (SignalRService().onBoardUpdated == _handleRemoteUpdate) {
       SignalRService().onBoardUpdated = null;
     }
@@ -68,6 +78,14 @@ class RemoteArtifactBoardController {
       debugPrint("RemoteSync => Non-owner cannot add artifacts");
       return;
     }
+
+    // Listen to size changes for real-time sync
+    artefact.sizeNotifier.addListener(() {
+      if (isOwner) {
+        debugPrint("RemoteSync => Artifact resized: ${artefact.artefactId}");
+        _pushFullBoard();
+      }
+    });
 
     base.addArtifactToCurrentBoard(artefact);
     notifyView();
@@ -189,58 +207,135 @@ class RemoteArtifactBoardController {
       base.switchCurrentBoard();
     }
 
-    // clear old board
-    _clearBoard();
+    // Get current artifacts
+    final currentArtifacts = base.showDirectional
+        ? base.linearBoardController.artifacts.whereType<BoardArtefact>().toList()
+        : base.talkingmatController.value;
 
-    // rebuild items
+    // Create a map of current artifacts by ID
+    final artifactMap = <String, BoardArtefact>{};
+    for (final artifact in currentArtifacts) {
+      if (artifact.artefactId.isNotEmpty) {
+        artifactMap[artifact.artefactId] = artifact;
+      }
+    }
+
+    // Track which artifact IDs we've seen in the update
+    final updatedIds = <String>{};
+
+    // Update or add artifacts
     for (final item in items) {
       if (item is! Map) continue;
 
-      final artefact = Artefact(
-        artefactId: item['id'],
-        name: item['name'],
-        imageUrl: item['imageUrl'],
-        soundUrl: item['soundUrl'],
-      );
+      final id = item['id'] as String?;
+      if (id == null) continue;
 
-      final boardItem = BoardArtefact.fromArtefact(artefact);
+      updatedIds.add(id);
 
-      final size = item['size'];
-      if (size != null) {
-        boardItem.sizeNotifier.value = Size(
-          (size['width'] as num).toDouble(),
-          (size['height'] as num).toDouble(),
+      final existing = artifactMap[id];
+      if (existing != null) {
+        // Update existing artifact position/size
+        final size = item['size'];
+        if (size != null) {
+          existing.sizeNotifier.value = Size(
+            (size['width'] as num).toDouble(),
+            (size['height'] as num).toDouble(),
+          );
+        }
+
+        final pos = item['position'];
+        if (pos != null) {
+          existing.position = Offset(
+            (pos['dx'] as num).toDouble(),
+            (pos['dy'] as num).toDouble(),
+          );
+        }
+      } else {
+        // Create new artifact
+        final artefact = Artefact(
+          artefactId: id,
+          name: item['name'],
+          imageUrl: item['imageUrl'],
+          soundUrl: item['soundUrl'],
         );
-      }
 
-      final pos = item['position'];
-      if (pos != null) {
-        boardItem.position = Offset(
-          (pos['dx'] as num).toDouble(),
-          (pos['dy'] as num).toDouble(),
-        );
-      }
+        // Build headers for network image authentication
+        final token = GetIt.instance.get<Token>().value;
+        Map<String, String>? headers;
+        if (token != null) headers = {'Authorization': 'Bearer $token'};
 
-      base.addArtifactToCurrentBoard(boardItem);
+        final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
+
+        final size = item['size'];
+        if (size != null) {
+          boardItem.sizeNotifier.value = Size(
+            (size['width'] as num).toDouble(),
+            (size['height'] as num).toDouble(),
+          );
+        }
+
+        final pos = item['position'];
+        if (pos != null) {
+          boardItem.position = Offset(
+            (pos['dx'] as num).toDouble(),
+            (pos['dy'] as num).toDouble(),
+          );
+        }
+
+        base.addArtifactToCurrentBoard(boardItem);
+      }
     }
 
+    // Remove artifacts that weren't in the update
+    if (base.showDirectional) {
+      for (int i = base.linearBoardController.artifacts.length - 1; i >= 0; i--) {
+        final artifact = base.linearBoardController.artifacts[i];
+        if (artifact != null && !updatedIds.contains(artifact.artefactId)) {
+          base.linearBoardController.removeArtifact(i);
+        }
+      }
+    } else {
+      base.talkingmatController.value.removeWhere(
+        (artifact) => !updatedIds.contains(artifact.artefactId)
+      );
+      
+      // Trigger ValueNotifier update by re-assigning the value
+      // This is necessary because we modified artifact positions in-place
+      base.talkingmatController.value = List.from(base.talkingmatController.value);
+    }
+    
     notifyView();
     debugPrint("RemoteSync => Board updated with ${items.length} items");
   }
 
-  void _clearBoard() {
-    if (base.showDirectional) {
-      for (int i = 0; i < base.linearBoardController.artifacts.length; i++) {
-        base.linearBoardController.artifacts[i] = null;
+  // ---------------- Remote session management ----------------
+
+  void _setupRemoteSession() {
+    // Wait for TalkingMat widget to be built
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (base.talkingMatKey.currentState != null) {
+        base.talkingMatKey.currentState!.setRemoteSession(true);
+        debugPrint("RemoteSync => Disabled auto-save for remote session");
       }
-    } else {
-      base.talkingmatController.value.clear();
+    });
+  }
+
+  void _cleanupRemoteSession() {
+    if (base.talkingMatKey.currentState != null) {
+      base.talkingMatKey.currentState!.setRemoteSession(false);
+      debugPrint("RemoteSync => Re-enabled auto-save after remote session");
     }
   }
 
   // ---------------- Load board from backend ----------------
-
-  /// Loads a saved board from the backend database and applies it to the current board
+  // NOTE: This functionality is currently disabled during remote sessions.
+  // Owner uses their existing board and sends it via SignalR.
+  // Non-owner receives updates via SignalR only.
+  //
+  // Future implementation could use this to allow owner to load a saved board
+  // at the start of a remote session.
+  
+  /* COMMENTED OUT - Not used in current remote session flow
   Future<void> _loadBoardFromBackend(String boardId) async {
     try {
       debugPrint("RemoteSync => Fetching board $boardId from backend...");
@@ -279,7 +374,12 @@ class RemoteArtifactBoardController {
           soundUrl: null,
         );
 
-        final boardItem = BoardArtefact.fromArtefact(artefact);
+        // Build headers for network image authentication
+        final token = GetIt.instance.get<Token>().value;
+        Map<String, String>? headers;
+        if (token != null) headers = {'Authorization': 'Bearer $token'};
+
+        final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
 
         // Set size
         boardItem.sizeNotifier.value = Size(
@@ -308,4 +408,5 @@ class RemoteArtifactBoardController {
       debugPrint("RemoteSync => EXCEPTION loading board: $e");
     }
   }
+  */
 }

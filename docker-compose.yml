@@ -44,7 +44,7 @@ services:
 
   syncservice:
     build:
-      context: ./Backend/SyncService
+      context: ./SyncService
       dockerfile: Dockerfile
     container_name: vta-syncservice
     restart: unless-stopped
@@ -53,10 +53,27 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - JWT_SECRET=your-secret-key-change-this-in-production-minimum-32-characters-long
+      - ConnectionStrings__ApiBaseUrl=http://backend:8080
+      - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - backend_assets:/app/Assets
     networks:
       - vta-network
 
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn-local
+    restart: unless-stopped
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49152-65535:49152-65535/udp"
+    volumes:
+      - ./turnserver.local.conf:/etc/coturn/turnserver.local.conf
+    command: ["-c", "/etc/coturn/turnserver.local.conf"]
 
   # frontend:
   #   build:

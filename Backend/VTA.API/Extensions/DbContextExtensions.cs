@@ -73,10 +73,10 @@ public static class DbContextExtensions
     private static async Task<VTAContext> SeedTestUser(this VTAContext context)
     {
         const string giraf = "giraf";
-        var testUserExist = await context.Users.AnyAsync(u => u.Username == giraf);
-        if (!testUserExist)
+        var girafUser = await context.Users.FirstOrDefaultAsync(u => u.Username == giraf);
+        if (girafUser is null)
         {
-            var testUser = new User
+            girafUser = new User
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = giraf,
@@ -84,7 +84,7 @@ public static class DbContextExtensions
                 Username = giraf,
                 Role = UserRole.Child
             };
-            context.Users.Add(testUser);
+            context.Users.Add(girafUser);
         }
 
         const string admin = "admin";
@@ -107,10 +107,10 @@ public static class DbContextExtensions
         }
 
         const string caregiver = "caregiver";
-        var caregiverUserExist = await context.Users.AnyAsync(u => u.Username == caregiver);
-        if (!caregiverUserExist)
+        var caregiverUser = await context.Users.FirstOrDefaultAsync(u => u.Username == caregiver);
+        if (caregiverUser is null )
         {
-            var caregiverUser = new User
+            caregiverUser = new User
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = "Test Caregiver",
@@ -119,6 +119,19 @@ public static class DbContextExtensions
                 Role = UserRole.Caregiver
             };
             context.Users.Add(caregiverUser);
+        }
+
+        var relation = await context.Relations.FirstOrDefaultAsync(ur => ur.CaregiverId == caregiverUser.Id && ur.ChildId == girafUser.Id);
+        if (relation is null)
+        {
+            relation = new Relation
+            {
+                Id = Guid.NewGuid().ToString(),
+                CaregiverId = caregiverUser.Id,
+                ChildId = girafUser.Id,
+            };
+
+            context.Relations.Add(relation);
         }
 
         return context;

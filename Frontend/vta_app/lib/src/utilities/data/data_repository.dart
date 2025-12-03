@@ -15,7 +15,7 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
+    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Local']);
   }
 
   bool responseOk(http.Response? response) {
@@ -290,8 +290,14 @@ class UserRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response = await apiProvider.fetchAsJson('Users/related-contacts',
+      var response = await apiProvider.fetchAsJson('Contacts',
           headers: headers);
+
+      debugPrint('Related contacts response: ${response?.body}');
+      debugPrint('Related contacts status code: ${response?.statusCode}');
+      debugPrint('Related contacts headers: ${response?.headers}');
+      debugPrint('Related contacts request: ${response?.request}');
+
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body) as List;
         var users = jsonResponse

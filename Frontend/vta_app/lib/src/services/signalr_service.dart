@@ -12,6 +12,9 @@ class SignalRService {
   factory SignalRService() => _instance;
   SignalRService._internal();
 
+  // WORKAROUND: Default board ID until multi-board support is implemented
+  static const String defaultBoardId = "default-shared-board";
+
   HubConnection? _hubConnection;
   String? _currentUserId;
   String? _currentSessionId;
@@ -142,15 +145,18 @@ class SignalRService {
       String sessionId, String fromUserId, String toUserId, String boardId) async {
     if (!isConnected || _currentUserId == null) return;
 
+    // WORKAROUND: Use default board ID until multi-board support is implemented
+    final actualBoardId = boardId == "placeholder-board-id" ? defaultBoardId : boardId;
+
     // Mark the one who initiated as the initiator
     _sessionInitiatorId = fromUserId;
 
     await _hubConnection!.invoke(
       "AcceptSession",
-      args: <Object>[sessionId, fromUserId, toUserId, boardId],
+      args: <Object>[sessionId, fromUserId, toUserId, actualBoardId],
     );
     debugPrint(
-        "SignalR: acceptSession => $sessionId from $fromUserId to $toUserId with boardId=$boardId");
+        "SignalR: acceptSession => $sessionId from $fromUserId to $toUserId with boardId=$actualBoardId");
   }
 
   Future<void> rejectSession(String fromUserId) async {

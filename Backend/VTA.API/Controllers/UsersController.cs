@@ -209,7 +209,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// Get information about a specific user
     /// </summary>
     /// <returns>A user</returns>
-    [HttpGet("{id:regex(^(?!related-contacts).+$)}")]
+    [HttpGet("{id}")]
     public async Task<ActionResult<UserGetDTO>> GetUser(string id)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -329,7 +329,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
     private bool UserIdExists(string id)
     {
-        return context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID 
+        return context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID
     }
     private bool UsernameExists(string username)
     {
@@ -345,7 +345,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     private string GenerateJwt(User user)
     {
         var secretKey = config.GetValue<string>("Secret:SecretKey")
-                        ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables 
+                        ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables
                         ?? throw new InvalidOperationException("A JWT secret is required for token generation."); //Throw if no secret is found
         var validIssuer = "api.vta.com";
         var validAudience = "user.vta.com";

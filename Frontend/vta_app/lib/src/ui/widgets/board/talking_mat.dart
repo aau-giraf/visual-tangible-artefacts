@@ -56,6 +56,7 @@ class TalkingMatState extends State<TalkingMat>
   Timer? _saveTimer;
   Timer? _periodicSaveTimer;
   bool _inhibitAutoSave = false;
+  bool _isRemoteSession = false;
   Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
 
   @override
@@ -94,6 +95,24 @@ class TalkingMatState extends State<TalkingMat>
     _periodicSaveTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void setRemoteSession(bool isRemote) {
+    _isRemoteSession = isRemote;
+    if (isRemote) {
+      // Cancel any pending saves and disable periodic saves
+      _saveTimer?.cancel();
+      _periodicSaveTimer?.cancel();
+      debugPrint("TalkingMat => Remote session mode enabled, auto-save disabled");
+    } else {
+      // Re-enable periodic saves
+      _periodicSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        if (artifacts.isNotEmpty && !_inhibitAutoSave && !_isRemoteSession) {
+          _autoSaveBoardLayout();
+        }
+      });
+      debugPrint("TalkingMat => Remote session mode disabled, auto-save re-enabled");
+    }
   }
 
   void addArtifact(BoardArtefact artifact) {
@@ -171,7 +190,7 @@ class TalkingMatState extends State<TalkingMat>
   }
 
   void _scheduleAutoSave() {
-    if (_inhibitAutoSave) return;
+    if (_inhibitAutoSave || _isRemoteSession) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), () {
       _autoSaveBoardLayout();
@@ -179,7 +198,7 @@ class TalkingMatState extends State<TalkingMat>
   }
 
   void _immediateAutoSave() {
-    if (_inhibitAutoSave) return;
+    if (_inhibitAutoSave || _isRemoteSession) return;
     _saveTimer?.cancel();
     _autoSaveBoardLayout();
   }
