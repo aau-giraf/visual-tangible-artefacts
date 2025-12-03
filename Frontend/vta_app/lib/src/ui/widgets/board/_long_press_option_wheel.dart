@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
@@ -7,6 +6,7 @@ import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
+import 'package:flutter/foundation.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -172,13 +172,19 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) async {
-                  // Toggle per-instance visibility and trigger board auto-save so it persists.
-                  widget.artifact.nameVisible = val;
+                  // Update baseArtefact.nameShown (which updates all instances)
+                  widget.artifact.baseArtefact!.nameShown = val;
                   setState(() { _showName = val; });
 
-                  // Ask the owning TalkingMat (if available) to persist the change.
-                  final matState = context.findAncestorStateOfType<TalkingMatState>();
-                  await matState?.forceAutoSave();
+                  // Persist to backend via PATCH
+                  try {
+                    await widget.artifactController.updateArtefact(
+                      context,
+                      widget.artifact.baseArtefact!,
+                    );
+                  } catch (e) {
+                    debugPrint('Error updating nameShown: $e');
+                  }
               },
               playSound: () async {
                 await _soundPlayer.playArtefactSound(widget.artifact.baseArtefact!);

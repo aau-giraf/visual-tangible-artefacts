@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
@@ -33,46 +34,54 @@ class SettingsService {
 
   Future<void> updateTextUnderImages(bool newValue) async {
     await SharedPreferencesAsync().setBool('textUnderImages', newValue);
-    // Also update the database
-    await _updateUserSettingsInDatabase();
+    // Update database: User.NameVisible and bulk update all artefacts
+    await _updateUserSettingsInDatabase(nameVisible: newValue, bulkUpdateArtefacts: true);
   }
 
   Future<void> updateLinearArtifactCount(int newValue) async {
     await SharedPreferencesAsync().setInt('linearArtifactCount', newValue);
     // Also update the database
-    await _updateUserSettingsInDatabase();
+    await _updateUserSettingsInDatabase(fieldCount: newValue);
   }
 
   /// Updates user settings in the database
-  Future<void> _updateUserSettingsInDatabase() async {
+  Future<void> _updateUserSettingsInDatabase({
+    bool? nameVisible,
+    int? fieldCount,
+    bool bulkUpdateArtefacts = false,
+  }) async {
     try {
       final token = GetIt.instance.get<Token>().value;
       if (token == null) return;
       
       final userRepository = UserRepository();
-      final currentUser = await userRepository.fetchUser(token);
-      if (currentUser == null) return;
-
-      // TODO: Update the user object with current local settings and send to database
-      // final textUnderImages = await SharedPreferencesAsync().getBool('textUnderImages') ?? false;
-      // final linearArtifactCount = await SharedPreferencesAsync().getInt('linearArtifactCount') ?? 4;
       
-      // TODO: Create updated user object and send to database via PUT API
-      // final updatedUser = User(
-      //   id: currentUser.id,
-      //   name: currentUser.name,
-      //   guardianKey: currentUser.guardianKey,
-      //   username: currentUser.username,
-      //   nameVisible: textUnderImages,
-      //   fieldCount: linearArtifactCount,
-      //   categories: currentUser.categories,
-      // );
+      // Update user settings
+      final success = await userRepository.updateUserSettings(
+        token: token,
+        nameVisible: nameVisible,
+        fieldCount: fieldCount,
+      );
       
-      // TODO: Add method to UserRepository to update user via PUT API
-      // For now, we'll just keep local settings in sync
+      if (!success) {
+        debugPrint('Failed to update user settings');
+        return;
+      }
+      
+      // If nameVisible changed and bulkUpdateArtefacts is true, update all artefacts
+      if (bulkUpdateArtefacts && nameVisible != null) {
+        final bulkSuccess = await userRepository.bulkUpdateArtefactsNameShown(
+          token: token,
+          nameShown: nameVisible,
+        );
+        
+        if (!bulkSuccess) {
+          debugPrint('Failed to bulk update artefacts');
+        }
+      }
       
     } catch (e) {
-      print('Error updating user settings in database: $e');
+      debugPrint('Error updating user settings in database: $e');
     }
   }
 

@@ -228,3 +228,14 @@ public partial class ArtefactTextToSpeechDTO
     /// </summary>
     public bool? UseSpeakerBoost { get; set; }
 }
+
+/// <summary>
+/// DTO for bulk updating nameShown for all user's artefacts
+/// </summary>
+public partial class BulkUpdateNameShownDTO
+{
+    /// <summary>
+    /// The nameShown value to apply to all artefacts
+    /// </summary>
+    public required bool NameShown { get; set; }
+}

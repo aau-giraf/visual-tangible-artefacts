@@ -50,3 +50,19 @@ public class UserLoginResponseDTO
 
 
 
+
+/// <summary>
+/// DTO for updating user settings
+/// </summary>
+public partial class UserPatchDTO
+{
+    /// <summary>
+    /// Whether artefact names should be shown by default
+    /// </summary>
+    public bool? NameVisible { get; set; }
+    
+    /// <summary>
+    /// Number of fields/columns in the linear layout
+    /// </summary>
+    public int? FieldCount { get; set; }
+}

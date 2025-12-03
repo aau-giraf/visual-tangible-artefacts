@@ -61,18 +61,16 @@ class ArtifactBoardController {
     _setupLinearBoardController();
     getCurrentBoardStatus();
 
-    // Apply initial setting for text under images (default false)
-    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
-    // Listen for changes to settings and sync name visibility
+    // Listen for changes to settings
     settingsController.addListener(_onSettingsChanged);
   }
 
   void _onSettingsChanged() {
-    // When the setting toggles, update all current artefacts' name visibility
-    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
+    // When textUnderImages setting changes, all artefacts will automatically reflect
+    // the change through baseArtefact.nameShown (which was bulk updated on backend)
     // Sync linear board field count when setting changes
     linearBoardController.setFieldCount(settingsController.linearArtifactCount);
-    // Optionally notify view in case other UI depends on settings 
+    // Notify view to trigger rebuild and show updated name visibility
     notifyView();
   }
 
@@ -112,8 +110,8 @@ class ArtifactBoardController {
 
   /// Add an artifact to the currently active board
   void addArtifactToCurrentBoard(BoardArtefact artifact) {
-    // Apply current setting for name visibility to the new artefact before adding
-    artifact.nameVisible = settingsController.textUnderImages;
+    // Note: artifact.nameVisible now reads from baseArtefact.nameShown
+    // New artefacts will already have the correct nameShown value from the backend
     if (showDirectional) {
       linearBoardController.addArtifact(artifact);
     } else {

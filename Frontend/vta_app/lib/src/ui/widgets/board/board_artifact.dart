@@ -11,8 +11,6 @@ class BoardArtefact {
   String? savedArtefactId;
   final ValueNotifier<Size> sizeNotifier;
   final ValueNotifier<bool> showResizeHandle;
-  // Per-instance display state (e.g., show name above the artefact)
-  bool nameVisible;
   // Used for auto-sizing images on first render
   final String? imageUrlForSizing;
   final Map<String, String>? imageHeadersForSizing;
@@ -24,12 +22,21 @@ class BoardArtefact {
     this.imageUrlForSizing,
     this.imageHeadersForSizing,
     Size? initialSize,
-    bool? nameVisible,
+    bool? nameVisible, // Kept for backward compatibility but ignored
   })  : sizeNotifier = ValueNotifier<Size>(initialSize ?? const Size(200, 200)),
-        showResizeHandle = ValueNotifier<bool>(false),
-        nameVisible = nameVisible ?? false;
+        showResizeHandle = ValueNotifier<bool>(false);
 
   String get artefactId => baseArtefact?.artefactId ?? '';
+  
+  // Always read from baseArtefact.nameShown
+  bool get nameVisible => baseArtefact?.nameShown ?? false;
+  
+  // Setter to update baseArtefact.nameShown
+  set nameVisible(bool value) {
+    if (baseArtefact != null) {
+      baseArtefact!.nameShown = value;
+    }
+  }
 
   Widget get content => _BoardArtefactContent(
         baseContent: baseContent,
