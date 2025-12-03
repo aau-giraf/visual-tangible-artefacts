@@ -12,6 +12,8 @@ import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 import 'functions/auth.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
+import 'package:vta_app/src/ui/screens/calling_screen.dart';
+import 'package:vta_app/src/ui/screens/incomming_call_screen.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -72,6 +74,10 @@ class MyApp extends StatelessWidget {
                       artifactController: artifactController,
                       settingsController: settingsController,
                     );
+                  case CallingScreen.routeName:
+                    return const CallingScreen();
+                  case IncomingCallScreen.routeName:
+                    return const IncomingCallScreen();
                   default:
                     return SplashView(controller: authController);
                 }
