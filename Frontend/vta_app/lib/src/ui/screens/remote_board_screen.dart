@@ -101,6 +101,53 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
             ? GetIt.instance.get<ArtefactController>()
             : null);
 
+    // If artefactController exists but categories haven't been loaded yet, load them
+    if (artefactController != null && artefactController.categories == null) {
+      return FutureBuilder(
+        future: artefactController.updateArtifacts(context: context),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            );
+          } else if (snapshot.connectionState == ConnectionState.done) {
+            // Categories loaded, rebuild with the actual screen
+            return _buildRemoteBoardScreen(
+              context,
+              padding,
+              screenHeight,
+              categoriesWidgetHeight,
+              dividerHeight,
+              artefactController,
+            );
+          }
+          return const Scaffold(body: SizedBox.shrink());
+        },
+      );
+    }
+
+    return _buildRemoteBoardScreen(
+      context,
+      padding,
+      screenHeight,
+      categoriesWidgetHeight,
+      dividerHeight,
+      artefactController,
+    );
+  }
+
+  Widget _buildRemoteBoardScreen(
+    BuildContext context,
+    double padding,
+    double screenHeight,
+    double categoriesWidgetHeight,
+    double dividerHeight,
+    ArtefactController? artefactController,
+  ) {
     return Scaffold(
       appBar: AppBar(
         title: Text(isOwner ? "Styring" : "Visning"),

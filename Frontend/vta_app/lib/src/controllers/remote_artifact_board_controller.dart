@@ -44,9 +44,17 @@ class RemoteArtifactBoardController {
     // Disable auto-save during remote sessions
     _setupRemoteSession();
 
-    // Load board from backend
-    debugPrint("RemoteSync => Loading shared board from backend: $sharedBoardId");
-    _loadBoardFromBackend(sharedBoardId);
+    if (isOwner) {
+      // Owner: send current board state to remote participant
+      debugPrint("RemoteSync => Owner sending current board state");
+      Future.delayed(const Duration(milliseconds: 200), () {
+        _pushFullBoard();
+      });
+    } else {
+      // Non-owner: wait for board state from owner via SignalR
+      debugPrint("RemoteSync => Non-owner waiting for board state from owner");
+      // Don't try to load from backend - just wait for SignalR updates
+    }
   }
 
   void dispose() {
@@ -326,8 +334,14 @@ class RemoteArtifactBoardController {
   }
 
   // ---------------- Load board from backend ----------------
-
-  /// Loads a saved board from the backend database and applies it to the current board
+  // NOTE: This functionality is currently disabled during remote sessions.
+  // Owner uses their existing board and sends it via SignalR.
+  // Non-owner receives updates via SignalR only.
+  //
+  // Future implementation could use this to allow owner to load a saved board
+  // at the start of a remote session.
+  
+  /* COMMENTED OUT - Not used in current remote session flow
   Future<void> _loadBoardFromBackend(String boardId) async {
     try {
       debugPrint("RemoteSync => Fetching board $boardId from backend...");
@@ -400,4 +414,5 @@ class RemoteArtifactBoardController {
       debugPrint("RemoteSync => EXCEPTION loading board: $e");
     }
   }
+  */
 }
