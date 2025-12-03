@@ -51,12 +51,18 @@ class SettingsService {
     bool bulkUpdateArtefacts = false,
   }) async {
     try {
-      final token = GetIt.instance.get<Token>().value;
-      if (token == null) return;
+      debugPrint('_updateUserSettingsInDatabase: Starting with nameVisible=$nameVisible, fieldCount=$fieldCount, bulkUpdate=$bulkUpdateArtefacts');
       
+      final token = GetIt.instance.get<Token>().value;
+      if (token == null) {
+        return;
+      }
+      
+
       final userRepository = UserRepository();
       
       // Update user settings
+
       final success = await userRepository.updateUserSettings(
         token: token,
         nameVisible: nameVisible,
@@ -64,9 +70,8 @@ class SettingsService {
       );
       
       if (!success) {
-        debugPrint('Failed to update user settings');
         return;
-      }
+      }      
       
       // If nameVisible changed and bulkUpdateArtefacts is true, update all artefacts
       if (bulkUpdateArtefacts && nameVisible != null) {
@@ -76,12 +81,11 @@ class SettingsService {
         );
         
         if (!bulkSuccess) {
-          debugPrint('Failed to bulk update artefacts');
+        } else {
         }
       }
       
     } catch (e) {
-      debugPrint('Error updating user settings in database: $e');
     }
   }
 

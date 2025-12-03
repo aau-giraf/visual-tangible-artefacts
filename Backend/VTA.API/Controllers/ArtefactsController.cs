@@ -188,13 +188,13 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
-        
+
         // If NameShown not explicitly set, inherit from user's default setting
         if (artefact.NameShown == null)
         {
             artefact.NameShown = user.NameVisible;
         }
-        
+                
 
         context.Artefacts.Add(artefact);
         try

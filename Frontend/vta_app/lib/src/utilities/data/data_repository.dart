@@ -268,6 +268,7 @@ class UserRepository extends ApiDataRepository {
     int? fieldCount,
   }) async {
     try {
+    
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
@@ -276,6 +277,7 @@ class UserRepository extends ApiDataRepository {
       if (nameVisible != null) body['nameVisible'] = nameVisible;
       if (fieldCount != null) body['fieldCount'] = fieldCount;
       
+      
       var response = await apiProvider.patchAsJson('Users', 
         headers: headers, 
         body: body
@@ -283,7 +285,6 @@ class UserRepository extends ApiDataRepository {
       
       return responseOk(response);
     } catch (e) {
-      debugPrint("An error occurred while updating user settings: $e");
       return false;
     }
   }
@@ -294,21 +295,22 @@ class UserRepository extends ApiDataRepository {
     required bool nameShown,
   }) async {
     try {
+      
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
       
       Map<String, dynamic> body = {'nameShown': nameShown};
-      
+            
       var response = await apiProvider.patchAsJson(
         'Users/Artefacts/bulk-update-name-shown', 
         headers: headers, 
         body: body
       );
+
       
       return responseOk(response);
     } catch (e) {
-      debugPrint("An error occurred while bulk updating artefacts: $e");
       return false;
     }
   }

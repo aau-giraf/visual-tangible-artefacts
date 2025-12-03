@@ -105,6 +105,8 @@ class BoardArtefact {
       innerContent = Image.asset('assets/images/flutter_logo.png');
     }
 
+
+
     return BoardArtefact(
       baseContent: innerContent,
       baseArtefact: artefact,
@@ -112,7 +114,6 @@ class BoardArtefact {
       imageHeadersForSizing: headers,
       initialSize: const Size(200, 200),
 
-      // Default per-tile visibility from the underlying artefact's global setting
       nameVisible: artefact.nameShown ?? false,
     );
   }

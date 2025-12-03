@@ -33,6 +33,12 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
     }
   }
 
+  /// Force a rebuild of all artifacts on the board
+  /// Useful when a base artefact property changes (like nameShown)
+  void refresh() {
+    notifyListeners();
+  }
+
   void _showRemoveAllArtifactsAlert(BuildContext context) {
     showDialog(
         context: context,

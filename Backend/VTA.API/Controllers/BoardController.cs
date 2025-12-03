@@ -48,27 +48,33 @@ public class BoardController : ControllerBase
             .Where(b => b.UserId == userId)
             .Include(b => b.SavedArtefacts)
                 .ThenInclude(sa => sa.Artefact)
-            .Select(b => new BoardLayoutResponseDTO
-            {
-                BoardId = b.Id,
-                Name = b.Name,
-                CreatedDate = b.CreatedDate,
-                ModifiedDate = b.ModifiedDate,
-                    Artefacts = b.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
-                    {
-                        SavedArtefactId = sa.Id,
-                        ArtefactId = sa.ArtefactId,
-                        PosX = sa.PosX,
-                        PosY = sa.PosY,
-                        Width = sa.Width,
-                        Height = sa.Height,
-                        // Resolve inheritance: use saved value if not null, otherwise inherit from user settings
-                        NameVisible = sa.NameVisible ?? user.NameVisible
-                    }).ToList()
-            })
             .ToListAsync();
 
-        return Ok(boards);
+        var response = boards.Select(b => new BoardLayoutResponseDTO
+        {
+            BoardId = b.Id,
+            Name = b.Name,
+            CreatedDate = b.CreatedDate,
+            ModifiedDate = b.ModifiedDate,
+            Artefacts = b.SavedArtefacts.Select(sa =>
+            {
+                var finalValue = sa.NameVisible ?? sa.Artefact.NameShown ?? user.NameVisible;
+                
+                return new BoardArtefactLayoutDTO
+                {
+                    SavedArtefactId = sa.Id,
+                    ArtefactId = sa.ArtefactId,
+                    PosX = sa.PosX,
+                    PosY = sa.PosY,
+                    Width = sa.Width,
+                    Height = sa.Height,
+                    // Inherit from base artefact's nameShown if not explicitly set on the saved artefact
+                    NameVisible = finalValue
+                };
+            }).ToList()
+        }).ToList();
+
+        return Ok(response);
     }
 
     /// <summary>
@@ -109,16 +115,21 @@ public class BoardController : ControllerBase
             Name = board.Name,
             CreatedDate = board.CreatedDate,
             ModifiedDate = board.ModifiedDate,
-            Artefacts = board.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
+            Artefacts = board.SavedArtefacts.Select(sa =>
             {
-                SavedArtefactId = sa.Id,
-                ArtefactId = sa.ArtefactId,
-                PosX = sa.PosX,
-                PosY = sa.PosY,
-                Width = sa.Width,
-                Height = sa.Height,
-                // Resolve inheritance: use saved value if not null, otherwise inherit from user settings
-                NameVisible = sa.NameVisible ?? user.NameVisible
+                var finalValue = sa.NameVisible ?? sa.Artefact.NameShown ?? user.NameVisible;
+                
+                return new BoardArtefactLayoutDTO
+                {
+                    SavedArtefactId = sa.Id,
+                    ArtefactId = sa.ArtefactId,
+                    PosX = sa.PosX,
+                    PosY = sa.PosY,
+                    Width = sa.Width,
+                    Height = sa.Height,
+                    // Inherit from base artefact's nameShown if not explicitly set on the saved artefact
+                    NameVisible = finalValue
+                };
             }).ToList()
         };
 
@@ -181,14 +192,20 @@ public class BoardController : ControllerBase
                     
                     foreach (var artefactLayout in request.Artefacts)
                     {
-                        // Verify the artefact exists and belongs to the user
-                        var artefactExists = await _context.Artefacts
-                            .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
+                        // Fetch the base artefact to get its nameShown value
+                        var baseArtefact = await _context.Artefacts
+                            .FirstOrDefaultAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
 
-                        if (!artefactExists)
+                        if (baseArtefact == null)
                         {
                             throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
                         }
+
+                        // Debug logging for name visibility inheritance
+                        Console.WriteLine($"Debug: SaveBoard - Adding artefact '{baseArtefact.Name}' (ID: {artefactLayout.ArtefactId}) to board '{request.Name}'");
+                        Console.WriteLine($"Debug: SaveBoard - Base artefact NameShown: {baseArtefact.NameShown}");
+                        Console.WriteLine($"Debug: SaveBoard - Layout NameVisible: {artefactLayout.NameVisible}");
+                        Console.WriteLine($"Debug: SaveBoard - User default NameVisible: {user.NameVisible}");
 
                         var savedArtefact = new SavedArtefact
                         {
@@ -200,9 +217,12 @@ public class BoardController : ControllerBase
                             Width = artefactLayout.Width,
                             Height = artefactLayout.Height,
                             CreatedDate = DateTime.UtcNow,
-                            // Use provided value, or inherit from user's default setting for new artefacts
-                            NameVisible = artefactLayout.NameVisible ?? user.NameVisible
+                            // Inherit from base artefact's nameShown (if explicitly set), otherwise from provided value, otherwise from user's default
+                            NameVisible = baseArtefact.NameShown ?? artefactLayout.NameVisible ?? user.NameVisible
                         };
+
+                        Console.WriteLine($"Debug: SaveBoard - Final SavedArtefact NameVisible: {savedArtefact.NameVisible}");
+                        Console.WriteLine($"Debug: SaveBoard - Inheritance chain used: baseArtefact.NameShown ({baseArtefact.NameShown}) ?? layout ({artefactLayout.NameVisible}) ?? user ({user.NameVisible}) = {savedArtefact.NameVisible}");
 
                         _context.SavedArtefacts.Add(savedArtefact);
 
@@ -327,14 +347,20 @@ public class BoardController : ControllerBase
                     // Add all artefact layouts from the request
                     foreach (var artefactLayout in request.Artefacts)
                     {
-                        // Verify the artefact exists and belongs to the user
-                        var artefactExists = await _context.Artefacts
-                            .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
+                        // Fetch the base artefact to get its nameShown value
+                        var baseArtefact = await _context.Artefacts
+                            .FirstOrDefaultAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
 
-                        if (!artefactExists)
+                        if (baseArtefact == null)
                         {
                             throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
                         }
+
+                        // Debug logging for name visibility inheritance
+                        Console.WriteLine($"Debug: UpdateBoard - Adding artefact '{baseArtefact.Name}' (ID: {artefactLayout.ArtefactId}) to board '{request.Name}'");
+                        Console.WriteLine($"Debug: UpdateBoard - Base artefact NameShown: {baseArtefact.NameShown}");
+                        Console.WriteLine($"Debug: UpdateBoard - Layout NameVisible: {artefactLayout.NameVisible}");
+                        Console.WriteLine($"Debug: UpdateBoard - User default NameVisible: {user.NameVisible}");
 
                         // Create new saved artefact
                         var savedArtefact = new SavedArtefact
@@ -347,9 +373,12 @@ public class BoardController : ControllerBase
                             Width = artefactLayout.Width,
                             Height = artefactLayout.Height,
                             CreatedDate = DateTime.UtcNow,
-                            // Use provided value, or inherit from user's default setting for new artefacts
-                            NameVisible = artefactLayout.NameVisible ?? user.NameVisible
+                            // Inherit from base artefact's nameShown (if explicitly set), otherwise from provided value, otherwise from user's default
+                            NameVisible = baseArtefact.NameShown ?? artefactLayout.NameVisible ?? user.NameVisible
                         };
+
+                        Console.WriteLine($"Debug: UpdateBoard - Final SavedArtefact NameVisible: {savedArtefact.NameVisible}");
+                        Console.WriteLine($"Debug: UpdateBoard - Inheritance chain used: baseArtefact.NameShown ({baseArtefact.NameShown}) ?? layout ({artefactLayout.NameVisible}) ?? user ({user.NameVisible}) = {savedArtefact.NameVisible}");
 
                         _context.SavedArtefacts.Add(savedArtefact);
 

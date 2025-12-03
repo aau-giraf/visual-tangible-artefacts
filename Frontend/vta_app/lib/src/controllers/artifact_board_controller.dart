@@ -66,12 +66,40 @@ class ArtifactBoardController {
   }
 
   void _onSettingsChanged() {
-    // When textUnderImages setting changes, all artefacts will automatically reflect
-    // the change through baseArtefact.nameShown (which was bulk updated on backend)
+    // When textUnderImages setting changes, update all artefacts on both boards
+    // to match the new setting value
+    final newNameVisible = settingsController.textUnderImages;
+    
+    print('Debug: _onSettingsChanged - Updating all artefacts to nameShown: $newNameVisible');
+    
+    // Update all artefacts on the TalkingMat
+    final talkingMatArtefacts = talkingmatController.value;
+    for (var boardArtefact in talkingMatArtefacts) {
+      if (boardArtefact.baseArtefact != null) {
+        boardArtefact.baseArtefact!.nameShown = newNameVisible;
+        print('Debug: _onSettingsChanged - Updated TalkingMat artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
+      }
+    }
+    
+    // Update all artefacts on the LinearBoard
+    final linearArtefacts = linearBoardController.artifacts;
+    for (var boardArtefact in linearArtefacts) {
+      if (boardArtefact?.baseArtefact != null) {
+        boardArtefact!.baseArtefact!.nameShown = newNameVisible;
+        print('Debug: _onSettingsChanged - Updated LinearBoard artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
+      }
+    }
+    
+    // Trigger refresh on TalkingMat controller to rebuild all widgets
+    talkingmatController.refresh();
+    
     // Sync linear board field count when setting changes
     linearBoardController.setFieldCount(settingsController.linearArtifactCount);
+    
     // Notify view to trigger rebuild and show updated name visibility
     notifyView();
+    
+    print('Debug: _onSettingsChanged - Completed updating all artefacts');
   }
 
 

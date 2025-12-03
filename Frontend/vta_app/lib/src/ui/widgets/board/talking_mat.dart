@@ -443,10 +443,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
   // Set the saved instance id so future updates target this specific instance
   boardArtefact.savedArtefactId = layout.savedArtefactId;
-  // Restore per-instance name visibility if provided
-  if (layout.nameVisible != null) {
-    boardArtefact.nameVisible = layout.nameVisible!;
-  }
+  
+
+  // NOTE: We do NOT override the base artefact's nameShown with the layout's computed value
+  // The nameVisible from layout is already computed on the backend (SavedArtefact ?? BaseArtefact ?? User)
+  // But we should always display what the base artefact actually says, not override it
+  // This ensures that when the base artefact's nameShown changes, all instances update automatically
 
       // Add it to the controller
       widget.controller.addArtifact(boardArtefact);
