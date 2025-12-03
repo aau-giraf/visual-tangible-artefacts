@@ -38,7 +38,7 @@ class BoardArtefactLayout {
       'posY': posY,
       'width': width,
       'height': height,
-      'nameVisible': nameVisible, // Always include nameVisible, even if false or null
+      if (nameVisible != null) 'nameVisible': nameVisible,
     };
   }
 
@@ -134,10 +134,12 @@ class UpdateArtefactLayoutRequest {
       'posY': posY,
       'width': width,
       'height': height,
-      'nameVisible': nameVisible,
     };
     if (savedArtefactId != null) {
       map['savedArtefactId'] = savedArtefactId;
+    }
+    if (nameVisible != null) {
+      map['nameVisible'] = nameVisible;
     }
     return map;
   }

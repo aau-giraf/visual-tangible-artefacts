@@ -7,10 +7,6 @@ import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
-import 'package:get_it/get_it.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'package:vta_app/src/singletons/token.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -180,11 +176,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                   widget.artifact.nameVisible = val;
                   setState(() { _showName = val; });
 
-                  // Also update the base ARTEFACT table's nameShown field
-                  if (widget.artifact.baseArtefact?.artefactId != null) {
-                    await _updateBaseArtefactNameShown(widget.artifact.baseArtefact!.artefactId!, val);
-                  }
-
                   // Ask the owning TalkingMat (if available) to persist the change.
                   final matState = context.findAncestorStateOfType<TalkingMatState>();
                   await matState?.forceAutoSave();
@@ -224,52 +215,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _wheelSize = null;
-  }
-
-  /// Update the base ARTEFACT table's nameShown field via backend API
-  Future<void> _updateBaseArtefactNameShown(String artefactId, bool nameShown) async {
-    try {
-      final token = GetIt.instance.get<Token>().value;
-      final apiProvider = GetIt.instance.get<ApiProvider>();
-      
-      if (token == null) {
-        print('Debug: No token available for updating base artefact $artefactId');
-        return;
-      }
-
-      // Decode user ID from JWT token
-      final decodedToken = JwtDecoder.decode(token);
-      final userId = decodedToken['id'] as String?;
-      
-      if (userId == null) {
-        print('Debug: Could not extract user ID from token');
-        return;
-      }
-
-      // Create form data for the PATCH request
-      final formData = <String, dynamic>{
-        'ArtefactId': artefactId,
-        'UserId': userId,
-        'NameShown': nameShown,
-      };
-
-      final response = await apiProvider.sendAsMultiPart(
-        'PATCH',
-        'Users/Artefacts',
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-        body: formData,
-      );
-
-      if (response?.statusCode == 200) {
-        print('Debug: Successfully updated base artefact $artefactId nameShown to $nameShown');
-      } else {
-        print('Debug: Failed to update base artefact $artefactId nameShown. Status: ${response?.statusCode}');
-      }
-    } catch (e) {
-      print('Debug: Error updating base artefact $artefactId nameShown: $e');
-    }
   }
 }
 

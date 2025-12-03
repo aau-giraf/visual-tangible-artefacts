@@ -53,6 +53,24 @@ class SettingsService {
       final currentUser = await userRepository.fetchUser(token);
       if (currentUser == null) return;
 
+      // TODO: Update the user object with current local settings and send to database
+      // final textUnderImages = await SharedPreferencesAsync().getBool('textUnderImages') ?? false;
+      // final linearArtifactCount = await SharedPreferencesAsync().getInt('linearArtifactCount') ?? 4;
+      
+      // TODO: Create updated user object and send to database via PUT API
+      // final updatedUser = User(
+      //   id: currentUser.id,
+      //   name: currentUser.name,
+      //   guardianKey: currentUser.guardianKey,
+      //   username: currentUser.username,
+      //   nameVisible: textUnderImages,
+      //   fieldCount: linearArtifactCount,
+      //   categories: currentUser.categories,
+      // );
+      
+      // TODO: Add method to UserRepository to update user via PUT API
+      // For now, we'll just keep local settings in sync
+      
     } catch (e) {
       print('Error updating user settings in database: $e');
     }
