@@ -38,9 +38,16 @@ class AuthController extends ChangeNotifier {
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
     } catch (e) {
+      // Clear any existing SnackBars to prevent keyboard issues
       if (context != null && context.mounted) {
-        _showErrorSnackBar(context, e.toString());
+        try {
+          ScaffoldMessenger.of(context).clearSnackBars();
+        } catch (_) {}
       }
+      
+      debugPrint('[AUTH] Error: ${e.toString()}');
+      // Re-throw the exception so LoginView can catch and display it
+      rethrow;
     } finally {
       notifyListeners();
     }
@@ -75,10 +82,27 @@ class AuthController extends ChangeNotifier {
           name: name,
           guardianKey: guardianKey);
       await _model.signup(form);
-    } catch (e) {
+      
+      // If successful, navigate to main screen
       if (context != null && context.mounted) {
-        _showErrorSnackBar(context, e.toString());
+        await artifactController.updateArtifacts(context: context);
+        if(!context.mounted) return;
+        await artifactController.updateMostUsedCategories(context: context);
+        if(!context.mounted) return;
+        Navigator.of(context)
+            .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
+    } catch (e) {
+      // Clear any existing SnackBars to prevent keyboard issues
+      if (context != null && context.mounted) {
+        try {
+          ScaffoldMessenger.of(context).clearSnackBars();
+        } catch (_) {}
+      }
+      
+      debugPrint('[AUTH] Signup Error: ${e.toString()}');
+      // Re-throw the exception so LoginView can catch and display it
+      rethrow;
     } finally {
       notifyListeners();
     }
@@ -121,10 +145,17 @@ class AuthController extends ChangeNotifier {
     );
   }
 
-  /// Shows a snackbar with an error message
+  /// Shows error message without SnackBar to prevent keyboard issues
   void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    GlobalSnackbar.show(context, message,
-        color: Colors.white, iconColor: Colors.red);
+    // Clear any existing SnackBars to prevent layout conflicts
+    try {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    } catch (e) {
+      // Ignore any clearing errors
+    }
+    
+    // Instead of SnackBar, we'll rely on the login screen's inline error display
+    // This prevents floating UI elements that interfere with Android keyboard
+    debugPrint('[AUTH] Error: $message'); // For debugging
   }
 }
