@@ -122,6 +122,32 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.IncludeXmlComments(Assembly.GetExecutingAssembly());//For XML comments to be included in the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/?tab=readme-ov-file#include-descriptions-from-xml-comments
     //options.EnableAnnotations();// For using Attributes to document the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
+
+        // Add JWT Authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below.\r\n\r\nExample: \"abc123token\""
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 builder.WebHost.ConfigureKestrel(options =>
