@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/services/board_layout_service.dart';
@@ -8,6 +9,7 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:vta_app/src/singletons/token.dart';
 
 typedef VoidCallback = void Function();
 
@@ -249,7 +251,12 @@ class RemoteArtifactBoardController {
           soundUrl: item['soundUrl'],
         );
 
-        final boardItem = BoardArtefact.fromArtefact(artefact);
+        // Build headers for network image authentication
+        final token = GetIt.instance.get<Token>().value;
+        Map<String, String>? headers;
+        if (token != null) headers = {'Authorization': 'Bearer $token'};
+
+        final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
 
         final size = item['size'];
         if (size != null) {
@@ -359,7 +366,12 @@ class RemoteArtifactBoardController {
           soundUrl: null,
         );
 
-        final boardItem = BoardArtefact.fromArtefact(artefact);
+        // Build headers for network image authentication
+        final token = GetIt.instance.get<Token>().value;
+        Map<String, String>? headers;
+        if (token != null) headers = {'Authorization': 'Bearer $token'};
+
+        final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
 
         // Set size
         boardItem.sizeNotifier.value = Size(
