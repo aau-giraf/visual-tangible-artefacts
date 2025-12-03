@@ -43,12 +43,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   @override
   void initState() {
-    super.initState();
-    // Lock to landscape orientation for video calls
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    super.initState();    
+    // Listen for remote hang-up
+    SignalRService().onSessionEnded = () {
+      debugPrint('[VideoCall] Remote user ended the session');
+      if (mounted) {
+        VideoCallManager().endCall();
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/artifact-board',
+          (route) => false,
+        );
+      }
+    };
     
     if (widget.returnFromBoard && VideoCallManager().isCallActive) {
       _restoreCallState();
@@ -216,15 +222,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   @override
   void dispose() {
     debugPrint('[VideoCall] Disposing - hasTransitioned: $_hasTransitioned, mounted: $mounted');
-    
-    // Restore all orientations when leaving call
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    
+        
     if (!_hasTransitioned) {
       debugPrint('[VideoCall] Disposing WebRTC resources');
       _webrtcService?.dispose();
@@ -312,8 +310,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   _buildControlButton(
                     icon: Icons.call_end,
                     onPressed: () async {
+                      debugPrint('[VideoCall] Hang-up button pressed');
+                      await SignalRService().endSession();
                       await VideoCallManager().endCall();
-                      if (mounted) Navigator.pop(context);
+                      if (mounted) {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/artifact-board',
+                          (route) => false,
+                        );
+                      }
                     },
                     backgroundColor: Colors. red,
                     size: 70,

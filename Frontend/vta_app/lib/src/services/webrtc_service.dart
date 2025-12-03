@@ -11,6 +11,8 @@ class WebRTCService {
   final String myUserId;
   final String remoteUserId;
   
+  final List<RTCIceCandidate> _pendingIceCandidates = [];
+  
   // Callbacks for UI updates
   Function(MediaStream)? onLocalStream;
   Function(MediaStream)? onRemoteStream;
@@ -136,6 +138,19 @@ class WebRTCService {
       // Store peer connection only after successfully adding all tracks
       _peerConnection = pc;
       print('[WebRTC] Initialized successfully');
+      
+      // Add any pending ICE candidates that arrived early
+      if (_pendingIceCandidates.isNotEmpty) {
+        print('[WebRTC] Adding ${_pendingIceCandidates.length} pending ICE candidates');
+        for (var candidate in _pendingIceCandidates) {
+          try {
+            await _peerConnection!.addCandidate(candidate);
+          } catch (e) {
+            print('[WebRTC] Error adding pending ICE candidate: $e');
+          }
+        }
+        _pendingIceCandidates.clear();
+      }
     } catch (e) {
       print('[WebRTC] Initialization error: $e');
       onError?.call('Failed to initialize: $e');
@@ -197,7 +212,14 @@ class WebRTCService {
           candidateData['sdpMid'],
           candidateData['sdpMLineIndex'],
         );
-        await _peerConnection!.addCandidate(candidate);
+        
+        if (_peerConnection == null) {
+          print('[WebRTC] Peer connection not ready, queuing ICE candidate');
+          _pendingIceCandidates.add(candidate);
+        } else {
+          await _peerConnection!.addCandidate(candidate);
+          print('[WebRTC] Successfully added ICE candidate');
+        }
       } catch (e) {
         print('[WebRTC] Error adding ICE candidate: $e');
       }

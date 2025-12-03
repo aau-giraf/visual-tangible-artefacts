@@ -8,6 +8,7 @@ import 'package:vta_app/src/modelsDTOs/login_form.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'dart:convert';
 
 abstract class ApiDataRepository {
@@ -15,7 +16,8 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Local']);
+    apiProvider = ApiProvider(baseUrl: PlatformUtils.getApiUrl());
+    debugPrint('[DataRepository] Using API URL: ${PlatformUtils.getApiUrl()}');
   }
 
   bool responseOk(http.Response? response) {

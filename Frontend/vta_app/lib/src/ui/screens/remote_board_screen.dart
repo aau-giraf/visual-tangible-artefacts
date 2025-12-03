@@ -83,6 +83,19 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
         existingController: existingController,
         settingsController: widget.settingsController,
       );
+      
+      // Listen for remote hang-up
+      SignalRService().onSessionEnded = () {
+        debugPrint('[RemoteBoard] Remote user ended the session');
+        if (mounted) {
+          VideoCallManager().endCall();
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/artifact-board',
+            (route) => false,
+          );
+        }
+      };
+      
       _isInitialized = true;
     }
   }
@@ -177,9 +190,17 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.call_end),
+            color: Colors.red,
             onPressed: () async {
+              debugPrint('[RemoteBoard] Hang-up button pressed');
               await SignalRService().endSession();
-              if (mounted) Navigator.of(context).pop();
+              await VideoCallManager().endCall();
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/artifact-board',
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

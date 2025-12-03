@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 
 class SignalRService {
   static final SignalRService _instance = SignalRService._internal();
@@ -81,10 +82,8 @@ class SignalRService {
 
   // Determine URL based on platform
   String _getHubUrl() {
-    const path = "/boardHub";
-    if (kIsWeb) return "http://localhost:5002$path";
-    if (Platform.isAndroid) return "http://10.0.2.2:5002$path";
-    return "http://localhost:5002$path";
+    final baseUrl = PlatformUtils.getSyncServiceUrl();
+    return "$baseUrl/boardHub";
   }
 
   Future<void> _registerUser() async {

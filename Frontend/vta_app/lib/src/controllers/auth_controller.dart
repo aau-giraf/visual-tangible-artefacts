@@ -24,6 +24,18 @@ class AuthController extends ChangeNotifier {
     var status = await _model.checkAuth();
     if (status) {
       await _model.loadCache();
+      
+      // Connect to SignalR and setup callbacks if already authenticated
+      final userId = _model.userInfo.userId;
+      if (userId != null && userId.isNotEmpty) {
+        try {
+          await SignalRService().connect(userId);
+          _setupSignalRCallbacks();
+          debugPrint("SignalR: connected & registered user $userId (from checkAuth)");
+        } catch (e) {
+          debugPrint("SignalR: connect failed in checkAuth => $e");
+        }
+      }
     }
     return status;
   }

@@ -10,8 +10,24 @@ import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 
 typedef VoidCallback = void Function();
+
+/// Fix localhost URLs to use the correct API URL for the current platform
+String? _fixLocalhostUrl(String? url) {
+  if (url == null || url.isEmpty) return url;
+  
+  // Replace localhost URLs with the platform-specific API URL
+  if (url.contains('localhost:5192')) {
+    final apiUrl = PlatformUtils.getApiUrl();
+    // Remove '/api/' suffix from apiUrl if present to avoid doubling it
+    final baseUrl = apiUrl.endsWith('/api/') ? apiUrl.substring(0, apiUrl.length - 5) : apiUrl;
+    return url.replaceAll('http://localhost:5192', baseUrl);
+  }
+  
+  return url;
+}
 
 class RemoteArtifactBoardController {
   final ArtifactBoardController base;
@@ -255,8 +271,8 @@ class RemoteArtifactBoardController {
         final artefact = Artefact(
           artefactId: id,
           name: item['name'],
-          imageUrl: item['imageUrl'],
-          soundUrl: item['soundUrl'],
+          imageUrl: _fixLocalhostUrl(item['imageUrl']),
+          soundUrl: _fixLocalhostUrl(item['soundUrl']),
         );
 
         // Build headers for network image authentication
