@@ -75,9 +75,8 @@ void main() async {
 
   await Settings.init(cacheProvider: SharePreferenceCache());
   
-  // Initialize the sync timer to run every 30 seconds
-  print('[MAIN] Starting sync timer (30 second interval)');
-  SyncTimer().start(interval: const Duration(seconds: 30));
+  // NOTE: Sync timer is started after user logs in
+  // See login flow for SyncTimer().start()
   
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the

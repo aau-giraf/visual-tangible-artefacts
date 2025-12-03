@@ -142,14 +142,8 @@ class SyncService {
   /// Results are cached in the local SQLite database
   Future<SyncCheckResponse?> checkForChanges(DateTime since) async {
     try {
-      print('[SYNC] checkForChanges called with since: $since');
-      print('[SYNC] Current user ID: ${_userInfo.userId}');
-      
       // Format the date as ISO 8601 for the query parameter
       final sinceParam = since.toUtc().toIso8601String();
-      print('[SYNC] Formatted date parameter: $sinceParam');
-      
-      print('[SYNC] Making API call to Users/Sync/changes...');
       final apiResponse = await _apiProvider.fetchAsJson(
         'Users/Sync/changes?since=$sinceParam',
         headers: {
@@ -158,29 +152,19 @@ class SyncService {
       );
 
       if (apiResponse != null && apiResponse.statusCode == 200) {
-        print('[SYNC] API response received with status 200');
         final Map<String, dynamic> data = json.decode(apiResponse.body);
-        print('[SYNC] Response data: ${data.keys}');
         
         final changedFiles = (data['changedFiles'] as List<dynamic>)
             .map((file) => FileChangeRecord.fromJson(file as Map<String, dynamic>))
             .toList();
-        print('[SYNC] Parsed ${changedFiles.length} changed files from API');
-        for (final file in changedFiles) {
-          print('[SYNC]   - ${file.fileType}: ${file.fileName} (${file.fileId}), modified: ${file.modifiedDate}');
-        }
         
         // Update local database with fetched changes
-        print('[SYNC] Updating local database with ${changedFiles.length} changes...');
         await _updateLocalDatabase(changedFiles);
-        print('[SYNC] Local database update complete');
         
         // Update sync metadata
         final userId = _userInfo.userId;
         if (userId != null) {
-          print('[SYNC] Updating sync metadata for user $userId');
           await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
-          print('[SYNC] Sync metadata updated');
         }
         
         final syncResponse = SyncCheckResponse(
@@ -188,14 +172,11 @@ class SyncService {
           checkDate: DateTime.parse(data['checkDate'] as String),
           totalChanges: data['totalChanges'] as int,
         );
-        print('[SYNC] checkForChanges completed successfully: ${syncResponse.totalChanges} total changes');
         return syncResponse;
       }
-      print('[SYNC] API response was null or not 200: ${apiResponse?.statusCode}');
       return null;
     } catch (e) {
       print('[SYNC] ERROR in checkForChanges: $e');
-      print('[SYNC] Stack trace: ${StackTrace.current}');
       return null;
     }
   }
@@ -204,22 +185,14 @@ class SyncService {
   /// This checks the local SQLite database without calling the API
   Future<SyncCheckResponse?> checkLocalChanges(DateTime since) async {
     try {
-      print('[SYNC-LOCAL] checkLocalChanges called with since: $since');
       final userId = _userInfo.userId;
-      print('[SYNC-LOCAL] User ID: $userId');
-      if (userId == null) {
-        print('[SYNC-LOCAL] No user ID, returning null');
-        return null;
-      }
+      if (userId == null) return null;
 
       final List<FileChangeRecord> changedFiles = [];
       final sinceTimestamp = since.millisecondsSinceEpoch ~/ 1000;
-      print('[SYNC-LOCAL] Since timestamp: $sinceTimestamp');
 
       // Query local artefacts
-      print('[SYNC-LOCAL] Querying local artefacts...');
       final artefacts = await _artefactRepo.getByUserId(userId);
-      print('[SYNC-LOCAL] Found ${artefacts.length} local artefacts');
       int artefactChanges = 0;
       for (final artefact in artefacts) {
         if (artefact.modifiedDate != null && artefact.modifiedDate! > sinceTimestamp) {
@@ -233,15 +206,11 @@ class SyncService {
             soundUrl: artefact.soundPath,
           );
           changedFiles.add(record);
-          print('[SYNC-LOCAL]   - Changed artefact: ${record.fileName} (${record.fileId}), modified: ${record.modifiedDate}');
         }
       }
-      print('[SYNC-LOCAL] Found $artefactChanges changed artefacts');
 
       // Query local boards
-      print('[SYNC-LOCAL] Querying local boards...');
       final boards = await _boardRepo.getByUserId(userId);
-      print('[SYNC-LOCAL] Found ${boards.length} local boards');
       int boardChanges = 0;
       for (final board in boards) {
         if (board.modifiedDate != null && board.modifiedDate! > sinceTimestamp) {
@@ -253,13 +222,10 @@ class SyncService {
             modifiedDate: DateTime.fromMillisecondsSinceEpoch(board.modifiedDate! * 1000),
           );
           changedFiles.add(record);
-          print('[SYNC-LOCAL]   - Changed board: ${record.fileName} (${record.fileId}), modified: ${record.modifiedDate}');
         }
       }
-      print('[SYNC-LOCAL] Found $boardChanges changed boards');
 
       // Sort by modification date (most recent first)
-      print('[SYNC-LOCAL] Sorting ${changedFiles.length} changed files by date...');
       changedFiles.sort((a, b) {
         if (a.modifiedDate == null && b.modifiedDate == null) return 0;
         if (a.modifiedDate == null) return 1;
@@ -272,11 +238,9 @@ class SyncService {
         checkDate: DateTime.now(),
         totalChanges: changedFiles.length,
       );
-      print('[SYNC-LOCAL] checkLocalChanges completed: ${response.totalChanges} total changes');
       return response;
     } catch (e) {
       print('[SYNC-LOCAL] ERROR in checkLocalChanges: $e');
-      print('[SYNC-LOCAL] Stack trace: ${StackTrace.current}');
       return null;
     }
   }
@@ -285,29 +249,21 @@ class SyncService {
   /// Downloads complete entity data from the server and updates the local SQLite database
   Future<bool> syncFromServer({DateTime? since}) async {
     try {
-      print('[SYNC-SERVER] syncFromServer called');
       final userId = _userInfo.userId;
-      print('[SYNC-SERVER] User ID: $userId');
-      if (userId == null) {
-        print('[SYNC-SERVER] No user ID, aborting sync');
-        return false;
-      }
+      if (userId == null) return false;
 
       final syncDate = since ?? DateTime.now().subtract(const Duration(days: 365));
-      print('[SYNC-SERVER] Using sync date: $syncDate');
 
       // Sync all entities from API
       int totalSynced = 0;
       
       // 1. Sync artefacts
-      print('[SYNC-SERVER] Fetching artefacts from API...');
       final artefactsResponse = await _apiProvider.fetchAsJson(
         'Artefacts',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       if (artefactsResponse != null && artefactsResponse.statusCode == 200) {
         final List<dynamic> artefactsData = json.decode(artefactsResponse.body);
-        print('[SYNC-SERVER] Received ${artefactsData.length} artefacts from API');
         for (final data in artefactsData) {
           await _syncArtefact(data);
           totalSynced++;
@@ -315,14 +271,12 @@ class SyncService {
       }
 
       // 2. Sync categories
-      print('[SYNC-SERVER] Fetching categories from API...');
       final categoriesResponse = await _apiProvider.fetchAsJson(
         'Categories',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       if (categoriesResponse != null && categoriesResponse.statusCode == 200) {
         final List<dynamic> categoriesData = json.decode(categoriesResponse.body);
-        print('[SYNC-SERVER] Received ${categoriesData.length} categories from API');
         for (final data in categoriesData) {
           await _syncCategory(data);
           totalSynced++;
@@ -330,14 +284,12 @@ class SyncService {
       }
 
       // 3. Sync boards
-      print('[SYNC-SERVER] Fetching boards from API...');
       final boardsResponse = await _apiProvider.fetchAsJson(
         'Boards',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       if (boardsResponse != null && boardsResponse.statusCode == 200) {
         final List<dynamic> boardsData = json.decode(boardsResponse.body);
-        print('[SYNC-SERVER] Received ${boardsData.length} boards from API');
         for (final data in boardsData) {
           await _syncBoard(data);
           totalSynced++;
@@ -347,11 +299,10 @@ class SyncService {
       // Update sync metadata
       await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
 
-      print('[SYNC-SERVER] Successfully synced $totalSynced total items from server');
+      print('[SYNC] Synced $totalSynced items from server');
       return true;
     } catch (e) {
-      print('[SYNC-SERVER] ERROR in syncFromServer: $e');
-      print('[SYNC-SERVER] Stack trace: ${StackTrace.current}');
+      print('[SYNC] ERROR in syncFromServer: $e');
       return false;
     }
   }
@@ -359,12 +310,8 @@ class SyncService {
   /// Update local database with fetched file changes
   Future<void> _updateLocalDatabase(List<FileChangeRecord> changes) async {
     try {
-      print('[SYNC-DB] _updateLocalDatabase called with ${changes.length} changes');
       final userId = _userInfo.userId;
-      if (userId == null) {
-        print('[SYNC-DB] No user ID, skipping database update');
-        return;
-      }
+      if (userId == null) return;
 
       int updatedArtefacts = 0;
       int updatedBoards = 0;
@@ -373,12 +320,10 @@ class SyncService {
 
       for (final change in changes) {
         if (change.fileType == 'artefact') {
-          print('[SYNC-DB] Processing artefact: ${change.fileName} (${change.fileId})');
           // Check if artefact exists locally
           final existing = await _artefactRepo.getById(change.fileId);
           
           if (existing != null) {
-            print('[SYNC-DB]   - Found existing artefact, updating...');
             // Update existing artefact
             final updated = existing.copyWith(
               name: change.fileName,
@@ -390,20 +335,16 @@ class SyncService {
             );
             await _artefactRepo.update(updated);
             updatedArtefacts++;
-            print('[SYNC-DB]   - Artefact updated successfully');
           } else {
             // Note: We can't create new artefacts without full data
             // This would require fetching the full artefact from the API
             missingArtefacts++;
-            print('[SYNC-DB]   - WARNING: Artefact ${change.fileId} not in local database');
           }
         } else if (change.fileType == 'board') {
-          print('[SYNC-DB] Processing board: ${change.fileName} (${change.fileId})');
           // Similar logic for boards
           final existing = await _boardRepo.getById(change.fileId);
           
           if (existing != null) {
-            print('[SYNC-DB]   - Found existing board, updating...');
             final updated = existing.copyWith(
               name: change.fileName,
               modifiedDate: change.modifiedDate != null 
@@ -412,21 +353,16 @@ class SyncService {
             );
             await _boardRepo.update(updated);
             updatedBoards++;
-            print('[SYNC-DB]   - Board updated successfully');
           } else {
             missingBoards++;
-            print('[SYNC-DB]   - WARNING: Board ${change.fileId} not in local database');
           }
         }
       }
-      print('[SYNC-DB] Database update complete:');
-      print('[SYNC-DB]   - Updated artefacts: $updatedArtefacts');
-      print('[SYNC-DB]   - Updated boards: $updatedBoards');
-      print('[SYNC-DB]   - Missing artefacts: $missingArtefacts');
-      print('[SYNC-DB]   - Missing boards: $missingBoards');
+      if (updatedArtefacts > 0 || updatedBoards > 0) {
+        print('[SYNC] Updated $updatedArtefacts artefacts, $updatedBoards boards');
+      }
     } catch (e) {
-      print('[SYNC-DB] ERROR in _updateLocalDatabase: $e');
-      print('[SYNC-DB] Stack trace: ${StackTrace.current}');
+      print('[SYNC] ERROR in _updateLocalDatabase: $e');
     }
   }
 
@@ -513,64 +449,38 @@ class SyncService {
   /// Check if local database needs syncing
   /// Returns true if last sync was more than the specified duration ago
   Future<bool> needsSync({Duration threshold = const Duration(hours: 1)}) async {
-    print('[SYNC-CHECK] Checking if sync is needed (threshold: $threshold)');
     final lastSync = await getLastSyncDate();
-    print('[SYNC-CHECK] Last sync date: $lastSync');
-    if (lastSync == null) {
-      print('[SYNC-CHECK] No previous sync found, sync needed');
-      return true;
-    }
+    if (lastSync == null) return true;
 
     final now = DateTime.now();
     final timeSinceSync = now.difference(lastSync);
-    final needsSync = timeSinceSync > threshold;
-    print('[SYNC-CHECK] Time since last sync: $timeSinceSync');
-    print('[SYNC-CHECK] Needs sync: $needsSync');
-    return needsSync;
+    return timeSinceSync > threshold;
   }
 
   /// Perform a full sync if needed
   /// Checks if sync is needed based on threshold and performs sync if necessary
   Future<bool> autoSync({Duration threshold = const Duration(hours: 1)}) async {
-    print('[SYNC-AUTO] autoSync called with threshold: $threshold');
     if (await needsSync(threshold: threshold)) {
-      print('[SYNC-AUTO] Sync needed, starting syncFromServer...');
-      final result = await syncFromServer();
-      print('[SYNC-AUTO] syncFromServer result: $result');
-      return result;
+      return await syncFromServer();
     }
-    print('[SYNC-AUTO] Sync not needed, already synced recently');
     return true; // Already synced recently
   }
 
   /// Get count of items in local database
   Future<Map<String, int>> getLocalItemCounts() async {
     try {
-      print('[SYNC-COUNTS] Getting local item counts...');
       final userId = _userInfo.userId;
-      print('[SYNC-COUNTS] User ID: $userId');
-      if (userId == null) {
-        print('[SYNC-COUNTS] No user ID, returning zeros');
-        return {'artefacts': 0, 'boards': 0};
-      }
+      if (userId == null) return {'artefacts': 0, 'boards': 0};
 
-      print('[SYNC-COUNTS] Querying artefacts...');
       final artefacts = await _artefactRepo.getByUserId(userId);
-      print('[SYNC-COUNTS] Found ${artefacts.length} artefacts');
-      
-      print('[SYNC-COUNTS] Querying boards...');
       final boards = await _boardRepo.getByUserId(userId);
-      print('[SYNC-COUNTS] Found ${boards.length} boards');
 
-      final counts = {
+      return {
         'artefacts': artefacts.length,
         'boards': boards.length,
       };
-      print('[SYNC-COUNTS] Total counts: $counts');
-      return counts;
     } catch (e) {
-      print('[SYNC-COUNTS] ERROR getting local item counts: $e');
-      print('[SYNC-COUNTS] Stack trace: ${StackTrace.current}');
+      print('[SYNC] ERROR getting local item counts: $e');
       return {'artefacts': 0, 'boards': 0};
     }
   }
@@ -581,9 +491,8 @@ class SyncService {
       final artefactId = data['artefactId'] as String?;
       if (artefactId == null) return;
 
-      print('[SYNC-ARTEFACT] Syncing artefact: $artefactId');
-      
       final existing = await _artefactRepo.getById(artefactId);
+      
       final artefact = ArtefactDB(
         artefactId: artefactId,
         artefactIndex: data['artefactIndex'] as int? ?? 0,
@@ -599,13 +508,11 @@ class SyncService {
 
       if (existing != null) {
         await _artefactRepo.update(artefact);
-        print('[SYNC-ARTEFACT] Updated artefact: $artefactId');
       } else {
         await _artefactRepo.insert(artefact);
-        print('[SYNC-ARTEFACT] Inserted new artefact: $artefactId');
       }
-    } catch (e) {
-      print('[SYNC-ARTEFACT] ERROR syncing artefact: $e');
+    } catch (e, stackTrace) {
+      print('[SYNC] ERROR syncing artefact: $e');
     }
   }
 
@@ -615,9 +522,8 @@ class SyncService {
       final categoryId = data['categoryId'] as String?;
       if (categoryId == null) return;
 
-      print('[SYNC-CATEGORY] Syncing category: $categoryId');
-      
       final existing = await _categoryRepo.getById(categoryId);
+      
       final category = CategoryDB(
         categoryId: categoryId,
         categoryIndex: data['categoryIndex'] as int?,
@@ -632,13 +538,11 @@ class SyncService {
 
       if (existing != null) {
         await _categoryRepo.update(category);
-        print('[SYNC-CATEGORY] Updated category: $categoryId');
       } else {
         await _categoryRepo.insert(category);
-        print('[SYNC-CATEGORY] Inserted new category: $categoryId');
       }
-    } catch (e) {
-      print('[SYNC-CATEGORY] ERROR syncing category: $e');
+    } catch (e, stackTrace) {
+      print('[SYNC] ERROR syncing category: $e');
     }
   }
 
@@ -648,8 +552,6 @@ class SyncService {
       final boardId = data['boardId'] as String? ?? data['id'] as String?;
       if (boardId == null) return;
 
-      print('[SYNC-BOARD] Syncing board: $boardId');
-      
       final existing = await _boardRepo.getById(boardId);
       
       // Parse artefact IDs and saved artefact data
@@ -674,10 +576,8 @@ class SyncService {
 
       if (existing != null) {
         await _boardRepo.update(board);
-        print('[SYNC-BOARD] Updated board: $boardId');
       } else {
         await _boardRepo.insert(board);
-        print('[SYNC-BOARD] Inserted new board: $boardId');
       }
 
       // Sync saved artefacts for this board
@@ -687,8 +587,8 @@ class SyncService {
           await _syncSavedArtefact(savedArtefactData, boardId);
         }
       }
-    } catch (e) {
-      print('[SYNC-BOARD] ERROR syncing board: $e');
+    } catch (e, stackTrace) {
+      print('[SYNC] ERROR syncing board: $e');
     }
   }
 
@@ -713,13 +613,14 @@ class SyncService {
       );
 
       final existing = await _savedArtefactRepo.getById(id);
+      
       if (existing != null) {
         await _savedArtefactRepo.update(savedArtefact);
       } else {
         await _savedArtefactRepo.insert(savedArtefact);
       }
-    } catch (e) {
-      print('[SYNC-SAVED-ARTEFACT] ERROR syncing saved artefact: $e');
+    } catch (e, stackTrace) {
+      print('[SYNC] ERROR syncing saved artefact: $e');
     }
   }
 
