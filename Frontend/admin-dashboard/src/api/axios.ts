@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
 
 const apiClient = axios.create({
-  baseURL: 'http://10.0.0.4:5192/api/', // Adjust to your backend URL
+  baseURL: 'http://localhost:5192/api/', // Adjust to your backend URL
   headers: {
     'Content-Type': 'application/json',
   },

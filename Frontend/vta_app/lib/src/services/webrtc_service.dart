@@ -23,24 +23,17 @@ class WebRTCService {
     required this.remoteUserId,
   });
 
-  // ICE servers configuration with free TURN server from Metered
+  // ICE servers configuration with COTURN server
   final Map<String, dynamic> _configuration = {
     'iceServers': [
       {
         'urls': [
-          'stun:stun.l.google.com:19302',
-          'stun:stun1.l.google.com:19302',
+          'stun:localhost:3478',
+          'turn:localhost:3478',
+          'turn:localhost:3478?transport=tcp',
         ],
-      },
-      {
-        'urls': [
-          'turn:openrelay.metered.ca:80',
-          'turn:openrelay.metered.ca:80?transport=tcp',
-          'turn:openrelay.metered.ca:443',
-          'turns:openrelay.metered.ca:443?transport=tcp',
-        ],
-        'username': 'openrelayproject',
-        'credential': 'openrelayproject',
+        'username': 'testuser',
+        'credential': 'testpass',
       }
     ],
     'sdpSemantics': 'unified-plan',

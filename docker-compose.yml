@@ -70,10 +70,12 @@ services:
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
-      - "49152-65535:49152-65535/udp"
+      - "49160-49200:49160-49200/udp"
     volumes:
       - ./turnserver.local.conf:/etc/coturn/turnserver.local.conf
     command: ["-c", "/etc/coturn/turnserver.local.conf"]
+    networks:
+      - vta-network
 
   # frontend:
   #   build:

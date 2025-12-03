@@ -19,12 +19,15 @@ class SignalRService {
   String? _currentUserId;
   String? _currentSessionId;
   String? _sessionInitiatorId; // Track who started the session
+  String? _remoteUserId;
   ArtifactBoardController? _ownerBoardController; // Store owner's board
 
   bool get isConnected => _hubConnection?.state == HubConnectionState.Connected;
   String? get currentUserId => _currentUserId;
   String? get currentSessionId => _currentSessionId;
   String? get sessionInitiatorId => _sessionInitiatorId;
+  String? get remoteUserId => _remoteUserId;
+  HubConnection? get hubConnection => _hubConnection;
 
   // Board controller storage for remote sessions
   void setOwnerBoardController(ArtifactBoardController controller) {
@@ -100,6 +103,7 @@ class SignalRService {
     _hubConnection!.on("SessionRequested", (args) {
       if (args == null || args.isEmpty) return;
       final fromUserId = args[0] as String;
+      _remoteUserId = fromUserId;
       onSessionRequested?.call(fromUserId);
     });
 
@@ -122,6 +126,7 @@ class SignalRService {
     _hubConnection!.on("SessionEnded", (_) {
       _currentSessionId = null;
       _sessionInitiatorId = null;
+      _remoteUserId = null;
       _ownerBoardController = null;
       onSessionEnded?.call();
     });
@@ -133,6 +138,7 @@ class SignalRService {
 
     // Mark current user as the initiator
     _sessionInitiatorId = _currentUserId;
+    _remoteUserId = toUserId;
 
     await _hubConnection!.invoke(
       "RequestSession",

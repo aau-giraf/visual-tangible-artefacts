@@ -25,55 +25,6 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
   void initState() {
     super.initState();
     _loadContacts();
-
-    // Incoming call handler
-    SignalRService().onSessionRequested = (fromUserId) {
-      if (!mounted) return;
-
-      showDialog(
-        context: context,
-        builder: (dialogCtx) {
-          return AlertDialog(
-            title: const Text("Indgående opkald"),
-            content: Text("Bruger $fromUserId vil starte en fjernsession."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  SignalRService().rejectSession(fromUserId);
-                  Navigator.of(dialogCtx).pop();
-                },
-                child: const Text("Afvis"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(dialogCtx).pop();
-                  final sessionId =
-                      DateTime.now().millisecondsSinceEpoch.toString();
-                  // TODO: Child needs to select which board to share
-                  // For now using default board - need to implement board selection
-                  await SignalRService().acceptSession(
-                    sessionId,
-                    fromUserId,
-                    SignalRService().currentUserId!,
-                    SignalRService.defaultBoardId,
-                  );
-                },
-                child: const Text("Accepter"),
-              ),
-            ],
-          );
-        },
-      );
-    };
-
-    // When a session is accepted (both sides navigate)
-    SignalRService().onSessionStarted = (sessionId, boardId) {
-      if (!mounted) return;
-      Navigator.of(context).pushNamed(
-        "/remote-board",
-        arguments: {'sessionId': sessionId, 'boardId': boardId},
-      );
-    };
   }
 
   Future<void> _loadContacts() async {

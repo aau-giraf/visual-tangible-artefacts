@@ -3,13 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import '../../services/webrtc_service.dart';
+import '../../services/video_call_manager.dart';
+import '../../services/signalr_service.dart';
+import 'remote_board_screen.dart';
 
 class VideoCallScreen extends StatefulWidget {
+  static const String routeName = "/video-call";
+  
   final HubConnection hubConnection;
   final String sessionId;
   final String myUserId;
   final String remoteUserId;
   final bool isCaller;
+  final bool returnFromBoard;
 
   const VideoCallScreen({
     Key? key,
@@ -18,6 +24,7 @@ class VideoCallScreen extends StatefulWidget {
     required this.myUserId,
     required this.remoteUserId,
     required this.isCaller,
+    this.returnFromBoard = false,
   }) : super(key: key);
 
   @override
@@ -31,6 +38,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _isMuted = false;
   bool _isCameraOff = false;
   String _status = 'Initializing...';
+  bool _hasTransitioned = false;
+  bool _showBoardButton = false;
 
   @override
   void initState() {
@@ -40,11 +49,38 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    _initializeCall();
+    
+    if (widget.returnFromBoard && VideoCallManager().isCallActive) {
+      _restoreCallState();
+    } else {
+      _initializeCall();
+    }
+  }
+
+  // Restore existing call state when returning from board
+  Future<void> _restoreCallState() async {
+    final videoManager = VideoCallManager();
+    
+    setState(() {
+      _webrtcService = videoManager.webrtcService;
+      _status = 'Connected';
+      _showBoardButton = true;
+    });
+    
+    // Reattach renderers
+    await _localRenderer.initialize();
+    await _remoteRenderer.initialize();
+    
+    _localRenderer.srcObject = videoManager.localRenderer?.srcObject;
+    _remoteRenderer.srcObject = videoManager.remoteRenderer?.srcObject;
+    
+    setState(() {});
   }
 
   Future<void> _initializeCall() async {
     try {
+      debugPrint('[VideoCall] Initializing call - isCaller: ${widget.isCaller}');
+      
       // Initialize renderers
       await _localRenderer.initialize();
       await _remoteRenderer.initialize();
@@ -59,6 +95,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       // Set up callbacks
       _webrtcService!.onLocalStream = (stream) {
+        if (!mounted) return;
         setState(() {
           _localRenderer.srcObject = stream;
           _status = widget.isCaller ? 'Calling...' : 'Connecting...';
@@ -66,13 +103,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       };
 
       _webrtcService!.onRemoteStream = (stream) {
+        if (!mounted) return;
         setState(() {
           _remoteRenderer.srcObject = stream;
           _status = 'Connected';
         });
+        
+        // Auto-transition to board screen after connection stabilizes
+        _handleConnectionEstablished();
       };
 
       _webrtcService!.onError = (error) {
+        if (!mounted) return;
         setState(() {
           _status = 'Error: $error';
         });
@@ -84,15 +126,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       // Initialize WebRTC
       await _webrtcService!.initialize();
 
-      // Small delay to ensure everything is ready
       await Future.delayed(Duration(milliseconds: 500));
 
-      // If this user is the caller, start the call
+      // Start the call
       if (widget.isCaller) {
+        debugPrint('[VideoCall] Starting call as caller');
         await _webrtcService!.startCall();
+      } else {
+        debugPrint('[VideoCall] Waiting for offer as callee');
       }
     } catch (e) {
-      print('[VideoCall] Initialization error: $e');
+      debugPrint('[VideoCall] Initialization error: $e');
+      if (!mounted) return;
       setState(() {
         _status = 'Failed to initialize: $e';
       });
@@ -104,8 +149,74 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
   }
 
+  Future<void> _handleConnectionEstablished() async {
+    if (_hasTransitioned) return;
+    
+    if (mounted) {
+      setState(() {
+        _showBoardButton = true;
+      });
+    }
+    
+    await Future.delayed(Duration(seconds: 2));
+    
+    if (!mounted || _hasTransitioned || !_showBoardButton) return;
+    
+    _hasTransitioned = true;
+    
+    // Store video call state
+    await VideoCallManager().initializeCall(
+      webrtcService: _webrtcService!,
+      localRenderer: _localRenderer,
+      remoteRenderer: _remoteRenderer,
+      sessionId: widget.sessionId,
+    );
+    
+    // Navigate
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(
+      RemoteBoardScreen.routeName,
+      arguments: {
+        'sessionId': widget.sessionId,
+        'boardId': SignalRService.defaultBoardId,
+        'hasVideo': true,
+      },
+    );
+  }
+
+  void _goToBoardScreen() {
+    if (_status != 'Connected') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please wait for connection to establish')),
+      );
+      return;
+    }
+    
+    _hasTransitioned = true;
+    
+    // Store video call state
+    VideoCallManager().initializeCall(
+      webrtcService: _webrtcService!,
+      localRenderer: _localRenderer,
+      remoteRenderer: _remoteRenderer,
+      sessionId: widget.sessionId,
+    );
+    
+    // Navigate
+    Navigator.of(context).pushReplacementNamed(
+      RemoteBoardScreen.routeName,
+      arguments: {
+        'sessionId': widget.sessionId,
+        'boardId': SignalRService.defaultBoardId,
+        'hasVideo': true,
+      },
+    );
+  }
+
   @override
   void dispose() {
+    debugPrint('[VideoCall] Disposing - hasTransitioned: $_hasTransitioned, mounted: $mounted');
+    
     // Restore all orientations when leaving call
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -113,9 +224,17 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    _webrtcService?.dispose();
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
+    
+    if (!_hasTransitioned) {
+      debugPrint('[VideoCall] Disposing WebRTC resources');
+      _webrtcService?.dispose();
+      _localRenderer.dispose();
+      _remoteRenderer.dispose();
+      VideoCallManager().endCall();
+    } else {
+      debugPrint('[VideoCall] NOT disposing - transitioning to board');
+    }
+    
     super.dispose();
   }
 
@@ -192,8 +311,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   // End call button
                   _buildControlButton(
                     icon: Icons.call_end,
-                    onPressed: () {
-                      Navigator.pop(context);
+                    onPressed: () async {
+                      await VideoCallManager().endCall();
+                      if (mounted) Navigator.pop(context);
                     },
                     backgroundColor: Colors. red,
                     size: 70,
@@ -211,6 +331,29 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ],
               ),
             ),
+
+            // Go to board button
+            if (_showBoardButton && !_hasTransitioned)
+              Positioned(
+                bottom: 120,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _goToBoardScreen,
+                    icon: Icon(Icons.dashboard),
+                    label: Text('Go to Board'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
             // Status indicator
             Positioned(

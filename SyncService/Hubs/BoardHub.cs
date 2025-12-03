@@ -122,5 +122,42 @@ namespace SyncService.Hubs
 
             await base.OnDisconnectedAsync(exception);
         }
+        
+        // WebRTC Signaling Methods
+        public async Task SendOffer(string sessionId, string targetUserId, object sdpOffer)
+        {
+            Console.WriteLine($"[Hub] SendOffer => sessionId={sessionId}, target={targetUserId}");
+
+            if (userConnections.TryGetValue(targetUserId, out var targetConn))
+            {
+                await Clients.Client(targetConn).SendAsync("ReceiveOffer", sessionId, sdpOffer);
+                Console.WriteLine($"[Hub] Sent offer to {targetUserId}");
+            }
+            else
+            {
+                Console.WriteLine($"[Hub] Target user {targetUserId} not connected");
+            }
+        }
+
+        public async Task SendAnswer(string sessionId, string targetUserId, object sdpAnswer)
+        {
+            Console.WriteLine($"[Hub] SendAnswer => sessionId={sessionId}, target={targetUserId}");
+
+            if (userConnections.TryGetValue(targetUserId, out var targetConn))
+            {
+                await Clients.Client(targetConn).SendAsync("ReceiveAnswer", sessionId, sdpAnswer);
+                Console.WriteLine($"[Hub] Sent answer to {targetUserId}");
+            }
+        }
+
+        public async Task SendIceCandidate(string sessionId, string targetUserId, object candidate)
+        {
+            Console.WriteLine($"[Hub] SendIceCandidate => sessionId={sessionId}, target={targetUserId}");
+
+            if (userConnections.TryGetValue(targetUserId, out var targetConn))
+            {
+                await Clients.Client(targetConn).SendAsync("ReceiveIceCandidate", sessionId, candidate);
+            }
+        }
     }
 }

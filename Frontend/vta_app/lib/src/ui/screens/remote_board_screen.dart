@@ -3,6 +3,7 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/remote_artifact_board_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/services/video_call_manager.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
@@ -10,6 +11,8 @@ import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
 import '../widgets/categories/categories_widget.dart' as categories_widget;
+import '../widgets/video/pip_video_widget.dart';
+import 'video_call_screen.dart';
 
 class RemoteBoardScreen extends StatefulWidget {
   static const String routeName = "/remote-board";
@@ -35,6 +38,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   String boardId = '';
   bool isOwner = false;
   bool _isInitialized = false;
+  bool _hasVideo = false;
 
   @override
   void didChangeDependencies() {
@@ -46,6 +50,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       if (args is Map<String, dynamic>) {
         sessionId = args['sessionId'] as String;
         boardId = args['boardId'] as String;
+        _hasVideo = args['hasVideo'] as bool? ?? false;
       } else if (args is String) {
         // Fallback for old code - won't work without boardId
         sessionId = args;
@@ -86,6 +91,24 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   void dispose() {
     controller.dispose();
     super.dispose();
+  }
+
+  /// Navigate back to full video call screen
+  void _goToVideoScreen() {
+    final videoManager = VideoCallManager();
+    if (!videoManager.isCallActive) return;
+
+    Navigator.of(context).pushReplacementNamed(
+      VideoCallScreen.routeName,
+      arguments: {
+        'hubConnection': SignalRService().hubConnection!,
+        'sessionId': sessionId,
+        'myUserId': SignalRService().currentUserId!,
+        'remoteUserId': SignalRService().remoteUserId ?? 'unknown',
+        'isCaller': SignalRService().currentUserId == SignalRService().sessionInitiatorId,
+        'returnFromBoard': true,
+      },
+    );
   }
 
   @override
@@ -230,6 +253,13 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
                           ),
                       ],
                       const QuickChatButton(),
+                      
+                      // Picture-in-Picture video widget
+                      if (_hasVideo && VideoCallManager().isCallActive)
+                        PipVideoWidget(
+                          remoteRenderer: VideoCallManager().remoteRenderer!,
+                          onTap: _goToVideoScreen,
+                        ),
                     ],
                   ),
                 ),
