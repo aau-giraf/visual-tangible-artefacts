@@ -298,20 +298,14 @@ class RemoteArtifactBoardController {
       base.talkingmatController.value.removeWhere(
         (artifact) => !updatedIds.contains(artifact.artefactId)
       );
+      
+      // Trigger ValueNotifier update by re-assigning the value
+      // This is necessary because we modified artifact positions in-place
+      base.talkingmatController.value = List.from(base.talkingmatController.value);
     }
-
+    
     notifyView();
     debugPrint("RemoteSync => Board updated with ${items.length} items");
-  }
-
-  void _clearBoard() {
-    if (base.showDirectional) {
-      for (int i = 0; i < base.linearBoardController.artifacts.length; i++) {
-        base.linearBoardController.artifacts[i] = null;
-      }
-    } else {
-      base.talkingmatController.value.clear();
-    }
   }
 
   // ---------------- Remote session management ----------------
