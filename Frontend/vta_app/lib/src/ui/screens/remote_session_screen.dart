@@ -50,13 +50,12 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
                   final sessionId =
                       DateTime.now().millisecondsSinceEpoch.toString();
                   // TODO: Child needs to select which board to share
-                  // For now using placeholder - need to implement board selection
-                  const tempBoardId = 'placeholder-board-id';
+                  // For now using default board - need to implement board selection
                   await SignalRService().acceptSession(
                     sessionId,
                     fromUserId,
                     SignalRService().currentUserId!,
-                    tempBoardId,
+                    SignalRService.defaultBoardId,
                   );
                 },
                 child: const Text("Accepter"),
