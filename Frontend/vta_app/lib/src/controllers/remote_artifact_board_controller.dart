@@ -69,7 +69,19 @@ class RemoteArtifactBoardController {
 
   bool get showDirectional => base.showDirectional;
   TalkingMat? get talkingMat => base.talkingMat;
-  LinearBoard? get linearBoard => base.linearBoard;
+  
+  // Create a custom LinearBoard with the onArtifactRemoved callback for owner
+  LinearBoard? get linearBoard {
+    if (isOwner) {
+      return LinearBoard(
+        linearBoardController: base.linearBoardController,
+        onArtifactRemoved: (artifact) {
+          removeArtifact(artifact);
+        },
+      );
+    }
+    return base.linearBoard;
+  }
 
   // ---------------- UI actions (owner syncs changes) ----------------
 
@@ -90,6 +102,26 @@ class RemoteArtifactBoardController {
     base.addArtifactToCurrentBoard(artefact);
     notifyView();
     _pushFullBoard();
+  }
+
+  void removeArtifact(BoardArtefact artefact) {
+    if (!isOwner) {
+      debugPrint("RemoteSync => Non-owner cannot remove artifacts");
+      return;
+    }
+
+    if (base.showDirectional) {
+      final index = base.linearBoardController.artifacts.indexOf(artefact);
+      if (index != -1) {
+        base.linearBoardController.removeArtifact(index);
+      }
+    } else {
+      base.talkingmatController.removeArtifact(artefact);
+    }
+
+    notifyView();
+    _pushFullBoard();
+    debugPrint("RemoteSync => Artifact removed: ${artefact.artefactId}");
   }
 
   void switchBoard() {
@@ -298,12 +330,8 @@ class RemoteArtifactBoardController {
       base.talkingmatController.value.removeWhere(
         (artifact) => !updatedIds.contains(artifact.artefactId)
       );
-      
-      // Trigger ValueNotifier update by re-assigning the value
-      // This is necessary because we modified artifact positions in-place
-      base.talkingmatController.value = List.from(base.talkingmatController.value);
     }
-    
+
     notifyView();
     debugPrint("RemoteSync => Board updated with ${items.length} items");
   }

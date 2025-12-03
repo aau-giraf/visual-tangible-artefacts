@@ -15,6 +15,7 @@ import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 
 typedef OnArtifactPositionChanged = void Function(BoardArtefact artifact);
+typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
 
 class TalkingMat extends StatefulWidget {
   final List<BoardArtefact>? artifacts;
@@ -23,6 +24,7 @@ class TalkingMat extends StatefulWidget {
   final double? height;
   final Color? backgroundColor;
   final OnArtifactPositionChanged? onArtifactPositionChanged;
+  final OnArtifactRemoved? onArtifactRemoved;
 
   TalkingMat({
     super.key,
@@ -32,6 +34,7 @@ class TalkingMat extends StatefulWidget {
     this.height,
     this.backgroundColor,
     this.onArtifactPositionChanged,
+    this.onArtifactRemoved,
   }) : controller = controller ?? TalkingmatController();
 
   @override
@@ -819,6 +822,8 @@ class TalkingMatState extends State<TalkingMat>
                                         context, artefact.baseArtefact!);
                                 if (deleted) {
                                   widget.controller.removeArtifact(artefact);
+                                  // Notify remote session if callback is provided
+                                  widget.onArtifactRemoved?.call(artefact);
                                 }
                               } catch (e) {
                                 debugPrint(
@@ -826,6 +831,8 @@ class TalkingMatState extends State<TalkingMat>
                               }
                             } else {
                               widget.controller.removeArtifact(artefact);
+                              // Notify remote session if callback is provided
+                              widget.onArtifactRemoved?.call(artefact);
                             }
                             _animationController.reverse();
                             _animationController.addStatusListener((status) {

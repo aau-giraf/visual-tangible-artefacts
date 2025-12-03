@@ -196,6 +196,9 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
                                         controller.onArtifactPositionChanged(
                                             artifact);
                                       },
+                                      onArtifactRemoved: (artifact) {
+                                        controller.removeArtifact(artifact);
+                                      },
                                     )
                                   : controller.talkingMat!),
                         ),
