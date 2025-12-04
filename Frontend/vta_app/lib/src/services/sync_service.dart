@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/database/database.dart';
@@ -493,13 +496,37 @@ class SyncService {
 
       final existing = await _artefactRepo.getById(artefactId);
       
+      // Download image and sound files if they have URLs
+      String? localImagePath;
+      String? localSoundPath;
+      
+      final imageUrl = data['imageUrl'] as String?;
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        localImagePath = await _downloadAsset(
+          imageUrl, 
+          'Artefacts', 
+          'image_$artefactId',
+          _userInfo.userId ?? '',
+        );
+      }
+      
+      final soundUrl = data['soundUrl'] as String?;
+      if (soundUrl != null && soundUrl.isNotEmpty) {
+        localSoundPath = await _downloadAsset(
+          soundUrl, 
+          'Sounds', 
+          'sound_$artefactId',
+          _userInfo.userId ?? '',
+        );
+      }
+      
       final artefact = ArtefactDB(
         artefactId: artefactId,
         artefactIndex: data['artefactIndex'] as int? ?? 0,
         userId: data['userId'] as String? ?? _userInfo.userId ?? '',
         categoryId: data['categoryId'] as String?,
-        imagePath: _extractFilename(data['imageUrl'] as String?),
-        soundPath: _extractFilename(data['soundUrl'] as String?),
+        imagePath: localImagePath ?? _extractFilename(imageUrl),
+        soundPath: localSoundPath ?? _extractFilename(soundUrl),
         modifiedDate: _parseDate(data['modifiedDate'] as String?),
         name: data['name'] as String?,
         nameShown: (data['nameShown'] as bool?) == true ? 1 : 0,
@@ -524,12 +551,24 @@ class SyncService {
 
       final existing = await _categoryRepo.getById(categoryId);
       
+      // Download category image if it has a URL
+      String? localImagePath;
+      final imageUrl = data['imageUrl'] as String?;
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        localImagePath = await _downloadAsset(
+          imageUrl, 
+          'Categories', 
+          'image_$categoryId',
+          _userInfo.userId ?? '',
+        );
+      }
+      
       final category = CategoryDB(
         categoryId: categoryId,
         categoryIndex: data['categoryIndex'] as int?,
         userId: data['userId'] as String? ?? _userInfo.userId ?? '',
         name: data['name'] as String?,
-        imagePath: _extractFilename(data['imageUrl'] as String?),
+        imagePath: localImagePath ?? _extractFilename(imageUrl),
         modifiedDate: _parseDate(data['modifiedDate'] as String?),
         usageCount: data['usageCount'] as int? ?? 0,
         lastUsedDate: _parseDate(data['lastUsedDate'] as String?),
@@ -631,6 +670,52 @@ class SyncService {
     if (uri == null) return url;
     final segments = uri.pathSegments;
     return segments.isNotEmpty ? segments.last : url;
+  }
+
+  /// Helper to download an asset (image or sound) from the server
+  /// Returns the local filename if successful, null otherwise
+  Future<String?> _downloadAsset(
+    String url, 
+    String assetType,
+    String filename,
+    String userId,
+  ) async {
+    try {
+      // Construct the full URL if it's a relative path
+      final fullUrl = url.startsWith('http') 
+          ? url 
+          : _apiProvider.baseUrl + url;
+      
+      // Download the file
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: {'Authorization': 'Bearer ${_token.value}'},
+      );
+      
+      if (response.statusCode != 200) {
+        print('[SYNC] Failed to download asset: ${response.statusCode} - $fullUrl');
+        return null;
+      }
+      
+      // Get the application support directory (writable location)
+      final appDir = await getApplicationSupportDirectory();
+      
+      // Create the directory structure: AppSupport/Synced/{assetType}/{userId}/
+      final assetDir = Directory('${appDir.path}/Synced/$assetType/$userId');
+      if (!await assetDir.exists()) {
+        await assetDir.create(recursive: true);
+      }
+      
+      // Write the file without extension (matching backend storage)
+      final file = File('${assetDir.path}/$filename');
+      await file.writeAsBytes(response.bodyBytes);
+      
+      // Return just the filename for storage in the database
+      return filename;
+    } catch (e) {
+      print('[SYNC] ERROR downloading asset from $url: $e');
+      return null;
+    }
   }
 
   /// Helper to parse date string to Unix timestamp (seconds)
