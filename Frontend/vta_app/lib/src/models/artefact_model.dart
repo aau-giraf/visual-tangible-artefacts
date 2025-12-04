@@ -15,6 +15,22 @@ class ArtifactModel {
 
   ArtifactModel(this.apiProvider);
 
+  /// ------------------------------------------------------------
+  /// FUNCTIONS FOR SAVING TO LOCAL DATABASE
+  /// ------------------------------------------------------------
+
+  Future<void> _postArtefactLocal(Artefact artefact) async {
+      try {
+        final repo = ArtefactRepository();
+        final dbModel = artefactToDb(artefact);
+        await repo.insert(dbModel);
+      } catch (e) {
+        // Not great catch
+        rethrow;
+      }
+    }
+
+
   Future<void> fetchAndUpdateCategories({required String token}) async {
     try {
       var response =
@@ -37,17 +53,6 @@ class ArtifactModel {
       }
     } catch (e) {
       debugPrint("$e");
-      rethrow;
-    }
-  }
-
-  Future<void> _saveArtefactLocally(Artefact artefact) async {
-    try {
-      final repo = ArtefactRepository();
-      final dbModel = artefactToDb(artefact);
-      await repo.insert(dbModel);
-    } catch (e) {
-      // Not great catch
       rethrow;
     }
   }
@@ -112,7 +117,7 @@ class ArtifactModel {
         
         // SAVE LOCALLY
         try {
-          await _saveArtefactLocally(newArtefact);
+          await _postArtefactLocal(newArtefact);
         } catch (e) {
           debugPrint('Local DB save failed: $e');
         }
