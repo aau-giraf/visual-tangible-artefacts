@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import '../../services/webrtc_service.dart';
 import '../../services/video_call_manager.dart';
 import '../../services/signalr_service.dart';
 import 'remote_board_screen.dart';
+
+enum ConnectionStatus {
+  initializing,
+  calling,
+  connecting,
+  connected,
+  error,
+}
 
 class VideoCallScreen extends StatefulWidget {
   static const String routeName = "/video-call";
@@ -37,7 +44,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _isMuted = false;
   bool _isCameraOff = false;
-  String _status = 'Initialiserer...';
+  ConnectionStatus _connectionStatus = ConnectionStatus.initializing;
+  String? _errorMessage;
   bool _hasTransitioned = false;
   bool _showBoardButton = false;
   
@@ -75,7 +83,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     
     setState(() {
       _webrtcService = videoManager.webrtcService;
-      _status = 'Forbundet';
+      _connectionStatus = ConnectionStatus.connected;
       _showBoardButton = true;
       
       // Restore media availability from WebRTC service
@@ -119,7 +127,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (!mounted) return;
         setState(() {
           _localRenderer.srcObject = stream;
-          _status = widget.isCaller ? 'Ringer...' : 'Forbinder...';
+          _connectionStatus = widget.isCaller ? ConnectionStatus.calling : ConnectionStatus.connecting;
           // Update local media from actual stream
           _hasLocalVideo = stream.getVideoTracks().isNotEmpty;
           _hasLocalAudio = stream.getAudioTracks().isNotEmpty;
@@ -131,7 +139,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (!mounted) return;
         setState(() {
           _remoteRenderer.srcObject = stream;
-          _status = 'Forbundet';
+          _connectionStatus = ConnectionStatus.connected;
           // Update remote media from actual stream
           _hasRemoteVideo = stream.getVideoTracks().isNotEmpty;
           _hasRemoteAudio = stream.getAudioTracks().isNotEmpty;
@@ -146,7 +154,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (!mounted) return;
         debugPrint('[VideoCall] Connection established notification');
         setState(() {
-          _status = 'Forbundet';
+          _connectionStatus = ConnectionStatus.connected;
         });
         _handleConnectionEstablished();
       };
@@ -178,7 +186,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       _webrtcService!.onError = (error) {
         if (!mounted) return;
         setState(() {
-          _status = 'Fejl: $error';
+          _connectionStatus = ConnectionStatus.error;
+          _errorMessage = error;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error)),
@@ -200,7 +209,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       debugPrint('[VideoCall] Initialization error: $e');
       if (!mounted) return;
       setState(() {
-        _status = 'Kunne ikke initialisere: $e';
+        _connectionStatus = ConnectionStatus.error;
+        _errorMessage = 'Kunne ikke initialisere: $e';
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -246,9 +256,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   void _goToBoardScreen() {
-    if (_status != 'Connected') {
+    if (_connectionStatus != ConnectionStatus.connected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please wait for connection to establish')),
+        SnackBar(content: Text('Vent venligst på forbindelsen etableres')),
       );
       return;
     }
@@ -272,6 +282,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         'hasVideo': true,
       },
     );
+  }
+
+  String _getStatusText() {
+    switch (_connectionStatus) {
+      case ConnectionStatus.initializing:
+        return 'Initialiserer...';
+      case ConnectionStatus.calling:
+        return 'Ringer...';
+      case ConnectionStatus.connecting:
+        return 'Forbinder...';
+      case ConnectionStatus.connected:
+        return 'Forbundet';
+      case ConnectionStatus.error:
+        return _errorMessage != null ? 'Fejl: $_errorMessage' : 'Fejl';
+    }
   }
 
   @override
@@ -332,7 +357,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   )
                 : Center(
                     child: (_remoteRenderer.srcObject != null && !_hasRemoteVideo) || 
-                           (_status == 'Forbundet' && !_hasRemoteVideo)
+                           (_connectionStatus == ConnectionStatus.connected && !_hasRemoteVideo)
                         ? Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -377,7 +402,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                               CircularProgressIndicator(),
                               SizedBox(height: 20),
                               Text(
-                                _status,
+                                _getStatusText(),
                                 style: TextStyle(color: Colors.white, fontSize: 18),
                               ),
                             ],
@@ -516,7 +541,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _goToBoardScreen,
                     icon: Icon(Icons.dashboard),
-                    label: Text('Go to Board'),
+                    label: Text('Til Brættet'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
@@ -540,7 +565,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  _status,
+                  _getStatusText(),
                   style: TextStyle(color: Colors.white),
                 ),
               ),
