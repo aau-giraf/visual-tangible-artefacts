@@ -190,6 +190,15 @@ class AuthController extends ChangeNotifier {
     );
   }
 
+  /// Gets the current user based on the stored user ID
+  Future<user_model.User?> getCurrentUser() async {
+    final userId = _model.userInfo.userId;
+    if (userId != null && userId.isNotEmpty) {
+      return await _model.getUser(userId);
+    }
+    return null;
+  }
+
   /// Shows a snackbar with an error message
   void _showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();

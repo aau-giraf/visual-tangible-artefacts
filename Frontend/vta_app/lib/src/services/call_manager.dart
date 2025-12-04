@@ -15,12 +15,10 @@ class CallManager {
   void setupCallbacks() {
     final signalR = SignalRService();
 
-    // Handle incoming call requests
     signalR.onSessionRequested = (fromUserId) {
       _showIncomingCallDialog(fromUserId);
     };
 
-    // Handle session started
     signalR.onSessionStarted = (sessionId, boardId) {
       _navigateToVideoCall(sessionId, boardId);
     };

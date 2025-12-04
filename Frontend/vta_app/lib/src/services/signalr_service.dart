@@ -107,6 +107,13 @@ class SignalRService {
   void Function(String sessionId, String boardId)? onSessionStarted;
   void Function(dynamic boardData)? onBoardUpdated;
   void Function()? onSessionEnded;
+  
+  // Delta update callbacks
+  void Function(dynamic data)? onArtifactAdded;
+  void Function(dynamic data)? onArtifactRemoved;
+  void Function(dynamic data)? onArtifactMoved;
+  void Function(dynamic data)? onArtifactResized;
+  void Function(dynamic data)? onLayoutChanged;
 
   // ---------------- CONNECT ----------------
   Future<void> connect(String userId) async {
@@ -156,7 +163,10 @@ class SignalRService {
 
   // ---------------- EVENT HANDLERS ----------------
   void _registerEvents() {
+    debugPrint("SignalR: Registering event handlers...");
+    
     _hubConnection!.on("SessionRequested", (args) {
+      debugPrint("SignalR => Received SessionRequested event");
       if (args == null || args.isEmpty) return;
       final fromUserId = args[0] as String;
       _remoteUserId = fromUserId;
@@ -164,10 +174,12 @@ class SignalRService {
     });
 
     _hubConnection!.on("SessionRejected", (_) {
+      debugPrint("SignalR => Received SessionRejected event");
       onSessionRejected?.call();
     });
 
     _hubConnection!.on("SessionStarted", (args) {
+      debugPrint("SignalR => Received SessionStarted event");
       if (args == null || args.length < 2) return;
       _currentSessionId = args[0] as String;
       final boardId = args[1] as String;
@@ -175,11 +187,13 @@ class SignalRService {
     });
 
     _hubConnection!.on("BoardUpdated", (args) {
+      debugPrint("SignalR => Received BoardUpdated event");
       if (args == null || args.isEmpty) return;
       onBoardUpdated?.call(args[0]);
     });
 
     _hubConnection!.on("SessionEnded", (_) {
+      debugPrint("SignalR => Received SessionEnded event");
       _currentSessionId = null;
       _sessionInitiatorId = null;
       _remoteUserId = null;
@@ -226,6 +240,44 @@ class SignalRService {
         _pendingIceCandidates.add({'sessionId': sessionId, 'data': candidate});
       }
     });
+
+    // Delta update events
+    _hubConnection!.on("ArtifactAdded", (args) {
+      debugPrint("SignalR => Received ArtifactAdded event");
+      if (args == null || args.isEmpty) return;
+      debugPrint("SignalR => Calling onArtifactAdded callback");
+      onArtifactAdded?.call(args[0]);
+    });
+
+    _hubConnection!.on("ArtifactRemoved", (args) {
+      debugPrint("SignalR => Received ArtifactRemoved event");
+      if (args == null || args.isEmpty) return;
+      debugPrint("SignalR => Calling onArtifactRemoved callback");
+      onArtifactRemoved?.call(args[0]);
+    });
+
+    _hubConnection!.on("ArtifactMoved", (args) {
+      debugPrint("SignalR => Received ArtifactMoved event");
+      if (args == null || args.isEmpty) return;
+      debugPrint("SignalR => Calling onArtifactMoved callback");
+      onArtifactMoved?.call(args[0]);
+    });
+
+    _hubConnection!.on("ArtifactResized", (args) {
+      debugPrint("SignalR => Received ArtifactResized event");
+      if (args == null || args.isEmpty) return;
+      debugPrint("SignalR => Calling onArtifactResized callback");
+      onArtifactResized?.call(args[0]);
+    });
+
+    _hubConnection!.on("LayoutChanged", (args) {
+      debugPrint("SignalR => Received LayoutChanged event");
+      if (args == null || args.isEmpty) return;
+      debugPrint("SignalR => Calling onLayoutChanged callback");
+      onLayoutChanged?.call(args[0]);
+    });
+    
+    debugPrint("SignalR: All event handlers registered successfully");
   }
 
   // ---------------- API WRAPPERS ----------------
@@ -272,6 +324,33 @@ class SignalRService {
       "UpdateBoard",
       args: <Object>[_currentSessionId!, boardData],
     );
+  }
+
+  // ---------------- DELTA UPDATE API WRAPPERS ----------------
+  
+  Future<void> sendArtifactAdded(dynamic data) async {
+    if (!isConnected || _currentSessionId == null) return;
+    await _hubConnection!.invoke("ArtifactAdded", args: <Object>[data]);
+  }
+
+  Future<void> sendArtifactRemoved(dynamic data) async {
+    if (!isConnected || _currentSessionId == null) return;
+    await _hubConnection!.invoke("ArtifactRemoved", args: <Object>[data]);
+  }
+
+  Future<void> sendArtifactMoved(dynamic data) async {
+    if (!isConnected || _currentSessionId == null) return;
+    await _hubConnection!.invoke("ArtifactMoved", args: <Object>[data]);
+  }
+
+  Future<void> sendArtifactResized(dynamic data) async {
+    if (!isConnected || _currentSessionId == null) return;
+    await _hubConnection!.invoke("ArtifactResized", args: <Object>[data]);
+  }
+
+  Future<void> sendLayoutChanged(dynamic data) async {
+    if (!isConnected || _currentSessionId == null) return;
+    await _hubConnection!.invoke("LayoutChanged", args: <Object>[data]);
   }
 
   Future<void> endSession() async {

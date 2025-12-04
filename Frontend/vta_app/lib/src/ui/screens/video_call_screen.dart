@@ -153,7 +153,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       
       _webrtcService!.onLocalMediaAvailability = (hasVideo, hasAudio) {
         if (!mounted) return;
-        // Only update if stream hasn't been set yet (fallback)
+        // Only update if stream hasn't been set yet
         if (_localRenderer.srcObject == null) {
           setState(() {
             _hasLocalVideo = hasVideo;
@@ -165,7 +165,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       
       _webrtcService!.onRemoteMediaAvailability = (hasVideo, hasAudio) {
         if (!mounted) return;
-        // Only update if stream hasn't been set yet (fallback)
+        // Only update if stream hasn't been set yet
         if (_remoteRenderer.srcObject == null) {
           setState(() {
             _hasRemoteVideo = hasVideo;
@@ -185,7 +185,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         );
       };
 
-      // Initialize WebRTC
       await _webrtcService!.initialize();
 
       await Future.delayed(Duration(milliseconds: 500));

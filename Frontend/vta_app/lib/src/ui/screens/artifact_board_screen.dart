@@ -11,6 +11,7 @@ import '../widgets/board/quick_add_artefact.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
+import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({
@@ -32,6 +33,8 @@ class ArtifactBoardScreen extends StatefulWidget {
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   late ArtifactBoardController controller;
   List<Category>? categories;
+  user_model.User? currentUser;
+  late Future<user_model.User?> userFuture;
 
   @override
   void initState() {
@@ -41,6 +44,19 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
         notifyView: () {
       setState(() {});
     }, settingsController: widget.settingsController);
+    // Load user data as a future that will be awaited
+    userFuture = _loadCurrentUser();
+  }
+
+  Future<user_model.User?> _loadCurrentUser() async {
+    final user = await widget.authController.getCurrentUser();
+    debugPrint('Loaded user: ${user?.username}, role: ${user?.role}');
+    if (mounted) {
+      setState(() {
+        currentUser = user;
+      });
+    }
+    return user;
   }
 
   @override
@@ -120,12 +136,22 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             offset: const Offset(0, 60),
                             icon: Icon(Icons.supervised_user_circle_outlined,
                                 size: 50),
-                            itemBuilder: (context) => [
+                            itemBuilder: (context) {
+                              List<PopupMenuItem> items = [];
+
+
+                              debugPrint('Building menu - currentUser: ${currentUser?.username}, role: ${currentUser?.role}');
+                              debugPrint('Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
+
+                              // Only show "Start Opkald" for caregivers
+                              if (currentUser?.role == user_model.UserRole.caregiver) {
+                                items.add(
                                   PopupMenuItem(
                                     child: ListTile(
                                       leading: Icon(Icons.call, size: 20),
                                       title: const Text('Start Opkald'),
                                       onTap: () {
+                                        Navigator.of(context).pop();
                                         SignalRService()
                                             .setOwnerBoardController(
                                                 controller);
@@ -134,26 +160,35 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                       },
                                     ),
                                   ),
-                                  PopupMenuItem(
-                                    child: ListTile(
-                                      leading: Icon(Icons.settings, size: 20),
-                                      title: const Text('Indstillinger'),
-                                      onTap: () {
-                                        Navigator.of(context)
-                                            .pushNamed('/settings');
-                                      },
-                                    ),
+                                );
+                              }
+
+                              items.addAll([
+                                PopupMenuItem(
+                                  child: ListTile(
+                                    leading: Icon(Icons.settings, size: 20),
+                                    title: const Text('Indstillinger'),
+                                    onTap: () {
+                                      Navigator.of(context).pop();
+                                      Navigator.of(context)
+                                          .pushNamed('/settings');
+                                    },
                                   ),
-                                  PopupMenuItem(
-                                    child: ListTile(
-                                      leading: Icon(Icons.logout, size: 20),
-                                      title: const Text('Log ud'),
-                                      onTap: () {
-                                        widget.authController.logout(context);
-                                      },
-                                    ),
+                                ),
+                                PopupMenuItem(
+                                  child: ListTile(
+                                    leading: Icon(Icons.logout, size: 20),
+                                    title: const Text('Log ud'),
+                                    onTap: () {
+                                      Navigator.of(context).pop();
+                                      widget.authController.logout(context);
+                                    },
                                   ),
-                                ]),
+                                ),
+                              ]);
+
+                              return items;
+                            }),
                       ),
                       Align(
                         alignment: Alignment.centerLeft,

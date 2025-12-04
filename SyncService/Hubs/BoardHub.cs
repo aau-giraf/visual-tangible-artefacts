@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using System.Text.Json;
 
 namespace SyncService.Hubs
 {
@@ -100,8 +101,100 @@ namespace SyncService.Hubs
         public async Task UpdateBoard(string sessionId, object boardData)
         {
             Console.WriteLine($"[Hub] UpdateBoard => sessionId={sessionId}");
-            await Clients.Group(sessionId).SendAsync("BoardUpdated", boardData);
-            Console.WriteLine($"[Hub] Broadcasted BoardUpdated to group {sessionId}");
+            await Clients.OthersInGroup(sessionId).SendAsync("BoardUpdated", boardData);
+            Console.WriteLine($"[Hub] Broadcasted BoardUpdated to others in group {sessionId}");
+        }
+
+        // ---------------- DELTA UPDATE METHODS ----------------
+
+        public async Task ArtifactAdded(JsonElement data)
+        {
+            string? sessionId = null;
+            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            {
+                sessionId = sessionIdProp.GetString();
+            }
+            
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Console.WriteLine($"[Hub] ArtifactAdded: Missing sessionId. Data: {data}");
+                return;
+            }
+
+            Console.WriteLine($"[Hub] ArtifactAdded => sessionId={sessionId}");
+            await Clients.OthersInGroup(sessionId).SendAsync("ArtifactAdded", data);
+        }
+
+        public async Task ArtifactRemoved(JsonElement data)
+        {
+            string? sessionId = null;
+            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            {
+                sessionId = sessionIdProp.GetString();
+            }
+            
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Console.WriteLine($"[Hub] ArtifactRemoved: Missing sessionId. Data: {data}");
+                return;
+            }
+
+            Console.WriteLine($"[Hub] ArtifactRemoved => sessionId={sessionId}");
+            await Clients.OthersInGroup(sessionId).SendAsync("ArtifactRemoved", data);
+        }
+
+        public async Task ArtifactMoved(JsonElement data)
+        {
+            string? sessionId = null;
+            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            {
+                sessionId = sessionIdProp.GetString();
+            }
+            
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Console.WriteLine($"[Hub] ArtifactMoved: Missing sessionId. Data: {data}");
+                return;
+            }
+
+            Console.WriteLine($"[Hub] ArtifactMoved => sessionId={sessionId}");
+            await Clients.OthersInGroup(sessionId).SendAsync("ArtifactMoved", data);
+        }
+
+        public async Task ArtifactResized(JsonElement data)
+        {
+            string? sessionId = null;
+            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            {
+                sessionId = sessionIdProp.GetString();
+            }
+            
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Console.WriteLine($"[Hub] ArtifactResized: Missing sessionId. Data: {data}");
+                return;
+            }
+
+            Console.WriteLine($"[Hub] ArtifactResized => sessionId={sessionId}");
+            await Clients.OthersInGroup(sessionId).SendAsync("ArtifactResized", data);
+        }
+
+        public async Task LayoutChanged(JsonElement data)
+        {
+            string? sessionId = null;
+            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            {
+                sessionId = sessionIdProp.GetString();
+            }
+            
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Console.WriteLine($"[Hub] LayoutChanged: Missing sessionId. Data: {data}");
+                return;
+            }
+
+            Console.WriteLine($"[Hub] LayoutChanged => sessionId={sessionId}");
+            await Clients.OthersInGroup(sessionId).SendAsync("LayoutChanged", data);
         }
 
         public async Task EndSession(string sessionId)

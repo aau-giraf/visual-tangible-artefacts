@@ -24,7 +24,6 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
     final hasVideo = stream?.getVideoTracks().isNotEmpty ?? false;
     final hasAudio = stream?.getAudioTracks().isNotEmpty ?? false;
     
-    // If no stream but we're being called, treat it as no media available
     if (stream == null) {
       return _buildPlaceholder(hasAudio);
     }

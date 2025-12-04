@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -37,6 +38,15 @@ class RemoteArtifactBoardController {
   final SettingsController settingsController;
   final BoardLayoutService _boardLayoutService;
   final String sharedBoardId; // ID of the board to load from backend
+  
+  // Debouncing timers for optimized updates
+  Timer? _positionUpdateTimer;
+  Timer? _sizeUpdateTimer;
+  Timer? _layoutChangeTimer;
+  final Map<String, Timer?> _artifactUpdateTimers = {};
+  
+  // Track artifact size listeners to avoid duplicates
+  final Map<String, VoidCallback> _sizeListeners = {};
 
   RemoteArtifactBoardController({
     required this.sessionId,
@@ -50,7 +60,13 @@ class RemoteArtifactBoardController {
             ArtifactBoardController(
                 notifyView: notifyView, settingsController: settingsController),
         _boardLayoutService = boardLayoutService ?? BoardLayoutService() {
+    // Register all delta update handlers
     SignalRService().onBoardUpdated = _handleRemoteUpdate;
+    SignalRService().onArtifactAdded = _handleArtifactAdded;
+    SignalRService().onArtifactRemoved = _handleArtifactRemoved;
+    SignalRService().onArtifactMoved = _handleArtifactMoved;
+    SignalRService().onArtifactResized = _handleArtifactResized;
+    SignalRService().onLayoutChanged = _handleLayoutChanged;
 
     debugPrint(
         "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId, sharedBoardId=$sharedBoardId)");
@@ -74,18 +90,57 @@ class RemoteArtifactBoardController {
   }
 
   void dispose() {
+    // Cancel all debounce timers
+    _positionUpdateTimer?.cancel();
+    _sizeUpdateTimer?.cancel();
+    _layoutChangeTimer?.cancel();
+    for (var timer in _artifactUpdateTimers.values) {
+      timer?.cancel();
+    }
+    _artifactUpdateTimers.clear();
+    
+    // Remove all size listeners
+    _sizeListeners.clear();
+    
     // Re-enable auto-save when leaving remote session
     _cleanupRemoteSession();
     
     if (SignalRService().onBoardUpdated == _handleRemoteUpdate) {
       SignalRService().onBoardUpdated = null;
     }
+    if (SignalRService().onArtifactAdded == _handleArtifactAdded) {
+      SignalRService().onArtifactAdded = null;
+    }
+    if (SignalRService().onArtifactRemoved == _handleArtifactRemoved) {
+      SignalRService().onArtifactRemoved = null;
+    }
+    if (SignalRService().onArtifactMoved == _handleArtifactMoved) {
+      SignalRService().onArtifactMoved = null;
+    }
+    if (SignalRService().onArtifactResized == _handleArtifactResized) {
+      SignalRService().onArtifactResized = null;
+    }
+    if (SignalRService().onLayoutChanged == _handleLayoutChanged) {
+      SignalRService().onLayoutChanged = null;
+    }
     base.dispose();
   }
 
   bool get showDirectional => base.showDirectional;
   TalkingMat? get talkingMat => base.talkingMat;
-  LinearBoard? get linearBoard => base.linearBoard;
+  
+  // Create a custom LinearBoard with the onArtifactRemoved callback for owner
+  LinearBoard? get linearBoard {
+    if (isOwner) {
+      return LinearBoard(
+        linearBoardController: base.linearBoardController,
+        onArtifactRemoved: (artifact) {
+          removeArtifact(artifact);
+        },
+      );
+    }
+    return base.linearBoard;
+  }
 
   // ---------------- UI actions (owner syncs changes) ----------------
 
@@ -95,17 +150,50 @@ class RemoteArtifactBoardController {
       return;
     }
 
-    // Listen to size changes for real-time sync
-    artefact.sizeNotifier.addListener(() {
-      if (isOwner) {
-        debugPrint("RemoteSync => Artifact resized: ${artefact.artefactId}");
-        _pushFullBoard();
-      }
-    });
+    // Listen to size changes with debouncing
+    if (!_sizeListeners.containsKey(artefact.artefactId)) {
+      final listener = () {
+        if (isOwner) {
+          _debouncedSizeUpdate(artefact);
+        }
+      };
+      _sizeListeners[artefact.artefactId] = listener;
+      artefact.sizeNotifier.addListener(listener);
+    }
 
     base.addArtifactToCurrentBoard(artefact);
     notifyView();
-    _pushFullBoard();
+    
+    // Send delta update for added artifact
+    _pushArtifactAdded(artefact);
+  }
+
+  void removeArtifact(BoardArtefact artefact) {
+    if (!isOwner) {
+      debugPrint("RemoteSync => Non-owner cannot remove artifacts");
+      return;
+    }
+
+    // Remove size listener
+    final listener = _sizeListeners.remove(artefact.artefactId);
+    if (listener != null) {
+      artefact.sizeNotifier.removeListener(listener);
+    }
+
+    if (base.showDirectional) {
+      final index = base.linearBoardController.artifacts.indexOf(artefact);
+      if (index != -1) {
+        base.linearBoardController.removeArtifact(index);
+      }
+    } else {
+      base.talkingmatController.removeArtifact(artefact);
+    }
+
+    notifyView();
+    
+    // Send delta update for removed artifact
+    _pushArtifactRemoved(artefact.artefactId);
+    debugPrint("RemoteSync => Artifact removed: ${artefact.artefactId}");
   }
 
   void switchBoard() {
@@ -116,7 +204,12 @@ class RemoteArtifactBoardController {
 
     base.switchCurrentBoard();
     notifyView();
-    _pushFullBoard();
+    
+    // Debounce layout change updates to prevent rapid toggles
+    _layoutChangeTimer?.cancel();
+    _layoutChangeTimer = Timer(const Duration(milliseconds: 300), () {
+      _pushLayoutChanged();
+    });
   }
 
   /// Called when an artifact position changes (from drag)
@@ -126,9 +219,8 @@ class RemoteArtifactBoardController {
       return;
     }
 
-    debugPrint(
-        "RemoteSync => Artifact moved: ${artifact.artefactId} to ${artifact.position}");
-    _pushFullBoard();
+    // Debounce position updates during drag
+    _debouncedPositionUpdate(artifact);
   }
 
   // ---------------- Build snapshot ----------------
@@ -160,6 +252,125 @@ class RemoteArtifactBoardController {
         };
       }).toList(),
     };
+  }
+
+  // ---------------- Debounced update methods ----------------
+
+  void _debouncedPositionUpdate(BoardArtefact artifact) {
+    // Cancel existing timer for this artifact
+    _artifactUpdateTimers[artifact.artefactId]?.cancel();
+    
+    // Create new debounced timer (100ms delay)
+    _artifactUpdateTimers[artifact.artefactId] = Timer(const Duration(milliseconds: 100), () {
+      debugPrint("RemoteSync => Artifact moved: ${artifact.artefactId} to ${artifact.position}");
+      _pushArtifactMoved(artifact);
+    });
+  }
+
+  void _debouncedSizeUpdate(BoardArtefact artifact) {
+    // Cancel existing timer for this artifact
+    _artifactUpdateTimers['size_${artifact.artefactId}']?.cancel();
+    
+    // Create new debounced timer (100ms delay)
+    _artifactUpdateTimers['size_${artifact.artefactId}'] = Timer(const Duration(milliseconds: 100), () {
+      debugPrint("RemoteSync => Artifact resized: ${artifact.artefactId}");
+      _pushArtifactResized(artifact);
+    });
+  }
+
+  // ---------------- Delta update push methods ----------------
+
+  Future<void> _pushArtifactAdded(BoardArtefact artifact) async {
+    if (!SignalRService().isConnected) return;
+
+    final size = artifact.sizeNotifier.value;
+    final payload = {
+      'sessionId': sessionId,
+      'artifact': {
+        'id': artifact.artefactId,
+        'name': artifact.baseArtefact?.name,
+        'imageUrl': artifact.baseArtefact?.imageUrl,
+        'soundUrl': artifact.baseArtefact?.soundUrl,
+        'size': {'width': size.width, 'height': size.height},
+        if (artifact.position != null)
+          'position': {'dx': artifact.position!.dx, 'dy': artifact.position!.dy},
+      },
+    };
+
+    try {
+      await SignalRService().sendArtifactAdded(payload);
+      debugPrint("RemoteSync => Pushed artifact added: ${artifact.artefactId}");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push artifact added: $e");
+    }
+  }
+
+  Future<void> _pushArtifactRemoved(String artifactId) async {
+    if (!SignalRService().isConnected) return;
+
+    final payload = {
+      'sessionId': sessionId,
+      'artifactId': artifactId,
+    };
+
+    try {
+      await SignalRService().sendArtifactRemoved(payload);
+      debugPrint("RemoteSync => Pushed artifact removed: $artifactId");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push artifact removed: $e");
+    }
+  }
+
+  Future<void> _pushArtifactMoved(BoardArtefact artifact) async {
+    if (!SignalRService().isConnected) return;
+    if (artifact.position == null) return;
+
+    final payload = {
+      'sessionId': sessionId,
+      'artifactId': artifact.artefactId,
+      'position': {'dx': artifact.position!.dx, 'dy': artifact.position!.dy},
+    };
+
+    try {
+      await SignalRService().sendArtifactMoved(payload);
+      debugPrint("RemoteSync => Pushed artifact moved: ${artifact.artefactId}");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push artifact moved: $e");
+    }
+  }
+
+  Future<void> _pushArtifactResized(BoardArtefact artifact) async {
+    if (!SignalRService().isConnected) return;
+
+    final size = artifact.sizeNotifier.value;
+    final payload = {
+      'sessionId': sessionId,
+      'artifactId': artifact.artefactId,
+      'size': {'width': size.width, 'height': size.height},
+    };
+
+    try {
+      await SignalRService().sendArtifactResized(payload);
+      debugPrint("RemoteSync => Pushed artifact resized: ${artifact.artefactId}");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push artifact resized: $e");
+    }
+  }
+
+  Future<void> _pushLayoutChanged() async {
+    if (!SignalRService().isConnected) return;
+
+    final payload = {
+      'sessionId': sessionId,
+      'layout': base.showDirectional ? 'linear' : 'talkingmat',
+    };
+
+    try {
+      await SignalRService().sendLayoutChanged(payload);
+      debugPrint("RemoteSync => Pushed layout changed: ${payload['layout']}");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push layout changed: $e");
+    }
   }
 
   Future<void> _pushFullBoard() async {
@@ -314,14 +525,238 @@ class RemoteArtifactBoardController {
       base.talkingmatController.value.removeWhere(
         (artifact) => !updatedIds.contains(artifact.artefactId)
       );
-      
-      // Trigger ValueNotifier update by re-assigning the value
-      // This is necessary because we modified artifact positions in-place
-      base.talkingmatController.value = List.from(base.talkingmatController.value);
     }
-    
+
     notifyView();
     debugPrint("RemoteSync => Board updated with ${items.length} items");
+  }
+
+  // ---------------- Delta update handlers ----------------
+
+  void _handleArtifactAdded(dynamic data) {
+    if (data is! Map) return;
+    if (isOwner) return;
+
+    final map = data.cast<String, dynamic>();
+    final incomingSessionId = map['sessionId'] as String?;
+    if (incomingSessionId != sessionId) return;
+
+    final artifactData = map['artifact'];
+    if (artifactData == null) return;
+
+    final id = artifactData['id'] as String?;
+    if (id == null) return;
+
+    debugPrint("RemoteSync => Received artifact added: $id");
+
+    // Create new artifact
+    final artefact = Artefact(
+      artefactId: id,
+      name: artifactData['name'],
+      imageUrl: artifactData['imageUrl'],
+      soundUrl: artifactData['soundUrl'],
+    );
+
+    final token = GetIt.instance.get<Token>().value;
+    Map<String, String>? headers;
+    if (token != null) headers = {'Authorization': 'Bearer $token'};
+
+    final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
+
+    final size = artifactData['size'];
+    if (size != null) {
+      boardItem.sizeNotifier.value = Size(
+        (size['width'] as num).toDouble(),
+        (size['height'] as num).toDouble(),
+      );
+    }
+
+    final pos = artifactData['position'];
+    if (pos != null) {
+      boardItem.position = Offset(
+        (pos['dx'] as num).toDouble(),
+        (pos['dy'] as num).toDouble(),
+      );
+    }
+
+    base.addArtifactToCurrentBoard(boardItem);
+    notifyView();
+  }
+
+  void _handleArtifactRemoved(dynamic data) {
+    if (data is! Map) return;
+    if (isOwner) return;
+
+    final map = data.cast<String, dynamic>();
+    final incomingSessionId = map['sessionId'] as String?;
+    if (incomingSessionId != sessionId) return;
+
+    final artifactId = map['artifactId'] as String?;
+    if (artifactId == null) return;
+
+    debugPrint("RemoteSync => Received artifact removed: $artifactId");
+
+    // Find and remove the artifact
+    if (base.showDirectional) {
+      final artifacts = base.linearBoardController.artifacts;
+      for (int i = artifacts.length - 1; i >= 0; i--) {
+        final artifact = artifacts[i];
+        if (artifact?.artefactId == artifactId) {
+          base.linearBoardController.removeArtifact(i);
+          debugPrint("RemoteSync => Removed artifact from linear board at index $i");
+          notifyView();
+          return;
+        }
+      }
+    } else {
+      final artifacts = base.talkingmatController.value;
+      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
+        (a) => a?.artefactId == artifactId,
+        orElse: () => null,
+      );
+      if (artifact != null) {
+        base.talkingmatController.removeArtifact(artifact);
+        debugPrint("RemoteSync => Removed artifact from talking mat");
+        notifyView();
+        return;
+      }
+    }
+    debugPrint("RemoteSync => Artifact $artifactId not found for removal");
+  }
+
+  void _handleArtifactMoved(dynamic data) {
+    if (data is! Map) return;
+    if (isOwner) return;
+
+    final map = data.cast<String, dynamic>();
+    final incomingSessionId = map['sessionId'] as String?;
+    if (incomingSessionId != sessionId) return;
+
+    final artifactId = map['artifactId'] as String?;
+    final position = map['position'];
+    if (artifactId == null || position == null) return;
+
+    debugPrint("RemoteSync => Received artifact moved: $artifactId to (${position['dx']}, ${position['dy']})");
+
+    // Find the artifact and update its position
+    if (base.showDirectional) {
+      // Linear board - just update position
+      final artifacts = base.linearBoardController.artifacts.whereType<BoardArtefact>().toList();
+      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
+        (a) => a?.artefactId == artifactId,
+        orElse: () => null,
+      );
+      
+      if (artifact != null) {
+        artifact.position = Offset(
+          (position['dx'] as num).toDouble(),
+          (position['dy'] as num).toDouble(),
+        );
+        debugPrint("RemoteSync => Updated artifact position on linear board");
+        notifyView();
+      } else {
+        debugPrint("RemoteSync => Artifact $artifactId not found for move");
+      }
+    } else {
+      // TalkingMat - need to trigger ValueNotifier by reassigning
+      final artifacts = base.talkingmatController.value;
+      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
+        (a) => a?.artefactId == artifactId,
+        orElse: () => null,
+      );
+      
+      if (artifact != null) {
+        artifact.position = Offset(
+          (position['dx'] as num).toDouble(),
+          (position['dy'] as num).toDouble(),
+        );
+        // Trigger ValueNotifier by reassigning the list
+        base.talkingmatController.value = List.from(artifacts);
+        debugPrint("RemoteSync => Updated artifact position on talking mat");
+        notifyView();
+      } else {
+        debugPrint("RemoteSync => Artifact $artifactId not found for move");
+      }
+    }
+  }
+
+  void _handleArtifactResized(dynamic data) {
+    if (data is! Map) return;
+    if (isOwner) return;
+
+    final map = data.cast<String, dynamic>();
+    final incomingSessionId = map['sessionId'] as String?;
+    if (incomingSessionId != sessionId) return;
+
+    final artifactId = map['artifactId'] as String?;
+    final size = map['size'];
+    if (artifactId == null || size == null) return;
+
+    debugPrint("RemoteSync => Received artifact resized: $artifactId to ${size['width']}x${size['height']}");
+
+    // Find the artifact and update its size
+    if (base.showDirectional) {
+      // Linear board
+      final artifacts = base.linearBoardController.artifacts.whereType<BoardArtefact>().toList();
+      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
+        (a) => a?.artefactId == artifactId,
+        orElse: () => null,
+      );
+
+      if (artifact != null) {
+        artifact.sizeNotifier.value = Size(
+          (size['width'] as num).toDouble(),
+          (size['height'] as num).toDouble(),
+        );
+        debugPrint("RemoteSync => Updated artifact size on linear board");
+        notifyView();
+      } else {
+        debugPrint("RemoteSync => Artifact $artifactId not found for resize");
+      }
+    } else {
+      // TalkingMat
+      final artifacts = base.talkingmatController.value;
+      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
+        (a) => a?.artefactId == artifactId,
+        orElse: () => null,
+      );
+
+      if (artifact != null) {
+        artifact.sizeNotifier.value = Size(
+          (size['width'] as num).toDouble(),
+          (size['height'] as num).toDouble(),
+        );
+        // Size has its own notifier, but trigger list update just in case
+        base.talkingmatController.value = List.from(artifacts);
+        debugPrint("RemoteSync => Updated artifact size on talking mat");
+        notifyView();
+      } else {
+        debugPrint("RemoteSync => Artifact $artifactId not found for resize");
+      }
+    }
+  }
+
+  void _handleLayoutChanged(dynamic data) {
+    if (data is! Map) return;
+    if (isOwner) return;
+
+    final map = data.cast<String, dynamic>();
+    final incomingSessionId = map['sessionId'] as String?;
+    if (incomingSessionId != sessionId) return;
+
+    final layout = map['layout'] as String?;
+    if (layout == null) return;
+
+    debugPrint("RemoteSync => Received layout changed: $layout (current: ${base.showDirectional ? 'linear' : 'talkingmat'})");
+
+    final directional = (layout == 'linear');
+    if (base.showDirectional != directional) {
+      debugPrint("RemoteSync => Switching board layout");
+      base.switchCurrentBoard();
+      notifyView();
+    } else {
+      debugPrint("RemoteSync => Already on correct layout");
+    }
   }
 
   // ---------------- Remote session management ----------------
