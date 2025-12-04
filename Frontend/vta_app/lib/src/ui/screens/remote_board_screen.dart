@@ -276,7 +276,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
                       const QuickChatButton(),
                       
                       // Picture-in-Picture video widget
-                      if (_hasVideo && VideoCallManager().isCallActive)
+                      if (VideoCallManager().isCallActive && VideoCallManager().remoteRenderer != null)
                         PipVideoWidget(
                           remoteRenderer: VideoCallManager().remoteRenderer!,
                           onTap: _goToVideoScreen,

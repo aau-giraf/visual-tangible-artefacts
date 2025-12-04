@@ -37,9 +37,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _isMuted = false;
   bool _isCameraOff = false;
-  String _status = 'Initializing...';
+  String _status = 'Initialiserer...';
   bool _hasTransitioned = false;
   bool _showBoardButton = false;
+  
+  // Track media availability
+  bool _hasLocalVideo = false;
+  bool _hasLocalAudio = false;
+  bool _hasRemoteVideo = false;
+  bool _hasRemoteAudio = false;
 
   @override
   void initState() {
@@ -69,8 +75,17 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     
     setState(() {
       _webrtcService = videoManager.webrtcService;
-      _status = 'Connected';
+      _status = 'Forbundet';
       _showBoardButton = true;
+      
+      // Restore media availability from WebRTC service
+      if (_webrtcService != null) {
+        _hasLocalVideo = _webrtcService!.hasLocalVideo;
+        _hasLocalAudio = _webrtcService!.hasLocalAudio;
+        _hasRemoteVideo = _webrtcService!.hasRemoteVideo;
+        _hasRemoteAudio = _webrtcService!.hasRemoteAudio;
+        debugPrint('[VideoCall] Restored media state: local(v:$_hasLocalVideo,a:$_hasLocalAudio) remote(v:$_hasRemoteVideo,a:$_hasRemoteAudio)');
+      }
     });
     
     // Reattach renderers
@@ -104,7 +119,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (!mounted) return;
         setState(() {
           _localRenderer.srcObject = stream;
-          _status = widget.isCaller ? 'Calling...' : 'Connecting...';
+          _status = widget.isCaller ? 'Ringer...' : 'Forbinder...';
+          // Update local media from actual stream
+          _hasLocalVideo = stream.getVideoTracks().isNotEmpty;
+          _hasLocalAudio = stream.getAudioTracks().isNotEmpty;
+          debugPrint('[VideoCall] Local stream set: video=$_hasLocalVideo, audio=$_hasLocalAudio');
         });
       };
 
@@ -112,17 +131,54 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (!mounted) return;
         setState(() {
           _remoteRenderer.srcObject = stream;
-          _status = 'Connected';
+          _status = 'Forbundet';
+          // Update remote media from actual stream
+          _hasRemoteVideo = stream.getVideoTracks().isNotEmpty;
+          _hasRemoteAudio = stream.getAudioTracks().isNotEmpty;
+          debugPrint('[VideoCall] Remote stream set: video=$_hasRemoteVideo, audio=$_hasRemoteAudio');
         });
         
         // Auto-transition to board screen after connection stabilizes
         _handleConnectionEstablished();
       };
+      
+      _webrtcService!.onConnectionEstablished = () {
+        if (!mounted) return;
+        debugPrint('[VideoCall] Connection established notification');
+        setState(() {
+          _status = 'Forbundet';
+        });
+        _handleConnectionEstablished();
+      };
+      
+      _webrtcService!.onLocalMediaAvailability = (hasVideo, hasAudio) {
+        if (!mounted) return;
+        // Only update if stream hasn't been set yet (fallback)
+        if (_localRenderer.srcObject == null) {
+          setState(() {
+            _hasLocalVideo = hasVideo;
+            _hasLocalAudio = hasAudio;
+            debugPrint('[VideoCall] Local media availability (no stream yet): video=$hasVideo, audio=$hasAudio');
+          });
+        }
+      };
+      
+      _webrtcService!.onRemoteMediaAvailability = (hasVideo, hasAudio) {
+        if (!mounted) return;
+        // Only update if stream hasn't been set yet (fallback)
+        if (_remoteRenderer.srcObject == null) {
+          setState(() {
+            _hasRemoteVideo = hasVideo;
+            _hasRemoteAudio = hasAudio;
+            debugPrint('[VideoCall] Remote media availability (no stream yet): video=$hasVideo, audio=$hasAudio');
+          });
+        }
+      };
 
       _webrtcService!.onError = (error) {
         if (!mounted) return;
         setState(() {
-          _status = 'Error: $error';
+          _status = 'Fejl: $error';
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error)),
@@ -145,11 +201,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       debugPrint('[VideoCall] Initialization error: $e');
       if (!mounted) return;
       setState(() {
-        _status = 'Failed to initialize: $e';
+        _status = 'Kunne ikke initialisere: $e';
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to initialize call: $e')),
+          SnackBar(content: Text('Kunne ikke initialisere opkald: $e')),
         );
       }
     }
@@ -244,24 +300,89 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         child: Stack(
           children: [
             // Remote video (full screen)
-            _remoteRenderer.srcObject != null
-                ? RTCVideoView(
-                    _remoteRenderer,
-                    mirror: false,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+            _remoteRenderer.srcObject != null && _hasRemoteVideo
+                ? Stack(
+                    children: [
+                      RTCVideoView(
+                        _remoteRenderer,
+                        mirror: false,
+                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+                      ),
+                      // Audio muted indicator
+                      if (!_hasRemoteAudio)
+                        Positioned(
+                          top: 80,
+                          left: 20,
+                          child: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.mic_off, color: Colors.white, size: 20),
+                                SizedBox(width: 4),
+                                Text('Ingen lyd', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   )
                 : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 20),
-                        Text(
-                          _status,
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
-                      ],
-                    ),
+                    child: (_remoteRenderer.srcObject != null && !_hasRemoteVideo) || 
+                           (_status == 'Forbundet' && !_hasRemoteVideo)
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[800],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 80,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              SizedBox(height: 20),
+                              Text(
+                                'Kamera utilgængeligt',
+                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                              ),
+                              if (!_hasRemoteAudio)
+                                Padding(
+                                  padding: EdgeInsets.only(top: 8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.mic_off, color: Colors.red, size: 20),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Ingen lyd',
+                                        style: TextStyle(color: Colors.red, fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 20),
+                              Text(
+                                _status,
+                                style: TextStyle(color: Colors.white, fontSize: 18),
+                              ),
+                            ],
+                          ),
                   ),
 
             // Local video (small preview in corner)
@@ -277,13 +398,54 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: _localRenderer.srcObject != null
-                      ? RTCVideoView(
-                          _localRenderer,
-                          mirror: true,
-                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        )
-                      : Container(color: Colors.grey[800]),
+                  child: Stack(
+                    children: [
+                      // Video or placeholder
+                      _localRenderer.srcObject != null && _hasLocalVideo
+                          ? RTCVideoView(
+                              _localRenderer,
+                              mirror: true,
+                              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                            )
+                          : Container(
+                              color: Colors.grey[800],
+                              child: Center(
+                                child: Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ),
+                      // Audio muted indicator
+                      if (!_hasLocalAudio)
+                        Positioned(
+                          bottom: 8,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.mic_off, color: Colors.white, size: 16),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Ingen mikrofon',
+                                    style: TextStyle(color: Colors.white, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -299,11 +461,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   // Mute button
                   _buildControlButton(
                     icon: _isMuted ? Icons.mic_off : Icons.mic,
-                    onPressed: () {
-                      _webrtcService?.toggleMute();
-                      setState(() => _isMuted = !_isMuted);
-                    },
-                    backgroundColor: _isMuted ? Colors. red : Colors.white,
+                    onPressed: _hasLocalAudio
+                        ? () {
+                            _webrtcService?.toggleMute();
+                            setState(() => _isMuted = !_isMuted);
+                          }
+                        : null,
+                    backgroundColor: !_hasLocalAudio
+                        ? Colors.grey
+                        : (_isMuted ? Colors.red : Colors.white),
                   ),
 
                   // End call button
@@ -327,11 +493,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   // Camera toggle button
                   _buildControlButton(
                     icon: _isCameraOff ? Icons.videocam_off : Icons.videocam,
-                    onPressed: () {
-                      _webrtcService?.toggleCamera();
-                      setState(() => _isCameraOff = !_isCameraOff);
-                    },
-                    backgroundColor: _isCameraOff ? Colors.red : Colors.white,
+                    onPressed: _hasLocalVideo
+                        ? () {
+                            _webrtcService?.toggleCamera();
+                            setState(() => _isCameraOff = !_isCameraOff);
+                          }
+                        : null,
+                    backgroundColor: !_hasLocalVideo
+                        ? Colors.grey
+                        : (_isCameraOff ? Colors.red : Colors.white),
                   ),
                 ],
               ),
@@ -384,29 +554,35 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Widget _buildControlButton({
     required IconData icon,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     Color backgroundColor = Colors.white,
     double size = 60,
   }) {
+    final isDisabled = onPressed == null;
+    
     return GestureDetector(
-      onTap: onPressed,
+      onTap: isDisabled ? null : onPressed,
       child: Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
           color: backgroundColor,
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          boxShadow: isDisabled
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
         ),
         child: Icon(
           icon,
-          color: backgroundColor == Colors.white ? Colors.black : Colors.white,
+          color: isDisabled
+              ? Colors.white54
+              : (backgroundColor == Colors.white ? Colors.black : Colors.white),
           size: size * 0.5,
         ),
       ),

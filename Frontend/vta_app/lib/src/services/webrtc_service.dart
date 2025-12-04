@@ -14,10 +14,24 @@ class WebRTCService {
   
   final List<RTCIceCandidate> _pendingIceCandidates = [];
   
+  // Track available media
+  bool hasLocalVideo = false;
+  bool hasLocalAudio = false;
+  bool hasRemoteVideo = false;
+  bool hasRemoteAudio = false;
+    
+  // Track what remote peer advertised in SDP
+  bool _remoteOffersVideo = false;
+  bool _remoteOffersAudio = false;
+  bool _remoteMediaKnown = false;
+  
   // Callbacks for UI updates
   Function(MediaStream)? onLocalStream;
   Function(MediaStream)? onRemoteStream;
   Function(String)? onError;
+  Function(bool hasVideo, bool hasAudio)? onLocalMediaAvailability;
+  Function(bool hasVideo, bool hasAudio)? onRemoteMediaAvailability;
+  Function()? onConnectionEstablished;
 
   WebRTCService({
     required this.hubConnection,
@@ -61,15 +75,67 @@ class WebRTCService {
     }
   };
 
+  Future<void> _requestUserMedia() async {
+    // Try to get both video and audio
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia(_mediaConstraints);
+      hasLocalVideo = _localStream!.getVideoTracks().isNotEmpty;
+      hasLocalAudio = _localStream!.getAudioTracks().isNotEmpty;
+      print('[WebRTC] Got both video and audio');
+      return;
+    } catch (e) {
+      print('[WebRTC] Failed to get both video and audio: $e');
+    }
+    
+    // Try video only
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia({
+        'video': _mediaConstraints['video'],
+      });
+      hasLocalVideo = _localStream!.getVideoTracks().isNotEmpty;
+      hasLocalAudio = false;
+      print('[WebRTC] Got video only');
+      return;
+    } catch (e) {
+      print('[WebRTC] Failed to get video: $e');
+    }
+    
+    // Try audio only
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': true,
+      });
+      hasLocalVideo = false;
+      hasLocalAudio = _localStream!.getAudioTracks().isNotEmpty;
+      print('[WebRTC] Got audio only');
+      return;
+    } catch (e) {
+      print('[WebRTC] Failed to get audio: $e');
+    }
+    
+    // Continue without media
+    print('[WebRTC] No media available, continuing with data channel only');
+    hasLocalVideo = false;
+    hasLocalAudio = false;
+    _localStream = null;
+  }
+
   Future<void> initialize() async {
     try {
       print('[WebRTC] Starting initialization');
       
-      // Get local media stream FIRST (before peer connection)
+      // Try to get local media with fallbacks
       print('[WebRTC] Requesting user media');
-      _localStream = await navigator.mediaDevices.getUserMedia(_mediaConstraints);
-      print('[WebRTC] Got user media stream');
-      onLocalStream?.call(_localStream!);
+      await _requestUserMedia();
+      
+      if (_localStream != null) {
+        print('[WebRTC] Got local media stream (video: $hasLocalVideo, audio: $hasLocalAudio)');
+        onLocalStream?.call(_localStream!);
+        onLocalMediaAvailability?.call(hasLocalVideo, hasLocalAudio);
+      } else {
+        print('[WebRTC] No local media available, continuing without it');
+        onLocalMediaAvailability?.call(false, false);
+      }
 
       // Set up SignalR listeners for WebRTC signaling
       _setupSignalRCallbacks();
@@ -88,6 +154,11 @@ class WebRTCService {
       // Set up connection state handlers
       pc.onConnectionState = (RTCPeerConnectionState state) {
         print('[WebRTC] Connection state: $state');
+        if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+          // Connection established - trigger callback even if no media tracks arrive
+          // This handles the case where remote peer has no media to send
+          onConnectionEstablished?.call();
+        }
       };
       
       pc.onIceConnectionState = (RTCIceConnectionState state) {
@@ -118,22 +189,37 @@ class WebRTCService {
         if (event.streams.isNotEmpty) {
           // Always update the remote stream reference
           _remoteStream = event.streams[0];
-          // Call the callback to update the renderer with the latest stream
-          // This ensures both audio and video tracks are included
+          
+          // Update specific track availability
+          if (event.track.kind == 'video') {
+            hasRemoteVideo = true;
+            print('[WebRTC] Remote video track received');
+          } else if (event.track.kind == 'audio') {
+            hasRemoteAudio = true;
+            print('[WebRTC] Remote audio track received');
+          }
+          
+          // Call the callbacks
           onRemoteStream?.call(_remoteStream!);
-          print('[WebRTC] Updated remote stream with ${event.track.kind} track');
+          onRemoteMediaAvailability?.call(hasRemoteVideo, hasRemoteAudio);
+          
+          print('[WebRTC] Remote media state: video=$hasRemoteVideo, audio=$hasRemoteAudio');
         }
       };
 
       // Add local tracks to peer connection
-      print('[WebRTC] Adding local tracks to peer connection');
-      final tracks = _localStream!.getTracks();
-      print('[WebRTC] Found ${tracks.length} tracks to add');
-      
-      for (var track in tracks) {
-        print('[WebRTC] Adding track: ${track.kind} (${track.id})');
-        await pc.addTrack(track, _localStream!);
-        print('[WebRTC] Successfully added track: ${track.kind}');
+      if (_localStream != null) {
+        print('[WebRTC] Adding local tracks to peer connection');
+        final tracks = _localStream!.getTracks();
+        print('[WebRTC] Found ${tracks.length} tracks to add');
+        
+        for (var track in tracks) {
+          print('[WebRTC] Adding track: ${track.kind} (${track.id})');
+          await pc.addTrack(track, _localStream!);
+          print('[WebRTC] Successfully added track: ${track.kind}');
+        }
+      } else {
+        print('[WebRTC] No local media tracks to add');
       }
 
       // Store peer connection only after successfully adding all tracks
@@ -166,6 +252,16 @@ class WebRTCService {
   void _setupSignalRCallbacks() {
     final signalR = SignalRService();
     
+    bool _sdpHasVideo(String? sdp) {
+      if (sdp == null) return false;
+      return sdp.contains('m=video') && !sdp.contains('m=video 0');
+    }
+    
+    bool _sdpHasAudio(String? sdp) {
+      if (sdp == null) return false;
+      return sdp.contains('m=audio') && !sdp.contains('m=audio 0');
+    }
+    
     // Register callbacks in SignalR service
     signalR.onReceiveOffer = (receivedSessionId, offer) async {
       if (receivedSessionId != sessionId) {
@@ -175,6 +271,22 @@ class WebRTCService {
       
       print('[WebRTC] Received offer');
       try {
+        // Parse SDP to check what media the remote peer is offering
+        final sdp = offer['sdp'] as String?;
+        _remoteOffersVideo = _sdpHasVideo(sdp);
+        _remoteOffersAudio = _sdpHasAudio(sdp);
+        _remoteMediaKnown = true;
+        
+        print('[WebRTC] Remote peer offers: video=$_remoteOffersVideo, audio=$_remoteOffersAudio');
+        
+        // Notify if remote offers NO media at all
+        if (!_remoteOffersVideo && !_remoteOffersAudio) {
+          print('[WebRTC] Remote peer has no media tracks in offer');
+          hasRemoteVideo = false;
+          hasRemoteAudio = false;
+          onRemoteMediaAvailability?.call(false, false);
+        }
+        
         await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(offer['sdp'], offer['type']),
         );
@@ -207,6 +319,22 @@ class WebRTCService {
       
       print('[WebRTC] Received answer');
       try {
+        // Parse SDP to check what media the remote peer is offering
+        final sdp = answer['sdp'] as String?;
+        _remoteOffersVideo = _sdpHasVideo(sdp);
+        _remoteOffersAudio = _sdpHasAudio(sdp);
+        _remoteMediaKnown = true;
+        
+        print('[WebRTC] Remote peer offers: video=$_remoteOffersVideo, audio=$_remoteOffersAudio');
+        
+        // Notify if remote offers NO media at all
+        if (!_remoteOffersVideo && !_remoteOffersAudio) {
+          print('[WebRTC] Remote peer has no media tracks in answer');
+          hasRemoteVideo = false;
+          hasRemoteAudio = false;
+          onRemoteMediaAvailability?.call(false, false);
+        }
+        
         await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(answer['sdp'], answer['type']),
         );
@@ -246,6 +374,25 @@ class WebRTCService {
   Future<void> startCall() async {
     try {
       print('[WebRTC] Starting call (creating offer)');
+      
+      // Add transceivers for video and audio to ensure we can receive them
+      // even if we don't have them locally to send
+      if (!hasLocalVideo) {
+        print('[WebRTC] Adding recvonly video transceiver');
+        await _peerConnection!.addTransceiver(
+          kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
+          init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly),
+        );
+      }
+      
+      if (!hasLocalAudio) {
+        print('[WebRTC] Adding recvonly audio transceiver');
+        await _peerConnection!.addTransceiver(
+          kind: RTCRtpMediaType.RTCRtpMediaTypeAudio,
+          init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly),
+        );
+      }
+      
       final offer = await _peerConnection!.createOffer();
       await _peerConnection!.setLocalDescription(offer);
       
@@ -266,16 +413,22 @@ class WebRTCService {
   }
 
   void toggleMute() {
-    if (_localStream != null) {
-      final audioTrack = _localStream! .getAudioTracks().first;
-      audioTrack.enabled = !audioTrack.enabled;
+    if (_localStream != null && hasLocalAudio) {
+      final audioTracks = _localStream!.getAudioTracks();
+      if (audioTracks.isNotEmpty) {
+        final audioTrack = audioTracks.first;
+        audioTrack.enabled = !audioTrack.enabled;
+      }
     }
   }
 
   void toggleCamera() {
-    if (_localStream != null) {
-      final videoTrack = _localStream!.getVideoTracks().first;
-      videoTrack.enabled = !videoTrack.enabled;
+    if (_localStream != null && hasLocalVideo) {
+      final videoTracks = _localStream!.getVideoTracks();
+      if (videoTracks.isNotEmpty) {
+        final videoTrack = videoTracks.first;
+        videoTrack.enabled = !videoTrack.enabled;
+      }
     }
   }
 
