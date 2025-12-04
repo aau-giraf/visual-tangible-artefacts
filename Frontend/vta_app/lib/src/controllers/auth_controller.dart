@@ -6,11 +6,11 @@ import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
-import 'package:vta_app/src/ui/screens/video_call_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/services/call_manager.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
-import 'package:vta_app/src/app.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
@@ -30,7 +30,15 @@ class AuthController extends ChangeNotifier {
       if (userId != null && userId.isNotEmpty) {
         try {
           await SignalRService().connect(userId);
-          _setupSignalRCallbacks();
+          
+          // Load contacts cache and setup call UI callbacks
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('jwtToken');
+          if (token != null) {
+            await SignalRService().loadContacts(token);
+          }
+          CallManager().setupCallbacks();
+          
           debugPrint("SignalR: connected & registered user $userId (from checkAuth)");
         } catch (e) {
           debugPrint("SignalR: connect failed in checkAuth => $e");
@@ -55,7 +63,15 @@ class AuthController extends ChangeNotifier {
         if (userId != null && userId.isNotEmpty) {
           try {
             await SignalRService().connect(userId);
-            _setupSignalRCallbacks();
+            
+            // Load contacts cache and setup call UI callbacks
+            final prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('jwtToken');
+            if (token != null) {
+              await SignalRService().loadContacts(token);
+            }
+            CallManager().setupCallbacks();
+            
             debugPrint("SignalR: connected & registered user $userId");
           } catch (e) {
             debugPrint("SignalR: connect failed => $e");
@@ -95,8 +111,17 @@ class AuthController extends ChangeNotifier {
       await _showLogoutConfirmationDialog(context);
     } else {
       try {
+        // Clear call callbacks
+        CallManager().clearCallbacks();
+        
+        // Disconnect from SignalR
+        await SignalRService().disconnect();
+        
+        // Clear all user data
         await artifactController.clearUserData();
         await _model.logout();
+        
+        debugPrint('[AuthController.logout] Logout complete');
       } catch (e) {
         debugPrint('[AuthController.logout] clearUserData failed: $e');
       }
@@ -139,8 +164,17 @@ class AuthController extends ChangeNotifier {
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 try {
+                  // Clear call callbacks
+                  CallManager().clearCallbacks();
+                  
+                  // Disconnect from SignalR
+                  await SignalRService().disconnect();
+                  
+                  // Clear all user data
                   await artifactController.clearUserData();
                   await _model.logout();
+                  
+                  debugPrint('[AuthController.logout] Logout complete');
                 } catch (e) {
                   debugPrint(
                       '[AuthController.logout] clearUserData failed: $e');
@@ -161,92 +195,5 @@ class AuthController extends ChangeNotifier {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     GlobalSnackbar.show(context, message,
         color: Colors.white, iconColor: Colors.red);
-  }
-
-  /// Setup global SignalR callbacks for incoming calls and session events
-  void _setupSignalRCallbacks() {
-    final signalR = SignalRService();
-    bool _isNavigatingToCall = false;
-
-    // Handle incoming call requests
-    signalR.onSessionRequested = (fromUserId) {
-      final context = MyApp.navigatorKey.currentContext;
-      if (context == null) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogCtx) {
-          return AlertDialog(
-            title: const Text("Indgående opkald"),
-            content: Text("$fromUserId vil starte en fjernsession."), // skal opdateres til navn
-            actions: [
-              TextButton(
-                onPressed: () {
-                  signalR.rejectSession(fromUserId);
-                  Navigator.of(dialogCtx).pop();
-                },
-                child: const Text("Afvis"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(dialogCtx).pop();
-                  final sessionId =
-                      DateTime.now().millisecondsSinceEpoch.toString();
-                  await signalR.acceptSession(
-                    sessionId,
-                    fromUserId,
-                    signalR.currentUserId!,
-                    SignalRService.defaultBoardId,
-                  );
-                },
-                child: const Text("Accepter"),
-              ),
-            ],
-          );
-        },
-      );
-    };
-
-    // Handle session started
-    signalR.onSessionStarted = (sessionId, boardId) {
-      if (_isNavigatingToCall) {
-        debugPrint('[Auth] Already navigating to call, skipping duplicate');
-        return;
-      }
-      
-      _isNavigatingToCall = true;
-      
-      Future.delayed(Duration(milliseconds: 500), () {
-        final context = MyApp.navigatorKey.currentContext;
-        if (context == null) {
-          debugPrint('[Auth] ERROR: No context available for navigation');
-          _isNavigatingToCall = false;
-          return;
-        }
-
-        final currentUserId = signalR.currentUserId;
-        final initiatorId = signalR.sessionInitiatorId;
-        final remoteUserId = signalR.remoteUserId ?? 'unknown';
-        bool isCaller = currentUserId == initiatorId;
-
-        debugPrint('[Auth] Navigating to video call: sessionId=$sessionId, isCaller=$isCaller');
-        
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => VideoCallScreen(
-              hubConnection: signalR.hubConnection!,
-              sessionId: sessionId,
-              myUserId: currentUserId!,
-              remoteUserId: remoteUserId,
-              isCaller: isCaller,
-            ),
-          ),
-          (route) => route.isFirst,
-        ).then((_) {
-          _isNavigatingToCall = false;
-        });
-      });
-    };
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:signalr_netcore/signalr_client.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
 
 class WebRTCService {
   RTCPeerConnection? _peerConnection;
@@ -71,7 +72,7 @@ class WebRTCService {
       onLocalStream?.call(_localStream!);
 
       // Set up SignalR listeners for WebRTC signaling
-      _setupSignalRListeners();
+      _setupSignalRCallbacks();
       
       // Create peer connection AFTER getting media
       print('[WebRTC] Creating peer connection');
@@ -139,6 +140,10 @@ class WebRTCService {
       _peerConnection = pc;
       print('[WebRTC] Initialized successfully');
       
+      // NOW flush any queued WebRTC messages (offers, answers) from SignalR
+      final signalR = SignalRService();
+      signalR.flushWebRTCQueue();
+      
       // Add any pending ICE candidates that arrived early
       if (_pendingIceCandidates.isNotEmpty) {
         print('[WebRTC] Adding ${_pendingIceCandidates.length} pending ICE candidates');
@@ -158,13 +163,19 @@ class WebRTCService {
     }
   }
 
-  void _setupSignalRListeners() {
-    // Listen for incoming offer
-    hubConnection.on('ReceiveOffer', (arguments) async {
+  void _setupSignalRCallbacks() {
+    final signalR = SignalRService();
+    
+    // Register callbacks in SignalR service
+    signalR.onReceiveOffer = (receivedSessionId, offer) async {
+      if (receivedSessionId != sessionId) {
+        print('[WebRTC] Ignoring offer for different session: $receivedSessionId != $sessionId');
+        return;
+      }
+      
       print('[WebRTC] Received offer');
       try {
-        final offer = arguments![1] as Map<String, dynamic>;
-        await _peerConnection! .setRemoteDescription(
+        await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(offer['sdp'], offer['type']),
         );
         
@@ -177,7 +188,7 @@ class WebRTCService {
           sessionId,
           remoteUserId,
           {
-            'sdp': answer. sdp,
+            'sdp': answer.sdp,
             'type': answer.type,
           }
         ]);
@@ -186,13 +197,16 @@ class WebRTCService {
         print('[WebRTC] Error handling offer: $e');
         onError?.call('Failed to handle offer: $e');
       }
-    });
+    };
 
-    // Listen for incoming answer
-    hubConnection.on('ReceiveAnswer', (arguments) async {
+    signalR.onReceiveAnswer = (receivedSessionId, answer) async {
+      if (receivedSessionId != sessionId) {
+        print('[WebRTC] Ignoring answer for different session: $receivedSessionId != $sessionId');
+        return;
+      }
+      
       print('[WebRTC] Received answer');
       try {
-        final answer = arguments![1] as Map<String, dynamic>;
         await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(answer['sdp'], answer['type']),
         );
@@ -200,13 +214,16 @@ class WebRTCService {
         print('[WebRTC] Error handling answer: $e');
         onError?.call('Failed to handle answer: $e');
       }
-    });
+    };
 
-    // Listen for ICE candidates
-    hubConnection.on('ReceiveIceCandidate', (arguments) async {
+    signalR.onReceiveIceCandidate = (receivedSessionId, candidateData) async {
+      if (receivedSessionId != sessionId) {
+        print('[WebRTC] Ignoring ICE candidate for different session: $receivedSessionId != $sessionId');
+        return;
+      }
+      
       print('[WebRTC] Received ICE candidate');
       try {
-        final candidateData = arguments![1] as Map<String, dynamic>;
         final candidate = RTCIceCandidate(
           candidateData['candidate'],
           candidateData['sdpMid'],
@@ -223,7 +240,7 @@ class WebRTCService {
       } catch (e) {
         print('[WebRTC] Error adding ICE candidate: $e');
       }
-    });
+    };
   }
 
   Future<void> startCall() async {
@@ -263,7 +280,17 @@ class WebRTCService {
   }
 
   Future<void> dispose() async {
-    print('[WebRTC] Disposing.. .');
+    print('[WebRTC] Disposing...');
+    
+    // Clear SignalR callbacks
+    final signalR = SignalRService();
+    if (signalR.onReceiveOffer != null || signalR.onReceiveAnswer != null || signalR.onReceiveIceCandidate != null) {
+      print('[WebRTC] Clearing SignalR callbacks for session: $sessionId');
+      signalR.onReceiveOffer = null;
+      signalR.onReceiveAnswer = null;
+      signalR.onReceiveIceCandidate = null;
+    }
+    
     _localStream?.getTracks().forEach((track) => track.stop());
     _localStream?.dispose();
     _remoteStream?.dispose();

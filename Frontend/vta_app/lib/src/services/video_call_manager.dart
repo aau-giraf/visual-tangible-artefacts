@@ -19,7 +19,7 @@ class VideoCallManager {
   WebRTCService? get webrtcService => _webrtcService;
   String? get currentSessionId => _currentSessionId;
 
-  /// Initialize a new call
+  // Initialize a new call
   Future<void> initializeCall({
     required WebRTCService webrtcService,
     required RTCVideoRenderer localRenderer,
@@ -33,7 +33,7 @@ class VideoCallManager {
     _isCallActive = true;
   }
 
-  /// End the current call and dispose resources
+  // End the current call and dispose resources
   Future<void> endCall() async {
     _webrtcService?.dispose();
     await _localRenderer?.dispose();

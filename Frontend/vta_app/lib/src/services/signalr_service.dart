@@ -7,6 +7,7 @@ import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
+import 'package:vta_app/src/utilities/data/data_repository.dart';
 
 class SignalRService {
   static final SignalRService _instance = SignalRService._internal();
@@ -22,6 +23,19 @@ class SignalRService {
   String? _sessionInitiatorId; // Track who started the session
   String? _remoteUserId;
   ArtifactBoardController? _ownerBoardController; // Store owner's board
+  
+  // Contact cache for name resolution (userId -> name)
+  final Map<String, String> _contactCache = {};
+  
+  // WebRTC signaling message queues
+  final List<Map<String, dynamic>> _pendingOffers = [];
+  final List<Map<String, dynamic>> _pendingAnswers = [];
+  final List<Map<String, dynamic>> _pendingIceCandidates = [];
+  
+  // WebRTC signaling callbacks
+  void Function(String sessionId, Map<String, dynamic> offer)? onReceiveOffer;
+  void Function(String sessionId, Map<String, dynamic> answer)? onReceiveAnswer;
+  void Function(String sessionId, Map<String, dynamic> candidate)? onReceiveIceCandidate;
 
   bool get isConnected => _hubConnection?.state == HubConnectionState.Connected;
   String? get currentUserId => _currentUserId;
@@ -43,7 +57,50 @@ class SignalRService {
   void clearOwnerBoardController() {
     _ownerBoardController = null;
   }
-
+  
+  // Contact cache management
+  /// Load contacts from API and cache them for name resolution
+  Future<void> loadContacts(String token) async {
+    try {
+      final contacts = await UserRepository().fetchRelatedContacts(token);
+      
+      if (contacts != null) {
+        _contactCache.clear();
+        for (var user in contacts) {
+          final name = user.name?.isNotEmpty == true ? user.name! : user.username;
+          _contactCache[user.id] = name;
+        }
+        debugPrint('SignalR: Loaded ${_contactCache.length} contacts into cache');
+      }
+    } catch (e) {
+      debugPrint('SignalR: Failed to load contacts => $e');
+    }
+  }
+  
+  /// Get contact name from cache, returns null if not found
+  String? getContactName(String userId) {
+    return _contactCache[userId];
+  }
+  
+  void flushWebRTCQueue() {
+    debugPrint('[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
+    
+    for (var msg in _pendingOffers) {
+      onReceiveOffer?.call(msg['sessionId'], msg['data']);
+    }
+    _pendingOffers.clear();
+    
+    for (var msg in _pendingAnswers) {
+      onReceiveAnswer?.call(msg['sessionId'], msg['data']);
+    }
+    _pendingAnswers.clear();
+    
+    for (var msg in _pendingIceCandidates) {
+      onReceiveIceCandidate?.call(msg['sessionId'], msg['data']);
+    }
+    _pendingIceCandidates.clear();
+  }
+  
   // Callbacks
   void Function(String fromUserId)? onSessionRequested;
   void Function()? onSessionRejected;
@@ -129,6 +186,46 @@ class SignalRService {
       _ownerBoardController = null;
       onSessionEnded?.call();
     });
+    
+    // WebRTC signaling listeners
+    _hubConnection!.on('ReceiveOffer', (arguments) {
+      final sessionId = arguments![0] as String;
+      final offer = arguments[1] as Map<String, dynamic>;
+      debugPrint('[SignalR] ReceiveOffer: sessionId=$sessionId');
+      
+      if (onReceiveOffer != null) {
+        onReceiveOffer!(sessionId, offer);
+      } else {
+        debugPrint('[SignalR] Queuing offer (WebRTC service not ready yet)');
+        _pendingOffers.add({'sessionId': sessionId, 'data': offer});
+      }
+    });
+    
+    _hubConnection!.on('ReceiveAnswer', (arguments) {
+      final sessionId = arguments![0] as String;
+      final answer = arguments[1] as Map<String, dynamic>;
+      debugPrint('[SignalR] ReceiveAnswer: sessionId=$sessionId');
+      
+      if (onReceiveAnswer != null) {
+        onReceiveAnswer!(sessionId, answer);
+      } else {
+        debugPrint('[SignalR] Queuing answer (WebRTC service not ready yet)');
+        _pendingAnswers.add({'sessionId': sessionId, 'data': answer});
+      }
+    });
+    
+    _hubConnection!.on('ReceiveIceCandidate', (arguments) {
+      final sessionId = arguments![0] as String;
+      final candidate = arguments[1] as Map<String, dynamic>;
+      debugPrint('[SignalR] ReceiveIceCandidate: sessionId=$sessionId');
+      
+      if (onReceiveIceCandidate != null) {
+        onReceiveIceCandidate!(sessionId, candidate);
+      } else {
+        debugPrint('[SignalR] Queuing ICE candidate (WebRTC service not ready yet)');
+        _pendingIceCandidates.add({'sessionId': sessionId, 'data': candidate});
+      }
+    });
   }
 
   // ---------------- API WRAPPERS ----------------
@@ -192,10 +289,34 @@ class SignalRService {
     } catch (_) {}
     debugPrint("SignalR: Disconnected");
 
+    // Clear all state
     _hubConnection = null;
     _currentUserId = null;
     _currentSessionId = null;
     _sessionInitiatorId = null;
+    _remoteUserId = null;
     _ownerBoardController = null;
+    
+    // Clear all callbacks
+    onSessionRequested = null;
+    onSessionRejected = null;
+    onSessionStarted = null;
+    onBoardUpdated = null;
+    onSessionEnded = null;
+    
+    // Clear WebRTC callbacks
+    onReceiveOffer = null;
+    onReceiveAnswer = null;
+    onReceiveIceCandidate = null;
+    
+    // Clear message queues
+    _pendingOffers.clear();
+    _pendingAnswers.clear();
+    _pendingIceCandidates.clear();
+    
+    // Clear contact cache
+    _contactCache.clear();
+    
+    debugPrint("SignalR: All state and callbacks cleared");
   }
 }
