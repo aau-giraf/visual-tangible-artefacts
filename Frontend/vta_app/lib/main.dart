@@ -1,7 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +19,6 @@ import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:get_it/get_it.dart';
-import 'package:vta_app/src/database/database_helper.dart';
 
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -31,6 +29,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
+
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 
@@ -48,25 +47,14 @@ void main() async {
 
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());
-
-  final ArtefactController artifactController =
-      ArtefactController(ArtifactModel(apiProvider));
+  final ArtefactController artifactController = ArtefactController(ArtifactModel(apiProvider));
   GetIt.I.registerSingleton<ArtefactController>(artifactController);
 
-  final AuthController authController =
-      AuthController(AuthModel(apiProvider, token, userInfo));
+  final AuthController authController = AuthController(AuthModel(apiProvider, token, userInfo));
 
   // Initialize the CameraManager
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     CameraManager().initialize();
-  }
-
-  // Force landscape orientation on mobile devices
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
   }
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.

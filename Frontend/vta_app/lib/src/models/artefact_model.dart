@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import '../database/repositories/artefact_repository.dart';
+import '../database/mappers/artefact_mapper.dart';
 
 
 class ArtifactModel {
@@ -35,6 +37,17 @@ class ArtifactModel {
       }
     } catch (e) {
       debugPrint("$e");
+      rethrow;
+    }
+  }
+
+  Future<void> _saveArtefactLocally(Artefact artefact) async {
+    try {
+      final repo = ArtefactRepository();
+      final dbModel = artefactToDb(artefact);
+      await repo.insert(dbModel);
+    } catch (e) {
+      // Not great catch
       rethrow;
     }
   }
@@ -96,6 +109,13 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);
+        
+        // SAVE LOCALLY
+        try {
+          await _saveArtefactLocally(newArtefact);
+        } catch (e) {
+          debugPrint('Local DB save failed: $e');
+        }
         final catId = newArtefact.categoryId;
 
         if (catId == 'Session-Artefact') {
