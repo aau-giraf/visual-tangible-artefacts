@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/services/sync_timer.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,7 +26,11 @@ class _LoginScreenState extends State<LoginScreen> {
         var authState = Provider.of<AuthState>(context, listen: false);
         Provider.of<ArtifactState>(context, listen: false);
         await authState.login(username, password);
+        
         if (authState.token != null) {
+          // Start the sync timer after successful login
+          SyncTimer().start(interval: const Duration(seconds: 30));
+          
           // Navigate to user page
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => AuthPage()));
@@ -33,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _errorMessage = 'Brugernavn eller adgangskode forkert.';
           });
+        }
         }
       } catch (e) {
         setState(() {
