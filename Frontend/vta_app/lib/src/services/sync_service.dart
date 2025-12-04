@@ -259,7 +259,7 @@ class SyncService {
       
       // 1. Sync artefacts
       final artefactsResponse = await _apiProvider.fetchAsJson(
-        'Artefacts',
+        'Users/Artefacts',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       if (artefactsResponse != null && artefactsResponse.statusCode == 200) {
@@ -272,7 +272,7 @@ class SyncService {
 
       // 2. Sync categories
       final categoriesResponse = await _apiProvider.fetchAsJson(
-        'Categories',
+        'Users/Categories',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       if (categoriesResponse != null && categoriesResponse.statusCode == 200) {
@@ -285,7 +285,7 @@ class SyncService {
 
       // 3. Sync boards
       final boardsResponse = await _apiProvider.fetchAsJson(
-        'Boards',
+        'Users/Boards',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       if (boardsResponse != null && boardsResponse.statusCode == 200) {
