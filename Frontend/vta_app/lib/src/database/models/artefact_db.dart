@@ -87,4 +87,5 @@ class ArtefactDB {
   String toString() {
     return 'ArtefactDB{artefactId: $artefactId, artefactIndex: $artefactIndex, userId: $userId, categoryId: $categoryId, imagePath: $imagePath, soundPath: $soundPath, modifiedDate: $modifiedDate, name: $name, nameShown: $nameShown, isDeleted: $isDeleted}';
   }
+
 }

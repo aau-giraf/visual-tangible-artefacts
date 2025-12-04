@@ -10,7 +10,7 @@ ArtefactDB artefactToDb(Artefact a) {
     categoryId: a.categoryId,
     imagePath: a.imageUrl,
     soundPath: a.soundUrl,
-    modifiedDate: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    modifiedDate: DateTime.now().millisecondsSinceEpoch,
     name: a.name,
     nameShown: (a.nameShown ?? false) ? 1 : 0,
   );

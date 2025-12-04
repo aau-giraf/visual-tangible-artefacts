@@ -19,8 +19,23 @@ class ArtifactModel {
   /// FUNCTIONS FOR SAVING TO LOCAL DATABASE
   /// ------------------------------------------------------------
 
+ /* 
+ Future<void> _fetchAndUpdateCategoriesLocal() async {
+    try {
+      final repo = ArtefactRepository();
+      final dbCategories = await repo.getAllCategoriesWithArtefacts();
+      categories = dbCategories
+          .map((dbCategory) => categoryFromDb(dbCategory))
+          .toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+  */
+
   Future<void> _postArtefactLocal(Artefact artefact) async {
       try {
+        // TODO Maybe too narrow scope for repo and dbModels, depends on level of access needed
         final repo = ArtefactRepository();
         final dbModel = artefactToDb(artefact);
         await repo.insert(dbModel);
