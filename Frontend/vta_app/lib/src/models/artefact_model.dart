@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import '../database/repositories/artefact_repository.dart';
+import '../database/repositories/category_repository.dart';
+import '../database/mappers/artefact_mapper.dart';
 
 
 class ArtifactModel {
@@ -13,6 +16,56 @@ class ArtifactModel {
 
   ArtifactModel(this.apiProvider);
 
+  /// ------------------------------------------------------------
+  /// FUNCTIONS FOR SAVING TO LOCAL DATABASE
+  /// ------------------------------------------------------------
+
+ 
+ Future<void> _fetchAndUpdateCategoriesLocal() async {
+  try {
+      final repo = CategoryRepository();      
+      final dbCategories = await repo.getAll();
+      final jsonString = jsonEncode(dbCategories.map((e) => e.toMap()).toList());
+      
+      print("Local ------------------------------------------------------- " + jsonString);
+      
+      // Decode back to List<dynamic> to match online response structure
+      var jsonResponse = jsonDecode(jsonString) as List;
+      
+      var newCategories = jsonResponse
+          .map((jsonCategory) =>
+              Category.fromJson(jsonCategory as Map<String, dynamic>))
+          .toList();
+      newCategories
+          .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      categories = newCategories;
+    
+    } catch (e) {
+      debugPrint("$e");
+      rethrow;
+    }
+  }
+  
+
+  Future<void> _postArtefactLocal(Artefact artefact) async {
+      try {
+        // TODO Maybe too narrow scope for repo and dbModels, depends on level of access needed
+        final repo = ArtefactRepository();
+        final dbModel = artefactToDb(artefact);
+        await repo.insert(dbModel);
+      } catch (e) {
+        // Not great catch
+        rethrow;
+      }
+    }
+
+
+
+
+  /// ------------------------------------------------------------
+  /// FUNCTIONS FOR SAVING TO LOCAL DATABASE
+  /// ------------------------------------------------------------
+
   Future<void> fetchAndUpdateCategories({required String token}) async {
     try {
       var response =
@@ -21,6 +74,9 @@ class ArtifactModel {
       });
       if (response != null && response.ok) {
         var jsonResponse = json.decode(response.body) as List;
+
+        print("Online ------------------------------------------------------- " + jsonResponse.toString());
+
         var newCategories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -33,10 +89,17 @@ class ArtifactModel {
             message:
                 'Failed to fetch categories with status code: ${response?.statusCode}');
       }
-    } catch (e) {
+      } catch (e) {
       debugPrint("$e");
       rethrow;
     }
+      try { 
+        /// For future local use only
+        await _fetchAndUpdateCategoriesLocal();
+      } catch (e) {
+        debugPrint('Local DB fetch failed: $e');
+      }
+    
   }
 
   Future<void> postCategory(Category category, {required String token}) async {
@@ -96,6 +159,13 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);
+        
+        // SAVE LOCALLY
+        try {
+          await _postArtefactLocal(newArtefact);
+        } catch (e) {
+          debugPrint('Local DB save failed: $e');
+        }
         final catId = newArtefact.categoryId;
 
         if (catId == 'Session-Artefact') {

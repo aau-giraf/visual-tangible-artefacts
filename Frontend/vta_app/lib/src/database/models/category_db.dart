@@ -79,6 +79,6 @@ class CategoryDB {
 
   @override
   String toString() {
-    return 'CategoryDB{categoryId: $categoryId, categoryIndex: $categoryIndex, userId: $userId, name: $name, imagePath: $imagePath, modifiedDate: $modifiedDate, usageCount: $usageCount, lastUsedDate: $lastUsedDate, isDeleted: $isDeleted}';
+    return '{"categoryId": $categoryId, "categoryIndex": $categoryIndex, "userId": $userId, "name": $name, "imagePath": $imagePath, "modifiedDate": $modifiedDate, "usageCount": $usageCount, "lastUsedDate": $lastUsedDate, "isDeleted": $isDeleted}';
   }
 }

@@ -91,6 +91,6 @@ class SavedArtefactDB {
 
   @override
   String toString() {
-    return 'SavedArtefactDB{id: $id, artefactId: $artefactId, boardId: $boardId, posX: $posX, posY: $posY, width: $width, height: $height, createdDate: $createdDate, modifiedDate: $modifiedDate, nameVisible: $nameVisible, isDeleted: $isDeleted}';
+    return '{"id": $id, "artefactId": $artefactId, "boardId": $boardId, "posX": $posX, "posY": $posY, "width": $width, "height": $height, "createdDate": $createdDate, "modifiedDate": $modifiedDate, "nameVisible": $nameVisible, "isDeleted": $isDeleted}';
   }
 }

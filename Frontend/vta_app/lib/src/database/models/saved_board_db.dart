@@ -79,6 +79,6 @@ class SavedBoardDB {
 
   @override
   String toString() {
-    return 'SavedBoardDB{id: $id, name: $name, userId: $userId, savedArtefactIds: $savedArtefactIds, artefactIds: $artefactIds, snapshotPath: $snapshotPath, createdDate: $createdDate, modifiedDate: $modifiedDate, isDeleted: $isDeleted}';
+    return '{"id": $id, "name": $name, "userId": $userId, "savedArtefactIds": $savedArtefactIds, "artefactIds": $artefactIds, "snapshotPath": $snapshotPath, "createdDate": $createdDate, "modifiedDate": $modifiedDate, "isDeleted": $isDeleted}';
   }
 }

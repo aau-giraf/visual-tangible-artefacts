@@ -55,6 +55,6 @@ class SyncMetadataDB {
 
   @override
   String toString() {
-    return 'SyncMetadataDB{id: $id, userId: $userId, entityType: $entityType, lastSyncDate: $lastSyncDate, lastCheckDate: $lastCheckDate}';
+    return '{"id": $id, "userId": $userId, "entityType": $entityType, "lastSyncDate": $lastSyncDate, "lastCheckDate": $lastCheckDate}';
   }
 }

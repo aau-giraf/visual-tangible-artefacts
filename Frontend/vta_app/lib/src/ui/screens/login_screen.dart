@@ -39,7 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
             _errorMessage = 'Brugernavn eller adgangskode forkert.';
           });
         }
-        }
       } catch (e) {
         setState(() {
           _errorMessage = 'Ukendt fejl: $e';
