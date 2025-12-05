@@ -43,7 +43,7 @@ class CategoryRepository {
   }
 
   /// Gets all categories (excluding soft-deleted).
-  Future<List<CategoryDB>> getAll() async {
+  Future<List> getAll() async {
     final db = await _dbHelper.database;
     final maps = await db.query(
       'category',

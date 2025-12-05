@@ -67,6 +67,6 @@ class UserDB {
 
   @override
   String toString() {
-    return 'UserDB{id: $id, name: $name, username: $username, nameVisible: $nameVisible, fieldCount: $fieldCount, modifiedDate: $modifiedDate, isDeleted: $isDeleted}';
+    return '{"id": $id, "name": $name, "username": $username, "nameVisible": $nameVisible, "fieldCount": $fieldCount, "modifiedDate": $modifiedDate, "isDeleted": $isDeleted}';
   }
 }

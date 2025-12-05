@@ -85,7 +85,7 @@ class ArtefactDB {
 
   @override
   String toString() {
-    return 'ArtefactDB{artefactId: $artefactId, artefactIndex: $artefactIndex, userId: $userId, categoryId: $categoryId, imagePath: $imagePath, soundPath: $soundPath, modifiedDate: $modifiedDate, name: $name, nameShown: $nameShown, isDeleted: $isDeleted}';
+    return '{"artefactId": $artefactId, "artefactIndex": $artefactIndex, "userId": $userId, "categoryId": $categoryId, "imagePath": $imagePath, "soundPath": $soundPath, "modifiedDate": $modifiedDate, "name": $name, "nameShown": $nameShown, "isDeleted": $isDeleted}';
   }
 
 }
