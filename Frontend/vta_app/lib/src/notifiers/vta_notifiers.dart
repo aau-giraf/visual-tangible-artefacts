@@ -161,9 +161,7 @@ class ArtifactState with ChangeNotifier {
   Future<bool> loadMostUsedCategories(String token, {int limit = 3}) async {
     _mostUsedCategories =
         await ArtifactRepository().fetchMostUsedCategories(token, limit: limit);
-    if (_mostUsedCategories == null) {
-      _mostUsedCategories = [];
-    }
+    _mostUsedCategories ??= [];
     notifyListeners();
     return true;
   }

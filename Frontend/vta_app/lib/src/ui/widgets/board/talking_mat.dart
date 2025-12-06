@@ -37,7 +37,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   late List<BoardArtefact> artifacts;
   // z-order: attached per artefact instance (supports duplicates)
   final Expando<int> _zOrder = Expando<int>('z');
-  int _zTick = 0;
+  final int _zTick = 0;
   bool isGestureInsideMat = false;
   bool _isDraggingOverTrashCan = false;
   bool _isHoveringTrashCan = false;
@@ -58,9 +58,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   // Periodic safety auto-save timer
   Timer? _periodicSaveTimer;
   // Inhibit auto-save while delete/clear operations are in progress to avoid races
-  bool _inhibitAutoSave = false;
+  final bool _inhibitAutoSave = false;
   // Track last saved layout data to detect changes
-  Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
+  final Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
 
   @override
   void initState() {
@@ -505,7 +505,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   /// Assign returned savedArtefactIds (from server) to local BoardArtefact instances by best-match
   void _assignReturnedSavedIdsToLocal(List<BoardArtefactLayout> returned) {
     final current = widget.controller.value;
-    final unmatchedLocal = <BoardArtefact>[]..addAll(current);
+    final unmatchedLocal = <BoardArtefact>[...current];
 
     for (final artefactLayout in returned) {
       BoardArtefact? best;
@@ -550,7 +550,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
+        print('Debug: Created default board "$defaultBoardName" with ID: ${response.boardId}');
         // Map returned saved artefact instance ids back onto the local artifacts by best-match
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
@@ -602,7 +602,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
+        print('Debug: Saved board "$boardName" with ID: ${response.boardId}');
         // Map returned saved artefact instance ids back onto local artifacts by best-match
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
@@ -681,7 +681,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     });
   }
 
-  bool _isInsideMat(Offset globalOffset, {Size? artefactSize}) {
+  bool _isInsideMat(Offset globalOffset) {
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return false;
 

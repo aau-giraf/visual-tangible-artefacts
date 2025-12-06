@@ -191,7 +191,7 @@ class _TextToSpeechWidgetState extends State<TextToSpeechWidget> {
                 // Voice selection dropdown
                 if (controller.availableVoices != null && controller.availableVoices!.isNotEmpty)
                   DropdownButtonFormField<String>(
-                    value: _selectedVoiceId,
+                    initialValue: _selectedVoiceId,
                     decoration: const InputDecoration(
                       labelText: 'Voice',
                       border: OutlineInputBorder(),

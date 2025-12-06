@@ -8,6 +8,8 @@ import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 // 1. Basic usage in a parent widget:
 
 class BoardPage extends StatefulWidget {
+  const BoardPage({super.key});
+
   @override
   _BoardPageState createState() => _BoardPageState();
 }

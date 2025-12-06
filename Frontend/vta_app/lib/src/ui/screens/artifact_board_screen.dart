@@ -11,6 +11,8 @@ import '../widgets/board/quick_add_artefact.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
+import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
+
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({
     super.key,
@@ -175,6 +177,33 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             padding: EdgeInsets.zero,               // removes extra padding around the icon
                             itemBuilder: (context) => [
                                   PopupMenuItem(
+                                    padding: EdgeInsets.zero,
+                                    child: ListTile(
+                                      leading: Icon(Icons.dashboard, size: screenWidth > 600 ? 20 : 16),
+                                      title: Text('Tavler (${controller.activeBoard.title})', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                          ),
+                                          builder: (context) => DraggableScrollableSheet(
+                                            initialChildSize: 0.6,
+                                            minChildSize: 0.4,
+                                            maxChildSize: 0.9,
+                                            expand: false,
+                                            builder: (context, scrollController) => BoardSelectionSheet(
+                                              controller: controller,
+                                              scrollController: scrollController,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  PopupMenuItem(
                                     padding: EdgeInsets.zero, // Remove default padding
                                     child: ListTile(
                                       leading: Icon(Icons.settings, size: screenWidth > 600 ? 20 : 16),
@@ -197,6 +226,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ]),
                       ),
+
                       
                       Align(
                         alignment: Alignment.centerLeft,

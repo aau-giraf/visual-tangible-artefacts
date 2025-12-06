@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/models/board_layout.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';

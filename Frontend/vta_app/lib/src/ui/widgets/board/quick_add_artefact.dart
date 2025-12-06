@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:get_it/get_it.dart';
