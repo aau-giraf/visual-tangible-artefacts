@@ -9,8 +9,13 @@ class PlatformUtils {
       url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['Local'];
       print('[PlatformUtils] Using Web API URL: $url');
     } else if (Platform.isAndroid) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['LocalAndroid'];
+      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
+          ['LocalAndroid'];
       print('[PlatformUtils] Using Android API URL: $url');
+    } else if (Platform.isIOS) {
+      url =
+          GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['LocalIOS'];
+      print('[PlatformUtils] Using iOS API URL: $url');
     } else {
       url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['Local'];
       print('[PlatformUtils] Using Desktop API URL: $url');
@@ -21,13 +26,20 @@ class PlatformUtils {
   static String getSyncServiceUrl() {
     String url;
     if (kIsWeb) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['SyncService'];
+      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
+          ['SyncService'];
       print('[PlatformUtils] Using Web SyncService URL: $url');
     } else if (Platform.isAndroid) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['SyncServiceAndroid'];
+      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
+          ['SyncServiceAndroid'];
       print('[PlatformUtils] Using Android SyncService URL: $url');
+    } else if (Platform.isIOS) {
+      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
+          ['SyncServiceIOS'];
+      print('[PlatformUtils] Using iOS SyncService URL: $url');
     } else {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['SyncService'];
+      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
+          ['SyncService'];
       print('[PlatformUtils] Using Desktop SyncService URL: $url');
     }
     return url;
