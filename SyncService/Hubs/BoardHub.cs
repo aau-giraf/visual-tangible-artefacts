@@ -7,10 +7,12 @@ using System.Text.Json;
 namespace SyncService.Hubs
 {
     [Authorize]
-    public class BoardHub(IConfiguration configuration) : Hub
+    public class BoardHub : Hub
     {
         private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId
         private static readonly Dictionary<string, BoardSession> boardSessions = new(); // sessionId -> session
+        private static readonly HashSet<string> onlineUsers = new(); // Track online users
+        private static readonly Dictionary<string, List<string>> userContactsMap = new(); // userId -> contact IDs
 
         public class BoardSession
         {
@@ -21,7 +23,7 @@ namespace SyncService.Hubs
             public HashSet<string> Connections { get; set; } = new();
         }
 
-        public async Task RegisterUser(string userId)
+        public async Task RegisterUser(string userId, List<string> contactIds)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -30,7 +32,53 @@ namespace SyncService.Hubs
             }
 
             userConnections[userId] = Context.ConnectionId;
-            Console.WriteLine($"[Hub] RegisterUser => UserId={userId} Conn={Context.ConnectionId}");
+            onlineUsers.Add(userId);
+            userContactsMap[userId] = contactIds ?? new List<string>();
+            
+            Console.WriteLine($"[Hub] RegisterUser => UserId={userId} Conn={Context.ConnectionId} with {contactIds?.Count ?? 0} contacts");
+            
+            // Notify this user's contacts that they came online
+            await NotifyContactsOfStatusChange(userId, true);
+        }
+
+        private async Task NotifyContactsOfStatusChange(string userId, bool isOnline)
+        {
+            try
+            {
+                if (!userContactsMap.TryGetValue(userId, out var contactIds))
+                {
+                    return;
+                }
+
+                Console.WriteLine($"[Hub] NotifyContactsOfStatusChange => userId={userId} isOnline={isOnline} with {contactIds.Count} contacts");
+                
+                foreach (var contactId in contactIds)
+                {
+                    if (userConnections.TryGetValue(contactId, out var contactConn))
+                    {
+                        await Clients.Client(contactConn).SendAsync("UserOnlineStatusChanged", userId, isOnline);
+                        Console.WriteLine($"[Hub]   ✓ Notified {contactId} that {userId} is {(isOnline ? "online" : "offline")}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Hub] Error notifying contacts: {ex.Message}");
+            }
+        }
+
+        public List<string> GetOnlineUsers()
+        {
+            var onlineList = onlineUsers.ToList();
+            Console.WriteLine($"[Hub] GetOnlineUsers => Returning {onlineList.Count} online users");
+            return onlineList;
+        }
+
+        public bool IsUserOnline(string userId)
+        {
+            var isOnline = onlineUsers.Contains(userId);
+            Console.WriteLine($"[Hub] IsUserOnline => userId={userId} isOnline={isOnline}");
+            return isOnline;
         }
 
         public async Task RequestSession(string fromUserId, string toUserId)
@@ -40,10 +88,12 @@ namespace SyncService.Hubs
             if (userConnections.TryGetValue(toUserId, out var toConn))
             {
                 await Clients.Client(toConn).SendAsync("SessionRequested", fromUserId);
+                Console.WriteLine($"[Hub] Sent SessionRequested to {toUserId}");
             }
             else
             {
                 await Clients.Client(Context.ConnectionId).SendAsync("UserOffline", toUserId);
+                Console.WriteLine($"[Hub] User {toUserId} is offline");
             }
         }
 
@@ -209,8 +259,15 @@ namespace SyncService.Hubs
             var user = userConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
             if (user != null)
             {
-                userConnections.Remove(user);
                 Console.WriteLine($"[Hub] User disconnected => {user}");
+                
+                // Notify contacts BEFORE removing from maps
+                await NotifyContactsOfStatusChange(user, false);
+                
+                // Clean up
+                userConnections.Remove(user);
+                onlineUsers.Remove(user);
+                userContactsMap.Remove(user);
             }
 
             await base.OnDisconnectedAsync(exception);
