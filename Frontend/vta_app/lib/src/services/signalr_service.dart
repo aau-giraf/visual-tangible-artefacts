@@ -1,6 +1,5 @@
 // lib/src/services/signalr_service.dart
 
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:signalr_netcore/signalr_client.dart';
@@ -275,6 +274,21 @@ class SignalRService {
       if (args == null || args.isEmpty) return;
       debugPrint("SignalR => Calling onLayoutChanged callback");
       onLayoutChanged?.call(args[0]);
+    });
+    
+    // Handle connection closed - if in an active session, end it
+    _hubConnection!.on("Closed", (args) {
+      debugPrint("SignalR: Connection closed");
+      if (_currentSessionId != null) {
+        debugPrint("SignalR: Active session detected - ending session due to connection loss");
+        // Clear session state
+        _currentSessionId = null;
+        _sessionInitiatorId = null;
+        _remoteUserId = null;
+        _ownerBoardController = null;
+        // Notify UI that session has ended
+        onSessionEnded?.call();
+      }
     });
     
     debugPrint("SignalR: All event handlers registered successfully");

@@ -278,10 +278,16 @@ class WebRTCService {
       debugPrint('[WebRTC] Received offer');
       try {
         final sdp = offer['sdp'] as String?;
+        final type = offer['type'] as String?;
+        
+        if (sdp == null || type == null) {
+          throw Exception('Invalid offer: sdp or type is null');
+        }
+        
         _handleRemoteDescription(sdp, 'offer');
         
         await _peerConnection!.setRemoteDescription(
-          RTCSessionDescription(offer['sdp'], offer['type']),
+          RTCSessionDescription(sdp, type),
         );
         
         // Create answer
@@ -313,10 +319,16 @@ class WebRTCService {
       debugPrint('[WebRTC] Received answer');
       try {
         final sdp = answer['sdp'] as String?;
+        final type = answer['type'] as String?;
+        
+        if (sdp == null || type == null) {
+          throw Exception('Invalid answer: sdp or type is null');
+        }
+        
         _handleRemoteDescription(sdp, 'answer');
         
         await _peerConnection!.setRemoteDescription(
-          RTCSessionDescription(answer['sdp'], answer['type']),
+          RTCSessionDescription(sdp, type),
         );
       } catch (e) {
         debugPrint('[WebRTC] Error handling answer: $e');
@@ -332,10 +344,19 @@ class WebRTCService {
       
       debugPrint('[WebRTC] Received ICE candidate');
       try {
+        final candidateString = candidateData['candidate'] as String?;
+        final sdpMid = candidateData['sdpMid'] as String?;
+        final sdpMLineIndex = candidateData['sdpMLineIndex'] as int?;
+        
+        if (candidateString == null) {
+          debugPrint('[WebRTC] Invalid ICE candidate: candidate is null');
+          return;
+        }
+        
         final candidate = RTCIceCandidate(
-          candidateData['candidate'],
-          candidateData['sdpMid'],
-          candidateData['sdpMLineIndex'],
+          candidateString,
+          sdpMid,
+          sdpMLineIndex,
         );
         
         if (_peerConnection == null) {

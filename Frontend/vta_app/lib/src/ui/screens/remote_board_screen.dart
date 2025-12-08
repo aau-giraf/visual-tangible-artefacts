@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/remote_artifact_board_controller.dart';
@@ -32,18 +33,24 @@ class RemoteBoardScreen extends StatefulWidget {
   State<RemoteBoardScreen> createState() => _RemoteBoardScreenState();
 }
 
-class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
+class _RemoteBoardScreenState extends State<RemoteBoardScreen> with WidgetsBindingObserver {
   late RemoteArtifactBoardController controller;
   String sessionId = '';
   String boardId = '';
   bool isOwner = false;
   bool _isInitialized = false;
   bool _hasVideo = false;
+  
+  // Track app backgrounding to detect if truly closed
+  Timer? _backgroundingTimer;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isInitialized) {
+      // Register for app lifecycle events
+      WidgetsBinding.instance.addObserver(this);
+      
       final args = ModalRoute.of(context)?.settings.arguments;
 
       // Handle both old string format and new map format
@@ -102,8 +109,94 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
 
   @override
   void dispose() {
+    // Remove app lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
+    
+    // Cancel any pending backgrounding timeout
+    _backgroundingTimer?.cancel();
+    
     controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('[RemoteBoard] ===== APP LIFECYCLE EVENT: $state =====');
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        // App is backgrounded - start timeout to detect power button
+        debugPrint('[RemoteBoard] App lifecycle: $state - starting 15s timeout for power button detection');
+        _handleAppBackgrounded();
+        _backgroundingTimer = Timer(Duration(seconds: 15), _handleAppTerminated);
+        break;
+      case AppLifecycleState.detached:
+        // App is being fully closed - end the session
+        debugPrint('[RemoteBoard] App lifecycle: detached - ending session');
+        _handleAppClosing();
+        break;
+      case AppLifecycleState.resumed:
+        // App is being resumed - cancel timeout and check if session is still valid
+        debugPrint('[RemoteBoard] App lifecycle: resumed - cancelling timeout');
+        _backgroundingTimer?.cancel();
+        _handleAppResumed();
+        break;
+      case AppLifecycleState.inactive:
+        // No action needed
+        debugPrint('[RemoteBoard] App lifecycle: inactive - no action');
+        break;
+    }
+  }
+
+  Future<void> _handleAppClosing() async {
+    try {
+      debugPrint('[RemoteBoard] Ending session due to app closing');
+      await SignalRService().endSession();
+      await VideoCallManager().endCall();
+    } catch (e) {
+      debugPrint('[RemoteBoard] Error ending session: $e');
+    }
+  }
+
+  void _handleAppBackgrounded() {
+    // No media to pause on board screen - just logging
+    debugPrint('[RemoteBoard] App backgrounded');
+  }
+
+  Future<void> _handleAppTerminated() async {
+    // Assume app was forcibly closed (e.g., power button)
+    debugPrint('[RemoteBoard] 15s timeout expired - assuming app was terminated');
+    try {
+      await SignalRService().endSession();
+      await VideoCallManager().endCall();
+      
+      // Navigate back to artifact board
+      if (mounted) {
+        debugPrint('[RemoteBoard] Navigating back to artifact board after timeout');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/artifact-board',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('[RemoteBoard] Error ending session after timeout: $e');
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    // If there's no active session in SignalR, we've been hung up on
+    if (SignalRService().currentSessionId == null) {
+      debugPrint('[RemoteBoard] Session was ended while backgrounded - returning to board');
+      if (mounted) {
+        VideoCallManager().endCall();
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/artifact-board',
+          (route) => false,
+        );
+      }
+    }
   }
 
   /// Navigate back to full video call screen

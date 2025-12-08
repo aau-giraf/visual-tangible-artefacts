@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:signalr_netcore/signalr_client.dart';
@@ -38,7 +41,7 @@ class VideoCallScreen extends StatefulWidget {
   State<VideoCallScreen> createState() => _VideoCallScreenState();
 }
 
-class _VideoCallScreenState extends State<VideoCallScreen> {
+class _VideoCallScreenState extends State<VideoCallScreen> with WidgetsBindingObserver {
   WebRTCService? _webrtcService;
   final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
@@ -49,15 +52,36 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _hasTransitioned = false;
   bool _showBoardButton = false;
   
+  // Track app backgrounding to detect if truly closed
+  Timer? _backgroundingTimer;
+  
   // Track media availability
   bool _hasLocalVideo = false;
   bool _hasLocalAudio = false;
   bool _hasRemoteVideo = false;
   bool _hasRemoteAudio = false;
+  
+  // Heartbeat mechanism for detecting unresponsive app
+  Timer? _heartbeatTimer;
+  DateTime? _lastHeartbeatResponse;
+  static const Duration _heartbeatInterval = Duration(seconds: 5);
+  static const Duration _heartbeatTimeout = Duration(seconds: 10);
 
   @override
   void initState() {
-    super.initState();    
+    super.initState();
+    
+    // Register for app lifecycle events
+    WidgetsBinding.instance.addObserver(this);
+    
+    // For web platform, also listen to page visibility changes
+    if (kIsWeb) {
+      _setupWebVisibilityListener();
+    }
+    
+    // Start heartbeat monitor to detect if app becomes unresponsive
+    _startHeartbeat();
+    
     // Listen for remote hang-up
     SignalRService().onSessionEnded = () {
       debugPrint('[VideoCall] Remote user ended the session');
@@ -74,6 +98,40 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       _restoreCallState();
     } else {
       _initializeCall();
+    }
+  }
+  
+  void _startHeartbeat() {
+    // Periodic heartbeat to detect if app becomes unresponsive or backgrounded
+    _lastHeartbeatResponse = DateTime.now();
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
+      // Check if we've received a response since last heartbeat
+      if (_lastHeartbeatResponse != null) {
+        final timeSinceResponse = DateTime.now().difference(_lastHeartbeatResponse!);
+        if (timeSinceResponse > _heartbeatTimeout) {
+          debugPrint('[VideoCall] Heartbeat timeout detected - app appears unresponsive for ${timeSinceResponse.inSeconds}s');
+          if (!_hasTransitioned) {
+            _handleAppTerminated();
+          }
+        }
+      }
+      _lastHeartbeatResponse = DateTime.now();
+    });
+    debugPrint('[VideoCall] Heartbeat monitor started (interval: ${_heartbeatInterval.inSeconds}s, timeout: ${_heartbeatTimeout.inSeconds}s)');
+  }
+  
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    debugPrint('[VideoCall] Heartbeat monitor stopped');
+  }
+  
+  void _setupWebVisibilityListener() {
+    // On web platform, we rely on lifecycle events from the browser
+    // and SignalR connection loss detection. Lifecycle events should fire
+    // when the browser tab/window is minimized or closed.
+    if (kIsWeb) {
+      debugPrint('[VideoCall] Web platform detected - relying on lifecycle observer and SignalR');
     }
   }
 
@@ -302,6 +360,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   @override
   void dispose() {
     debugPrint('[VideoCall] Disposing - hasTransitioned: $_hasTransitioned, mounted: $mounted');
+    
+    // Cancel all timers
+    _backgroundingTimer?.cancel();
+    _stopHeartbeat();
+    
+    // Remove app lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
         
     if (!_hasTransitioned) {
       debugPrint('[VideoCall] Disposing WebRTC resources');
@@ -314,6 +379,126 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
     
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('[VideoCall] ===== APP LIFECYCLE EVENT: $state =====');
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        // App is backgrounded but might return - pause media but keep session active
+        debugPrint('[VideoCall] App lifecycle: $state - pausing media');
+        _handleAppBackgrounded();
+        break;
+      case AppLifecycleState.detached:
+        // App is being fully closed - end the call
+        debugPrint('[VideoCall] App lifecycle: detached - ending call');
+        _handleAppClosing();
+        break;
+      case AppLifecycleState.resumed:
+        // App is being resumed - resume media if session still exists
+        debugPrint('[VideoCall] App lifecycle: resumed - resuming call');
+        _handleAppResumed();
+        break;
+      case AppLifecycleState.inactive:
+        // No action needed
+        debugPrint('[VideoCall] App lifecycle: inactive - no action');
+        break;
+    }
+  }
+
+  Future<void> _handleAppBackgrounded() async {
+    // Pause media but keep the session alive
+    if (_webrtcService != null && mounted) {
+      try {
+        debugPrint('[VideoCall] Pausing media streams');
+        // Mute audio and turn off video when backgrounded
+        if (!_isMuted) {
+          _webrtcService?.toggleMute();
+          setState(() => _isMuted = true);
+        }
+        if (!_isCameraOff) {
+          _webrtcService?.toggleCamera();
+          setState(() => _isCameraOff = true);
+        }
+      } catch (e) {
+        debugPrint('[VideoCall] Error pausing media: $e');
+      }
+    }
+    
+    // Start timeout to detect power button or app termination
+    debugPrint('[VideoCall] Is web platform: $kIsWeb - Starting 15s timeout');
+    _backgroundingTimer?.cancel();
+    _backgroundingTimer = Timer(const Duration(seconds: 15), () {
+      debugPrint('[VideoCall] App backgrounded for 15 seconds - assuming app was terminated');
+      if (mounted && !_hasTransitioned) {
+        _handleAppTerminated();
+      }
+    });
+  }
+
+  Future<void> _handleAppTerminated() async {
+    if (_hasTransitioned) return;
+    
+    try {
+      debugPrint('[VideoCall] Ending session due to app termination (timeout)');
+      await SignalRService().endSession();
+      await VideoCallManager().endCall();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/artifact-board',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('[VideoCall] Error ending session: $e');
+    }
+  }
+
+  Future<void> _handleAppClosing() async {
+    if (_hasTransitioned) {
+      // If we've transitioned to a board, the board screen will handle it
+      return;
+    }
+    
+    try {
+      debugPrint('[VideoCall] Ending session due to app closing');
+      await SignalRService().endSession();
+      await VideoCallManager().endCall();
+    } catch (e) {
+      debugPrint('[VideoCall] Error ending session: $e');
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    // Cancel backgrounding timeout since app has resumed
+    _backgroundingTimer?.cancel();
+    _backgroundingTimer = null;
+    
+    // Restart heartbeat
+    _startHeartbeat();
+    
+    // If there's no active session in SignalR, we've been hung up on
+    if (SignalRService().currentSessionId == null) {
+      debugPrint('[VideoCall] Session was ended while backgrounded - returning to board');
+      if (mounted && !_hasTransitioned) {
+        VideoCallManager().endCall();
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/artifact-board',
+          (route) => false,
+        );
+      }
+    } else {
+      // Session still active - resume media
+      debugPrint('[VideoCall] Session still active - resuming media');
+      if (_isMuted && mounted) {
+        _webrtcService?.toggleMute();
+        setState(() => _isMuted = false);
+      }
+    }
   }
 
   @override
