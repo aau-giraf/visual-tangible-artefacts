@@ -56,14 +56,12 @@ class NotificationService {
     }
 
     _isInitialized = true;
-    debugPrint('[NotificationService] ✓ Initialized successfully');
+    debugPrint('[NotificationService] Initialized successfully');
   }
 
   /// Show a missed call notification
   Future<void> showMissedCallNotification(String fromUserName) async {
-    debugPrint('╔════════════════════════════════════════╗');
-    debugPrint('║  showMissedCallNotification()         ║');
-    debugPrint('╚════════════════════════════════════════╝');
+    debugPrint('showMissedCallNotification()');
     debugPrint('From: $fromUserName');
     debugPrint('Initialized: $_isInitialized');
 
@@ -107,9 +105,9 @@ class NotificationService {
         payload: 'missed_call:$fromUserName',
       );
 
-      debugPrint('[NotificationService] ✓ Notification shown successfully');
+      debugPrint('[NotificationService] Notification shown successfully');
     } catch (e, stackTrace) {
-      debugPrint('[NotificationService] ❌ ERROR showing notification:');
+      debugPrint('[NotificationService] ERROR showing notification:');
       debugPrint('Error: $e');
       debugPrint('Stack trace: $stackTrace');
     }
