@@ -89,7 +89,7 @@ class _CallingScreenState extends State<CallingScreen>
       debugPrint('[CallingScreen] Call accepted! SessionId: $sessionId');
       if (!_isDisposed && mounted && _isCallActive) {
         _timeoutTimer?.cancel();
-        // Just pop - let CallManager handle navigation
+        // CallManager handles navigation
         Navigator.of(context).pop();
       }
       _originalOnSessionStarted?.call(sessionId, boardId);
@@ -102,7 +102,7 @@ class _CallingScreenState extends State<CallingScreen>
       return;
     }
 
-    debugPrint('[CallingScreen] ═══ _initiateCall START ═══');
+    debugPrint('[CallingScreen]_initiateCall START');
     debugPrint('[CallingScreen] childId: $childId');
     debugPrint(
         '[CallingScreen] SignalR.isConnected: ${SignalRService().isConnected}');
@@ -115,18 +115,18 @@ class _CallingScreenState extends State<CallingScreen>
       // Set timeout (30 seconds)
       debugPrint('[CallingScreen] Starting 30-second timeout');
       _timeoutTimer = Timer(const Duration(seconds: 30), () {
-        debugPrint('[CallingScreen] ⏰ Timeout reached!');
+        debugPrint('[CallingScreen] Timeout reached!');
         if (mounted && _isCallActive && !_isDisposed) {
           _showTimeoutDialog();
         }
       });
     } catch (e) {
-      debugPrint('[CallingScreen] ❌ ERROR: $e');
+      debugPrint('[CallingScreen] ERROR: $e');
       if (!_isDisposed && mounted) {
         _showErrorDialog(e.toString());
       }
     }
-    debugPrint('[CallingScreen] ═══ _initiateCall END ═══');
+    debugPrint('[CallingScreen] _initiateCall END');
   }
 
   void _cancelCall() {
