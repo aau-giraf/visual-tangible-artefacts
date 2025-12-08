@@ -1,5 +1,5 @@
 // lib/src/services/signalr_service.dart
-
+import 'package:vta_app/src/services/notification_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:signalr_netcore/signalr_client.dart';
@@ -25,6 +25,9 @@ class SignalRService {
 
   // Online status tracking
   final Set<String> _onlineUsers = {};
+
+  // Missed call callback
+  void Function(String userId, String userName)? onMissedCall;
 
   // Contact cache for name resolution (userId -> name)
   final Map<String, String> _contactCache = {};
@@ -345,6 +348,26 @@ class SignalRService {
       if (args == null || args.isEmpty) return;
       debugPrint("SignalR => Calling onLayoutChanged callback");
       onLayoutChanged?.call(args[0]);
+    });
+
+    _hubConnection!.on("MissedCall", (args) {
+      debugPrint("SignalR => MissedCall EVENT");
+
+      if (args == null || args.length < 2) {
+        debugPrint("ERROR: Invalid MissedCall args!");
+        return;
+      }
+
+      final fromUserId = args[0] as String;
+      final fromUserName = args[1] as String;
+
+      debugPrint('[SignalR] Missed call from $fromUserName ($fromUserId)');
+
+      // Show local notification
+      NotificationService().showMissedCallNotification(fromUserName);
+
+      // Call callback if set
+      onMissedCall?.call(fromUserId, fromUserName);
     });
 
     debugPrint("SignalR: All event handlers registered successfully");

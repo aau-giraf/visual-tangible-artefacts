@@ -11,8 +11,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
@@ -30,7 +31,6 @@ android {
         versionName = flutter.versionName
         testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
-
     }
 
     buildTypes {
@@ -42,9 +42,8 @@ android {
     }
 
     testOptions {
-    execution = "ANDROIDX_TEST_ORCHESTRATOR"
-  }
-
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    }
 }
 
 flutter {
@@ -53,4 +52,5 @@ flutter {
 
 dependencies {
     androidTestUtil("androidx.test:orchestrator:1.5.1")
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
