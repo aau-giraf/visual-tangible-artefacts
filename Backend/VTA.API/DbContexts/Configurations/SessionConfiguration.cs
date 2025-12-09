@@ -16,15 +16,27 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .HasColumnName("id")
             .ValueGeneratedOnAdd();
 
-        builder.Property(e => e.CaregiverId)
+        builder.Property(e => e.CallerId)
             .IsRequired()
             .HasMaxLength(36)
-            .HasColumnName("caregiver_id");
+            .HasColumnName("caller_id");
 
-        builder.Property(e => e.ChildId)
+        builder.Property(e => e.CalleeId)
             .IsRequired()
             .HasMaxLength(36)
-            .HasColumnName("child_id");
+            .HasColumnName("callee_id");
+
+        builder.Property(e => e.StartTime)
+            .HasColumnName("start_time")
+            .HasColumnType("datetime");
+
+        builder.Property(e => e.EndTime)
+            .HasColumnName("end_time")
+            .HasColumnType("datetime");
+
+        builder.Property(e => e.Duration)
+            .HasColumnName("duration")
+            .HasColumnType("time");
 
         builder.Property(e => e.CallStatus)
             .IsRequired()
@@ -32,16 +44,16 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .HasMaxLength(20)
             .HasColumnName("call_status");
 
-        builder.HasOne(s => s.Caregiver)
+        builder.HasOne(s => s.Caller)
             .WithMany()
-            .HasForeignKey(s => s.CaregiverId)
+            .HasForeignKey(s => s.CallerId)
             .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_sessions_caregiver");
+            .HasConstraintName("FK_sessions_caller");
 
-        builder.HasOne(s => s.Child)
+        builder.HasOne(s => s.Callee)
             .WithMany()
-            .HasForeignKey(s => s.ChildId)
+            .HasForeignKey(s => s.CalleeId)
             .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_sessions_child");
+            .HasConstraintName("FK_sessions_callee");
     }
 }
