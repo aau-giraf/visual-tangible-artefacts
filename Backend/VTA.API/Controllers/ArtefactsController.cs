@@ -165,9 +165,58 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return Forbid();
         }
 
+        // Check if artefact with this ID already exists
+        string artefactId;
+        Artefact? existingArtefact = null;
+        
+        if (!string.IsNullOrEmpty(artefactPostDTO.ArtefactId))
+        {
+            existingArtefact = await context.Artefacts.FindAsync(artefactPostDTO.ArtefactId);
+            artefactId = artefactPostDTO.ArtefactId;
+        }
+        else
+        {
+            artefactId = Guid.NewGuid().ToString();
+        }
 
+        // If artefact exists, update it instead of creating new
+        if (existingArtefact != null)
+        {
+            // Update existing artefact
+            existingArtefact.Name = artefactPostDTO.Name;
+            existingArtefact.NameShown = artefactPostDTO.NameShown ?? existingArtefact.NameShown;
+            existingArtefact.CategoryId = artefactPostDTO.CategoryId ?? existingArtefact.CategoryId;
+            existingArtefact.ArtefactIndex = artefactPostDTO.ArtefactIndex;
 
-        string artefactId = Guid.NewGuid().ToString();
+            // Update image if provided
+            if (artefactPostDTO.Image != null)
+            {
+                // Delete old image if it exists
+                if (!string.IsNullOrEmpty(existingArtefact.ImagePath))
+                {
+                    ImageUtilities.DeleteImage(existingArtefact.ArtefactId, "Artefacts", userId);
+                }
+                existingArtefact.ImagePath = await ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
+            }
+
+            // Update sound if provided
+            if (artefactPostDTO.Sound != null)
+            {
+                // Delete old sound if it exists
+                if (!string.IsNullOrEmpty(existingArtefact.SoundPath))
+                {
+                    SoundUtilities.DeleteSound(existingArtefact.ArtefactId, userId);
+                }
+                existingArtefact.SoundPath = await SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId, userId);
+            }
+
+            context.Entry(existingArtefact).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+
+            ArtefactGetDTO existingDTO = DTOConverter.MapArtefactToArtefactGetDTO(existingArtefact, Request.Scheme, Request.Host.ToString());
+            return Ok(existingDTO);
+        }
+
         string? imageUrl = await ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
         string? soundUrl = null;
 

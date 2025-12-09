@@ -260,44 +260,62 @@ class SyncService {
       // Sync all entities from API
       int totalSynced = 0;
       
-      // 1. Sync artefacts
+      // 1. Sync artefacts (bidirectional)
       final artefactsResponse = await _apiProvider.fetchAsJson(
         'Users/Artefacts',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
+      
+      List<String> syncedArtefactIds = [];
       if (artefactsResponse != null && artefactsResponse.statusCode == 200) {
         final List<dynamic> artefactsData = json.decode(artefactsResponse.body);
         for (final data in artefactsData) {
           await _syncArtefact(data);
+          syncedArtefactIds.add(data['artefactId'] as String);
           totalSynced++;
         }
       }
+      
+      // Upload local artefacts that don't exist on backend or are newer
+      await _uploadLocalArtefacts(syncedArtefactIds);
 
-      // 2. Sync categories
+      // 2. Sync categories (bidirectional)
       final categoriesResponse = await _apiProvider.fetchAsJson(
         'Users/Categories',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
+      
+      List<String> syncedCategoryIds = [];
       if (categoriesResponse != null && categoriesResponse.statusCode == 200) {
         final List<dynamic> categoriesData = json.decode(categoriesResponse.body);
         for (final data in categoriesData) {
           await _syncCategory(data);
+          syncedCategoryIds.add(data['categoryId'] as String);
           totalSynced++;
         }
       }
+      
+      // Upload local categories that don't exist on backend or are newer
+      await _uploadLocalCategories(syncedCategoryIds);
 
-      // 3. Sync boards
+      // 3. Sync boards (bidirectional)
       final boardsResponse = await _apiProvider.fetchAsJson(
         'Users/Boards',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
+      
+      List<String> syncedBoardIds = [];
       if (boardsResponse != null && boardsResponse.statusCode == 200) {
         final List<dynamic> boardsData = json.decode(boardsResponse.body);
         for (final data in boardsData) {
           await _syncBoard(data);
+          syncedBoardIds.add(data['boardId'] as String? ?? data['id'] as String);
           totalSynced++;
         }
       }
+      
+      // Upload local boards that don't exist on backend or are newer
+      await _uploadLocalBoards(syncedBoardIds);
 
       // Update sync metadata
       await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
@@ -488,6 +506,29 @@ class SyncService {
     }
   }
 
+  /// Helper to check if an item should be synced based on modified dates
+  /// Returns 'download' if backend is newer, 'upload' if local is newer, 'skip' if equal/unknown
+  String _decideSyncDirection(int? localModifiedDate, int? backendModifiedDate) {
+    // Local null - pull from server (server is source of truth)
+    if (localModifiedDate == null) {
+      return 'download';
+    }
+    
+    // Local exists but backend doesn't - upload to server
+    if (localModifiedDate != null && backendModifiedDate == null) {
+      return 'upload';
+    }
+    
+    // Both exist - compare dates
+    if (backendModifiedDate! > localModifiedDate!) {
+      return 'download'; // Backend is newer
+    } else if (localModifiedDate > backendModifiedDate) {
+      return 'upload'; // Local is newer
+    } else {
+      return 'skip'; // Same date, no sync needed
+    }
+  }
+
   /// Helper method to sync a single artefact from API data to local database
   Future<void> _syncArtefact(Map<String, dynamic> data) async {
     try {
@@ -496,6 +537,26 @@ class SyncService {
 
       final existing = await _artefactRepo.getById(artefactId);
       
+      // Check if we need to sync based on modified dates
+      final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
+      final syncDirection = _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
+      
+      if (syncDirection == 'skip') {
+        return; // Already in sync
+      } else if (syncDirection == 'upload') {
+        // Local is newer, upload to server
+        if (existing != null) {
+          final backendId = await _uploadArtefact(existing);
+          // Return the backend ID so it can be added to syncedIds
+          if (backendId != null && backendId != artefactId) {
+            // Backend assigned a different ID, but we still consider this artefact synced
+            print('[SYNC] Backend assigned new ID: $backendId for local ID: $artefactId');
+          }
+        }
+        return;
+      }
+      
+      // syncDirection == 'download' - Download from server
       // Download image and sound files if they have URLs
       String? localImagePath;
       String? localSoundPath;
@@ -551,6 +612,21 @@ class SyncService {
 
       final existing = await _categoryRepo.getById(categoryId);
       
+      // Check if we need to sync based on modified dates
+      final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
+      final syncDirection = _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
+      
+      if (syncDirection == 'skip') {
+        return; // Already in sync
+      } else if (syncDirection == 'upload') {
+        // Local is newer, upload to server
+        if (existing != null) {
+          await _uploadCategory(existing);
+        }
+        return;
+      }
+      
+      // syncDirection == 'download' - Download from server
       // Download category image if it has a URL
       String? localImagePath;
       final imageUrl = data['imageUrl'] as String?;
@@ -593,6 +669,21 @@ class SyncService {
 
       final existing = await _boardRepo.getById(boardId);
       
+      // Check if we need to sync based on modified dates
+      final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
+      final syncDirection = _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
+      
+      if (syncDirection == 'skip') {
+        return; // Already in sync
+      } else if (syncDirection == 'upload') {
+        // Local is newer, upload to server
+        if (existing != null) {
+          await _uploadBoard(existing);
+        }
+        return;
+      }
+      
+      // syncDirection == 'download' - Download from server
       // Parse artefact IDs and saved artefact data
       final artefactIds = (data['artefactIds'] as List<dynamic>?)
           ?.map((id) => id.toString())
@@ -628,6 +719,220 @@ class SyncService {
       }
     } catch (e, stackTrace) {
       print('[SYNC] ERROR syncing board: $e');
+    }
+  }
+
+  /// Upload local artefacts that don't exist on backend or are newer
+  Future<void> _uploadLocalArtefacts(List<String> syncedIds) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return;
+
+      // Get all local artefacts for this user
+      final localArtefacts = await _artefactRepo.getByUserId(userId);
+      
+      for (final artefact in localArtefacts) {
+        // Skip if already synced from backend
+        if (syncedIds.contains(artefact.artefactId)) continue;
+        
+        // This artefact exists locally but not on backend, upload it
+        final backendId = await _uploadArtefact(artefact);
+        if (backendId != null) {
+          syncedIds.add(backendId);
+        }
+      }
+    } catch (e) {
+      print('[SYNC] ERROR uploading local artefacts: $e');
+    }
+  }
+
+  /// Upload local categories that don't exist on backend or are newer
+  Future<void> _uploadLocalCategories(List<String> syncedIds) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return;
+
+      // Get all local categories for this user
+      final localCategories = await _categoryRepo.getByUserId(userId);
+      
+      for (final category in localCategories) {
+        // Skip if already synced from backend
+        if (syncedIds.contains(category.categoryId)) continue;
+        
+        // This category exists locally but not on backend, upload it
+        await _uploadCategory(category);
+      }
+    } catch (e) {
+      print('[SYNC] ERROR uploading local categories: $e');
+    }
+  }
+
+  /// Upload local boards that don't exist on backend or are newer
+  Future<void> _uploadLocalBoards(List<String> syncedIds) async {
+    try {
+      final userId = _userInfo.userId;
+      if (userId == null) return;
+
+      // Get all local boards for this user
+      final localBoards = await _boardRepo.getByUserId(userId);
+      
+      for (final board in localBoards) {
+        // Skip if already synced from backend
+        if (syncedIds.contains(board.id)) continue;
+        
+        // This board exists locally but not on backend, upload it
+        await _uploadBoard(board);
+      }
+    } catch (e) {
+      print('[SYNC] ERROR uploading local boards: $e');
+    }
+  }
+
+  /// Upload a single artefact to the backend
+  Future<String?> _uploadArtefact(ArtefactDB artefact) async {
+    try {
+      print('[SYNC-UPLOAD] Uploading artefact ${artefact.artefactId}');
+      
+      // Prepare multipart request
+      final uri = Uri.parse(_apiProvider.baseUrl + 'Users/Artefacts');
+      print('[SYNC-UPLOAD] URL: $uri');
+      
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer ${_token.value}';
+      
+      // Add artefact data fields
+      request.fields['UserId'] = _userInfo.userId ?? '';
+      request.fields['ArtefactId'] = artefact.artefactId;
+      request.fields['Name'] = artefact.name ?? '';
+      request.fields['NameShown'] = (artefact.nameShown == 1).toString();
+      if (artefact.categoryId != null) {
+        request.fields['CategoryId'] = artefact.categoryId!;
+      }
+      
+      print('[SYNC-UPLOAD] Fields: ${request.fields}');
+      
+      // Upload image file if it exists locally
+      if (artefact.imagePath != null) {
+        final imageFile = await _getLocalFile('Artefacts', artefact.imagePath!, _userInfo.userId ?? '');
+        if (imageFile != null && await imageFile.exists()) {
+          print('[SYNC-UPLOAD] Adding image file: ${imageFile.path}');
+          request.files.add(await http.MultipartFile.fromPath('Image', imageFile.path));
+        } else {
+          print('[SYNC-UPLOAD] Image file not found: ${artefact.imagePath}');
+        }
+      } else {
+        print('[SYNC-UPLOAD] No imagePath in artefact');
+      }
+      
+      // Upload sound file if it exists locally
+      if (artefact.soundPath != null) {
+        final soundFile = await _getLocalFile('Sounds', artefact.soundPath!, _userInfo.userId ?? '');
+        if (soundFile != null && await soundFile.exists()) {
+          print('[SYNC-UPLOAD] Adding sound file: ${soundFile.path}');
+          request.files.add(await http.MultipartFile.fromPath('Sound', soundFile.path));
+        } else {
+          print('[SYNC-UPLOAD] Sound file not found: ${artefact.soundPath}');
+        }
+      }
+      
+      print('[SYNC-UPLOAD] Sending request with ${request.files.length} files...');
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      
+      print('[SYNC-UPLOAD] Response status: ${response.statusCode}');
+      print('[SYNC-UPLOAD] Response body: $responseBody');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('[SYNC] ✓ Uploaded artefact: ${artefact.artefactId}');
+        
+        // Parse response to get the backend's artefact ID
+        try {
+          final responseData = json.decode(responseBody);
+          final backendArtefactId = responseData['artefactId'] as String?;
+          return backendArtefactId;
+        } catch (e) {
+          print('[SYNC] Warning: Could not parse artefact ID from response: $e');
+        }
+      } else {
+        print('[SYNC] ✗ Failed to upload artefact ${artefact.artefactId}: ${response.statusCode}');
+        print('[SYNC] Response: $responseBody');
+      }
+      return null;
+    } catch (e, stackTrace) {
+      print('[SYNC] ERROR uploading artefact: $e');
+      print('[SYNC] Stack trace: $stackTrace');
+      return null;
+    }
+  }
+
+  /// Upload a single category to the backend
+  Future<void> _uploadCategory(CategoryDB category) async {
+    try {
+      // Prepare multipart request
+      final uri = Uri.parse(_apiProvider.baseUrl + 'Users/Categories');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer ${_token.value}';
+      
+      // Add category data fields
+      request.fields['UserId'] = _userInfo.userId ?? '';
+      request.fields['CategoryId'] = category.categoryId;
+      request.fields['Name'] = category.name ?? '';
+      
+      // Upload image file if it exists locally
+      if (category.imagePath != null) {
+        final imageFile = await _getLocalFile('Categories', category.imagePath!, _userInfo.userId ?? '');
+        if (imageFile != null && await imageFile.exists()) {
+          request.files.add(await http.MultipartFile.fromPath('Image', imageFile.path));
+        }
+      }
+      
+      final response = await request.send();
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('[SYNC] Uploaded category: ${category.categoryId}');
+      } else {
+        print('[SYNC] Failed to upload category ${category.categoryId}: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('[SYNC] ERROR uploading category: $e');
+    }
+  }
+
+  /// Upload a single board to the backend
+  Future<void> _uploadBoard(SavedBoardDB board) async {
+    try {
+      final response = await _apiProvider.postAsJson(
+        'Users/Boards',
+        headers: {
+          'Authorization': 'Bearer ${_token.value}',
+          'Content-Type': 'application/json',
+        },
+        body: {
+          'userId': _userInfo.userId ?? '',
+          'boardId': board.id,
+          'name': board.name,
+          'artefactIds': board.artefactIds?.split(',') ?? [],
+          'savedArtefactIds': board.savedArtefactIds?.split(',') ?? [],
+        },
+      );
+      
+      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
+        print('[SYNC] Uploaded board: ${board.id}');
+      } else {
+        print('[SYNC] Failed to upload board ${board.id}: ${response?.statusCode}');
+      }
+    } catch (e) {
+      print('[SYNC] ERROR uploading board: $e');
+    }
+  }
+
+  /// Get a local file from the synced assets directory
+  Future<File?> _getLocalFile(String assetType, String filename, String userId) async {
+    try {
+      final appDir = await getApplicationSupportDirectory();
+      final file = File('${appDir.path}/Synced/$assetType/$userId/$filename');
+      return file;
+    } catch (e) {
+      return null;
     }
   }
 
