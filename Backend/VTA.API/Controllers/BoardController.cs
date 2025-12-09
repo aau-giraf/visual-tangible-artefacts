@@ -222,6 +222,10 @@ public class BoardController : ControllerBase
 
             return CreatedAtAction(nameof(GetBoard), new { boardId = response.BoardId }, response);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
         catch (Exception ex)
         {
             // Check if it's a database column issue
@@ -497,7 +501,7 @@ public class BoardController : ControllerBase
             _context.SavedBoards.Update(board);
             await _context.SaveChangesAsync();
             
-            return Ok(new { message = "Artefact removed from board successfully" });
+            return NoContent();
         }
         catch (Exception)
         {
@@ -604,7 +608,7 @@ public class BoardController : ControllerBase
             // Then remove the board itself
             _context.SavedBoards.Remove(board);
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Board deleted successfully" });
+            return NoContent();
         }
         catch (Exception)
         {

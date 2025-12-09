@@ -46,9 +46,9 @@ namespace VTA.Tests.TestHelpers
             }
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
-            var database = builder.Database;
-            var username = builder.UserID;
-            var password = builder.Password;
+            var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
+            var username = string.IsNullOrEmpty(builder.UserID) ? "root" : builder.UserID;
+            var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
             _mySqlContainer = new MySqlBuilder()
                 .WithImage("mysql:8.0")
