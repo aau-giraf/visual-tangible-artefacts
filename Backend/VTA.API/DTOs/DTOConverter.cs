@@ -104,4 +104,33 @@ public static class DTOConverter
         };
     }
 
+    public static SavedArtefactGetDTO MapSavedArtefactToSavedArtefactGetDTO(SavedArtefact savedArtefact, string scheme, string host)
+    {
+        return new SavedArtefactGetDTO
+        {
+            Id = savedArtefact.Id,
+            ArtefactId = savedArtefact.ArtefactId,
+            BoardId = savedArtefact.BoardId,
+            PosX = savedArtefact.PosX,
+            PosY = savedArtefact.PosY,
+            Width = savedArtefact.Width,
+            Height = savedArtefact.Height,
+            CreatedDate = savedArtefact.CreatedDate,
+            Artefact = MapArtefactToArtefactGetDTO(savedArtefact.Artefact, scheme, host)
+        };
+    }
+
+    public static SavedArtefact MapSavedArtefactPostDTOToSavedArtefact(SavedArtefactPostDTO dto, string id, string boardId)
+    {
+        return new SavedArtefact
+        {
+            Id = id,
+            ArtefactId = dto.ArtefactId,
+            BoardId = boardId,
+            PosX = dto.PosX,
+            PosY = dto.PosY,
+            CreatedDate = DateTime.UtcNow
+        };
+    }
+
 }

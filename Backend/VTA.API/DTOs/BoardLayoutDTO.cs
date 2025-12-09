@@ -18,22 +18,22 @@ public class BoardArtefactLayoutDTO
     /// <summary>
     /// X position on the board
     /// </summary>
-    public float PosX { get; set; } = 0;
+    public float PosX { get; set; }
 
     /// <summary>
     /// Y position on the board  
     /// </summary>
-    public float PosY { get; set; } = 0;
+    public float PosY { get; set; }
 
     /// <summary>
     /// Width of the artefact
     /// </summary>
-    public float Width { get; set; } = 200;
+    public float Width { get; set; }
 
     /// <summary>
     /// Height of the artefact
     /// </summary>
-    public float Height { get; set; } = 200;
+    public float Height { get; set; }
 }
 
 /// <summary>
@@ -122,3 +122,4 @@ public class UpdateArtefactLayoutDTO
     /// </summary>
     public float Height { get; set; }
 }
+

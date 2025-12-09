@@ -84,14 +84,14 @@ class AuthController extends ChangeNotifier {
       await _model.signup(form);
       
       // If successful, navigate to main screen
-      // if (context != null && context.mounted) {
-      //   await artifactController.updateArtifacts(context: context);
-      //   if(!context.mounted) return;
-      //   await artifactController.updateMostUsedCategories(context: context);
-      //   if(!context.mounted) return;
-      //   Navigator.of(context)
-      //       .pushReplacementNamed(ArtifactBoardScreen.routeName);
-      // }
+     // if (context != null && context.mounted) {
+     //   await artifactController.updateArtifacts(context: context);
+     //   if(!context.mounted) return;
+     //   await artifactController.updateMostUsedCategories(context: context);
+     //   if(!context.mounted) return;
+     //   Navigator.of(context)
+     //       .pushReplacementNamed(ArtifactBoardScreen.routeName);
+   //   }
     } catch (e) {
       // Clear any existing SnackBars to prevent keyboard issues
       if (context != null && context.mounted) {
