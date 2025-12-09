@@ -2,12 +2,15 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using VTA.API.DbContexts;
+using VTA.API.Models;
 
 namespace SyncService.Hubs
 {
     [Authorize]
-    public class BoardHub(IConfiguration configuration) : Hub
+    public class BoardHub(IConfiguration configuration, VTAContext dbContext) : Hub
     {
         private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId
         private static readonly Dictionary<string, BoardSession> boardSessions = new(); // sessionId -> session
@@ -85,6 +88,25 @@ namespace SyncService.Hubs
 
             boardSessions[sessionId] = session;
 
+            try
+            {
+                var dbSession = new Session
+                {
+                    CallerId = fromUserId,
+                    CalleeId = toUserId,
+                    StartTime = DateTime.UtcNow,
+                    CallStatus = CallStatus.Accepted
+                };
+
+                dbContext.Sessions.Add(dbSession);
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine($"[Hub] Session logged to database with Id={dbSession.Id}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Hub] Error logging session to database: {ex.Message}");
+            }
+
             // Broadcast to BOTH users in the group
             await Clients.Group(sessionId).SendAsync("SessionStarted", sessionId, boardId);
             Console.WriteLine($"[Hub] Broadcasted SessionStarted to group {sessionId} with boardId={boardId}");
@@ -93,6 +115,30 @@ namespace SyncService.Hubs
         public async Task RejectSession(string fromUserId)
         {
             Console.WriteLine($"[Hub] RejectSession => {fromUserId}");
+
+            var currentUserId = Context.User?.FindFirst("sub")?.Value ?? Context.User?.Identity?.Name;
+
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                try
+                {
+                    var dbSession = new Session
+                    {
+                        CallerId = fromUserId,
+                        CalleeId = currentUserId,
+                        StartTime = DateTime.UtcNow,
+                        CallStatus = CallStatus.Rejected
+                    };
+
+                    dbContext.Sessions.Add(dbSession);
+                    await dbContext.SaveChangesAsync();
+                    Console.WriteLine($"[Hub] Rejected session logged to database with Id={dbSession.Id}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Hub] Error logging rejected session to database: {ex.Message}");
+                }
+            }
 
             if (userConnections.TryGetValue(fromUserId, out var conn))
                 await Clients.Client(conn).SendAsync("SessionRejected");
@@ -114,7 +160,7 @@ namespace SyncService.Hubs
             {
                 sessionId = sessionIdProp.GetString();
             }
-            
+
             if (string.IsNullOrEmpty(sessionId))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: Missing sessionId. Data: {data}");
@@ -132,7 +178,7 @@ namespace SyncService.Hubs
             {
                 sessionId = sessionIdProp.GetString();
             }
-            
+
             if (string.IsNullOrEmpty(sessionId))
             {
                 Console.WriteLine($"[Hub] ArtifactRemoved: Missing sessionId. Data: {data}");
@@ -150,7 +196,7 @@ namespace SyncService.Hubs
             {
                 sessionId = sessionIdProp.GetString();
             }
-            
+
             if (string.IsNullOrEmpty(sessionId))
             {
                 Console.WriteLine($"[Hub] ArtifactMoved: Missing sessionId. Data: {data}");
@@ -168,7 +214,7 @@ namespace SyncService.Hubs
             {
                 sessionId = sessionIdProp.GetString();
             }
-            
+
             if (string.IsNullOrEmpty(sessionId))
             {
                 Console.WriteLine($"[Hub] ArtifactResized: Missing sessionId. Data: {data}");
@@ -186,7 +232,7 @@ namespace SyncService.Hubs
             {
                 sessionId = sessionIdProp.GetString();
             }
-            
+
             if (string.IsNullOrEmpty(sessionId))
             {
                 Console.WriteLine($"[Hub] LayoutChanged: Missing sessionId. Data: {data}");
@@ -200,6 +246,41 @@ namespace SyncService.Hubs
         public async Task EndSession(string sessionId)
         {
             Console.WriteLine($"[Hub] EndSession => {sessionId}");
+
+            if (boardSessions.TryGetValue(sessionId, out var boardSession))
+            {
+                try
+                {
+                    var dbSession = await dbContext.Sessions
+                        .Where(s => (s.CallerId == boardSession.User1Id && s.CalleeId == boardSession.User2Id) ||
+                                    (s.CallerId == boardSession.User2Id && s.CalleeId == boardSession.User1Id))
+                        .Where(s => s.CallStatus == CallStatus.Accepted)
+                        .OrderByDescending(s => s.StartTime)
+                        .FirstOrDefaultAsync();
+
+                    if (dbSession != null)
+                    {
+                        dbSession.EndTime = DateTime.UtcNow;
+                        if (dbSession.StartTime.HasValue)
+                        {
+                            dbSession.Duration = dbSession.EndTime.Value - dbSession.StartTime.Value;
+                        }
+                        dbSession.CallStatus = CallStatus.Completed;
+
+                        await dbContext.SaveChangesAsync();
+                        Console.WriteLine($"[Hub] Session {dbSession.Id} ended. Duration: {dbSession.Duration}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Hub] No matching database session found for sessionId={sessionId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Hub] Error updating session end time in database: {ex.Message}");
+                }
+            }
+
             await Clients.Group(sessionId).SendAsync("SessionEnded");
             boardSessions.Remove(sessionId);
         }
@@ -211,11 +292,44 @@ namespace SyncService.Hubs
             {
                 userConnections.Remove(user);
                 Console.WriteLine($"[Hub] User disconnected => {user}");
+
+                var userSessions = boardSessions.Where(s => s.Value.User1Id == user || s.Value.User2Id == user).ToList();
+                foreach (var sessionKvp in userSessions)
+                {
+                    var boardSession = sessionKvp.Value;
+                    try
+                    {
+                        var dbSession = await dbContext.Sessions
+                            .Where(s => (s.CallerId == boardSession.User1Id && s.CalleeId == boardSession.User2Id) ||
+                                        (s.CallerId == boardSession.User2Id && s.CalleeId == boardSession.User1Id))
+                            .Where(s => s.CallStatus == CallStatus.Accepted)
+                            .OrderByDescending(s => s.StartTime)
+                            .FirstOrDefaultAsync();
+
+                        if (dbSession != null)
+                        {
+                            dbSession.EndTime = DateTime.UtcNow;
+                            if (dbSession.StartTime.HasValue)
+                            {
+                                dbSession.Duration = dbSession.EndTime.Value - dbSession.StartTime.Value;
+                            }
+                            dbSession.CallStatus = CallStatus.Failed;
+                            await dbContext.SaveChangesAsync();
+                            Console.WriteLine($"[Hub] Session {dbSession.Id} marked as failed due to disconnection");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Hub] Error updating session on disconnect: {ex.Message}");
+                    }
+
+                    boardSessions.Remove(sessionKvp.Key);
+                }
             }
 
             await base.OnDisconnectedAsync(exception);
         }
-        
+
         // WebRTC Signaling Methods
         public async Task SendOffer(string sessionId, string targetUserId, object sdpOffer)
         {
