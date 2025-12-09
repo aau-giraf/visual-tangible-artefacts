@@ -24,34 +24,6 @@ class MyApp extends StatelessWidget {
 
   final ArtefactController artifactController;
 
-  /// Build routes function - created once and reused
-  Route<dynamic> Function(RouteSettings) get _onGenerateRoute {
-    return (RouteSettings routeSettings) {
-      return MaterialPageRoute<void>(
-        settings: routeSettings,
-        maintainState: true, // Preserve route state when not visible
-        builder: (BuildContext context) {
-          switch (routeSettings.name) {
-            case SplashView.routeName:
-              return SplashView(controller: authController);
-            case LoginView.routeName:
-              return LoginView(controller: authController);
-            case SettingsView.routeName:
-              return SettingsView(controller: settingsController);
-            case ArtifactBoardScreen.routeName:
-              return ArtifactBoardScreen(
-                key: const PageStorageKey('ArtifactBoardScreen'),
-                artifactController: artifactController,
-                authController: authController,
-              );
-            default:
-              return SplashView(controller: authController);
-          }
-        },
-      );
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     
@@ -103,8 +75,29 @@ class MyApp extends StatelessWidget {
 
           // Define a function to handle named routes in order to support
           // Flutter web url navigation and deep linking.
-          // Using a getter ensures the function is stable and not recreated on rebuilds
-          onGenerateRoute: _onGenerateRoute,
+          onGenerateRoute: (RouteSettings routeSettings) {
+            return MaterialPageRoute<void>(
+              settings: routeSettings,
+              builder: (BuildContext context) {
+                switch (routeSettings.name) {
+                  case SplashView.routeName:
+                    return SplashView(controller: authController);
+                  case LoginView.routeName:
+                    return LoginView(controller: authController);
+                  case SettingsView.routeName:
+                    return SettingsView(controller: settingsController);
+                  case ArtifactBoardScreen.routeName:
+                    return ArtifactBoardScreen(
+                      artifactController: artifactController,
+                      authController: authController,
+                      settingsController: settingsController,
+                    );
+                  default:
+                    return SplashView(controller: authController);
+                }
+              },
+            );
+          },
         );
       },
     );

@@ -38,6 +38,7 @@ public class ElevenLabsService
     /// <param name="stability">Voice stability (0.0 to 1.0)</param>
     /// <param name="similarityBoost">Similarity boost (0.0 to 1.0)</param>
     /// <param name="useSpeakerBoost">Whether to use speaker boost</param>
+    /// <param name="speed">Speaking speed (0.25 to 4.0, default 1.0 = normal speed)</param>
     /// <param name="languageCode">Language code (e.g., "da" for Danish, "en" for English)</param>
     /// <returns>Audio data as byte array or null if failed</returns>
     public async Task<byte[]?> GenerateSpeechAsync(
@@ -47,6 +48,7 @@ public class ElevenLabsService
         double? stability = null,
         double? similarityBoost = null,
         bool? useSpeakerBoost = null,
+        double? speed = null,
         string? languageCode = null)
     {
         try
@@ -59,7 +61,8 @@ public class ElevenLabsService
             {
                 ["stability"] = stability ?? 0.5,
                 ["similarity_boost"] = similarityBoost ?? 0.75,
-                ["use_speaker_boost"] = useSpeakerBoost ?? true
+                ["use_speaker_boost"] = useSpeakerBoost ?? true,
+                ["speed"] = speed ?? 0.8  // Default to 0.8 (slightly slower than normal) for better clarity
             };
 
             var requestBodyDict = new Dictionary<string, object>

@@ -170,7 +170,16 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
     final String artifactId = artefact.baseArtefact?.artefactId ?? 'unknown';
     final int countBefore = value.length;
     debugPrint('[$_instanceId] Removing artifact ID:$artifactId, current count: $countBefore');
-    value.removeWhere((item) => item.key == artefact.key);
+    // Prefer removing by savedArtefactId (instance id) to avoid removing all duplicates
+    if (artefact.savedArtefactId != null) {
+      value.removeWhere((item) => item.savedArtefactId == artefact.savedArtefactId);
+    } else {
+      // Fallback: remove a single instance matching the artefactId
+      final idx = value.indexWhere((item) => item.artefactId == artefact.artefactId);
+      if (idx != -1) {
+        value.removeAt(idx);
+      }
+    }
     final int removedCount = countBefore - value.length;
     debugPrint('[$_instanceId] Removed $removedCount artifact(s), new count: ${value.length}');
     notifyListeners();
@@ -182,22 +191,30 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
     }
   }
 
+  /// Set name visibility for all artifacts on the board
+  void setNamesVisibleForAll(bool visible) {
+    for (final artifact in value) {
+      artifact.nameVisible = visible;
+    }
+    notifyListeners();
+  }
+
   void _showRemoveAllArtifactsAlert(BuildContext context) {
     showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: Text("Confirm"),
-            content: Text("Are you sure you want to remove all artifacts?"),
+            title: Text("Bekræft"),
+            content: Text("Er du sikker på at du vil fjerne alle artefakter?"),
             actions: <Widget>[
               TextButton(
-                child: Text("Cancel"),
+                child: Text("Annuller"),
                 onPressed: () {
                   Navigator.of(context).pop(); // Close the dialog
                 },
               ),
               TextButton(
-                child: Text("Yes"),
+                child: Text("Ja"),
                 onPressed: () {
                   value.clear();
                   Navigator.of(context).pop(); // Close the dialog

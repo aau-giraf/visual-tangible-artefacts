@@ -35,6 +35,8 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  patrol: ^3.19.0
+  flutter_dotenv: ^5.1.0
 
 flutter:
   uses-material-design: true
@@ -48,3 +50,12 @@ flutter:
     - assets/icons/
     - assets/sound/
     - assets/cfg/
+
+patrol:
+  app_name: My App
+  android:
+    package_name: com.example.vta_app
+  ios:
+    bundle_id: com.example.vta_app
+  macos:
+    bundle_id: com.example.macos.vta_app

@@ -2,22 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
+import '../widgets/board/quick_add_artefact.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 
+import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
+
 class ArtifactBoardScreen extends StatefulWidget {
-  const ArtifactBoardScreen(
-      {super.key,
-      required this.artifactController,
-      required this.authController});
+  const ArtifactBoardScreen({
+    super.key,
+    required this.artifactController,
+    required this.authController,
+    required this.settingsController,
+  });
   static const String routeName = "/boardview";
 
   final ArtefactController artifactController;
   final AuthController authController;
+  final SettingsController settingsController;
 
   @override
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
@@ -42,12 +49,15 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
       );
       debugPrint('[ArtifactBoardScreen] get controller - Reusing existing controller from GetIt: ${existingController.hashCode}');
       // Update the notifyView callback to point to current widget state
-      existingController.notifyView = _notifyView;
+      existingController.updateNotifyView(_notifyView);
       return existingController;
     } catch (e) {
       // Controller doesn't exist yet, create and register it
       debugPrint('[ArtifactBoardScreen] get controller - Creating NEW ArtifactBoardController and registering in GetIt');
-      final newController = ArtifactBoardController(notifyView: _notifyView);
+      final newController = ArtifactBoardController(
+        notifyView: _notifyView,
+        settingsController: widget.settingsController,
+      );
       GetIt.instance.registerSingleton<ArtifactBoardController>(
         newController,
         instanceName: _controllerKey,
@@ -167,10 +177,37 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             padding: EdgeInsets.zero,               // removes extra padding around the icon
                             itemBuilder: (context) => [
                                   PopupMenuItem(
+                                    padding: EdgeInsets.zero,
+                                    child: ListTile(
+                                      leading: Icon(Icons.dashboard, size: screenWidth > 600 ? 20 : 16),
+                                      title: Text('Tavler (${controller.activeBoard.title})', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                          ),
+                                          builder: (context) => DraggableScrollableSheet(
+                                            initialChildSize: 0.6,
+                                            minChildSize: 0.4,
+                                            maxChildSize: 0.9,
+                                            expand: false,
+                                            builder: (context, scrollController) => BoardSelectionSheet(
+                                              controller: controller,
+                                              scrollController: scrollController,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  PopupMenuItem(
                                     padding: EdgeInsets.zero, // Remove default padding
                                     child: ListTile(
                                       leading: Icon(Icons.settings, size: screenWidth > 600 ? 20 : 16),
-                                      title: Text('Instillinger', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
+                                      title: Text('Indstillinger', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
                                       onTap: () {
                                         Navigator.of(context)
                                             .pushNamed('/settings');
@@ -189,7 +226,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ]),
                       ),
-                      // Play All Sounds Button - positioned next to Brugerindstillinger button
+
+                      
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
@@ -210,6 +248,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                           ),
                         ),
                       ),
+                      QuickAddArtefactButton(artefactController: artifactController, onArtifactAdded: controller.addArtifactToCurrentBoard),
                       const QuickChatButton(),
                     ],
                   ),

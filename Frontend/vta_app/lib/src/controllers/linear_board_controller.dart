@@ -7,7 +7,7 @@ import '../ui/widgets/board/board_artifact.dart';
 class LinearBoardController extends ChangeNotifier {
   List<BoardArtefact?> artifacts;
   int fieldCount;
-  Function(BoardArtefact)? _onArtefactAdded;
+  final Function(BoardArtefact)? _onArtefactAdded;
 
   LinearBoardController({
     required this.artifacts,
@@ -15,6 +15,25 @@ class LinearBoardController extends ChangeNotifier {
     Function(BoardArtefact)? onArtefactAdded,
   }) : _onArtefactAdded = onArtefactAdded;
 
+
+  /// Updates the number of fields (slots) on the board and resizes the artifacts list accordingly.
+  /// If the new count is smaller than the current list, trailing items are dropped.
+  /// If larger, the list is extended with null placeholders.
+  void setFieldCount(int newCount) {
+    if (newCount == fieldCount) return;
+    if (newCount < 0) newCount = 0;
+
+    if (newCount < artifacts.length) {
+      // Truncate extra slots (drop trailing items)
+      artifacts = artifacts.sublist(0, newCount);
+    } else if (newCount > artifacts.length) {
+      // Extend with nulls
+      artifacts.addAll(List<BoardArtefact?>.filled(newCount - artifacts.length, null));
+    }
+
+    fieldCount = newCount;
+    notifyListeners();
+  }
 
   /// Function for adding an artifact to the board. An index of location can be provided, if available
   void addArtifact(BoardArtefact artifact, {int? index}) {
@@ -129,5 +148,11 @@ class LinearBoardController extends ChangeNotifier {
   /// Setter for the board full callback
   void setBoardFullCallback(VoidCallback callback) {
     _boardFullCallback = callback;
+  }
+
+  /// Restore artifacts from a saved state
+  void restoreArtifacts(List<BoardArtefact?> newArtifacts) {
+    artifacts = newArtifacts;
+    notifyListeners();
   }
 }

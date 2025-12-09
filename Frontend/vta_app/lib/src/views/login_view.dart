@@ -257,10 +257,10 @@ class _LoginViewState extends State<LoginView> {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController guardianKeyController = TextEditingController();
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    bool _obscureSignupPassword = true;
+    bool obscureSignupPassword = true;
     
     // Password strength calculation
-    String? _getPasswordStrength(String password) {
+    String? getPasswordStrength(String password) {
       if (password.isEmpty) return null;
       int strength = 0;
       if (password.length >= 6) strength++;
@@ -275,8 +275,8 @@ class _LoginViewState extends State<LoginView> {
       return 'Stærkt';
     }
     
-    Color? _getPasswordStrengthColor(String password) {
-      final strength = _getPasswordStrength(password);
+    Color? getPasswordStrengthColor(String password) {
+      final strength = getPasswordStrength(password);
       if (strength == null) return null;
       if (strength == 'Svagt') return Colors.red;
       if (strength == 'Mellem') return Colors.orange;
@@ -335,11 +335,11 @@ class _LoginViewState extends State<LoginView> {
                 prefixIcon: Icon(Icons.lock),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureSignupPassword ? Icons.visibility : Icons.visibility_off,
+                    obscureSignupPassword ? Icons.visibility : Icons.visibility_off,
                   ),
                   onPressed: () {
                     setState(() {
-                      _obscureSignupPassword = !_obscureSignupPassword;
+                      obscureSignupPassword = !obscureSignupPassword;
                     });
                   },
                 ),
@@ -351,19 +351,19 @@ class _LoginViewState extends State<LoginView> {
                   borderSide: BorderSide(color: Colors.red),
                 ),
                 helperText: sharedPasswordController.text.isNotEmpty
-                    ? 'Styrke: ${_getPasswordStrength(sharedPasswordController.text)}'
+                    ? 'Styrke: ${getPasswordStrength(sharedPasswordController.text)}'
                     : null,
                 helperMaxLines: 2,
               ),
-              obscureText: _obscureSignupPassword,
+              obscureText: obscureSignupPassword,
               onChanged: (_) {
-                setState(() {}); // Update password strength indicator (StatefulBuilder's setState is safe)
+                setState(() {}); // Update password strength indicator 
               },
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Indtast venligst et kodeord';
                 }
-                // Commented out for flexibility with autistic children - may be re-enabled if needed
+                // Commented out for flexibility, maybe re-enable if Emil/ Egebakken thinks it's needed
                 // if (value.length < 6) {
                 //   return 'Kodeord skal være mindst 6 tegn';
                 // }
@@ -378,11 +378,11 @@ class _LoginViewState extends State<LoginView> {
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: LinearProgressIndicator(
-                  value: _getPasswordStrength(sharedPasswordController.text) == 'Svagt' ? 0.33
-                      : _getPasswordStrength(sharedPasswordController.text) == 'Mellem' ? 0.66 : 1.0,
+                  value: getPasswordStrength(sharedPasswordController.text) == 'Svagt' ? 0.33
+                      : getPasswordStrength(sharedPasswordController.text) == 'Mellem' ? 0.66 : 1.0,
                   backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    _getPasswordStrengthColor(sharedPasswordController.text) ?? Colors.grey,
+                    getPasswordStrengthColor(sharedPasswordController.text) ?? Colors.grey,
                   ),
                 ),
               ),

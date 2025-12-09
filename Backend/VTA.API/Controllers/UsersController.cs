@@ -32,8 +32,9 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             return BadRequest();
         }
         
-        User? user = await context.Users. //_context.Users (In the users table)
-            FirstOrDefaultAsync( //find the first user
+        User? user = await context.Users //_context.Users (In the users table)
+            .AsNoTracking() // Read-only query for login
+            .FirstOrDefaultAsync( //find the first user
             u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
         
         if (user == null)//If user not found
@@ -135,12 +136,14 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     [HttpGet("Users")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
     {
-        List<User> users = await context.Users.ToListAsync();
-        List<UserGetDTO> userGetDTOs = new List<UserGetDTO>();
-        foreach (User user in users)
-        {
-            userGetDTOs.Add(DTOConverter.MapUserToUserGetDTO(user));
-        }
+        List<User> users = await context.Users
+            .AsNoTracking()
+            .ToListAsync();
+
+        var userGetDTOs = users
+            .Select(user => DTOConverter.MapUserToUserGetDTO(user))
+            .ToList();
+
         return userGetDTOs;
     }
 
@@ -154,7 +157,9 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     {
         var userId = User.FindFirst("id")?.Value;
 
-        User user = await context.Users.FindAsync(userId);
+        User? user = await context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
         {
@@ -229,22 +234,32 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             return Forbid();
         }
 
-        var user = await context.Users.FindAsync(id);//Find user with 
+        // Load user with all related entities (Categories and their Artefacts)
+        var user = await context.Users
+            .Include(u => u.Categories)
+                .ThenInclude(c => c.Artefacts)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
         {
             return NotFound();
         }
-        
+
         /*Categories and artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
-        * Therefore we remove all the images from the filesystem before we loose the refs*/
+        * Therefore we remove all the images and sounds from the filesystem before we loose the refs*/
         foreach (var category in user.Categories)
         {
             foreach (var artefact in category.Artefacts)
             {
-                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts");
+                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", id);
+                // Also delete sound files if they exist
+                try
+                {
+                    SoundUtilities.DeleteSound(artefact.ArtefactId, id);
+                }
+                catch { }
             }
-            ImageUtilities.DeleteImage(category.CategoryId, "Categories");
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
         }
 
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
