@@ -15,6 +15,7 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
+import 'package:vta_app/src/services/sync_timer.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
@@ -86,6 +87,11 @@ void main() async {
   await settingsController.loadSettings();
 
   await Settings.init(cacheProvider: SharePreferenceCache());
+  
+  // Initialize the sync timer to run every 30 seconds
+  print('[MAIN] Starting sync timer (30 second interval)');
+  SyncTimer().start(interval: const Duration(seconds: 30));
+  
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the
   // SettingsView.

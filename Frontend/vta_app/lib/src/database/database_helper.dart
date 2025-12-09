@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -119,11 +119,35 @@ class DatabaseHelper {
         is_dirty INTEGER NOT NULL
       )
     ''');
+
+    // Create sync_metadata table for tracking sync operations
+    await db.execute('''
+      CREATE TABLE sync_metadata (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        last_sync_date INTEGER NOT NULL,
+        last_check_date INTEGER NOT NULL,
+        UNIQUE(user_id, entity_type)
+      )
+    ''');
   }
 
   /// Handles database schema upgrades.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Add migration logic here when schema changes in future versions
+    if (oldVersion < 2) {
+      // Add sync_metadata table for version 2
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sync_metadata (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL,
+          last_sync_date INTEGER NOT NULL,
+          last_check_date INTEGER NOT NULL,
+          UNIQUE(user_id, entity_type)
+        )
+      ''');
+    }
   }
 
   /// Closes the database connection.

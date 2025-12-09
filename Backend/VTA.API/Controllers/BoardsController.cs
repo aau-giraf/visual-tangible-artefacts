@@ -53,11 +53,14 @@ public class BoardsController : ControllerBase
         .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate)
         .ToListAsync();
 
-    var boardDTOs = new List<BoardGetDTO>();
-    foreach (var board in boards)
+    var boardDTOs = boards.Select(board => new BoardGetDTO
     {
-      boardDTOs.Add(DTOConverter.MapSavedBoardToBoardGetDTO(board, Request.Scheme, Request.Host.ToString()));
-    }
+      Id = board.Id,
+      Name = board.Name,
+      SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath) ? null : $"{Request.Scheme}://{Request.Host}{board.SnapshotPath}",
+      CreatedDate = board.CreatedDate,
+      ModifiedDate = board.ModifiedDate
+    }).ToList();
 
     return Ok(boardDTOs);
   }
@@ -82,11 +85,12 @@ public class BoardsController : ControllerBase
         .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate)
         .ToListAsync();
 
-    var boardListItems = new List<BoardListItemDTO>();
-    foreach (var board in boards)
+    var boardListItems = boards.Select(board => new BoardListItemDTO
     {
-      boardListItems.Add(DTOConverter.MapSavedBoardToBoardListItemDTO(board, Request.Scheme, Request.Host.ToString()));
-    }
+      Id = board.Id,
+      Name = board.Name,
+      SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath) ? null : $"{Request.Scheme}://{Request.Host}{board.SnapshotPath}"
+    }).ToList();
 
     return Ok(boardListItems);
   }
@@ -118,9 +122,24 @@ public class BoardsController : ControllerBase
       return NotFound();
     }
 
-    var boardDTO = DTOConverter.MapSavedBoardToBoardGetDTO(board, Request.Scheme, Request.Host.ToString());
+    var response = new BoardLayoutResponseDTO
+    {
+      BoardId = board.Id,
+      Name = board.Name,
+      CreatedDate = board.CreatedDate,
+      ModifiedDate = board.ModifiedDate,
+      Artefacts = board.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
+      {
+        SavedArtefactId = sa.Id,
+        ArtefactId = sa.ArtefactId,
+        PosX = sa.PosX,
+        PosY = sa.PosY,
+        Width = sa.Width,
+        Height = sa.Height
+      }).ToList()
+    };
 
-    return Ok(boardDTO);
+    return Ok(response);
   }
 
   // POST: api/Users/Boards
@@ -182,15 +201,22 @@ public class BoardsController : ControllerBase
                 throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
               }
 
+              // Preserve provided values, including zeros; clamp extremes to float bounds
+              float Clamp(float v)
+              {
+                if (float.IsNaN(v) || float.IsInfinity(v)) return 0f;
+                return v;
+              }
+
               var savedArtefact = new SavedArtefact
               {
                 Id = Guid.NewGuid().ToString(),
                 ArtefactId = artefactLayout.ArtefactId,
                 BoardId = board.Id,
-                PosX = artefactLayout.PosX,
-                PosY = artefactLayout.PosY,
-                Width = artefactLayout.Width,
-                Height = artefactLayout.Height,
+                PosX = Clamp(artefactLayout.PosX),
+                PosY = Clamp(artefactLayout.PosY),
+                Width = Clamp(artefactLayout.Width),
+                Height = Clamp(artefactLayout.Height),
                 CreatedDate = DateTime.UtcNow
               };
 
@@ -239,17 +265,12 @@ public class BoardsController : ControllerBase
         });
         return CreatedAtAction(nameof(GetBoard), new { boardId = created.BoardId }, created);
       }
-      catch (Exception ex)
+      catch (InvalidOperationException ex)
       {
         Console.WriteLine($"Error saving board: {ex.Message}");
-        Console.WriteLine($"Stack trace: {ex.StackTrace}");
-        if (ex.Message.Contains("Unknown column") || ex.Message.Contains("width") || ex.Message.Contains("height"))
-        {
-          return StatusCode(500, "Database schema needs migration. Please run the migration endpoint first.");
-        }
-
-        return StatusCode(500, "Error saving board");
+        return BadRequest("Artefact not found or doesn't belong to user");
       }
+      // Let other exceptions bubble up to ensure proper error surfacing
     }
 
     // Fallback: treat as the original simple BoardPostDTO
@@ -261,7 +282,7 @@ public class BoardsController : ControllerBase
     }
 
     var boardIdSimple = Guid.NewGuid().ToString();
-    var boardSimple = DTOConverter.MapBoardPostDTOToSavedBoard(boardPost, boardIdSimple, userId);
+    var boardSimple = new SavedBoard { Id = boardIdSimple, Name = boardPost.Name, UserId = userId };
 
     _context.SavedBoards.Add(boardSimple);
     await _context.SaveChangesAsync();
@@ -276,9 +297,16 @@ public class BoardsController : ControllerBase
       return NotFound();
     }
 
-    var boardGetDTO = DTOConverter.MapSavedBoardToBoardGetDTO(createdBoardSimple, Request.Scheme, Request.Host.ToString());
+    var boardDTO = new
+    {
+      createdBoardSimple.Id,
+      createdBoardSimple.Name,
+      createdBoardSimple.SnapshotPath,
+      createdBoardSimple.CreatedDate,
+      createdBoardSimple.ModifiedDate
+    };
 
-    return CreatedAtAction(nameof(GetBoard), new { boardId = boardSimple.Id }, boardGetDTO);
+    return Ok(boardDTO);
   }
 
   // PATCH: api/Users/Boards
@@ -377,15 +405,8 @@ public class BoardsController : ControllerBase
           var existingSavedArtefacts = board.SavedArtefacts.ToList();
           var newArtefactLayouts = request.Artefacts.ToList();
 
-          var artefactsToRemove = existingSavedArtefacts.Where(existing =>
-            !newArtefactLayouts.Any(newLayout =>
-              newLayout.ArtefactId == existing.ArtefactId &&
-              Math.Abs(newLayout.PosX - existing.PosX) < 0.001f &&
-              Math.Abs(newLayout.PosY - existing.PosY) < 0.001f &&
-              Math.Abs(newLayout.Width - existing.Width) < 0.001f &&
-              Math.Abs(newLayout.Height - existing.Height) < 0.001f
-            )
-          ).ToList();
+          // Do not remove or deduplicate based on identical layout; duplicates are allowed
+          var artefactsToRemove = new List<SavedArtefact>();
 
           if (artefactsToRemove.Any())
           {
@@ -404,18 +425,6 @@ public class BoardsController : ControllerBase
 
           foreach (var artefactLayout in newArtefactLayouts)
           {
-            var alreadyExists = keptSavedArtefacts.Any(existing =>
-              existing.ArtefactId == artefactLayout.ArtefactId &&
-              Math.Abs(artefactLayout.PosX - existing.PosX) < 0.001f &&
-              Math.Abs(artefactLayout.PosY - existing.PosY) < 0.001f &&
-              Math.Abs(artefactLayout.Width - existing.Width) < 0.001f &&
-              Math.Abs(artefactLayout.Height - existing.Height) < 0.001f
-            );
-
-            if (alreadyExists)
-            {
-              continue;
-            }
 
             var artefactExists = await _context.Artefacts
                 .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
@@ -656,7 +665,7 @@ public class BoardsController : ControllerBase
       _context.SavedBoards.Update(board);
       await _context.SaveChangesAsync();
 
-      return Ok(new { message = "Artefact removed from board successfully" });
+      return NoContent();
     }
     catch (Exception ex)
     {

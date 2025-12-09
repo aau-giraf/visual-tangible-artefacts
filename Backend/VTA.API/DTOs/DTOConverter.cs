@@ -104,56 +104,6 @@ public static class DTOConverter
         };
     }
 
-    public static BoardGetDTO MapSavedBoardToBoardGetDTO(SavedBoard board, string scheme, string host)
-    {
-        var savedArtefactDTOs = new List<SavedArtefactGetDTO>();
-        foreach (var savedArtefact in board.SavedArtefacts)
-        {
-            savedArtefactDTOs.Add(MapSavedArtefactToSavedArtefactGetDTO(savedArtefact, scheme, host));
-        }
-
-        return new BoardGetDTO
-        {
-            Id = board.Id,
-            Name = board.Name,
-            UserId = board.UserId,
-            // Return empty string instead of null to avoid client-side deserialization errors
-            SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath)
-                ? string.Empty
-                : $"{scheme}://{host}{board.SnapshotPath}",
-            CreatedDate = board.CreatedDate,
-            ModifiedDate = board.ModifiedDate ?? board.CreatedDate,
-            SavedArtefacts = savedArtefactDTOs
-        };
-    }
-
-    public static BoardListItemDTO MapSavedBoardToBoardListItemDTO(SavedBoard board, string scheme, string host)
-    {
-        return new BoardListItemDTO
-        {
-            Id = board.Id,
-            Name = board.Name,
-            SnapshotUrl = string.IsNullOrEmpty(board.SnapshotPath)
-                ? string.Empty
-                : $"{scheme}://{host}{board.SnapshotPath}",
-            CreatedDate = board.CreatedDate,
-            ModifiedDate = board.ModifiedDate ?? board.CreatedDate
-        };
-    }
-
-    public static SavedBoard MapBoardPostDTOToSavedBoard(BoardPostDTO dto, string id, string userId)
-    {
-        return new SavedBoard
-        {
-            Id = id,
-            Name = dto.Name,
-            UserId = userId,
-            SnapshotPath = dto.SnapshotPath,
-            CreatedDate = DateTime.UtcNow,
-            ModifiedDate = null
-        };
-    }
-
     public static SavedArtefactGetDTO MapSavedArtefactToSavedArtefactGetDTO(SavedArtefact savedArtefact, string scheme, string host)
     {
         return new SavedArtefactGetDTO
