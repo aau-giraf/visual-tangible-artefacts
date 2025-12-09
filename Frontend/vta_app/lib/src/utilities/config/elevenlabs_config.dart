@@ -12,6 +12,8 @@ class ElevenLabsConfig {
 
   // Default values
   static const String defaultVoiceId = 'Bj9UqZbhQsanLzgalpEG'; // Custom selected voice
+  static const String alternateVoiceId = 'Xb7hH8MSUJpSbSDYk0k2'; // Alternate voice option
+  static const List<String> availableVoiceIds = [defaultVoiceId, alternateVoiceId];
   static const String defaultModelId = 'eleven_v3';
   static const double defaultStability = 0.5;
   static const double defaultSimilarityBoost = 0.75;
@@ -39,11 +41,18 @@ class ElevenLabsConfig {
   /// Get the default voice ID
   static Future<String> getDefaultVoiceId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_defaultVoiceIdKey) ?? defaultVoiceId;
+    final stored = prefs.getString(_defaultVoiceIdKey);
+    if (stored != null && availableVoiceIds.contains(stored)) {
+      return stored;
+    }
+    return defaultVoiceId;
   }
 
   /// Set the default voice ID
   static Future<bool> setDefaultVoiceId(String voiceId) async {
+    if (!availableVoiceIds.contains(voiceId)) {
+      return false;
+    }
     final prefs = await SharedPreferences.getInstance();
     return await prefs.setString(_defaultVoiceIdKey, voiceId);
   }
