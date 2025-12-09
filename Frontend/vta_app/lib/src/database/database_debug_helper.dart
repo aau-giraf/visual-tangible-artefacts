@@ -91,9 +91,9 @@ class DatabaseDebugHelper {
   static Future<void> printDatabasePath() async {
     try {
       final path = await getDatabasePath();
-      print('📍 Database location: $path');
+      print(' Database location: $path');
     } catch (e) {
-      print('❌ Error getting database path: $e');
+      print('Error getting database path: $e');
     }
   }
   
@@ -111,7 +111,7 @@ class DatabaseDebugHelper {
   
   /// Prints database statistics.
   static Future<void> printDatabaseStats() async {
-    print('\n=== 📈 DATABASE STATISTICS ===\n');
+    print('\n=== DATABASE STATISTICS ===\n');
     try {
       final stats = await getDatabaseStats();
       stats.forEach((table, count) {
@@ -119,13 +119,13 @@ class DatabaseDebugHelper {
       });
       print('\n=== END ===\n');
     } catch (e) {
-      print('❌ Error getting stats: $e');
+      print('Error getting stats: $e');
     }
   }
   
   /// Deletes all data from all tables (use with caution!).
   static Future<void> clearAllData() async {
-    print('⚠️  Clearing all database data...');
+    print('Clearing all database data...');
     try {
       await UserRepository().deleteAll();
       await CategoryRepository().deleteAll();
@@ -133,26 +133,26 @@ class DatabaseDebugHelper {
       await SavedBoardRepository().deleteAll();
       await SavedArtefactRepository().deleteAll();
       await SessionMetaRepository().deleteAll();
-      print('✅ All data cleared successfully');
+      print('All data cleared successfully');
     } catch (e) {
-      print('❌ Error clearing data: $e');
+      print('Error clearing data: $e');
     }
   }
   
   /// Deletes the entire database file (use with caution!).
   static Future<void> deleteDatabase() async {
-    print('⚠️  Deleting database file...');
+    print('Deleting database file...');
     try {
       await DatabaseHelper.instance.deleteDatabase();
-      print('✅ Database deleted successfully');
+      print('Database deleted successfully');
     } catch (e) {
-      print('❌ Error deleting database: $e');
+      print('Error deleting database: $e');
     }
   }
   
   /// Creates sample test data for development.
   static Future<void> createSampleData() async {
-    print('📝 Creating sample data...');
+    print('Creating sample data...');
     
     try {
       // Create sample user
@@ -189,10 +189,10 @@ class DatabaseDebugHelper {
       );
       await ArtefactRepository().insert(artefact);
       
-      print('✅ Sample data created successfully');
+      print('Sample data created successfully');
       await printDatabaseStats();
     } catch (e) {
-      print('❌ Error creating sample data: $e');
+      print('Error creating sample data: $e');
     }
   }
 }
