@@ -132,6 +132,12 @@ CREATE TABLE savedArtefact (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
+ALTER TABLE category
+  DROP FOREIGN KEY ufk_category_user,
+  ADD CONSTRAINT ufk_category_user FOREIGN KEY (userId)
+  REFERENCES user(id)
+  ON DELETE SET NULL;
+
 -- Username is frequently used for login lookups
 CREATE INDEX idx_user_username ON user(username);
 
