@@ -6,6 +6,9 @@
 // Database Helper
 export 'database_helper.dart';
 
+// Debug Helper
+export 'database_debug_helper.dart';
+
 // Models
 export 'models/user_db.dart';
 export 'models/category_db.dart';
