@@ -63,10 +63,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       debugPrint('[VideoCall] Remote user ended the session');
       if (mounted) {
         VideoCallManager().endCall();
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/artifact-board',
-          (route) => false,
-        );
+        
+        // Caller (caregiver) goes to contacts list, callee (child) goes to their board
+        if (widget.isCaller) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/remote',
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/artifact-board',
+            (route) => false,
+          );
+        }
       }
     };
     
@@ -504,10 +513,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       await SignalRService().endSession();
                       await VideoCallManager().endCall();
                       if (mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/artifact-board',
-                          (route) => false,
-                        );
+                        // Caller (caregiver) goes to contacts list, callee (child) goes to their board
+                        if (widget.isCaller) {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/remote',
+                            (route) => false,
+                          );
+                        } else {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/artifact-board',
+                            (route) => false,
+                          );
+                        }
                       }
                     },
                     backgroundColor: Colors. red,

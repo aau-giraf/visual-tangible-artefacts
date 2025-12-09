@@ -16,6 +16,7 @@ import '_long_press_option_wheel.dart';
 
 typedef OnArtifactPositionChanged = void Function(BoardArtefact artifact);
 typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
+typedef OnBoardLoaded = void Function();
 
 class TalkingMat extends StatefulWidget {
   final List<BoardArtefact>? artifacts;
@@ -25,6 +26,8 @@ class TalkingMat extends StatefulWidget {
   final Color? backgroundColor;
   final OnArtifactPositionChanged? onArtifactPositionChanged;
   final OnArtifactRemoved? onArtifactRemoved;
+  final OnBoardLoaded? onBoardLoaded;
+  final bool readOnly;
 
   TalkingMat({
     super.key,
@@ -35,6 +38,8 @@ class TalkingMat extends StatefulWidget {
     this.backgroundColor,
     this.onArtifactPositionChanged,
     this.onArtifactRemoved,
+    this.onBoardLoaded,
+    this.readOnly = false,
   }) : controller = controller ?? TalkingmatController();
 
   @override
@@ -60,7 +65,9 @@ class TalkingMatState extends State<TalkingMat>
   Timer? _periodicSaveTimer;
   bool _inhibitAutoSave = false;
   bool _isRemoteSession = false;
+  bool _initialLoadComplete = false;
   Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
+  Set<String> _backendSavedArtefactIds = {}; // Track IDs that exist in backend
 
   @override
   void initState() {
@@ -82,7 +89,7 @@ class TalkingMatState extends State<TalkingMat>
     WidgetsBinding.instance.addObserver(this);
 
     _periodicSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (artifacts.isNotEmpty && !_inhibitAutoSave) {
+      if (artifacts.isNotEmpty && !_inhibitAutoSave && _initialLoadComplete) {
         _autoSaveBoardLayout();
       }
     });
@@ -106,11 +113,12 @@ class TalkingMatState extends State<TalkingMat>
       // Cancel any pending saves and disable periodic saves
       _saveTimer?.cancel();
       _periodicSaveTimer?.cancel();
+      _initialLoadComplete = true;
       debugPrint("TalkingMat => Remote session mode enabled, auto-save disabled");
     } else {
       // Re-enable periodic saves
       _periodicSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-        if (artifacts.isNotEmpty && !_inhibitAutoSave && !_isRemoteSession) {
+        if (artifacts.isNotEmpty && !_inhibitAutoSave && !_isRemoteSession && _initialLoadComplete) {
           _autoSaveBoardLayout();
         }
       });
@@ -193,7 +201,7 @@ class TalkingMatState extends State<TalkingMat>
   }
 
   void _scheduleAutoSave() {
-    if (_inhibitAutoSave || _isRemoteSession) return;
+    if (_inhibitAutoSave || _isRemoteSession || !_initialLoadComplete) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), () {
       _autoSaveBoardLayout();
@@ -201,9 +209,19 @@ class TalkingMatState extends State<TalkingMat>
   }
 
   void _immediateAutoSave() {
-    if (_inhibitAutoSave || _isRemoteSession) return;
+    debugPrint("TalkingMat => _immediateAutoSave called (_inhibitAutoSave=$_inhibitAutoSave, _isRemoteSession=$_isRemoteSession, _initialLoadComplete=$_initialLoadComplete)");
+    if (_inhibitAutoSave || _isRemoteSession || !_initialLoadComplete) {
+      debugPrint("TalkingMat => Auto-save blocked by flags or initial load not complete");
+      return;
+    }
     _saveTimer?.cancel();
+    debugPrint("TalkingMat => Proceeding to _autoSaveBoardLayout");
     _autoSaveBoardLayout();
+  }
+  
+  void triggerAutoSave() {
+    debugPrint("TalkingMat => triggerAutoSave called");
+    _immediateAutoSave();
   }
 
   @override
@@ -262,16 +280,20 @@ class TalkingMatState extends State<TalkingMat>
         return;
       }
     }
+    
+    debugPrint("TalkingMat => Saving to board: $_currentBoardId");
 
     try {
-      final toPatch =
-          layoutData.where((l) => l.savedArtefactId != null).toList();
-      final toCreate =
-          layoutData.where((l) => l.savedArtefactId == null).toList();
-
+      final toPatch = layoutData.where((l) => 
+        l.savedArtefactId != null && _backendSavedArtefactIds.contains(l.savedArtefactId)
+      ).toList();
+      final toCreate = layoutData.where((l) => 
+        l.savedArtefactId == null || !_backendSavedArtefactIds.contains(l.savedArtefactId)
+      ).toList();
+      
       final toPatchChanged =
           toPatch.where((layout) => _hasLayoutChanged(layout)).toList();
-
+      
       for (final artefactLayout in toPatchChanged) {
         final request = UpdateArtefactLayoutRequest(
           savedArtefactId: artefactLayout.savedArtefactId,
@@ -300,6 +322,13 @@ class TalkingMatState extends State<TalkingMat>
         if (updatedBoard != null) {
           try {
             _assignReturnedSavedIdsToLocal(updatedBoard.artefacts);
+            // Track newly created savedArtefactIds from backend
+            for (final layout in updatedBoard.artefacts) {
+              if (layout.savedArtefactId != null) {
+                _backendSavedArtefactIds.add(layout.savedArtefactId!);
+              }
+            }
+            debugPrint("TalkingMat => Now tracking ${_backendSavedArtefactIds.length} backend savedArtefactIds");
           } catch (e) {
             print('Debug: Error mapping returned saved ids after update: $e');
           }
@@ -329,16 +358,36 @@ class TalkingMatState extends State<TalkingMat>
       }
     } catch (e) {
       // This is fine - a new board will be created when first needed
+    } finally {
+      // Mark initial load as complete, allowing auto-save
+      _initialLoadComplete = true;
+      debugPrint("TalkingMat => Initial board load complete, auto-save now enabled");
+      
+      // Notify listeners that board has finished loading
+      widget.onBoardLoaded?.call();
     }
   }
 
   Future<void> _restoreArtefactsFromBoard(
       BoardLayoutResponse boardLayout) async {
+    debugPrint("TalkingMat => Restoring ${boardLayout.artefacts.length} artifacts from board");
     final current = widget.controller.value;
+    debugPrint("TalkingMat => Current controller has ${current.length} artifacts");
+    
+    // Track all savedArtefactIds from backend
+    _backendSavedArtefactIds.clear();
+    for (final layout in boardLayout.artefacts) {
+      if (layout.savedArtefactId != null) {
+        _backendSavedArtefactIds.add(layout.savedArtefactId!);
+      }
+    }
+    debugPrint("TalkingMat => Tracked ${_backendSavedArtefactIds.length} backend savedArtefactIds");
+    
     final unmatchedLocal = <BoardArtefact>[];
     unmatchedLocal.addAll(current);
 
     for (final artefactLayout in boardLayout.artefacts) {
+      debugPrint("TalkingMat => Processing artifact: ${artefactLayout.artefactId} (savedId: ${artefactLayout.savedArtefactId})");
       try {
         BoardArtefact? best;
         double bestDist = double.infinity;
@@ -363,8 +412,7 @@ class TalkingMatState extends State<TalkingMat>
             best.savedArtefactId = artefactLayout.savedArtefactId;
           });
           unmatchedLocal.remove(best);
-          print(
-              'Debug: Matched existing local artefact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
+          debugPrint('TalkingMat => Matched existing local artifact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
         } else {
           await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
         }
@@ -381,7 +429,7 @@ class TalkingMatState extends State<TalkingMat>
     try {
       final token = GetIt.instance.get<Token>();
       if (token.value == null) {
-        print('Debug: No auth token available for fetching artefact');
+        debugPrint('TalkingMat => No auth token available for fetching artifact');
         return;
       }
 
@@ -390,7 +438,7 @@ class TalkingMatState extends State<TalkingMat>
           token: token.value!);
 
       if (artefact == null) {
-        print('Debug: Could not fetch artefact $artefactId from API');
+        debugPrint('TalkingMat => Could not fetch artifact $artefactId from API');
         return;
       }
 
@@ -635,6 +683,15 @@ class TalkingMatState extends State<TalkingMat>
                     child: ValueListenableBuilder<bool>(
                       valueListenable: artefact.showResizeHandle,
                       builder: (context, isResizing, child) {
+                        // If readOnly mode, just display the artifact without interaction
+                        if (widget.readOnly) {
+                          return RepaintBoundary(
+                            key: measurementKey,
+                            child: IgnorePointer(
+                              child: artefact.content,
+                            ),
+                          );
+                        }
                         // When resizing, render content directly without Draggable
                         if (isResizing) {
                           return RepaintBoundary(

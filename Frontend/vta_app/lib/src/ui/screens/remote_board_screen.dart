@@ -6,7 +6,6 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/services/video_call_manager.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:get_it/get_it.dart';
-import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
@@ -46,25 +45,21 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
     if (!_isInitialized) {
       final args = ModalRoute.of(context)?.settings.arguments;
 
-      // Handle both old string format and new map format
       if (args is Map<String, dynamic>) {
         sessionId = args['sessionId'] as String;
         boardId = args['boardId'] as String;
         _hasVideo = args['hasVideo'] as bool? ?? false;
-      } else if (args is String) {
-        // Fallback for old code - won't work without boardId
-        sessionId = args;
-        boardId =
-            'error-no-board-id'; // This will cause an error, which is intended
       } else {
-        sessionId = '';
-        boardId = 'error-no-board-id';
+        // Fallback: extract session ID if passed as string
+        sessionId = args is String ? args : '';
+        boardId = '';
       }
 
-      // Determine if current user is the owner (initiator)
+      // Determine if current user is the owner
+      // The person being called (child) should have control, not the caller (caregiver)
       final currentUserId = SignalRService().currentUserId;
       final initiatorId = SignalRService().sessionInitiatorId;
-      isOwner = currentUserId == initiatorId;
+      isOwner = currentUserId != initiatorId;
 
       debugPrint(
           "RemoteBoard => sessionId=$sessionId, boardId=$boardId, isOwner=$isOwner, currentUser=$currentUserId, initiator=$initiatorId");
@@ -76,7 +71,6 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       controller = RemoteArtifactBoardController(
         sessionId: sessionId,
         isOwner: isOwner,
-        sharedBoardId: boardId,
         notifyView: () {
           if (mounted) setState(() {});
         },
@@ -85,14 +79,24 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       );
       
       // Listen for remote hang-up
-      SignalRService().onSessionEnded = () {
+      SignalRService().onSessionEnded = () async {
         debugPrint('[RemoteBoard] Remote user ended the session');
         if (mounted) {
           VideoCallManager().endCall();
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/artifact-board',
-            (route) => false,
-          );
+          
+          // Caller (non-owner) is navigated to contacts list
+          // Called (owner) is navigated to their board
+          if (!isOwner) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/remote',
+              (route) => false,
+            );
+          } else {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/artifact-board',
+              (route) => false,
+            );
+          }
         }
       };
       
@@ -186,6 +190,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   ) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(isOwner ? "Styring" : "Visning"),
         actions: [
           IconButton(
@@ -196,10 +201,19 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
               await SignalRService().endSession();
               await VideoCallManager().endCall();
               if (mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/artifact-board',
-                  (route) => false,
-                );
+                // Caller (non-owner) is navigated to contacts list
+                // Called (owner) is navigated to their board
+                if (!isOwner) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/remote',
+                    (route) => false,
+                  );
+                } else {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/artifact-board',
+                    (route) => false,
+                  );
+                }
               }
             },
           ),
@@ -212,18 +226,12 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
             fit: BoxFit.cover,
           ),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        child: Column(
+            mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SafeArea(
-                bottom: false,
+              Expanded(
                 child: Container(
-                  height: screenHeight -
-                      categoriesWidgetHeight -
-                      MediaQuery.of(context).padding.top -
-                      dividerHeight,
                   padding: EdgeInsets.symmetric(horizontal: padding),
                   child: Stack(
                     children: [
@@ -233,17 +241,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
                           child: controller.showDirectional
                               ? controller.linearBoard!
                               : (isOwner
-                                  ? TalkingMat(
-                                      controller:
-                                          controller.base.talkingmatController,
-                                      onArtifactPositionChanged: (artifact) {
-                                        controller.onArtifactPositionChanged(
-                                            artifact);
-                                      },
-                                      onArtifactRemoved: (artifact) {
-                                        controller.removeArtifact(artifact);
-                                      },
-                                    )
+                                  ? controller.ownerTalkingMat!
                                   : controller.talkingMat!),
                         ),
                       ),
@@ -288,10 +286,6 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
                   ),
                 ),
               ),
-              Divider(
-                color: Colors.transparent,
-                height: dividerHeight,
-              ),
               if (isOwner && artefactController != null)
                 Padding(
                   padding: EdgeInsets.only(left: padding, right: padding),
@@ -306,7 +300,6 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
                 ),
             ],
           ),
-        ),
       ),
     );
   }

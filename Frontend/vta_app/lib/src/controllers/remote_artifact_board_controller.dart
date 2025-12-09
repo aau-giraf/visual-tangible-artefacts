@@ -1,10 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
-import 'package:vta_app/src/services/board_layout_service.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
@@ -30,14 +30,27 @@ String? _fixLocalhostUrl(String? url) {
   return url;
 }
 
+// Generate a UUID v4 for savedArtefactId
+// Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+String _generateSavedArtefactId() {
+  final random = Random();
+  final values = List<int>.generate(16, (i) => random.nextInt(256));
+  
+  // Set version to 4 (UUID v4)
+  values[6] = (values[6] & 0x0f) | 0x40;
+  // Set variant to RFC 4122
+  values[8] = (values[8] & 0x3f) | 0x80;
+  
+  final hex = values.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+}
+
 class RemoteArtifactBoardController {
   final ArtifactBoardController base;
   final String sessionId;
   final bool isOwner;
   final VoidCallback notifyView;
   final SettingsController settingsController;
-  final BoardLayoutService _boardLayoutService;
-  final String sharedBoardId; // ID of the board to load from backend
   
   // Debouncing timers for optimized updates
   Timer? _positionUpdateTimer;
@@ -47,19 +60,19 @@ class RemoteArtifactBoardController {
   
   // Track artifact size listeners to avoid duplicates
   final Map<String, VoidCallback> _sizeListeners = {};
+  
+  // Track number of artifacts to detect additions
+  int _lastArtifactCount = 0;
 
   RemoteArtifactBoardController({
     required this.sessionId,
     required this.notifyView,
     required this.settingsController,
     required this.isOwner,
-    required this.sharedBoardId, // Required: board ID to load from backend
     ArtifactBoardController? existingController,
-    BoardLayoutService? boardLayoutService,
   })  : base = existingController ??
             ArtifactBoardController(
-                notifyView: notifyView, settingsController: settingsController),
-        _boardLayoutService = boardLayoutService ?? BoardLayoutService() {
+                notifyView: notifyView, settingsController: settingsController) {
     // Register all delta update handlers
     SignalRService().onBoardUpdated = _handleRemoteUpdate;
     SignalRService().onArtifactAdded = _handleArtifactAdded;
@@ -69,7 +82,7 @@ class RemoteArtifactBoardController {
     SignalRService().onLayoutChanged = _handleLayoutChanged;
 
     debugPrint(
-        "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId, sharedBoardId=$sharedBoardId)");
+        "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId)");
     debugPrint(
         "RemoteSync => SignalR connected: ${SignalRService().isConnected}");
 
@@ -77,19 +90,27 @@ class RemoteArtifactBoardController {
     _setupRemoteSession();
 
     if (isOwner) {
-      // Owner: send current board state to remote participant
-      debugPrint("RemoteSync => Owner sending current board state");
-      Future.delayed(const Duration(milliseconds: 200), () {
-        _pushFullBoard();
-      });
+      _setupOwnerCallbacks();
+      
+      // Set up listener to detect artifact additions and trigger auto-save
+      base.talkingmatController.addListener(_onControllerChanged);
+      _lastArtifactCount = base.talkingmatController.value.length;
+      
+      // Board load callback will trigger _onOwnerBoardLoaded() when ready
+      debugPrint("RemoteSync => Waiting for owner's board to load (callback-based)");
     } else {
-      // Non-owner: wait for board state from owner via SignalR
-      debugPrint("RemoteSync => Non-owner waiting for board state from owner");
-      // Don't try to load from backend - just wait for SignalR updates
+      // Non-owner: clear existing artifacts and wait for board state from owner via SignalR
+      debugPrint("RemoteSync => Non-owner clearing artifacts and waiting for board state from owner");
+      _clearBoard();
     }
   }
 
   void dispose() {
+    // Remove controller listener
+    if (isOwner) {
+      base.talkingmatController.removeListener(_onControllerChanged);
+    }
+    
     // Cancel all debounce timers
     _positionUpdateTimer?.cancel();
     _sizeUpdateTimer?.cancel();
@@ -123,11 +144,30 @@ class RemoteArtifactBoardController {
     if (SignalRService().onLayoutChanged == _handleLayoutChanged) {
       SignalRService().onLayoutChanged = null;
     }
-    base.dispose();
+    
+    if (!isOwner) {
+      base.dispose();
+    }
   }
 
   bool get showDirectional => base.showDirectional;
-  TalkingMat? get talkingMat => base.talkingMat;
+  
+  // Callbacks are set up via the remote controller's methods
+  TalkingMat? get ownerTalkingMat {
+    if (!isOwner || base.showDirectional) return null;
+    return base.talkingMat;
+  }
+  
+  // Create a read-only TalkingMat for non-owner
+  TalkingMat? get talkingMat {
+    if (isOwner) {
+      return base.talkingMat;
+    }
+    return TalkingMat(
+      controller: base.talkingmatController,
+      readOnly: true,
+    );
+  }
   
   // Create a custom LinearBoard with the onArtifactRemoved callback for owner
   LinearBoard? get linearBoard {
@@ -150,14 +190,21 @@ class RemoteArtifactBoardController {
       return;
     }
 
+    // Generate savedArtefactId for newly added artifacts
+    if (artefact.savedArtefactId == null) {
+      artefact.savedArtefactId = _generateSavedArtefactId();
+      debugPrint("RemoteSync => Generated savedArtefactId for new artifact: ${artefact.savedArtefactId}");
+    }
+
     // Listen to size changes with debouncing
-    if (!_sizeListeners.containsKey(artefact.artefactId)) {
+    if (!_sizeListeners.containsKey(artefact.savedArtefactId)) {
       final listener = () {
         if (isOwner) {
+          debugPrint("RemoteSync => Size listener triggered for ${artefact.savedArtefactId}");
           _debouncedSizeUpdate(artefact);
         }
       };
-      _sizeListeners[artefact.artefactId] = listener;
+      _sizeListeners[artefact.savedArtefactId!] = listener;
       artefact.sizeNotifier.addListener(listener);
     }
 
@@ -175,9 +222,11 @@ class RemoteArtifactBoardController {
     }
 
     // Remove size listener
-    final listener = _sizeListeners.remove(artefact.artefactId);
-    if (listener != null) {
-      artefact.sizeNotifier.removeListener(listener);
+    if (artefact.savedArtefactId != null) {
+      final listener = _sizeListeners.remove(artefact.savedArtefactId);
+      if (listener != null) {
+        artefact.sizeNotifier.removeListener(listener);
+      }
     }
 
     if (base.showDirectional) {
@@ -192,8 +241,10 @@ class RemoteArtifactBoardController {
     notifyView();
     
     // Send delta update for removed artifact
-    _pushArtifactRemoved(artefact.artefactId);
-    debugPrint("RemoteSync => Artifact removed: ${artefact.artefactId}");
+    if (artefact.savedArtefactId != null) {
+      _pushArtifactRemoved(artefact.savedArtefactId!);
+      debugPrint("RemoteSync => Artifact removed: ${artefact.savedArtefactId}");
+    }
   }
 
   void switchBoard() {
@@ -219,8 +270,33 @@ class RemoteArtifactBoardController {
       return;
     }
 
-    // Debounce position updates during drag
-    _debouncedPositionUpdate(artifact);
+    final savedId = artifact.savedArtefactId;
+    if (savedId == null) {
+      debugPrint("RemoteSync => WARNING: Artifact moved but has no savedArtefactId");
+      return;
+    }
+    
+    debugPrint(
+        "RemoteSync => Artifact moved: $savedId (type: ${artifact.artefactId}) to ${artifact.position}");
+    
+    // Move the artifact to the end of the list to bring it to the front
+    if (base.showDirectional) {
+      final artifacts = base.linearBoardController.artifacts;
+      final index = artifacts.indexOf(artifact);
+      if (index != -1 && index != artifacts.length - 1) {
+        artifacts.removeAt(index);
+        artifacts.add(artifact);
+      }
+    } else {
+      final artifacts = base.talkingmatController.value;
+      final index = artifacts.indexOf(artifact);
+      if (index != -1 && index != artifacts.length - 1) {
+        artifacts.removeAt(index);
+        artifacts.add(artifact);
+      }
+    }
+    
+    _pushArtifactMoved(artifact);
   }
 
   // ---------------- Build snapshot ----------------
@@ -242,6 +318,7 @@ class RemoteArtifactBoardController {
       'items': list.map((a) {
         final size = a.sizeNotifier.value;
         return {
+          'savedArtefactId': a.savedArtefactId,
           'id': a.artefactId,
           'name': a.baseArtefact?.name,
           'imageUrl': a.baseArtefact?.imageUrl,
@@ -256,24 +333,18 @@ class RemoteArtifactBoardController {
 
   // ---------------- Debounced update methods ----------------
 
-  void _debouncedPositionUpdate(BoardArtefact artifact) {
-    // Cancel existing timer for this artifact
-    _artifactUpdateTimers[artifact.artefactId]?.cancel();
-    
-    // Create new debounced timer (100ms delay)
-    _artifactUpdateTimers[artifact.artefactId] = Timer(const Duration(milliseconds: 100), () {
-      debugPrint("RemoteSync => Artifact moved: ${artifact.artefactId} to ${artifact.position}");
-      _pushArtifactMoved(artifact);
-    });
-  }
-
   void _debouncedSizeUpdate(BoardArtefact artifact) {
-    // Cancel existing timer for this artifact
-    _artifactUpdateTimers['size_${artifact.artefactId}']?.cancel();
+    if (artifact.savedArtefactId == null) {
+      debugPrint("RemoteSync => Cannot sync size update - artifact has no savedArtefactId");
+      return;
+    }
+    
+    // Cancel existing timer for this artifact instance
+    _artifactUpdateTimers['size_${artifact.savedArtefactId}']?.cancel();
     
     // Create new debounced timer (100ms delay)
-    _artifactUpdateTimers['size_${artifact.artefactId}'] = Timer(const Duration(milliseconds: 100), () {
-      debugPrint("RemoteSync => Artifact resized: ${artifact.artefactId}");
+    _artifactUpdateTimers['size_${artifact.savedArtefactId}'] = Timer(const Duration(milliseconds: 100), () {
+      debugPrint("RemoteSync => Artifact resized: ${artifact.savedArtefactId} (type: ${artifact.artefactId}) to ${artifact.sizeNotifier.value}");
       _pushArtifactResized(artifact);
     });
   }
@@ -287,6 +358,7 @@ class RemoteArtifactBoardController {
     final payload = {
       'sessionId': sessionId,
       'artifact': {
+        'savedArtefactId': artifact.savedArtefactId,
         'id': artifact.artefactId,
         'name': artifact.baseArtefact?.name,
         'imageUrl': artifact.baseArtefact?.imageUrl,
@@ -299,59 +371,76 @@ class RemoteArtifactBoardController {
 
     try {
       await SignalRService().sendArtifactAdded(payload);
-      debugPrint("RemoteSync => Pushed artifact added: ${artifact.artefactId}");
+      debugPrint("RemoteSync => Pushed artifact added: ${artifact.savedArtefactId} (type: ${artifact.artefactId})");
     } catch (e) {
       debugPrint("RemoteSync => Failed to push artifact added: $e");
     }
   }
 
-  Future<void> _pushArtifactRemoved(String artifactId) async {
+  Future<void> _pushArtifactRemoved(String savedArtefactId) async {
     if (!SignalRService().isConnected) return;
 
     final payload = {
       'sessionId': sessionId,
-      'artifactId': artifactId,
+      'savedArtefactId': savedArtefactId,
     };
 
     try {
       await SignalRService().sendArtifactRemoved(payload);
-      debugPrint("RemoteSync => Pushed artifact removed: $artifactId");
+      debugPrint("RemoteSync => Pushed artifact removed: $savedArtefactId");
     } catch (e) {
       debugPrint("RemoteSync => Failed to push artifact removed: $e");
     }
   }
 
   Future<void> _pushArtifactMoved(BoardArtefact artifact) async {
-    if (!SignalRService().isConnected) return;
-    if (artifact.position == null) return;
+    if (!SignalRService().isConnected) {
+      debugPrint("RemoteSync => Cannot push move - SignalR not connected");
+      return;
+    }
+    if (artifact.position == null) {
+      debugPrint("RemoteSync => Cannot push move - artifact has no position");
+      return;
+    }
+    if (artifact.savedArtefactId == null) {
+      debugPrint("RemoteSync => Cannot push move - artifact has no savedArtefactId");
+      return;
+    }
 
     final payload = {
       'sessionId': sessionId,
-      'artifactId': artifact.artefactId,
+      'savedArtefactId': artifact.savedArtefactId,
       'position': {'dx': artifact.position!.dx, 'dy': artifact.position!.dy},
     };
 
     try {
       await SignalRService().sendArtifactMoved(payload);
-      debugPrint("RemoteSync => Pushed artifact moved: ${artifact.artefactId}");
+      debugPrint("RemoteSync => Pushed artifact moved: ${artifact.savedArtefactId}");
     } catch (e) {
       debugPrint("RemoteSync => Failed to push artifact moved: $e");
     }
   }
 
   Future<void> _pushArtifactResized(BoardArtefact artifact) async {
-    if (!SignalRService().isConnected) return;
+    if (!SignalRService().isConnected) {
+      debugPrint("RemoteSync => Cannot push resize - SignalR not connected");
+      return;
+    }
+    if (artifact.savedArtefactId == null) {
+      debugPrint("RemoteSync => Cannot push resize - artifact has no savedArtefactId");
+      return;
+    }
 
     final size = artifact.sizeNotifier.value;
     final payload = {
       'sessionId': sessionId,
-      'artifactId': artifact.artefactId,
+      'savedArtefactId': artifact.savedArtefactId,
       'size': {'width': size.width, 'height': size.height},
     };
 
     try {
       await SignalRService().sendArtifactResized(payload);
-      debugPrint("RemoteSync => Pushed artifact resized: ${artifact.artefactId}");
+      debugPrint("RemoteSync => Pushed artifact resized: ${artifact.savedArtefactId}");
     } catch (e) {
       debugPrint("RemoteSync => Failed to push artifact resized: $e");
     }
@@ -439,27 +528,30 @@ class RemoteArtifactBoardController {
         ? base.linearBoardController.artifacts.whereType<BoardArtefact>().toList()
         : base.talkingmatController.value;
 
-    // Create a map of current artifacts by ID
-    final artifactMap = <String, BoardArtefact>{};
+    // Create a map of current artifacts by savedArtefactId
+    final artifactMap = <String?, BoardArtefact>{};
     for (final artifact in currentArtifacts) {
-      if (artifact.artefactId.isNotEmpty) {
-        artifactMap[artifact.artefactId] = artifact;
+      if (artifact.savedArtefactId != null) {
+        artifactMap[artifact.savedArtefactId] = artifact;
       }
     }
 
-    // Track which artifact IDs we've seen in the update
-    final updatedIds = <String>{};
+    // Track which artifact savedArtefactIds we've seen in the update
+    final updatedSavedIds = <String>{};
 
     // Update or add artifacts
     for (final item in items) {
       if (item is! Map) continue;
 
+      final savedArtefactId = item['savedArtefactId'] as String?;
       final id = item['id'] as String?;
       if (id == null) continue;
 
-      updatedIds.add(id);
+      if (savedArtefactId != null) {
+        updatedSavedIds.add(savedArtefactId);
+      }
 
-      final existing = artifactMap[id];
+      final existing = savedArtefactId != null ? artifactMap[savedArtefactId] : null;
       if (existing != null) {
         // Update existing artifact position/size
         final size = item['size'];
@@ -492,6 +584,7 @@ class RemoteArtifactBoardController {
         if (token != null) headers = {'Authorization': 'Bearer $token'};
 
         final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
+        boardItem.savedArtefactId = savedArtefactId;
 
         final size = item['size'];
         if (size != null) {
@@ -517,13 +610,13 @@ class RemoteArtifactBoardController {
     if (base.showDirectional) {
       for (int i = base.linearBoardController.artifacts.length - 1; i >= 0; i--) {
         final artifact = base.linearBoardController.artifacts[i];
-        if (artifact != null && !updatedIds.contains(artifact.artefactId)) {
+        if (artifact != null && artifact.savedArtefactId != null && !updatedSavedIds.contains(artifact.savedArtefactId)) {
           base.linearBoardController.removeArtifact(i);
         }
       }
     } else {
       base.talkingmatController.value.removeWhere(
-        (artifact) => !updatedIds.contains(artifact.artefactId)
+        (artifact) => artifact.savedArtefactId != null && !updatedSavedIds.contains(artifact.savedArtefactId!)
       );
     }
 
@@ -544,10 +637,11 @@ class RemoteArtifactBoardController {
     final artifactData = map['artifact'];
     if (artifactData == null) return;
 
+    final savedArtefactId = artifactData['savedArtefactId'] as String?;
     final id = artifactData['id'] as String?;
     if (id == null) return;
 
-    debugPrint("RemoteSync => Received artifact added: $id");
+    debugPrint("RemoteSync => Received artifact added: $savedArtefactId (type: $id)");
 
     // Create new artifact
     final artefact = Artefact(
@@ -562,6 +656,9 @@ class RemoteArtifactBoardController {
     if (token != null) headers = {'Authorization': 'Bearer $token'};
 
     final boardItem = BoardArtefact.fromArtefact(artefact, headers: headers);
+    // Use provided savedArtefactId or generate one if missing
+    boardItem.savedArtefactId = savedArtefactId ?? _generateSavedArtefactId();
+    debugPrint("RemoteSync => Created artifact with savedArtefactId: ${boardItem.savedArtefactId}");
 
     final size = artifactData['size'];
     if (size != null) {
@@ -591,17 +688,18 @@ class RemoteArtifactBoardController {
     final incomingSessionId = map['sessionId'] as String?;
     if (incomingSessionId != sessionId) return;
 
-    final artifactId = map['artifactId'] as String?;
-    if (artifactId == null) return;
+    final savedArtefactId = map['savedArtefactId'] as String?;
+    final artefactId = map['artifactId'] as String?;
+    if (savedArtefactId == null) return;
 
-    debugPrint("RemoteSync => Received artifact removed: $artifactId");
+    debugPrint("RemoteSync => Received artifact removed: $savedArtefactId (type: $artefactId)");
 
     // Find and remove the artifact
     if (base.showDirectional) {
       final artifacts = base.linearBoardController.artifacts;
       for (int i = artifacts.length - 1; i >= 0; i--) {
         final artifact = artifacts[i];
-        if (artifact?.artefactId == artifactId) {
+        if (artifact?.savedArtefactId == savedArtefactId) {
           base.linearBoardController.removeArtifact(i);
           debugPrint("RemoteSync => Removed artifact from linear board at index $i");
           notifyView();
@@ -611,7 +709,7 @@ class RemoteArtifactBoardController {
     } else {
       final artifacts = base.talkingmatController.value;
       final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.artefactId == artifactId,
+        (a) => a?.savedArtefactId == savedArtefactId,
         orElse: () => null,
       );
       if (artifact != null) {
@@ -621,7 +719,7 @@ class RemoteArtifactBoardController {
         return;
       }
     }
-    debugPrint("RemoteSync => Artifact $artifactId not found for removal");
+    debugPrint("RemoteSync => Artifact $savedArtefactId not found for removal");
   }
 
   void _handleArtifactMoved(dynamic data) {
@@ -632,18 +730,19 @@ class RemoteArtifactBoardController {
     final incomingSessionId = map['sessionId'] as String?;
     if (incomingSessionId != sessionId) return;
 
-    final artifactId = map['artifactId'] as String?;
+    final savedArtefactId = map['savedArtefactId'] as String?;
+    final artefactId = map['artifactId'] as String?;
     final position = map['position'];
-    if (artifactId == null || position == null) return;
+    if (savedArtefactId == null || position == null) return;
 
-    debugPrint("RemoteSync => Received artifact moved: $artifactId to (${position['dx']}, ${position['dy']})");
+    debugPrint("RemoteSync => Received artifact moved: $savedArtefactId (type: $artefactId) to (${position['dx']}, ${position['dy']})");
 
     // Find the artifact and update its position
     if (base.showDirectional) {
       // Linear board - just update position
       final artifacts = base.linearBoardController.artifacts.whereType<BoardArtefact>().toList();
       final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.artefactId == artifactId,
+        (a) => a?.savedArtefactId == savedArtefactId,
         orElse: () => null,
       );
       
@@ -655,13 +754,13 @@ class RemoteArtifactBoardController {
         debugPrint("RemoteSync => Updated artifact position on linear board");
         notifyView();
       } else {
-        debugPrint("RemoteSync => Artifact $artifactId not found for move");
+        debugPrint("RemoteSync => Artifact $savedArtefactId not found for move");
       }
     } else {
       // TalkingMat - need to trigger ValueNotifier by reassigning
       final artifacts = base.talkingmatController.value;
       final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.artefactId == artifactId,
+        (a) => a?.savedArtefactId == savedArtefactId,
         orElse: () => null,
       );
       
@@ -670,12 +769,18 @@ class RemoteArtifactBoardController {
           (position['dx'] as num).toDouble(),
           (position['dy'] as num).toDouble(),
         );
+        
+        // Move artifact to end of list to bring it to front
+        final updatedArtifacts = List<BoardArtefact>.from(artifacts);
+        updatedArtifacts.remove(artifact);
+        updatedArtifacts.add(artifact);
+        
         // Trigger ValueNotifier by reassigning the list
-        base.talkingmatController.value = List.from(artifacts);
-        debugPrint("RemoteSync => Updated artifact position on talking mat");
+        base.talkingmatController.value = updatedArtifacts;
+        debugPrint("RemoteSync => Updated artifact position on talking mat (moved to front)");
         notifyView();
       } else {
-        debugPrint("RemoteSync => Artifact $artifactId not found for move");
+        debugPrint("RemoteSync => Artifact $savedArtefactId not found for move");
       }
     }
   }
@@ -688,18 +793,19 @@ class RemoteArtifactBoardController {
     final incomingSessionId = map['sessionId'] as String?;
     if (incomingSessionId != sessionId) return;
 
-    final artifactId = map['artifactId'] as String?;
+    final savedArtefactId = map['savedArtefactId'] as String?;
+    final artefactId = map['artifactId'] as String?;
     final size = map['size'];
-    if (artifactId == null || size == null) return;
+    if (savedArtefactId == null || size == null) return;
 
-    debugPrint("RemoteSync => Received artifact resized: $artifactId to ${size['width']}x${size['height']}");
+    debugPrint("RemoteSync => Received artifact resized: $savedArtefactId (type: $artefactId) to ${size['width']}x${size['height']}");
 
     // Find the artifact and update its size
     if (base.showDirectional) {
       // Linear board
       final artifacts = base.linearBoardController.artifacts.whereType<BoardArtefact>().toList();
       final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.artefactId == artifactId,
+        (a) => a?.savedArtefactId == savedArtefactId,
         orElse: () => null,
       );
 
@@ -711,13 +817,13 @@ class RemoteArtifactBoardController {
         debugPrint("RemoteSync => Updated artifact size on linear board");
         notifyView();
       } else {
-        debugPrint("RemoteSync => Artifact $artifactId not found for resize");
+        debugPrint("RemoteSync => Artifact $savedArtefactId not found for resize");
       }
     } else {
       // TalkingMat
       final artifacts = base.talkingmatController.value;
       final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.artefactId == artifactId,
+        (a) => a?.savedArtefactId == savedArtefactId,
         orElse: () => null,
       );
 
@@ -731,7 +837,7 @@ class RemoteArtifactBoardController {
         debugPrint("RemoteSync => Updated artifact size on talking mat");
         notifyView();
       } else {
-        debugPrint("RemoteSync => Artifact $artifactId not found for resize");
+        debugPrint("RemoteSync => Artifact $savedArtefactId not found for resize");
       }
     }
   }
@@ -761,21 +867,128 @@ class RemoteArtifactBoardController {
 
   // ---------------- Remote session management ----------------
 
+  void _clearBoard() {
+    debugPrint("RemoteSync => Clearing all artifacts from board");
+    if (base.showDirectional) {
+      // Clear linear board
+      while (base.linearBoardController.artifacts.isNotEmpty) {
+        base.linearBoardController.removeArtifact(0);
+      }
+    } else {
+      // Clear talking mat by setting empty list
+      base.talkingmatController.value = [];
+    }
+    notifyView();
+  }
+
   void _setupRemoteSession() {
     // Wait for TalkingMat widget to be built
     Future.delayed(const Duration(milliseconds: 100), () {
       if (base.talkingMatKey.currentState != null) {
-        base.talkingMatKey.currentState!.setRemoteSession(true);
-        debugPrint("RemoteSync => Disabled auto-save for remote session");
+        // Disable auto-save for non-owner
+        if (!isOwner) {
+          base.talkingMatKey.currentState!.setRemoteSession(true);
+          debugPrint("RemoteSync => Disabled auto-save for non-owner");
+        } else {
+          debugPrint("RemoteSync => Auto-save remains enabled for owner (TalkingMat state accessible: ${base.talkingMatKey.currentState != null})");
+        }
+      } else {
+        debugPrint("RemoteSync => WARNING: TalkingMat state not accessible yet");
       }
     });
   }
 
   void _cleanupRemoteSession() {
     if (base.talkingMatKey.currentState != null) {
-      base.talkingMatKey.currentState!.setRemoteSession(false);
-      debugPrint("RemoteSync => Re-enabled auto-save after remote session");
+      if (!isOwner) {
+        base.talkingMatKey.currentState!.setRemoteSession(false);
+        debugPrint("RemoteSync => Re-enabled auto-save for non-owner after remote session");
+      }
     }
+  }
+
+  // Rebuild base.talkingMat to include remote sync callbacks for owner
+  void _setupOwnerCallbacks() {
+    if (!isOwner) return;
+    
+    debugPrint("RemoteSync => Setting up owner callbacks");
+    // Rebuild the TalkingMat widget with callbacks
+    base.talkingMat = TalkingMat(
+      key: base.talkingMatKey,
+      controller: base.talkingmatController,
+      onArtifactPositionChanged: (artifact) {
+        onArtifactPositionChanged(artifact);
+      },
+      onArtifactRemoved: (artifact) {
+        removeArtifact(artifact);
+      },
+      onBoardLoaded: () {
+        debugPrint("RemoteSync => Board load complete, setting up remote sync");
+        _onOwnerBoardLoaded();
+      },
+    );
+  }
+
+  void _onOwnerBoardLoaded() {
+    debugPrint("RemoteSync => Owner board loaded, initializing remote sync");
+    
+    // Attach size listeners to all existing artifacts
+    _attachSizeListenersToExistingArtifacts();
+    
+    // Send current board state to remote participant
+    _pushFullBoard();
+  }
+  
+  // Attach size listeners to existing artifacts on owner's board
+  void _attachSizeListenersToExistingArtifacts() {
+    if (!isOwner) return;
+    
+    final artifacts = base.showDirectional 
+        ? base.linearBoardController.artifacts 
+        : base.talkingmatController.value;
+    
+    debugPrint("RemoteSync => Attaching size listeners to ${artifacts.length} existing artifacts");
+    
+    for (final artifact in artifacts) {
+      if (artifact == null) continue;
+      
+      // Generate savedArtefactId if missing
+      if (artifact.savedArtefactId == null) {
+        artifact.savedArtefactId = _generateSavedArtefactId();
+        debugPrint("RemoteSync => Generated savedArtefactId for existing artifact: ${artifact.savedArtefactId}");
+      }
+      
+      // Attach size listener if not already attached
+      if (!_sizeListeners.containsKey(artifact.savedArtefactId)) {
+        final listener = () {
+          debugPrint("RemoteSync => Size listener triggered for ${artifact.savedArtefactId}");
+          _debouncedSizeUpdate(artifact);
+        };
+        _sizeListeners[artifact.savedArtefactId!] = listener;
+        artifact.sizeNotifier.addListener(listener);
+        debugPrint("RemoteSync => Attached size listener to existing artifact ${artifact.savedArtefactId}");
+      }
+    }
+  }
+  
+  // Listen to controller changes to detect artifact additions and trigger auto-save
+  void _onControllerChanged() {
+    if (!isOwner || base.showDirectional) return;
+    
+    final currentCount = base.talkingmatController.value.length;
+    if (currentCount > _lastArtifactCount) {
+      // Artifact was added, trigger auto-save
+      debugPrint("RemoteSync => Detected artifact addition ($_lastArtifactCount -> $currentCount), triggering auto-save");
+      
+      // Trigger auto-save through TalkingMat state's public method
+      if (base.talkingMatKey.currentState != null) {
+        base.talkingMatKey.currentState!.triggerAutoSave();
+        debugPrint("RemoteSync => Auto-save triggered for newly added artifact");
+      } else {
+        debugPrint("RemoteSync => WARNING: TalkingMat state not available for auto-save");
+      }
+    }
+    _lastArtifactCount = currentCount;
   }
 
   // ---------------- Load board from backend ----------------
