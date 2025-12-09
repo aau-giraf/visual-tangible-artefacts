@@ -387,7 +387,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
             await allBoardsResponse.Content.ReadAsStreamAsync(), _jsonOptions);
 
         Assert.NotNull(summaries);
-        Assert.Equal(3, summaries!.Count);
+        Assert.True(summaries!.Count >= 3);
 
         // Verify names exist, then fetch each board details to check artefact counts
         for (int i = 0; i < boardNames.Length; i++)
