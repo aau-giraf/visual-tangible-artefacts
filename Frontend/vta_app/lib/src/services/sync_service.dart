@@ -843,7 +843,7 @@ class SyncService {
       print('[SYNC-UPLOAD] Response body: $responseBody');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('[SYNC] ✓ Uploaded artefact: ${artefact.artefactId}');
+        print('[SYNC] Uploaded artefact: ${artefact.artefactId}');
         
         // Parse response to get the backend's artefact ID
         try {
@@ -854,7 +854,7 @@ class SyncService {
           print('[SYNC] Warning: Could not parse artefact ID from response: $e');
         }
       } else {
-        print('[SYNC] ✗ Failed to upload artefact ${artefact.artefactId}: ${response.statusCode}');
+        print('[SYNC] Failed to upload artefact ${artefact.artefactId}: ${response.statusCode}');
         print('[SYNC] Response: $responseBody');
       }
       return null;
