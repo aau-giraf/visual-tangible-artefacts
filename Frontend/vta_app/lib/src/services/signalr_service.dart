@@ -359,17 +359,23 @@ class SignalRService {
       }
 
       final fromUserId = args[0] as String;
-      final fromUserName = args[1] as String;
+      final fromUserNameFromBackend = args[1] as String;
 
-      debugPrint('[SignalR] Missed call from $fromUserName ($fromUserId)');
+      debugPrint('[SignalR] MissedCall from userId: $fromUserId');
+      debugPrint('[SignalR] Name from backend: $fromUserNameFromBackend');
 
-      // Show local notification
+      //Look up the name in our own contact cache (the receiver's contacts)
+      final fromUserName =
+          getContactName(fromUserId) ?? fromUserNameFromBackend;
+
+      debugPrint('[SignalR] Final name to use: $fromUserName');
+
+      // Show local notification with the correct name
       NotificationService().showMissedCallNotification(fromUserName);
 
       // Call callback if set
       onMissedCall?.call(fromUserId, fromUserName);
     });
-
     debugPrint("SignalR: All event handlers registered successfully");
   }
 
