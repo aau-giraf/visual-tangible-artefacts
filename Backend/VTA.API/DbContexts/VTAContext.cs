@@ -28,28 +28,8 @@ public partial class VTAContext : DbContext
 {
     base.OnModelCreating(modelBuilder);
 
-    // Category -> User
-    modelBuilder.Entity<Category>()
-        .HasOne(c => c.User)                // navigation on Category
-        .WithMany(u => u.Categories)        // navigation on User
-        .HasForeignKey(c => c.UserId)       // FK property
-        .OnDelete(DeleteBehavior.Cascade);  // <- ensure EF uses DB cascade
-
-    // Example for SavedBoard -> User (adjust types/names to your model)
-    modelBuilder.Entity<SavedBoard>()
-        .HasOne(sb => sb.User)
-        .WithMany(u => u.SavedBoards)
-        .HasForeignKey(sb => sb.UserId)
-        .OnDelete(DeleteBehavior.Cascade);
-
-    // SavedArtefact -> SavedBoard (or User) if applicable
-    modelBuilder.Entity<SavedArtefact>()
-        .HasOne(sa => sa.Board)
-        .WithMany(b => b.SavedArtefacts)
-        .HasForeignKey(sa => sa.BoardId)
-        .OnDelete(DeleteBehavior.Cascade);
-
-    // Repeat for other relations that reference User
+    // Apply all IEntityTypeConfiguration classes from the Configurations folder
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
 }
 }
 
