@@ -10,6 +10,8 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/utilities/config/elevenlabs_config.dart';
+import 'package:vta_app/src/utilities/config/voice_config_validator.dart';
 import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import 'package:vta_app/src/utilities/audio/recorder.dart';
 
@@ -288,10 +290,11 @@ class _OptionWheelState extends State<OptionWheel>
     final TextEditingController nameController = TextEditingController(
       text: widget.artefact.name ?? '',
     );
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Skift navn'),
         content: TextField(
           controller: nameController,
@@ -303,14 +306,14 @@ class _OptionWheelState extends State<OptionWheel>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Annuller'),
           ),
           TextButton(
             onPressed: () async {
               final newName = nameController.text.trim();
               if (newName.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(
                     content: Text('Navnet kan ikke være tomt'),
                     backgroundColor: Colors.red,
@@ -319,7 +322,8 @@ class _OptionWheelState extends State<OptionWheel>
                 return;
               }
 
-              Navigator.of(context).pop();
+              if (!dialogContext.mounted) return;
+              Navigator.of(dialogContext).pop();
 
               try {
                 final controller = GetIt.I.get<ArtefactController>();
@@ -330,10 +334,11 @@ class _OptionWheelState extends State<OptionWheel>
                   artefactIndex: widget.artefact.artefactIndex,
                   name: newName,
                 );
+                if (!context.mounted) return;
                 await controller.updateArtefact(context, updatedArtefact);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text('Fejl: $e'),
                       backgroundColor: Colors.red,
@@ -350,9 +355,11 @@ class _OptionWheelState extends State<OptionWheel>
   }
 
   Future<void> _showChangeSoundDialog(BuildContext context) async {
+    if (!context.mounted) return;
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     final rootContext = rootNavigator.context;
 
+    if (!rootContext.mounted) return;
     final result = await showDialog<_SoundOption>(
       context: rootContext,
       builder: (dialogContext) => AlertDialog(
@@ -409,6 +416,8 @@ class _OptionWheelState extends State<OptionWheel>
       ),
     );
 
+    if (!rootContext.mounted) return;
+
     if (result == _SoundOption.textToSpeech) {
       await _showTextToSpeechDialog(rootContext);
     } else if (result == _SoundOption.record) {
@@ -423,135 +432,207 @@ class _OptionWheelState extends State<OptionWheel>
     final navigator = Navigator.of(rootContext, rootNavigator: true);
     final scaffoldMessenger = ScaffoldMessenger.of(rootContext);
 
+    final savedVoiceId = VoiceConfigValidator.resolveVoiceId(
+        await ElevenLabsConfig.getDefaultVoiceId());
+    String selectedVoiceId = savedVoiceId;
+    final voiceOptions = VoiceConfigValidator.getVoiceOptions();
+
+    if (!rootContext.mounted) return;
+
     await showDialog(
       context: rootContext,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Tekst til tale'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Indtast tekst',
-                border: OutlineInputBorder(),
-                hintText: 'Teksten vil blive konverteret til tale',
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Tekst til tale'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Indtast tekst',
+                  border: OutlineInputBorder(),
+                  hintText: 'Teksten vil blive konverteret til tale',
+                ),
+                maxLines: 3,
+                autofocus: true,
+                onChanged: (value) => inputText = value,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => FocusScope.of(dialogContext).unfocus(),
               ),
-              maxLines: 3,
-              autofocus: true,
-              onChanged: (value) => inputText = value,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => FocusScope.of(dialogContext).unfocus(),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Dette vil bruge ElevenLabs til at generere tale fra teksten.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Annuller'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final text = inputText.trim();
-              if (text.isEmpty) {
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Teksten kan ikke være tom'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              FocusScope.of(dialogContext).unfocus();
-              Navigator.of(dialogContext).pop(); // Close the input dialog
-
-              bool loadingDialogVisible = false;
-
-              // Show loading indicator using the root navigator so it survives wheel closure.
-              showDialog(
-                context: rootContext,
-                barrierDismissible: false,
-                builder: (_) => const PopScope(
-                  canPop: false,
-                  child: Center(
-                    child: CircularProgressIndicator(),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Vælg stemme',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
                   ),
                 ),
-              );
-              loadingDialogVisible = true;
-
-              void closeLoadingDialogIfNeeded() {
-                if (loadingDialogVisible && navigator.mounted) {
-                  navigator.pop();
-                  loadingDialogVisible = false;
-                }
-              }
-
-              try {
-                // Call backend to generate speech using ElevenLabs
-                final apiProvider = GetIt.I.get<ApiProvider>();
-                final token = GetIt.I.get<Token>();
-
-                final response = await apiProvider.postAsJson(
-                  'Users/Artefacts/generate-speech-and-save',
-                  headers: {'Authorization': 'Bearer ${token.value}'},
-                  body: {
-                    'artefactId': widget.artefact.artefactId,
-                    'text': text,
+              ),
+              ...voiceOptions.map(
+                (option) => InkWell(
+                  onTap: () {
+                    setDialogState(() {
+                      selectedVoiceId = VoiceConfigValidator.resolveVoiceId(option['id']!);
+                    });
                   },
-                );
-
-                closeLoadingDialogIfNeeded();
-
-                if (response != null && response.ok) {
-                  // Refresh artefacts in background without blocking the UI.
-                  final controller = GetIt.I.get<ArtefactController>();
-                  controller
-                      .updateArtifacts(context: rootContext)
-                      .catchError((_) {
-                    // Silently ignore refresh issues.
-                  });
-
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Radio<String>(
+                          value: option['id']!,
+                          groupValue: selectedVoiceId,
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setDialogState(() {
+                              selectedVoiceId = VoiceConfigValidator.resolveVoiceId(value);
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          option['label']!,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Dette vil bruge ElevenLabs til at generere tale fra teksten.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Annuller'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final text = inputText.trim();
+                if (text.isEmpty) {
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(
-                      content: Text('Lyden er opdateret'),
-                      backgroundColor: Colors.green,
+                      content: Text('Teksten kan ikke være tom'),
+                      backgroundColor: Colors.red,
                     ),
                   );
-                } else {
+                  return;
+                }
+
+                final voiceIdToUse = VoiceConfigValidator.resolveVoiceId(selectedVoiceId);
+
+                // Validate voice ID before proceeding
+                if (!VoiceConfigValidator.isValidVoiceId(voiceIdToUse)) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Ugyldig stemme valgt. Bruger standardstemme.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+
+                FocusScope.of(dialogContext).unfocus();
+                if (!dialogContext.mounted) return;
+                Navigator.of(dialogContext).pop(); // Close the input dialog
+
+                bool loadingDialogVisible = false;
+
+                // Show loading indicator using the root navigator so it survives wheel closure.
+                if (!rootContext.mounted) return;
+                showDialog(
+                  context: rootContext,
+                  barrierDismissible: false,
+                  builder: (_) => const PopScope(
+                    canPop: false,
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                );
+                loadingDialogVisible = true;
+
+                void closeLoadingDialogIfNeeded() {
+                  if (loadingDialogVisible && navigator.mounted) {
+                    navigator.pop();
+                    loadingDialogVisible = false;
+                  }
+                }
+
+                try {
+                  // Call backend to generate speech using ElevenLabs
+                  final apiProvider = GetIt.I.get<ApiProvider>();
+                  final token = GetIt.I.get<Token>();
+
+                  final response = await apiProvider.postAsJson(
+                    'Users/Artefacts/generate-speech-and-save',
+                    headers: {'Authorization': 'Bearer ${token.value}'},
+                    body: {
+                      'artefactId': widget.artefact.artefactId,
+                      'text': text,
+                      'voiceId': voiceIdToUse,
+                    },
+                  );
+
+                  closeLoadingDialogIfNeeded();
+
+                  // Only save voice preference after successful API call
+                  if (response != null && response.ok) {
+                    await ElevenLabsConfig.setDefaultVoiceId(voiceIdToUse);
+
+                    // Refresh artefacts in background without blocking the UI.
+                    if (rootContext.mounted) {
+                      final controller = GetIt.I.get<ArtefactController>();
+                      controller
+                          .updateArtifacts(context: rootContext)
+                          .catchError((_) {
+                        // Silently ignore refresh issues.
+                      });
+                    }
+
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Lyden er opdateret'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Kunne ikke generere lyd: ${response?.statusCode}. Prøv venligst igen.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  closeLoadingDialogIfNeeded();
+
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
-                      content: Text(
-                          'Kunne ikke generere lyd: ${response?.statusCode}'),
+                      content: Text('Fejl ved generering af tale: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
-              } catch (e) {
-                closeLoadingDialogIfNeeded();
-
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Fejl: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Generer'),
-          ),
-        ],
+              },
+              child: const Text('Generer'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _showRecordSoundDialog(BuildContext rootContext) async {
     if (kIsWeb) {
+      if (!rootContext.mounted) return;
       ScaffoldMessenger.of(rootContext).showSnackBar(
         const SnackBar(
           content: Text('Optagelse er ikke understøttet i browseren.'),
@@ -569,6 +650,7 @@ class _OptionWheelState extends State<OptionWheel>
     }
 
     if (recorder == null) {
+      if (!rootContext.mounted) return;
       ScaffoldMessenger.of(rootContext).showSnackBar(
         const SnackBar(
           content: Text('Optagelse er ikke tilgængelig på denne enhed.'),
@@ -593,6 +675,7 @@ class _OptionWheelState extends State<OptionWheel>
       try {
         final hasPermission = await (recorder as dynamic).hasPermission();
         if (!hasPermission) {
+          if (!rootContext.mounted) return;
           ScaffoldMessenger.of(rootContext).showSnackBar(
             const SnackBar(
               content: Text('Mangler mikrofon-tilladelse'),
@@ -625,6 +708,7 @@ class _OptionWheelState extends State<OptionWheel>
         });
       } catch (e) {
         recordingPath = null;
+        if (!rootContext.mounted) return;
         ScaffoldMessenger.of(rootContext).showSnackBar(
           SnackBar(
             content: Text('Kunne ikke starte optagelse: $e'),
@@ -665,6 +749,7 @@ class _OptionWheelState extends State<OptionWheel>
         update(() {
           isRecording = false;
         });
+        if (!rootContext.mounted) return;
         ScaffoldMessenger.of(rootContext).showSnackBar(
           SnackBar(
             content: Text('Kunne ikke stoppe optagelse: $e'),
@@ -674,6 +759,7 @@ class _OptionWheelState extends State<OptionWheel>
       }
     }
 
+    if (!rootContext.mounted) return;
     await showDialog(
       context: rootContext,
       barrierDismissible: false,
@@ -735,13 +821,16 @@ class _OptionWheelState extends State<OptionWheel>
                     setState(() {
                       recordedBytes = null;
                     });
-                    Navigator.of(dialogContext).pop();
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
                   },
                   child: const Text('Annuller'),
                 ),
                 TextButton(
                   onPressed: (!isRecording && recordedBytes != null)
                       ? () async {
+                          if (!rootContext.mounted) return;
                           final navigator =
                               Navigator.of(rootContext, rootNavigator: true);
                           bool loadingVisible = false;
@@ -776,15 +865,20 @@ class _OptionWheelState extends State<OptionWheel>
                               sound: recordedBytes,
                             );
 
+                            if (!rootContext.mounted) {
+                              closeLoading();
+                              return;
+                            }
                             await controller.updateArtefact(
                                 rootContext, updatedArtefact);
 
                             closeLoading();
-                            if (Navigator.of(dialogContext).mounted) {
+                            if (dialogContext.mounted && Navigator.of(dialogContext).mounted) {
                               Navigator.of(dialogContext).pop();
                             }
                           } catch (e) {
                             closeLoading();
+                            if (!rootContext.mounted) return;
                             ScaffoldMessenger.of(rootContext).showSnackBar(
                               SnackBar(
                                 content:
@@ -834,6 +928,7 @@ class _OptionWheelState extends State<OptionWheel>
     final pickedFile = result.files.single;
     final bytes = pickedFile.bytes;
     if (bytes == null) {
+      if (!rootContext.mounted) return;
       ScaffoldMessenger.of(rootContext).showSnackBar(
         const SnackBar(
           content: Text('Kunne ikke læse den valgte lydfil.'),
@@ -843,6 +938,7 @@ class _OptionWheelState extends State<OptionWheel>
       return;
     }
 
+    if (!rootContext.mounted) return;
     final navigator = Navigator.of(rootContext, rootNavigator: true);
     bool loadingVisible = false;
 
@@ -875,9 +971,14 @@ class _OptionWheelState extends State<OptionWheel>
         sound: Uint8List.fromList(bytes),
       );
 
+      if (!rootContext.mounted) {
+        closeLoading();
+        return;
+      }
       await controller.updateArtefact(rootContext, updatedArtefact);
 
       closeLoading();
+      if (!rootContext.mounted) return;
       ScaffoldMessenger.of(rootContext).showSnackBar(
         SnackBar(
           content: Text('Lydfilen "${pickedFile.name}" er uploadet.'),
@@ -886,6 +987,7 @@ class _OptionWheelState extends State<OptionWheel>
       );
     } catch (e) {
       closeLoading();
+      if (!rootContext.mounted) return;
       ScaffoldMessenger.of(rootContext).showSnackBar(
         SnackBar(
           content: Text('Kunne ikke uploade lydfilen: $e'),

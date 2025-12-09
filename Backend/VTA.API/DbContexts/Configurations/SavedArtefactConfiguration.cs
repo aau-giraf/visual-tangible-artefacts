@@ -55,7 +55,7 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
         builder.HasOne(d => d.Artefact)
             .WithMany(p => p.SavedArtefacts)
             .HasForeignKey(d => d.ArtefactId)
-            .OnDelete(DeleteBehavior.Restrict)
+            .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("savedArtefact_ibfk_1");
 
         // Relationship: SavedArtefact -> SavedBoard (many-to-one)
@@ -63,7 +63,7 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
         builder.HasOne(d => d.Board)
             .WithMany(p => p.SavedArtefacts)
             .HasForeignKey(d => d.BoardId)
-            .OnDelete(DeleteBehavior.Restrict)
+            .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("savedArtefact_ibfk_2");
     }
 }

@@ -51,7 +51,7 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
         builder.HasOne(d => d.User)
             .WithMany(p => p.SavedBoards)
             .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.Restrict)
+            .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("savedBoard_ibfk_1");
 
         // Relationship: SavedBoard -> SavedArtefacts collection (one-to-many)
@@ -59,7 +59,7 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
         builder.HasMany(d => d.SavedArtefacts)
             .WithOne(p => p.Board)
             .HasForeignKey(p => p.BoardId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
     }
 }
