@@ -67,11 +67,12 @@ class _BoardPageState extends State<BoardPage> {
             onSelected: _loadBoard,
             itemBuilder: (context) {
               return _savedBoards?.map((board) {
-                return PopupMenuItem<String>(
-                  value: board.boardId,
-                  child: Text(board.name),
-                );
-              }).toList() ?? [];
+                    return PopupMenuItem<String>(
+                      value: board.boardId,
+                      child: Text(board.name),
+                    );
+                  }).toList() ??
+                  [];
             },
             tooltip: 'Load Saved Board',
           ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
+import 'package:vta_app/src/modelsDTOs/signup_form.dart';
+import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:get_it/get_it.dart';
 
 class LoginView extends StatefulWidget {
   static const String routeName = '/login';
@@ -255,7 +258,6 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _signupForm(AuthController controller) {
     final TextEditingController nameController = TextEditingController();
-    final TextEditingController guardianKeyController = TextEditingController();
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     bool obscureSignupPassword = true;
     

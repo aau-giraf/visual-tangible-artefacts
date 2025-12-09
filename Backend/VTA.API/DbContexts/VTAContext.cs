@@ -24,6 +24,12 @@ public partial class VTAContext : DbContext
 
     public virtual DbSet<SavedArtefact> SavedArtefacts { get; set; }
 
+    public virtual DbSet<CaregiverChildPairing> CaregiverChildPairings { get; set; }
+
+    public virtual DbSet<Session> Sessions { get; set; }
+
+    public virtual DbSet<SessionEvent> SessionEvents { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder
             .UseCollation("utf8mb4_0900_ai_ci")

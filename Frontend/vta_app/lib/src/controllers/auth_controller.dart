@@ -32,9 +32,9 @@ class AuthController extends ChangeNotifier {
       if (context != null && context.mounted) {
         _showSuccessSnackBar(context, 'Login succesfuldt! Velkommen tilbage.');
         await artifactController.updateArtifacts(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
         await artifactController.updateMostUsedCategories(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
         Navigator.of(context)
             .pushReplacementNamed(WelcomeScreen.routeName);
       }
@@ -65,16 +65,11 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Signs up the user with the provided [email] and [password]
-  Future<void> signup(
-      String username, String password, String name, String guardianKey,
+  /// Signs up the user with the provided [username], [password], and [name]
+  Future<void> signup(String username, String password, String name,
       {BuildContext? context}) async {
     try {
-      var form = SignupForm(
-          username: username,
-          password: password,
-          name: name,
-          guardianKey: guardianKey);
+      var form = SignupForm(username: username, password: password, name: name);
       await _model.signup(form);
       if (context != null && context.mounted) {
         _showSuccessSnackBar(context, 'Bruger oprettet succesfuldt! Du kan nu logge ind.');
