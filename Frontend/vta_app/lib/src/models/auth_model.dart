@@ -81,9 +81,29 @@ class AuthModel {
   }
 
   /// clears all data stored on in the [SharedPreferences]
+  /// Preserves profile picture data so it persists across logouts
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Preserve profile picture data before clearing
+    final profilePicture = prefs.getString('profilePicture');
+    final profilePicturePath = prefs.getString('profilePicturePath');
+    final profilePictureSet = prefs.getString('profilePictureSet');
+    
+    // Clear all preferences
     await prefs.clear();
+    
+    // Restore profile picture data
+    if (profilePicture != null) {
+      await prefs.setString('profilePicture', profilePicture);
+    }
+    if (profilePicturePath != null) {
+      await prefs.setString('profilePicturePath', profilePicturePath);
+    }
+    if (profilePictureSet != null) {
+      await prefs.setString('profilePictureSet', profilePictureSet);
+    }
+    
     await clearCacheData();
   }
 
