@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
-import 'package:vta_app/src/modelsDTOs/signup_form.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'package:get_it/get_it.dart';
 
 class LoginView extends StatefulWidget {
   static const String routeName = '/login';
@@ -18,11 +15,22 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final sharedUsernameController = TextEditingController();
   final sharedPasswordController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController guardianKeyController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _loginErrorMessage;
   String? _signupErrorMessage;
+
+  @override
+  void dispose() {
+    sharedUsernameController.dispose();
+    sharedPasswordController.dispose();
+    nameController.dispose();
+    guardianKeyController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -390,8 +398,8 @@ class _LoginViewState extends State<LoginView> {
               ),
             ],
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
-            TextFormField(
-              controller: nameController,
+          TextFormField(
+            controller: nameController,
               decoration: InputDecoration(
                 labelText: 'Navn',
                 prefixIcon: Icon(Icons.badge),
@@ -417,8 +425,8 @@ class _LoginViewState extends State<LoginView> {
               },
             ),
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
-            TextFormField(
-              controller: guardianKeyController,
+          TextFormField(
+            controller: guardianKeyController,
               decoration: InputDecoration(
                 labelText: 'Værgenøgle',
                 prefixIcon: Icon(Icons.vpn_key),
@@ -482,9 +490,8 @@ class _LoginViewState extends State<LoginView> {
                           final username = sharedUsernameController.text.trim();
                           final password = sharedPasswordController.text;
                           final name = nameController.text.trim();
-                          final guardianKey = guardianKeyController.text.trim();
                           await controller.signup(
-                              username, password, name, guardianKey,
+                              username, password, name,
                               context: context);
                         } catch (e) {
                           if (parentState.mounted) {

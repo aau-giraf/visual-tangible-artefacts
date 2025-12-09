@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'login_screen.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
   @override
-  _SignupPageState createState() => _SignupPageState();
+  SignupPageState createState() => SignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage> {
+class SignupPageState extends State<SignupPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  UserRole _selectedRole = UserRole.child;
 
   Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
@@ -60,7 +57,7 @@ class _SignupPageState extends State<SignupPage> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     spreadRadius: 5,
                     blurRadius: 15,
                     offset: Offset(0, 5),
@@ -139,7 +136,6 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: _signup,
                       onPressed: _signup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade400,

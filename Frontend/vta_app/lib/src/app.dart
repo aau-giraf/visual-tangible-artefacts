@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
           key: const ValueKey('MaterialApp'), // Stable key to preserve Navigator state
+          initialRoute: SplashView.routeName,
           theme: ThemeData(
             inputDecorationTheme: AppTheme.getInputDecorationTheme(context),
           ),
@@ -64,8 +65,13 @@ class MyApp extends StatelessWidget {
           //
           // The appTitle is defined in .arb files found in the localization
           // directory.
-          onGenerateTitle: (BuildContext context) =>
-              AppLocalizations.of(context)!.appTitle,
+          onGenerateTitle: (BuildContext context) {
+            try {
+              return AppLocalizations.of(context)?.appTitle ?? 'VTA App';
+            } catch (e) {
+              return 'VTA App';
+            }
+          },
 
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
