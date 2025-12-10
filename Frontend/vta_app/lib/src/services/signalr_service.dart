@@ -23,15 +23,15 @@ class SignalRService {
   String? _sessionInitiatorId; // Track who started the session
   String? _remoteUserId;
   ArtifactBoardController? _ownerBoardController; // Store owner's board
-  
+
   // Contact cache for name resolution (userId -> name)
   final Map<String, String> _contactCache = {};
-  
+
   // WebRTC signaling message queues
   final List<Map<String, dynamic>> _pendingOffers = [];
   final List<Map<String, dynamic>> _pendingAnswers = [];
   final List<Map<String, dynamic>> _pendingIceCandidates = [];
-  
+
   // WebRTC signaling callbacks
   void Function(String sessionId, Map<String, dynamic> offer)? onReceiveOffer;
   void Function(String sessionId, Map<String, dynamic> answer)? onReceiveAnswer;
@@ -57,13 +57,13 @@ class SignalRService {
   void clearOwnerBoardController() {
     _ownerBoardController = null;
   }
-  
+
   // Contact cache management
   /// Load contacts from API and cache them for name resolution
   Future<void> loadContacts(String token) async {
     try {
       final contacts = await UserRepository().fetchRelatedContacts(token);
-      
+
       if (contacts != null) {
         _contactCache.clear();
         for (var user in contacts) {
@@ -76,38 +76,38 @@ class SignalRService {
       debugPrint('SignalR: Failed to load contacts => $e');
     }
   }
-  
+
   /// Get contact name from cache, returns null if not found
   String? getContactName(String userId) {
     return _contactCache[userId];
   }
-  
+
   void flushWebRTCQueue() {
     debugPrint('[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
-    
+
     for (var msg in _pendingOffers) {
       onReceiveOffer?.call(msg['sessionId'], msg['data']);
     }
     _pendingOffers.clear();
-    
+
     for (var msg in _pendingAnswers) {
       onReceiveAnswer?.call(msg['sessionId'], msg['data']);
     }
     _pendingAnswers.clear();
-    
+
     for (var msg in _pendingIceCandidates) {
       onReceiveIceCandidate?.call(msg['sessionId'], msg['data']);
     }
     _pendingIceCandidates.clear();
   }
-  
+
   // Callbacks
   void Function(String fromUserId)? onSessionRequested;
   void Function()? onSessionRejected;
   void Function(String sessionId, String boardId)? onSessionStarted;
   void Function(dynamic boardData)? onBoardUpdated;
   void Function()? onSessionEnded;
-  
+
   // Delta update callbacks
   void Function(dynamic data)? onArtifactAdded;
   void Function(dynamic data)? onArtifactRemoved;
@@ -165,7 +165,7 @@ class SignalRService {
   // ---------------- EVENT HANDLERS ----------------
   void _registerEvents() {
     debugPrint("SignalR: Registering event handlers...");
-    
+
     _hubConnection!.on("SessionRequested", (args) {
       debugPrint("SignalR => Received SessionRequested event");
       if (args == null || args.isEmpty) return;
@@ -201,13 +201,13 @@ class SignalRService {
       _ownerBoardController = null;
       onSessionEnded?.call();
     });
-    
+
     // WebRTC signaling listeners
     _hubConnection!.on('ReceiveOffer', (arguments) {
       final sessionId = arguments![0] as String;
       final offer = arguments[1] as Map<String, dynamic>;
       debugPrint('[SignalR] ReceiveOffer: sessionId=$sessionId');
-      
+
       if (onReceiveOffer != null) {
         onReceiveOffer!(sessionId, offer);
       } else {
@@ -215,12 +215,12 @@ class SignalRService {
         _pendingOffers.add({'sessionId': sessionId, 'data': offer});
       }
     });
-    
+
     _hubConnection!.on('ReceiveAnswer', (arguments) {
       final sessionId = arguments![0] as String;
       final answer = arguments[1] as Map<String, dynamic>;
       debugPrint('[SignalR] ReceiveAnswer: sessionId=$sessionId');
-      
+
       if (onReceiveAnswer != null) {
         onReceiveAnswer!(sessionId, answer);
       } else {
@@ -228,12 +228,12 @@ class SignalRService {
         _pendingAnswers.add({'sessionId': sessionId, 'data': answer});
       }
     });
-    
+
     _hubConnection!.on('ReceiveIceCandidate', (arguments) {
       final sessionId = arguments![0] as String;
       final candidate = arguments[1] as Map<String, dynamic>;
       debugPrint('[SignalR] ReceiveIceCandidate: sessionId=$sessionId');
-      
+
       if (onReceiveIceCandidate != null) {
         onReceiveIceCandidate!(sessionId, candidate);
       } else {
@@ -248,6 +248,12 @@ class SignalRService {
       if (args == null || args.isEmpty) return;
       debugPrint("SignalR => Calling onArtifactAdded callback");
       onArtifactAdded?.call(args[0]);
+    });
+
+    _hubConnection!.on("ArtifactRejected", (args) {
+      debugPrint("SignalR => Received ArtifactRejected event");
+
+      // TODO: Handle artifact rejection if needed
     });
 
     _hubConnection!.on("ArtifactRemoved", (args) {
@@ -284,7 +290,7 @@ class SignalRService {
       debugPrint("SignalR => Calling onFieldCountChanged callback");
       onFieldCountChanged?.call(args[0]);
     });
-    
+
     debugPrint("SignalR: All event handlers registered successfully");
   }
 
@@ -335,7 +341,7 @@ class SignalRService {
   }
 
   // ---------------- DELTA UPDATE API WRAPPERS ----------------
-  
+
   Future<void> sendArtifactAdded(dynamic data) async {
     if (!isConnected || _currentSessionId == null) return;
     await _hubConnection!.invoke("ArtifactAdded", args: <Object>[data]);
@@ -388,27 +394,27 @@ class SignalRService {
     _sessionInitiatorId = null;
     _remoteUserId = null;
     _ownerBoardController = null;
-    
+
     // Clear all callbacks
     onSessionRequested = null;
     onSessionRejected = null;
     onSessionStarted = null;
     onBoardUpdated = null;
     onSessionEnded = null;
-    
+
     // Clear WebRTC callbacks
     onReceiveOffer = null;
     onReceiveAnswer = null;
     onReceiveIceCandidate = null;
-    
+
     // Clear message queues
     _pendingOffers.clear();
     _pendingAnswers.clear();
     _pendingIceCandidates.clear();
-    
+
     // Clear contact cache
     _contactCache.clear();
-    
+
     debugPrint("SignalR: All state and callbacks cleared");
   }
 }
