@@ -53,7 +53,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__ApiBaseUrl=http://backend:8080
+      - ConnectionStrings__DefaultConnection=server=mysql;port=3306;database=vta_dev;user=vta_user;password=vta_password
       - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
     depends_on:
       mysql:

@@ -2,8 +2,11 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SyncService.Hubs;
+using VTA.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddVTAContext();
 
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
