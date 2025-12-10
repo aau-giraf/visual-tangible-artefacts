@@ -191,6 +191,7 @@ namespace SyncService.Hubs
             if (artifact.ImageUrl != expectedImageUrl)
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: ImageUrl mismatch. Expected={expectedImageUrl}, Received={artifact.ImageUrl}");
+                await Clients.Caller.SendAsync("ArtifactNotAdded", data);
                 return;
             }
             
@@ -201,6 +202,7 @@ namespace SyncService.Hubs
             if (artifact.SoundUrl != expectedSoundUrl)
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: SoundUrl mismatch. Expected={expectedSoundUrl}, Received={artifact.SoundUrl}");
+                await Clients.Caller.SendAsync("ArtifactNotAdded", data);
                 return;
             }
 
