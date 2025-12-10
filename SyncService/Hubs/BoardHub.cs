@@ -243,6 +243,30 @@ namespace SyncService.Hubs
             await Clients.OthersInGroup(sessionId).SendAsync("LayoutChanged", data);
         }
 
+        public async Task FieldCountChanged(JsonElement data)
+        {
+            string? sessionId = null;
+            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            {
+                sessionId = sessionIdProp.GetString();
+            }
+
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Console.WriteLine($"[Hub] FieldCountChanged: Missing sessionId. Data: {data}");
+                return;
+            }
+
+            int? count = null;
+            if (data.TryGetProperty("count", out var countProp))
+            {
+                count = countProp.GetInt32();
+            }
+
+            Console.WriteLine($"[Hub] FieldCountChanged => sessionId={sessionId}, count={count}");
+            await Clients.OthersInGroup(sessionId).SendAsync("FieldCountChanged", data);
+        }
+
         public async Task EndSession(string sessionId)
         {
             Console.WriteLine($"[Hub] EndSession => {sessionId}");

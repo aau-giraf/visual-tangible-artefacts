@@ -63,6 +63,9 @@ class RemoteArtifactBoardController {
   
   // Track number of artifacts to detect additions
   int _lastArtifactCount = 0;
+  
+  // Track field count to detect changes
+  int _lastFieldCount = 0;
 
   RemoteArtifactBoardController({
     required this.sessionId,
@@ -80,6 +83,7 @@ class RemoteArtifactBoardController {
     SignalRService().onArtifactMoved = _handleArtifactMoved;
     SignalRService().onArtifactResized = _handleArtifactResized;
     SignalRService().onLayoutChanged = _handleLayoutChanged;
+    SignalRService().onFieldCountChanged = _handleFieldCountChanged;
 
     debugPrint(
         "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId)");
@@ -96,6 +100,10 @@ class RemoteArtifactBoardController {
       base.talkingmatController.addListener(_onControllerChanged);
       _lastArtifactCount = base.talkingmatController.value.length;
       
+      // Set up listener to detect field count changes in linear board
+      base.linearBoardController.addListener(_onLinearBoardChanged);
+      _lastFieldCount = base.linearBoardController.fieldCount;
+      
       // Board load callback will trigger _onOwnerBoardLoaded() when ready
       debugPrint("RemoteSync => Waiting for owner's board to load (callback-based)");
     } else {
@@ -109,6 +117,7 @@ class RemoteArtifactBoardController {
     // Remove controller listener
     if (isOwner) {
       base.talkingmatController.removeListener(_onControllerChanged);
+      base.linearBoardController.removeListener(_onLinearBoardChanged);
     }
     
     // Cancel all debounce timers
@@ -169,18 +178,8 @@ class RemoteArtifactBoardController {
     );
   }
   
-  // Create a custom LinearBoard with the onArtifactRemoved callback for owner
-  LinearBoard? get linearBoard {
-    if (isOwner) {
-      return LinearBoard(
-        linearBoardController: base.linearBoardController,
-        onArtifactRemoved: (artifact) {
-          removeArtifact(artifact);
-        },
-      );
-    }
-    return base.linearBoard;
-  }
+  // Return the LinearBoard from base (configured in _setupOwnerCallbacks if owner)
+  LinearBoard? get linearBoard => base.linearBoard;
 
   // ---------------- UI actions (owner syncs changes) ----------------
 
@@ -260,6 +259,10 @@ class RemoteArtifactBoardController {
     _layoutChangeTimer?.cancel();
     _layoutChangeTimer = Timer(const Duration(milliseconds: 300), () {
       _pushLayoutChanged();
+      // Send full board snapshot after layout change to ensure sync
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _pushFullBoard();
+      });
     });
   }
 
@@ -302,22 +305,30 @@ class RemoteArtifactBoardController {
   // ---------------- Build snapshot ----------------
 
   Map<String, dynamic> _buildBoardSnapshot() {
-    final List<BoardArtefact> list = [];
+    final List<Map<String, dynamic>> items = [];
 
     if (base.showDirectional) {
-      for (final item in base.linearBoardController.artifacts) {
-        if (item != null) list.add(item);
+      // For linear board, include index information
+      for (int i = 0; i < base.linearBoardController.artifacts.length; i++) {
+        final item = base.linearBoardController.artifacts[i];
+        if (item != null) {
+          final size = item.sizeNotifier.value;
+          items.add({
+            'savedArtefactId': item.savedArtefactId,
+            'id': item.artefactId,
+            'name': item.baseArtefact?.name,
+            'imageUrl': item.baseArtefact?.imageUrl,
+            'soundUrl': item.baseArtefact?.soundUrl,
+            'size': {'width': size.width, 'height': size.height},
+            'index': i, // Include index for linear layout
+          });
+        }
       }
     } else {
-      list.addAll(base.talkingmatController.value);
-    }
-
-    return {
-      'sessionId': sessionId,
-      'layout': base.showDirectional ? 'linear' : 'talkingmat',
-      'items': list.map((a) {
+      // For talking mat, include position information
+      for (final a in base.talkingmatController.value) {
         final size = a.sizeNotifier.value;
-        return {
+        items.add({
           'savedArtefactId': a.savedArtefactId,
           'id': a.artefactId,
           'name': a.baseArtefact?.name,
@@ -326,8 +337,15 @@ class RemoteArtifactBoardController {
           'size': {'width': size.width, 'height': size.height},
           if (a.position != null)
             'position': {'dx': a.position!.dx, 'dy': a.position!.dy},
-        };
-      }).toList(),
+        });
+      }
+    }
+
+    return {
+      'sessionId': sessionId,
+      'layout': base.showDirectional ? 'linear' : 'talkingmat',
+      'fieldCount': base.showDirectional ? base.linearBoardController.fieldCount : null,
+      'items': items,
     };
   }
 
@@ -421,6 +439,32 @@ class RemoteArtifactBoardController {
     }
   }
 
+  Future<void> _pushLinearArtifactMoved(BoardArtefact artifact, int fromIndex, int toIndex) async {
+    if (!SignalRService().isConnected) {
+      debugPrint("RemoteSync => Cannot push linear move - SignalR not connected");
+      return;
+    }
+    if (artifact.savedArtefactId == null) {
+      debugPrint("RemoteSync => Cannot push linear move - artifact has no savedArtefactId");
+      return;
+    }
+
+    final payload = {
+      'sessionId': sessionId,
+      'savedArtefactId': artifact.savedArtefactId,
+      'artifactId': artifact.artefactId,
+      'fromIndex': fromIndex,
+      'toIndex': toIndex,
+    };
+
+    try {
+      await SignalRService().sendArtifactMoved(payload);
+      debugPrint("RemoteSync => Pushed linear artifact moved: ${artifact.savedArtefactId} from $fromIndex to $toIndex");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push linear artifact moved: $e");
+    }
+  }
+
   Future<void> _pushArtifactResized(BoardArtefact artifact) async {
     if (!SignalRService().isConnected) {
       debugPrint("RemoteSync => Cannot push resize - SignalR not connected");
@@ -459,6 +503,22 @@ class RemoteArtifactBoardController {
       debugPrint("RemoteSync => Pushed layout changed: ${payload['layout']}");
     } catch (e) {
       debugPrint("RemoteSync => Failed to push layout changed: $e");
+    }
+  }
+
+  Future<void> _pushFieldCountChanged(int count) async {
+    if (!SignalRService().isConnected) return;
+
+    final payload = {
+      'sessionId': sessionId,
+      'count': count,
+    };
+
+    try {
+      await SignalRService().sendFieldCountChanged(payload);
+      debugPrint("RemoteSync => Pushed field count changed: $count");
+    } catch (e) {
+      debugPrint("RemoteSync => Failed to push field count changed: $e");
     }
   }
 
@@ -511,9 +571,10 @@ class RemoteArtifactBoardController {
 
     final layout = map['layout'] as String?;
     final items = (map['items'] as List?) ?? [];
+    final fieldCount = map['fieldCount'] as int?;
 
     debugPrint(
-        "RemoteSync => Received update: layout=$layout, items=${items.length}");
+        "RemoteSync => Received update: layout=$layout, items=${items.length}, fieldCount=$fieldCount");
 
     // Force layout to match sender (don't toggle, just set it)
     final directional = (layout == 'linear');
@@ -521,6 +582,12 @@ class RemoteArtifactBoardController {
       debugPrint(
           "RemoteSync => Switching layout from ${base.showDirectional ? 'linear' : 'talking mat'} to ${directional ? 'linear' : 'talking mat'}");
       base.switchCurrentBoard();
+    }
+
+    // Update field count for linear layout BEFORE adding artifacts
+    if (directional && fieldCount != null && base.linearBoardController.fieldCount != fieldCount) {
+      debugPrint("RemoteSync => Updating field count to $fieldCount");
+      base.linearBoardController.setFieldCount(fieldCount);
     }
 
     // Get current artifacts
@@ -602,7 +669,15 @@ class RemoteArtifactBoardController {
           );
         }
 
-        base.addArtifactToCurrentBoard(boardItem);
+        // Handle index for linear board
+        final index = item['index'] as int?;
+        if (base.showDirectional && index != null) {
+          // Add artifact at specific index for linear board
+          base.linearBoardController.addArtifact(boardItem, index: index);
+        } else {
+          // Add artifact normally for talking mat
+          base.addArtifactToCurrentBoard(boardItem);
+        }
       }
     }
 
@@ -731,57 +806,65 @@ class RemoteArtifactBoardController {
     if (incomingSessionId != sessionId) return;
 
     final savedArtefactId = map['savedArtefactId'] as String?;
-    final artefactId = map['artifactId'] as String?;
+    if (savedArtefactId == null) return;
+
+    // Check if this is a linear board index-based move
+    final fromIndex = map['fromIndex'] as int?;
+    final toIndex = map['toIndex'] as int?;
+    
+    if (base.showDirectional && fromIndex != null && toIndex != null) {
+      // Linear board index-based move
+      debugPrint("RemoteSync => Received linear artifact moved: $savedArtefactId from $fromIndex to $toIndex");
+      
+      // Find the artifact by savedArtefactId
+      int? actualFromIndex;
+      for (int i = 0; i < base.linearBoardController.artifacts.length; i++) {
+        if (base.linearBoardController.artifacts[i]?.savedArtefactId == savedArtefactId) {
+          actualFromIndex = i;
+          break;
+        }
+      }
+      
+      if (actualFromIndex != null) {
+        base.linearBoardController.moveArtifact(actualFromIndex, toIndex);
+        debugPrint("RemoteSync => Moved artifact from slot $actualFromIndex to $toIndex");
+        notifyView();
+      } else {
+        debugPrint("RemoteSync => Artifact $savedArtefactId not found in linear board");
+      }
+      return;
+    }
+    
+    // Original position-based move for TalkingMat
     final position = map['position'];
-    if (savedArtefactId == null || position == null) return;
+    if (position == null) return;
 
-    debugPrint("RemoteSync => Received artifact moved: $savedArtefactId (type: $artefactId) to (${position['dx']}, ${position['dy']})");
+    debugPrint("RemoteSync => Received artifact moved: $savedArtefactId to (${position['dx']}, ${position['dy']})");
 
-    // Find the artifact and update its position
-    if (base.showDirectional) {
-      // Linear board - just update position
-      final artifacts = base.linearBoardController.artifacts.whereType<BoardArtefact>().toList();
-      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.savedArtefactId == savedArtefactId,
-        orElse: () => null,
+    // TalkingMat - need to trigger ValueNotifier by reassigning
+    final artifacts = base.talkingmatController.value;
+    final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
+      (a) => a?.savedArtefactId == savedArtefactId,
+      orElse: () => null,
+    );
+    
+    if (artifact != null) {
+      artifact.position = Offset(
+        (position['dx'] as num).toDouble(),
+        (position['dy'] as num).toDouble(),
       );
       
-      if (artifact != null) {
-        artifact.position = Offset(
-          (position['dx'] as num).toDouble(),
-          (position['dy'] as num).toDouble(),
-        );
-        debugPrint("RemoteSync => Updated artifact position on linear board");
-        notifyView();
-      } else {
-        debugPrint("RemoteSync => Artifact $savedArtefactId not found for move");
-      }
+      // Move artifact to end of list to bring it to front
+      final updatedArtifacts = List<BoardArtefact>.from(artifacts);
+      updatedArtifacts.remove(artifact);
+      updatedArtifacts.add(artifact);
+      
+      // Trigger ValueNotifier by reassigning the list
+      base.talkingmatController.value = updatedArtifacts;
+      debugPrint("RemoteSync => Updated artifact position on talking mat (moved to front)");
+      notifyView();
     } else {
-      // TalkingMat - need to trigger ValueNotifier by reassigning
-      final artifacts = base.talkingmatController.value;
-      final artifact = artifacts.cast<BoardArtefact?>().firstWhere(
-        (a) => a?.savedArtefactId == savedArtefactId,
-        orElse: () => null,
-      );
-      
-      if (artifact != null) {
-        artifact.position = Offset(
-          (position['dx'] as num).toDouble(),
-          (position['dy'] as num).toDouble(),
-        );
-        
-        // Move artifact to end of list to bring it to front
-        final updatedArtifacts = List<BoardArtefact>.from(artifacts);
-        updatedArtifacts.remove(artifact);
-        updatedArtifacts.add(artifact);
-        
-        // Trigger ValueNotifier by reassigning the list
-        base.talkingmatController.value = updatedArtifacts;
-        debugPrint("RemoteSync => Updated artifact position on talking mat (moved to front)");
-        notifyView();
-      } else {
-        debugPrint("RemoteSync => Artifact $savedArtefactId not found for move");
-      }
+      debugPrint("RemoteSync => Artifact $savedArtefactId not found for move");
     }
   }
 
@@ -865,6 +948,28 @@ class RemoteArtifactBoardController {
     }
   }
 
+  void _handleFieldCountChanged(dynamic data) {
+    if (data is! Map) return;
+    if (isOwner) return;
+
+    final map = data.cast<String, dynamic>();
+    final incomingSessionId = map['sessionId'] as String?;
+    if (incomingSessionId != sessionId) return;
+
+    final count = map['count'] as int?;
+    if (count == null) return;
+
+    debugPrint("RemoteSync => Received field count changed: $count (current: ${base.linearBoardController.fieldCount})");
+
+    if (base.linearBoardController.fieldCount != count) {
+      debugPrint("RemoteSync => Updating field count from ${base.linearBoardController.fieldCount} to $count");
+      base.linearBoardController.setFieldCount(count);
+      notifyView();
+    } else {
+      debugPrint("RemoteSync => Field count already correct");
+    }
+  }
+
   // ---------------- Remote session management ----------------
 
   void _clearBoard() {
@@ -912,6 +1017,7 @@ class RemoteArtifactBoardController {
     if (!isOwner) return;
     
     debugPrint("RemoteSync => Setting up owner callbacks");
+    
     // Rebuild the TalkingMat widget with callbacks
     base.talkingMat = TalkingMat(
       key: base.talkingMatKey,
@@ -925,6 +1031,20 @@ class RemoteArtifactBoardController {
       onBoardLoaded: () {
         debugPrint("RemoteSync => Board load complete, setting up remote sync");
         _onOwnerBoardLoaded();
+      },
+    );
+    
+    // Rebuild the LinearBoard widget with callbacks
+    base.linearBoard = LinearBoard(
+      key: base.linearBoardKey,
+      linearBoardController: base.linearBoardController,
+      onArtifactRemoved: (artifact) {
+        removeArtifact(artifact);
+      },
+      onArtifactMoved: (artifact, fromIndex, toIndex) {
+        debugPrint(
+            "RemoteSync => Artifact moved in linear board: ${artifact.savedArtefactId} from $fromIndex to $toIndex");
+        _pushLinearArtifactMoved(artifact, fromIndex, toIndex);
       },
     );
   }
@@ -989,6 +1109,18 @@ class RemoteArtifactBoardController {
       }
     }
     _lastArtifactCount = currentCount;
+  }
+
+  void _onLinearBoardChanged() {
+    if (!isOwner || !base.showDirectional) return;
+    
+    final currentFieldCount = base.linearBoardController.fieldCount;
+    if (currentFieldCount != _lastFieldCount) {
+      // Field count changed, push update to remote participants
+      debugPrint("RemoteSync => Detected field count change ($_lastFieldCount -> $currentFieldCount), pushing update");
+      _pushFieldCountChanged(currentFieldCount);
+      _lastFieldCount = currentFieldCount;
+    }
   }
 
   // ---------------- Load board from backend ----------------

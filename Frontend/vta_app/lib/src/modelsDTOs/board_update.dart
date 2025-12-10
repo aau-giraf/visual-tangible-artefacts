@@ -27,4 +27,7 @@ class BoardUpdate {
 
   static BoardUpdate layout(bool isDirectional) =>
       BoardUpdate("layout", {"directional": isDirectional});
+
+  static BoardUpdate fieldCount(int count) =>
+      BoardUpdate("fieldCount", {"count": count});
 }

@@ -114,6 +114,7 @@ class SignalRService {
   void Function(dynamic data)? onArtifactMoved;
   void Function(dynamic data)? onArtifactResized;
   void Function(dynamic data)? onLayoutChanged;
+  void Function(dynamic data)? onFieldCountChanged;
 
   // ---------------- CONNECT ----------------
   Future<void> connect(String userId) async {
@@ -276,6 +277,13 @@ class SignalRService {
       debugPrint("SignalR => Calling onLayoutChanged callback");
       onLayoutChanged?.call(args[0]);
     });
+
+    _hubConnection!.on("FieldCountChanged", (args) {
+      debugPrint("SignalR => Received FieldCountChanged event");
+      if (args == null || args.isEmpty) return;
+      debugPrint("SignalR => Calling onFieldCountChanged callback");
+      onFieldCountChanged?.call(args[0]);
+    });
     
     debugPrint("SignalR: All event handlers registered successfully");
   }
@@ -351,6 +359,11 @@ class SignalRService {
   Future<void> sendLayoutChanged(dynamic data) async {
     if (!isConnected || _currentSessionId == null) return;
     await _hubConnection!.invoke("LayoutChanged", args: <Object>[data]);
+  }
+
+  Future<void> sendFieldCountChanged(dynamic data) async {
+    if (!isConnected || _currentSessionId == null) return;
+    await _hubConnection!.invoke("FieldCountChanged", args: <Object>[data]);
   }
 
   Future<void> endSession() async {
