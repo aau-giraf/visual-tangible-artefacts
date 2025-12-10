@@ -4,26 +4,19 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using SyncService.Models;
+using SyncService.Models.ArtifactAdded;
 using VTA.API.DbContexts;
 using VTA.API.Models;
 
 namespace SyncService.Hubs
 {
     [Authorize]
-    public class BoardHub(IConfiguration configuration, VTAContext dbContext) : Hub
+    public class BoardHub(VTAContext dbContext) : Hub
     {
         private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId
         private static readonly Dictionary<string, BoardSession> boardSessions = new(); // sessionId -> session
-
-        public class BoardSession
-        {
-            public required string SessionId { get; init; }
-            public required string User1Id { get; init; }
-            public required string User2Id { get; init; }
-            public required string BoardId { get; init; }
-            public HashSet<string> Connections { get; set; } = new();
-        }
-
+        
         public async Task RegisterUser(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
@@ -155,20 +148,64 @@ namespace SyncService.Hubs
 
         public async Task ArtifactAdded(JsonElement data)
         {
-            string? sessionId = null;
-            if (data.TryGetProperty("sessionId", out var sessionIdProp))
+            var payload = data.Deserialize<ArtifactAddedPayload>(new JsonSerializerOptions
             {
-                sessionId = sessionIdProp.GetString();
-            }
+                PropertyNameCaseInsensitive = true
+            });
 
-            if (string.IsNullOrEmpty(sessionId))
+            if (string.IsNullOrEmpty(payload?.SessionId))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: Missing sessionId. Data: {data}");
                 return;
             }
 
-            Console.WriteLine($"[Hub] ArtifactAdded => sessionId={sessionId}");
-            await Clients.OthersInGroup(sessionId).SendAsync("ArtifactAdded", data);
+            var artifact = payload.Artifact;
+
+            var userId = Context.User?.FindFirst("id")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                Console.WriteLine($"[Hub] ArtifactAdded: Unauthorized - no user ID in context");
+                return;
+            }
+
+            var dbArtefact = await dbContext.Artefacts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.ArtefactId == artifact.Id && a.UserId == userId);
+
+            if (dbArtefact is null)
+            {
+                Console.WriteLine($"[Hub] ArtifactAdded: Artefact not found or doesn't belong to user. ArtefactId={artifact.SavedArtefactId}, UserId={userId}");
+                return;
+            }
+            
+            // Construct expected URLs from database paths
+            var httpContext = Context.GetHttpContext();
+            var scheme = httpContext?.Request.Scheme ?? "http";
+            var host = httpContext?.Request.Host.ToString() ?? "localhost";
+
+            var expectedImageUrl = string.IsNullOrEmpty(dbArtefact.ImagePath)
+                ? null
+                : scheme + "://" + host + dbArtefact.ImagePath;
+            
+            // Verify artifact image and sound URLs match the data from the request
+            if (artifact.ImageUrl != expectedImageUrl)
+            {
+                Console.WriteLine($"[Hub] ArtifactAdded: ImageUrl mismatch. Expected={expectedImageUrl}, Received={artifact.ImageUrl}");
+                return;
+            }
+            
+            var expectedSoundUrl = string.IsNullOrEmpty(dbArtefact.SoundPath)
+                ? null
+                : scheme + "://" + host + dbArtefact.SoundPath;
+
+            if (artifact.SoundUrl != expectedSoundUrl)
+            {
+                Console.WriteLine($"[Hub] ArtifactAdded: SoundUrl mismatch. Expected={expectedSoundUrl}, Received={artifact.SoundUrl}");
+                return;
+            }
+
+            Console.WriteLine($"[Hub] ArtifactAdded => sessionId={payload.SessionId}, verified artefact={artifact.Id}");
+            await Clients.OthersInGroup(payload.SessionId).SendAsync("ArtifactAdded", data);
         }
 
         public async Task ArtifactRemoved(JsonElement data)
