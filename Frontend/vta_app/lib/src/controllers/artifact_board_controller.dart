@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
 import 'package:get_it/get_it.dart';
@@ -10,6 +9,7 @@ import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:vta_app/src/models/board_model.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
@@ -17,6 +17,10 @@ import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 typedef VoidCallback = void Function();
 
 class ArtifactBoardController with ArtefactSoundPlayer {
+  // Multi-Board Management
+  List<Board> availableBoards = [];
+  late Board activeBoard;
+
   bool showDirectional = false;
   TalkingMat? talkingMat;
   LinearBoard? linearBoard;
@@ -87,6 +91,17 @@ class ArtifactBoardController with ArtefactSoundPlayer {
     _setupLinearBoardController();
     getCurrentBoardStatus();
 
+    // Initialize Multi-Board
+    if (availableBoards.isEmpty) {
+      final initialBoard = Board(
+        title: 'Hovedtavle', 
+        showDirectional: showDirectional,
+        linearBoardFieldCount: linearBoardFieldCount ?? 4,
+      );
+      availableBoards.add(initialBoard);
+      activeBoard = initialBoard;
+    }
+
     // Apply initial setting for text under images (default false)
     talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
     // Listen for changes to settings and sync name visibility
@@ -102,6 +117,89 @@ class ArtifactBoardController with ArtefactSoundPlayer {
     notifyView();
   }
 
+  // --- Multi-Board Methods ---
+
+  void createBoard(String title) {
+    _saveActiveBoardState();
+    
+    final newBoard = Board(
+      title: title,
+      showDirectional: showDirectional,
+      linearBoardFieldCount: linearBoardFieldCount ?? 4,
+    );
+    
+    availableBoards.add(newBoard);
+    switchBoard(newBoard.id);
+  }
+
+  void deleteBoard(String boardId) {
+    if (availableBoards.length <= 1) return; // Prevent deleting last board
+
+    // If deleting active board, switch first
+    if (activeBoard.id == boardId) {
+      final otherBoard = availableBoards.firstWhere((b) => b.id != boardId);
+      switchBoard(otherBoard.id);
+    }
+    
+    availableBoards.removeWhere((b) => b.id == boardId);
+    notifyView();
+  }
+
+  void switchBoard(String boardId) {
+    if (activeBoard.id == boardId) return;
+    
+    final newBoard = availableBoards.firstWhere(
+      (b) => b.id == boardId, 
+      orElse: () => activeBoard
+    );
+    
+    if (newBoard != activeBoard) {
+      _saveActiveBoardState();
+      _switchToBoard(newBoard);
+    }
+  }
+
+  void _switchToBoard(Board board) {
+    activeBoard = board;
+    _loadBoardState(board);
+    notifyView();
+  }
+
+  void _saveActiveBoardState() {
+    activeBoard.talkingMatArtifacts = List.from(talkingmatController.value);
+    activeBoard.linearBoardArtifacts = List.from(linearBoardController.artifacts);
+    activeBoard.showDirectional = showDirectional;
+    activeBoard.linearBoardFieldCount = linearBoardFieldCount ?? 4;
+  }
+
+  void _loadBoardState(Board board) {
+    // Update view mode
+    if (showDirectional != board.showDirectional) {
+      showDirectional = board.showDirectional;
+      SettingsService().updateShowDirectionalBoard(showDirectional);
+    }
+    
+    // Update Linear Board Field Count
+    if (board.linearBoardFieldCount != linearBoardFieldCount) {
+       linearBoardFieldCount = board.linearBoardFieldCount;
+       linearBoardController.setFieldCount(linearBoardFieldCount!);
+    }
+    
+    // Update Linear Board Artifacts
+    // Create a list of correct size
+    List<BoardArtefact?> newLinearArtifacts = List.filled(linearBoardFieldCount!, null);
+    for (int i = 0; i < newLinearArtifacts.length; i++) {
+      if (i < board.linearBoardArtifacts.length) {
+        newLinearArtifacts[i] = board.linearBoardArtifacts[i];
+      }
+    }
+    
+    // Restore the controller's artifacts. 
+    linearBoardController.restoreArtifacts(newLinearArtifacts);
+    
+    // Update Talking Mat
+    talkingmatController.value = List.from(board.talkingMatArtifacts);
+  }
 
   /// Function for setting up the linear board
   void _setupLinearBoardController() async {

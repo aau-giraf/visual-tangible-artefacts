@@ -15,11 +15,22 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final sharedUsernameController = TextEditingController();
   final sharedPasswordController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController guardianKeyController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _loginErrorMessage;
   String? _signupErrorMessage;
+
+  @override
+  void dispose() {
+    sharedUsernameController.dispose();
+    sharedPasswordController.dispose();
+    nameController.dispose();
+    guardianKeyController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,12 +266,11 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _signupForm(AuthController controller) {
     final TextEditingController nameController = TextEditingController();
-    final TextEditingController guardianKeyController = TextEditingController();
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    bool _obscureSignupPassword = true;
+    bool obscureSignupPassword = true;
     
     // Password strength calculation
-    String? _getPasswordStrength(String password) {
+    String? getPasswordStrength(String password) {
       if (password.isEmpty) return null;
       int strength = 0;
       if (password.length >= 6) strength++;
@@ -275,8 +285,8 @@ class _LoginViewState extends State<LoginView> {
       return 'Stærkt';
     }
     
-    Color? _getPasswordStrengthColor(String password) {
-      final strength = _getPasswordStrength(password);
+    Color? getPasswordStrengthColor(String password) {
+      final strength = getPasswordStrength(password);
       if (strength == null) return null;
       if (strength == 'Svagt') return Colors.red;
       if (strength == 'Mellem') return Colors.orange;
@@ -335,11 +345,11 @@ class _LoginViewState extends State<LoginView> {
                 prefixIcon: Icon(Icons.lock),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureSignupPassword ? Icons.visibility : Icons.visibility_off,
+                    obscureSignupPassword ? Icons.visibility : Icons.visibility_off,
                   ),
                   onPressed: () {
                     setState(() {
-                      _obscureSignupPassword = !_obscureSignupPassword;
+                      obscureSignupPassword = !obscureSignupPassword;
                     });
                   },
                 ),
@@ -351,11 +361,11 @@ class _LoginViewState extends State<LoginView> {
                   borderSide: BorderSide(color: Colors.red),
                 ),
                 helperText: sharedPasswordController.text.isNotEmpty
-                    ? 'Styrke: ${_getPasswordStrength(sharedPasswordController.text)}'
+                    ? 'Styrke: ${getPasswordStrength(sharedPasswordController.text)}'
                     : null,
                 helperMaxLines: 2,
               ),
-              obscureText: _obscureSignupPassword,
+              obscureText: obscureSignupPassword,
               onChanged: (_) {
                 setState(() {}); // Update password strength indicator 
               },
@@ -378,18 +388,18 @@ class _LoginViewState extends State<LoginView> {
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: LinearProgressIndicator(
-                  value: _getPasswordStrength(sharedPasswordController.text) == 'Svagt' ? 0.33
-                      : _getPasswordStrength(sharedPasswordController.text) == 'Mellem' ? 0.66 : 1.0,
+                  value: getPasswordStrength(sharedPasswordController.text) == 'Svagt' ? 0.33
+                      : getPasswordStrength(sharedPasswordController.text) == 'Mellem' ? 0.66 : 1.0,
                   backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    _getPasswordStrengthColor(sharedPasswordController.text) ?? Colors.grey,
+                    getPasswordStrengthColor(sharedPasswordController.text) ?? Colors.grey,
                   ),
                 ),
               ),
             ],
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
-            TextFormField(
-              controller: nameController,
+          TextFormField(
+            controller: nameController,
               decoration: InputDecoration(
                 labelText: 'Navn',
                 prefixIcon: Icon(Icons.badge),
@@ -415,8 +425,8 @@ class _LoginViewState extends State<LoginView> {
               },
             ),
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
-            TextFormField(
-              controller: guardianKeyController,
+          TextFormField(
+            controller: guardianKeyController,
               decoration: InputDecoration(
                 labelText: 'Værgenøgle',
                 prefixIcon: Icon(Icons.vpn_key),
@@ -480,9 +490,8 @@ class _LoginViewState extends State<LoginView> {
                           final username = sharedUsernameController.text.trim();
                           final password = sharedPasswordController.text;
                           final name = nameController.text.trim();
-                          final guardianKey = guardianKeyController.text.trim();
                           await controller.signup(
-                              username, password, name, guardianKey,
+                              username, password, name,
                               context: context);
                         } catch (e) {
                           if (parentState.mounted) {

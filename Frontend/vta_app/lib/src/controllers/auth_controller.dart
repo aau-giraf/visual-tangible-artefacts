@@ -4,7 +4,7 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
-import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/ui/screens/welcome_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 
 /// Used to control the authentication process and store authentication data
@@ -32,11 +32,11 @@ class AuthController extends ChangeNotifier {
       if (context != null && context.mounted) {
         _showSuccessSnackBar(context, 'Login succesfuldt! Velkommen tilbage.');
         await artifactController.updateArtifacts(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
         await artifactController.updateMostUsedCategories(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
         Navigator.of(context)
-            .pushReplacementNamed(ArtifactBoardScreen.routeName);
+            .pushReplacementNamed(WelcomeScreen.routeName);
       }
     } catch (e) {
       if (context != null && context.mounted) {
@@ -65,16 +65,11 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Signs up the user with the provided [email] and [password]
-  Future<void> signup(
-      String username, String password, String name, String guardianKey,
+  /// Signs up the user with the provided [username], [password], and [name]
+  Future<void> signup(String username, String password, String name,
       {BuildContext? context}) async {
     try {
-      var form = SignupForm(
-          username: username,
-          password: password,
-          name: name,
-          guardianKey: guardianKey);
+      var form = SignupForm(username: username, password: password, name: name);
       await _model.signup(form);
       if (context != null && context.mounted) {
         _showSuccessSnackBar(context, 'Bruger oprettet succesfuldt! Du kan nu logge ind.');

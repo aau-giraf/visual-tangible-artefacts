@@ -1,5 +1,5 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
@@ -31,8 +31,13 @@ void main() async {
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
 
-  // Load global configuration from assets/cfg/app_settings.json
-  await GlobalConfiguration().loadFromAsset("app_settings");
+  try {
+    // Load global configuration from assets/cfg/app_settings.json
+    await GlobalConfiguration().loadFromAsset("app_settings");
+  } catch (e) {
+    debugPrint('Error loading configuration: $e');
+    // Continue anyway - will use fallback URL
+  }
 
   // Set up global token with GetIt
   GetIt.I.registerSingleton<Token>(Token());
@@ -41,9 +46,15 @@ void main() async {
   var userInfo = GetIt.I.get<UserInfo>();
 
   // Set up the providers
-  final apiProvider = ApiProvider(
-      baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['Remote']);
+  String baseUrl;
+  try {
+    baseUrl = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['Remote'] 
+        ?? 'http://localhost:5192/api/';
+  } catch (e) {
+    debugPrint('Error reading API URL from config: $e');
+    baseUrl = 'http://localhost:5192/api/';
+  }
+  final apiProvider = ApiProvider(baseUrl: baseUrl);
   GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
   // Set up the controllers

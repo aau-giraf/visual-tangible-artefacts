@@ -7,7 +7,7 @@ import '../ui/widgets/board/board_artifact.dart';
 class LinearBoardController extends ChangeNotifier {
   List<BoardArtefact?> artifacts;
   int fieldCount;
-  Function(BoardArtefact)? _onArtefactAdded;
+  final Function(BoardArtefact)? _onArtefactAdded;
 
   LinearBoardController({
     required this.artifacts,
@@ -148,5 +148,11 @@ class LinearBoardController extends ChangeNotifier {
   /// Setter for the board full callback
   void setBoardFullCallback(VoidCallback callback) {
     _boardFullCallback = callback;
+  }
+
+  /// Restore artifacts from a saved state
+  void restoreArtifacts(List<BoardArtefact?> newArtifacts) {
+    artifacts = newArtifacts;
+    notifyListeners();
   }
 }

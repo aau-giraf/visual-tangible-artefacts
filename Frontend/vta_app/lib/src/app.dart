@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/ui/screens/welcome_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/views/splash_view.dart';
 import 'package:vta_app/theme/app_theme.dart';
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
           key: const ValueKey('MaterialApp'), // Stable key to preserve Navigator state
+          initialRoute: SplashView.routeName,
           theme: ThemeData(
             inputDecorationTheme: AppTheme.getInputDecorationTheme(context),
           ),
@@ -63,8 +65,13 @@ class MyApp extends StatelessWidget {
           //
           // The appTitle is defined in .arb files found in the localization
           // directory.
-          onGenerateTitle: (BuildContext context) =>
-              AppLocalizations.of(context)!.appTitle,
+          onGenerateTitle: (BuildContext context) {
+            try {
+              return AppLocalizations.of(context)?.appTitle ?? 'VTA App';
+            } catch (e) {
+              return 'VTA App';
+            }
+          },
 
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
@@ -86,6 +93,12 @@ class MyApp extends StatelessWidget {
                     return LoginView(controller: authController);
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
+                  case WelcomeScreen.routeName:
+                    return WelcomeScreen(
+                      authController: authController,
+                      artifactController: artifactController,
+                      settingsController: settingsController,
+                    );
                   case ArtifactBoardScreen.routeName:
                     return ArtifactBoardScreen(
                       artifactController: artifactController,

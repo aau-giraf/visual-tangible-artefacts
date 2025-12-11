@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'login_screen.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
   @override
-  _SignupPageState createState() => _SignupPageState();
+  SignupPageState createState() => SignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage> {
+class SignupPageState extends State<SignupPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final ApiProvider apiProvider =
-      ApiProvider(baseUrl: 'https://api.giraf.live/api');
 
   Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
@@ -59,7 +57,7 @@ class _SignupPageState extends State<SignupPage> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     spreadRadius: 5,
                     blurRadius: 15,
                     offset: Offset(0, 5),
@@ -81,6 +79,25 @@ class _SignupPageState extends State<SignupPage> {
                     SizedBox(height: 32),
                     TextFormField(
                       controller: _usernameController,
+                      decoration: InputDecoration(
+                        labelText: 'Brugernavn',
+                        filled: true,
+                        fillColor: Colors.grey.shade200,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Indtast venligst dit brugernavn';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      controller: _nameController,
                       decoration: InputDecoration(
                         labelText: 'Navn',
                         filled: true,
