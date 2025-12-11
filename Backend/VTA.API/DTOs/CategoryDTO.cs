@@ -2,6 +2,8 @@
 
 public partial class CategoryPostDTO
 {
+    public string? CategoryId { get; set; }
+    
     public byte? CategoryIndex { get; set; }
 
     public required string UserId { get; set; }

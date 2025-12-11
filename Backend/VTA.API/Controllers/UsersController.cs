@@ -11,6 +11,9 @@ using VTA.API.Models;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
+/// <summary>
+/// Controller responsible for user-related endpoints.
+/// </summary>
 //Mark the entire controller to require a valid token
 [Authorize]
 [Route("api/Users")]//Define where all endpoints are
@@ -36,7 +39,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             .AsNoTracking() // Read-only query for login
             .FirstOrDefaultAsync( //find the first user
             u => u.Username == userLoginForm.Username);//where the users (u) username (.username) in the database matches userLoginForm.Username
-        
+
         if (user == null)//If user not found
         {
             return NotFound();
@@ -86,6 +89,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         context.Users.Add(user);
+
+        var defaultBoard = new SavedBoard
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Board1",
+            UserId = user.Id,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        context.SavedBoards.Add(defaultBoard);
+
         try
         {
             await context.SaveChangesAsync();
@@ -104,7 +118,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
         return await AutoSignIn(user);
     }
-    
+
     /// <summary>
     /// Requested by the front-end. The intended functionality is pretty clear.
     /// </summary>
@@ -238,6 +252,8 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var user = await context.Users
             .Include(u => u.Categories)
                 .ThenInclude(c => c.Artefacts)
+            .Include(u => u.SavedBoards)
+                .ThenInclude(sb => sb.SavedArtefacts)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
@@ -260,6 +276,31 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
                 catch { }
             }
             ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
+        }
+
+        // Delete saved boards and their data
+        foreach (var savedBoard in user.SavedBoards.ToList())
+        {
+            // Delete snapshot file if it exists
+            if (!string.IsNullOrEmpty(savedBoard.SnapshotPath))
+            {
+                try
+                {
+                    var snapshotPath = Path.Combine("wwwroot", savedBoard.SnapshotPath.TrimStart('/'));
+                    if (System.IO.File.Exists(snapshotPath))
+                    {
+                        System.IO.File.Delete(snapshotPath);
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var savedArtefact in savedBoard.SavedArtefacts.ToList())
+            {
+                context.SavedArtefacts.Remove(savedArtefact);
+            }
+
+            context.SavedBoards.Remove(savedBoard);
         }
 
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat

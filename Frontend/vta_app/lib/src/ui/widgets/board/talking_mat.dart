@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -35,7 +34,7 @@ class TalkingMat extends StatefulWidget {
   createState() => TalkingMatState();
 }
 
-class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, WidgetsBindingObserver {
+class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
   late List<BoardArtefact> artifacts;
   // z-order: attached per artefact instance (supports duplicates)
   final Expando<int> _zOrder = Expando<int>('z');
@@ -52,12 +51,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   
   // Debounce timer for auto-save
   Timer? _saveTimer;
-  // Periodic safety auto-save timer
-  Timer? _periodicSaveTimer;
-  // Inhibit auto-save while delete/clear operations are in progress to avoid races
-  bool _inhibitAutoSave = false;
-  // Track last saved layout data to detect changes
-  Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
 
   @override
   void initState() {
@@ -76,16 +69,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       curve: Curves.easeIn,
     ));
 
-    // Add observer for app lifecycle changes
-    WidgetsBinding.instance.addObserver(this);
-
-    // Set up periodic safety auto-save every 30 seconds
-    _periodicSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (artifacts.isNotEmpty && !_inhibitAutoSave) {
-        _autoSaveBoardLayout();
-      }
-    });
-
     // Try to load the current board on initialization
     _loadCurrentBoard();
   }
@@ -95,11 +78,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     _animationController.dispose();
     _audioPlayer.dispose();
     _saveTimer?.cancel();
-    _periodicSaveTimer?.cancel();
-    
-    // Remove observer for app lifecycle changes
-    WidgetsBinding.instance.removeObserver(this);
-    
     super.dispose();
   }
 
@@ -112,9 +90,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         _scheduleAutoSave();
       });
     });
-    
-    // Auto-save immediately when a new artefact is added to the board
-    _immediateAutoSave();
   }
 
   // Removes artefact by artefactId
@@ -122,9 +97,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     setState(() {
       artifacts.removeWhere((artifact) => artifact.artefactId == artefactId);
     });
-    
-    // Auto-save when an artefact is removed
-    _immediateAutoSave();
   }
 
   void removeAllArtifacts() {
@@ -148,9 +120,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                   artifacts.clear();
                 });
                 Navigator.of(context).pop(); // Close the dialog
-                
-                // Auto-save when all artefacts are removed
-                _immediateAutoSave();
               },
             ),
           ],
@@ -281,7 +250,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     }
 
     // If no current board ID, create a default board first
-    if (_currentBoardId == null) {
+      if (_currentBoardId == null) {
       await _createDefaultBoard();
       if (_currentBoardId == null) {
         return;
@@ -322,20 +291,43 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         final updatedBoard = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
         if (updatedBoard != null) {
           // Map returned saved IDs onto local instances
+      // Send the whole board as a single request (POST to create, PUT to update)
+      final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
+
+      if (_currentBoardId == null) {
+        final response = await _boardLayoutService.saveBoard(saveRequest);
+          if (response != null) {
+          _currentBoardId = response.boardId;
+          // map returned saved artefact ids back onto local artifacts
           try {
-            _assignReturnedSavedIdsToLocal(updatedBoard.artefacts);
-          } catch (e) {
-            print('Debug: Error mapping returned saved ids after update: $e');
-          }
+            final current = widget.controller.value;
+            final returned = response.artefacts;
+            final count = math.min(current.length, returned.length);
+            for (var i = 0; i < count; i++) {
+              current[i].savedArtefactId = returned[i].savedArtefactId;
+            }
+          } catch (_) {}
         } else {
-          print('Debug: Failed to update board to create missing artefact instances');
+          // auto-save (create) failed
+        }
+      } else {
+        final response = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
+        if (response != null) {
+          // map returned saved artefact ids (in case of reordering/new instances)
+          try {
+            final current = widget.controller.value;
+            final returned = response.artefacts;
+            final count = math.min(current.length, returned.length);
+            for (var i = 0; i < count; i++) {
+              current[i].savedArtefactId = returned[i].savedArtefactId;
+            }
+          } catch (_) {}
+        } else {
+          // auto-save (update) failed
         }
       }
-
-      // Update tracking after successful save
-      _updateLastSavedLayouts(layoutData);
     } catch (e) {
-      // Silently handle auto-save errors
+      // error auto-saving board layout
     }
   }
 
@@ -351,23 +343,23 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         );
         
         _currentBoardId = currentBoard.boardId;
-        
-        // Actually restore the board layout on startup
+        // restore the board layout on startup
         await _restoreArtefactsFromBoard(currentBoard);
       }
     } catch (e) {
+      // no existing boards found or error loading
       // This is fine - a new board will be created when first needed
     }
   }
 
   /// Restore artefacts from a saved board layout
   Future<void> _restoreArtefactsFromBoard(BoardLayoutResponse boardLayout) async {
-    // Try to match saved artefacts to existing local instances first (by artefactId + closest position)
-  // Do NOT clear the controller here — we want to match against the current local instances
-  final current = widget.controller.value;
-    final unmatchedLocal = <BoardArtefact>[];
-    unmatchedLocal.addAll(current);
-
+    // restoring artefact instances from saved board
+    
+    // Clear the current board first to avoid conflicts
+    widget.controller.value.clear();
+    
+    // Add each saved artefact instance to the board
     for (final artefactLayout in boardLayout.artefacts) {
       try {
         // Find the best local match: same artefactId and smallest distance between positions
@@ -405,7 +397,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
           await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
         }
       } catch (e) {
-        // Silently handle restoration errors
+        // error restoring artefact instance
       }
     }
     
@@ -419,7 +411,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       // Get token for API call
       final token = GetIt.instance.get<Token>();
       if (token.value == null) {
-        print('Debug: No auth token available for fetching artefact');
         return;
       }
 
@@ -428,7 +419,6 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final artefact = await artifactRepository.fetchArtefact(artefactId, token: token.value!);
       
       if (artefact == null) {
-        print('Debug: Could not fetch artefact $artefactId from API');
         return;
       }
 
@@ -438,9 +428,9 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         headers: {'Authorization': 'Bearer ${token.value}'},
       );
 
-  // Set the position and size from the saved layout
-  boardArtefact.position = Offset(layout.posX, layout.posY);
-  boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
+      // Set the position and size from the saved layout
+      boardArtefact.position = Offset(layout.posX, layout.posY);
+      boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
   // Set the saved instance id so future updates target this specific instance
   boardArtefact.savedArtefactId = layout.savedArtefactId;
   
@@ -454,42 +444,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       widget.controller.addArtifact(boardArtefact);
       
     } catch (e) {
-      // Silently handle artefact addition errors
+      // error adding artefact to board
     }
-  }
-
-  /// Assign returned savedArtefactIds (from server) to local BoardArtefact instances by best-match
-  void _assignReturnedSavedIdsToLocal(List<BoardArtefactLayout> returned) {
-    final current = widget.controller.value;
-    final unmatchedLocal = <BoardArtefact>[]..addAll(current);
-
-    for (final artefactLayout in returned) {
-      BoardArtefact? best;
-      double bestDist = double.infinity;
-      for (final local in unmatchedLocal) {
-        if (local.baseArtefact?.artefactId == artefactLayout.artefactId && local.savedArtefactId == null) {
-          final localPos = local.position ?? Offset.zero;
-          final dx = localPos.dx - artefactLayout.posX;
-          final dy = localPos.dy - artefactLayout.posY;
-          final dist = dx * dx + dy * dy;
-          if (dist < bestDist) {
-            bestDist = dist;
-            best = local;
-          }
-        }
-      }
-
-      if (best != null) {
-        setState(() {
-          best!.savedArtefactId = artefactLayout.savedArtefactId;
-        });
-        unmatchedLocal.remove(best);
-      }
-    }
-    
-    // Update tracking after assigning saved IDs
-    final layoutData = _getCurrentBoardLayout();
-    _updateLastSavedLayouts(layoutData);
   }
 
   /// Create a default board for auto-saving
@@ -506,18 +462,22 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
-        // Map returned saved artefact instance ids back onto the local artifacts by best-match
+        // Map returned saved artefact instance ids back onto the local artifacts
         try {
-          _assignReturnedSavedIdsToLocal(response.artefacts);
+          final current = widget.controller.value;
+          final returned = response.artefacts;
+          final count = math.min(current.length, returned.length);
+          for (var i = 0; i < count; i++) {
+            current[i].savedArtefactId = returned[i].savedArtefactId;
+          }
         } catch (_) {
           // ignore mapping errors
         }
       } else {
-        print('Debug: Failed to create default board');
+        // failed to create default board
       }
     } catch (e) {
-      print('Debug: Error creating default board: $e');
+      // error creating default board
     }
   }
 
@@ -531,6 +491,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
         .map((artifact) {
       final position = artifact.position ?? Offset.zero;
       final size = artifact.sizeNotifier.value;
+      
+      // saving artifact layout
 
       return BoardArtefactLayout(
         savedArtefactId: artifact.savedArtefactId,
@@ -543,6 +505,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       );
     }).toList();
     
+    // valid artifacts for saving: ${validArtifacts.length}
     return validArtifacts;
   }
 
@@ -559,16 +522,21 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
-        // Map returned saved artefact instance ids back onto local artifacts by best-match
+        // saved board
+        // Map returned saved artefact instance ids back onto local artifacts
         try {
-          _assignReturnedSavedIdsToLocal(response.artefacts);
+          final current = widget.controller.value;
+          final returned = response.artefacts;
+          final count = math.min(current.length, returned.length);
+          for (var i = 0; i < count; i++) {
+            current[i].savedArtefactId = returned[i].savedArtefactId;
+          }
         } catch (_) {}
 
         return response.boardId;
       }
     } catch (e) {
-      print('Debug: Error saving board: $e');
+      // error saving board
     }
     return null;
   }
@@ -579,11 +547,25 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
       final boardLayout = await _boardLayoutService.getBoard(boardId);
       if (boardLayout != null) {
         _currentBoardId = boardId;
-        await _restoreArtefactsFromBoard(boardLayout);
-        print('Debug: Loaded board "${boardLayout.name}" with ${boardLayout.artefacts.length} artefacts');
+        
+        // Update artifact positions and sizes using the controller's artifacts
+        final currentArtifacts = widget.controller.value;
+        for (final artefactLayout in boardLayout.artefacts) {
+          final artifact = currentArtifacts.firstWhere(
+            (a) => a.baseArtefact?.artefactId == artefactLayout.artefactId,
+            orElse: () => throw StateError('Artefact not found'),
+          );
+          
+          setState(() {
+            artifact.position = Offset(artefactLayout.posX, artefactLayout.posY);
+            artifact.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
+          });
+        }
+        
+        // loaded board
       }
     } catch (e) {
-      print('Debug: Error loading board: $e');
+      // error loading board
     }
   }
 
@@ -592,7 +574,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     try {
       return await _boardLayoutService.getBoards();
     } catch (e) {
-      print('Debug: Error getting saved boards: $e');
+      // error getting saved boards
       return null;
     }
   }
@@ -626,7 +608,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
     return insideHoriz && insideVert;
   }
 
-  // name offset calculation based on text
+  // name offset calculation based on text metrics
   double _getNameDisplayOffset(String name, BuildContext context) {
     if (name.isEmpty) return 0.0;
     final TextPainter textPainter = TextPainter(
@@ -755,27 +737,11 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                 );
               }).toList();
 
-              return DragTarget<BoardArtefact>(
-                onWillAcceptWithDetails: (details) => true,
-                onMove: (details) {
-                  final artefact = details.data;
-                  // Adjust anchoring if name is shown so pointer aligns with image
-                  Offset adjusted = details.offset;
-                  if (artefact.nameVisible == true) {
-                    final double nameOffset = _getNameDisplayOffset(
-                      artefact.baseArtefact?.name ?? '',
-                      context,
-                    );
-                    adjusted = Offset(details.offset.dx, details.offset.dy - nameOffset);
-                  }
-                  _updateArtifactPosition(artefact, adjusted);
-                },
-                builder: (context, candidate, rejected) {
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      ...itemWidgets,
-                      Align(
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ...itemWidgets,
+                  Align(
                     alignment: Alignment.lerp(
                             Alignment.bottomCenter, Alignment.center, 0.1) ??
                         Alignment.bottomCenter,
@@ -814,16 +780,13 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                           if (shouldDelete == true) {
                             // If we have a saved board id, attempt server-side clear first
                             if (_currentBoardId != null) {
-                              _inhibitAutoSave = true;
                               try {
                                 final ok = await _boardLayoutService.deleteAllSavedArtefacts(_currentBoardId!);
                                 if (!ok) {
-                                  print('Debug: Server failed to clear board ${_currentBoardId}');
+                                  // server failed to clear board
                                 }
                               } catch (e) {
-                                print('Debug: Error clearing board on server: $e');
-                              } finally {
-                                _inhibitAutoSave = false;
+                                // error clearing board on server
                               }
                             }
 
@@ -842,45 +805,26 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                           },
                           onAcceptWithDetails: (details) async {
                             var artefact = details.data;
+
                             // Persist deletion on server if we have a board id and a saved instance id
                             try {
                               if (_currentBoardId != null && artefact.savedArtefactId != null) {
-                                // prevent auto-save races while we delete
-                                _inhibitAutoSave = true;
-                                try {
-                                  final success = await _boardLayoutService.deleteSavedArtefact(
-                                    _currentBoardId!,
-                                    artefact.savedArtefactId!,
-                                  );
+                                final success = await _boardLayoutService.deleteSavedArtefact(
+                                  _currentBoardId!,
+                                  artefact.savedArtefactId!,
+                                );
 
-                                  if (!success) {
-                                    print('Debug: Failed to delete saved artefact ${artefact.savedArtefactId} on server');
-                                    // Still remove locally to reflect user's action, but log for further debugging
-                                  }
-                                } finally {
-                                  _inhibitAutoSave = false;
+                                if (!success) {
+                                  // failed to delete saved artefact on server
                                 }
                               }
                             } catch (e) {
-                              print('Debug: Error while deleting saved artefact on server: $e');
+                              // error while deleting saved artefact on server
                             }
-                            // If session artefact, controller delete it server-side first. Only remove locally after confirmation.
-                            if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
-                              try {
-                                final artefactController = GetIt.instance.get<ArtefactController>();
-                                final deleted = await artefactController.deleteArtefact(context, artefact.baseArtefact!);
-                                if (deleted) {
-                                  widget.controller.removeArtifact(artefact);
-                                } else {
-                                  // Leave on board
-                                }
-                              } catch (e) {
-                                debugPrint('Failed to delete session artefact from server: $e');
-                              }
-                            } else {
-                              // Non-session artefacts are removed locally immediately
-                              widget.controller.removeArtifact(artefact);
-                            }
+
+                            // Remove from the local controller (this updates the UI)
+                            widget.controller.removeArtifact(artefact);
+
                             _animationController.reverse();
                             _animationController.addStatusListener((status) {
                               if (status == AnimationStatus.dismissed) {
@@ -912,10 +856,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                         ),
                       ),
                     ]),
-                      ),
-                    ],
-                  );
-                },
+                  ),
+                ],
               );
             },
           ),

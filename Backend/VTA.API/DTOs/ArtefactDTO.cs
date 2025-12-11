@@ -1,10 +1,17 @@
-﻿namespace VTA.API.DTOs;
+﻿using System.Text.Json.Serialization;
+
+namespace VTA.API.DTOs;
 
 /// <summary>
 /// DTO for creating a new artefact
 /// </summary>
 public partial class ArtefactPostDTO
 {
+    /// <summary>
+    /// The ID of the artefact (optional - if not provided, a new GUID will be generated)
+    /// </summary>
+    public string? ArtefactId { get; set; }
+    
     /// <summary>
     /// The index of the artefact
     /// </summary>
@@ -97,6 +104,7 @@ public partial class ArtefactGetDTO
     /// <summary>
     /// The unique identifier of the artefact
     /// </summary>
+    [JsonPropertyName("artefactId")]
     public string ArtefactId { get; set; } = null!;
 
     /// <summary>
@@ -127,11 +135,13 @@ public partial class ArtefactGetDTO
     /// <summary>
     /// The URL to the artefact's image
     /// </summary>
+    [JsonPropertyName("imageUrl")]
     public string? ImageUrl { get; set; }
     
     /// <summary>
     /// The URL to the artefact's sound
     /// </summary>
+    [JsonPropertyName("soundUrl")]
     public string? SoundUrl { get; set; }
 }
 

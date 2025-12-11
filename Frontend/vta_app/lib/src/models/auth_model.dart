@@ -90,11 +90,11 @@ class AuthModel {
         userInfo.userId = model.userId;
         cacheData(token: token.value, userId: userInfo.userId);
       } else {
-        throw Exception(
-            'Signup failed with status code: ${response?.statusCode}');
+        // Use proper status code error handling
+        _throwAuthException(response?.statusCode);
       }
     } catch (e) {
-      debugPrint('$e');
+      debugPrint('[AUTH-MODEL] Signup error: $e');
       rethrow;
     }
   }

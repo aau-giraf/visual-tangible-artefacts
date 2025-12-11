@@ -134,6 +134,7 @@ CREATE TABLE savedArtefact (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
+
 -- Username is frequently used for login lookups
 CREATE INDEX idx_user_username ON user(username);
 

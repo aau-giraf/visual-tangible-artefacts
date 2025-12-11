@@ -9,7 +9,7 @@ namespace VTA.API.Utilities;
 public class ElevenLabsService
 {
     private const string BaseUrl = "https://api.elevenlabs.io/v1";
-    private const string DefaultVoiceId = "Bj9UqZbhQsanLzgalpEG"; // Danish voice
+    public const string DefaultVoiceId = "Bj9UqZbhQsanLzgalpEG"; // Danish voice
     private const string DefaultModelId = "eleven_turbo_v2_5"; // Turbo multilingual model for better language support
 
     private readonly HttpClient _httpClient;

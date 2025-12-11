@@ -36,11 +36,14 @@ abstract class ApiDataRepository {
 
 class AuthRepository extends ApiDataRepository {
   Future<LoginResponse?> login(String username, String password) async {
-    try {
-      var loginForm = LoginForm(username: username, password: password);
+    var loginForm = LoginForm(username: username, password: password);
 
-      final response =
-          await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
+    final response =
+        await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
+    
+    // responseOk() will throw exception for 401, 500, etc. or return true for success
+    // It should never return false, but if it does, we'll handle it
+    try {
       if (responseOk(response)) {
         var loginResponse = LoginResponse.fromJson(json.decode(response!.body));
         if (loginResponse.token != null) {
@@ -52,11 +55,13 @@ class AuthRepository extends ApiDataRepository {
           throw Exception('Login response received, but token is null.');
         }
       } else {
-        return null;
+        // This should never happen since responseOk() throws exceptions
+        throw Exception('Unexpected login failure.');
       }
     } catch (e) {
-      debugPrint('An error occurred during login: $e');
-      return null;
+      // Re-throw the exception so it bubbles up to the UI
+      debugPrint('Login error in AuthRepository: $e');
+      rethrow;
     }
   }
 

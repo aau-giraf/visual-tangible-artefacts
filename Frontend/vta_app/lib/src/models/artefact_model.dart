@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import '../database/repositories/artefact_repository.dart';
+import '../database/repositories/category_repository.dart';
+import '../database/mappers/artefact_mapper.dart';
+import '../database/models/category_db.dart';
 
 
 class ArtifactModel {
@@ -13,6 +17,142 @@ class ArtifactModel {
 
   ArtifactModel(this.apiProvider);
 
+  /// ------------------------------------------------------------
+  /// FUNCTIONS FOR SAVING TO LOCAL DATABASE
+  /// ------------------------------------------------------------
+
+  /// Converts Category DTO to CategoryDB model
+  CategoryDB _categoryToDb(Category c) {
+    return CategoryDB(
+      categoryId: c.categoryId ?? '',
+      categoryIndex: c.categoryIndex,
+      userId: c.userId ?? '',
+      name: c.name,
+      imagePath: c.imageUrl,
+      modifiedDate: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    );
+  }
+
+ Future<void> _fetchAndUpdateCategoriesLocal() async {
+  try {
+      final repo = CategoryRepository();      
+      final dbCategories = await repo.getAll();
+      final jsonString = jsonEncode(dbCategories.map((e) => e.toMap()).toList());
+      
+      print("Local ------------------------------------------------------- " + jsonString);
+      
+      // Decode back to List<dynamic> to match online response structure
+      var jsonResponse = jsonDecode(jsonString) as List;
+      
+      var newCategories = jsonResponse
+          .map((jsonCategory) =>
+              Category.fromJson(jsonCategory as Map<String, dynamic>))
+          .toList();
+      newCategories
+          .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+      categories = newCategories;
+    
+    } catch (e) {
+      debugPrint("$e");
+      rethrow;
+    }
+  }
+  
+
+  Future<void> _postArtefactLocal(Artefact artefact) async {
+    try {
+      final repo = ArtefactRepository();
+      final dbModel = artefactToDb(artefact);
+      await repo.insert(dbModel);
+    } catch (e) {
+      debugPrint('Local DB artefact insert failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _postCategoryLocal(Category category) async {
+    try {
+      final repo = CategoryRepository();
+      final dbModel = _categoryToDb(category);
+      await repo.insert(dbModel);
+    } catch (e) {
+      debugPrint('Local DB category insert failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteCategoryLocal(String categoryId) async {
+    try {
+      final repo = CategoryRepository();
+      await repo.delete(categoryId);
+    } catch (e) {
+      debugPrint('Local DB category delete failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteArtefactLocal(String artefactId) async {
+    try {
+      final repo = ArtefactRepository();
+      await repo.delete(artefactId);
+    } catch (e) {
+      debugPrint('Local DB artefact delete failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _updateArtefactLocal(Artefact artefact) async {
+    try {
+      final repo = ArtefactRepository();
+      final dbModel = artefactToDb(artefact);
+      await repo.update(dbModel);
+    } catch (e) {
+      debugPrint('Local DB artefact update failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _trackCategoryUsageLocal(String categoryId) async {
+    try {
+      final repo = CategoryRepository();
+      await repo.incrementUsageCount(categoryId);
+    } catch (e) {
+      debugPrint('Local DB category usage tracking failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _fetchAndUpdateMostUsedCategoriesLocal({int limit = 3}) async {
+    try {
+      final repo = CategoryRepository();
+      final dbCategories = await repo.getAll();
+      
+      // Sort by usage count and take the top N
+      dbCategories.sort((a, b) {
+        final aUsage = (a as CategoryDB).usageCount;
+        final bUsage = (b as CategoryDB).usageCount;
+        return bUsage.compareTo(aUsage);
+      });
+      
+      final topCategories = dbCategories.take(limit).toList();
+      final jsonString = jsonEncode(topCategories.map((e) => (e as CategoryDB).toMap()).toList());
+      var jsonResponse = jsonDecode(jsonString) as List;
+      
+      var newMostUsedCategories = jsonResponse
+          .map((jsonCategory) =>
+              Category.fromJson(jsonCategory as Map<String, dynamic>))
+          .toList();
+      mostUsedCategories = newMostUsedCategories;
+    } catch (e) {
+      debugPrint('Local DB fetch most used categories failed: $e');
+      rethrow;
+    }
+  }
+
+  /// ------------------------------------------------------------
+  /// FUNCTIONS FOR SAVING TO LOCAL DATABASE
+  /// ------------------------------------------------------------
+
   Future<void> fetchAndUpdateCategories({required String token}) async {
     try {
       var response =
@@ -21,6 +161,9 @@ class ArtifactModel {
       });
       if (response != null && response.ok) {
         var jsonResponse = json.decode(response.body) as List;
+
+        print("Online ------------------------------------------------------- " + jsonResponse.toString());
+
         var newCategories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -33,10 +176,17 @@ class ArtifactModel {
             message:
                 'Failed to fetch categories with status code: ${response?.statusCode}');
       }
-    } catch (e) {
+      } catch (e) {
       debugPrint("$e");
       rethrow;
     }
+      try { 
+        /// For future local use only
+        // await _fetchAndUpdateCategoriesLocal();
+      } catch (e) {
+        debugPrint('Local DB fetch failed: $e');
+      }
+    
   }
 
   Future<void> postCategory(Category category, {required String token}) async {
@@ -50,6 +200,13 @@ class ArtifactModel {
         categories!.add(newCategory);
         categories!
             .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
+        
+        // Save locally
+        try {
+          // await _postCategoryLocal(newCategory);
+        } catch (e) {
+          debugPrint('Local DB save failed: $e');
+        }
       } else {
         throw ArtifactException(
             message:
@@ -70,6 +227,13 @@ class ArtifactModel {
       if (response != null && response.ok) {
         categories
             ?.removeWhere((item) => item.categoryId == category.categoryId);
+        
+        // Delete locally
+        try {
+          // await _deleteCategoryLocal(category.categoryId!);
+        } catch (e) {
+          debugPrint('Local DB delete failed: $e');
+        }
       } else {
         throw ArtifactException(
             message:
@@ -96,6 +260,13 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);
+        
+        // SAVE LOCALLY
+        try {
+          // await _postArtefactLocal(newArtefact);
+        } catch (e) {
+          debugPrint('Local DB save failed: $e');
+        }
         final catId = newArtefact.categoryId;
 
         if (catId == 'Session-Artefact') {
@@ -140,6 +311,13 @@ class ArtifactModel {
           if (idx != -1 && categories![idx].artefacts != null) {
             categories![idx].artefacts!.removeWhere((a) => a.artefactId == artefact.artefactId);
           }
+        }
+        
+        // Delete locally
+        try {
+          // await _deleteArtefactLocal(artefact.artefactId!);
+        } catch (e) {
+          debugPrint('Local DB delete failed: $e');
         }
       } else {
         throw ArtifactException(
@@ -201,6 +379,13 @@ class ArtifactModel {
             if (getResponse != null && getResponse.ok) {
               var updatedArtefact = Artefact.fromJson(jsonDecode(getResponse.body));
               category.artefacts![index] = updatedArtefact;
+              
+              // Update locally
+              try {
+                // await _updateArtefactLocal(updatedArtefact);
+              } catch (e) {
+                debugPrint('Local DB update failed: $e');
+              }
             }
           }
         }
@@ -238,6 +423,13 @@ class ArtifactModel {
       debugPrint("$e");
       rethrow;
     }
+    
+    // Try to update from local DB as fallback
+    try {
+      // await _fetchAndUpdateMostUsedCategoriesLocal(limit: limit);
+    } catch (e) {
+      debugPrint('Local DB fetch most used failed: $e');
+    }
   }
 
   Future<bool> trackCategoryUsage(String categoryId,
@@ -250,6 +442,14 @@ class ArtifactModel {
 
       if (response != null && response.ok) {
         await fetchAndUpdateMostUsedCategories(token: token);
+        
+        // Track locally
+        try {
+          // await _trackCategoryUsageLocal(categoryId);
+        } catch (e) {
+          debugPrint('Local DB usage tracking failed: $e');
+        }
+        
         return true;
       } else {
         return false;
