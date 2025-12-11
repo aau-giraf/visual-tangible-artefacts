@@ -334,30 +334,17 @@ namespace SyncService.Hubs
                 return;
             }
             
-            // Construct expected URLs from database paths
-            var httpContext = Context.GetHttpContext();
-            var scheme = httpContext?.Request.Scheme ?? "http";
-            var host = httpContext?.Request.Host.ToString() ?? "localhost";
-
-            var expectedImageUrl = string.IsNullOrEmpty(dbArtefact.ImagePath)
-                ? null
-                : scheme + "://" + host + dbArtefact.ImagePath;
-            
             // Verify artifact image and sound URLs match the data from the request
-            if (artifact.ImageUrl != expectedImageUrl)
+            if (!string.IsNullOrWhiteSpace(dbArtefact.ImagePath) && (artifact.ImageUrl?.EndsWith(dbArtefact.ImagePath) ?? false))
             {
-                Console.WriteLine($"[Hub] ArtifactAdded: ImageUrl mismatch. Expected={expectedImageUrl}, Received={artifact.ImageUrl}");
+                Console.WriteLine($"[Hub] ArtifactAdded: ImageUrl mismatch. Expected={dbArtefact.ImagePath}, Received={artifact.ImageUrl}");
                 await Clients.Caller.SendAsync("ArtifactRejected", data);
                 return;
             }
-            
-            var expectedSoundUrl = string.IsNullOrEmpty(dbArtefact.SoundPath)
-                ? null
-                : scheme + "://" + host + dbArtefact.SoundPath;
 
-            if (artifact.SoundUrl != expectedSoundUrl)
+            if (!string.IsNullOrWhiteSpace(dbArtefact.SoundPath) && (artifact.ImageUrl?.EndsWith(dbArtefact.SoundPath) ?? false))
             {
-                Console.WriteLine($"[Hub] ArtifactAdded: SoundUrl mismatch. Expected={expectedSoundUrl}, Received={artifact.SoundUrl}");
+                Console.WriteLine($"[Hub] ArtifactAdded: SoundUrl mismatch. Expected={dbArtefact.SoundPath}, Received={artifact.SoundUrl}");
                 await Clients.Caller.SendAsync("ArtifactRejected", data);
                 return;
             }
