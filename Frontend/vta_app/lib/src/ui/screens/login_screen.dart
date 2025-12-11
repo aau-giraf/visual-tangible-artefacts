@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/services/sync_timer.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,6 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
         
         // If we reach here without exception, login was successful
         if (authState.token != null) {
+          // Start the sync timer after successful login
+          SyncTimer().start(interval: const Duration(seconds: 30));
+          
           debugPrint('Login successful, navigating to AuthPage');
           // Navigate to user page
           Navigator.of(context).pushReplacement(

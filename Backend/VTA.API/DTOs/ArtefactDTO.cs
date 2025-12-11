@@ -8,6 +8,11 @@ namespace VTA.API.DTOs;
 public partial class ArtefactPostDTO
 {
     /// <summary>
+    /// The ID of the artefact (optional - if not provided, a new GUID will be generated)
+    /// </summary>
+    public string? ArtefactId { get; set; }
+    
+    /// <summary>
     /// The index of the artefact
     /// </summary>
     public ushort ArtefactIndex { get; set; }

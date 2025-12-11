@@ -1,7 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,13 +37,12 @@ void main() async {
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     try {
       await DatabaseHelper.instance.database;
-      print('✅ SQLite database initialized successfully');
+      print('SQLite database initialized successfully');
       await DatabaseDebugHelper.printDatabasePath();
     } catch (e) {
-      print('❌ Failed to initialize SQLite database: $e');
+      print('Failed to initialize SQLite database: $e');
     }
   }
-  
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 
@@ -62,25 +60,14 @@ void main() async {
 
   // Set up the controllers
   final settingsController = SettingsController(SettingsService());
-
-  final ArtefactController artifactController =
-      ArtefactController(ArtifactModel(apiProvider));
+  final ArtefactController artifactController = ArtefactController(ArtifactModel(apiProvider));
   GetIt.I.registerSingleton<ArtefactController>(artifactController);
 
-  final AuthController authController =
-      AuthController(AuthModel(apiProvider, token, userInfo));
+  final AuthController authController = AuthController(AuthModel(apiProvider, token, userInfo));
 
   // Initialize the CameraManager
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     CameraManager().initialize();
-  }
-
-  // Force landscape orientation on mobile devices
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
   }
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
@@ -88,9 +75,8 @@ void main() async {
 
   await Settings.init(cacheProvider: SharePreferenceCache());
   
-  // Initialize the sync timer to run every 30 seconds
-  print('[MAIN] Starting sync timer (30 second interval)');
-  SyncTimer().start(interval: const Duration(seconds: 30));
+  // NOTE: Sync timer is started after user logs in
+  // See login flow for SyncTimer().start()
   
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the

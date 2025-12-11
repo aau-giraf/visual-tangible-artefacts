@@ -73,6 +73,6 @@ class SessionMetaDB {
 
   @override
   String toString() {
-    return 'SessionMetaDB{id: $id, sessionId: $sessionId, boardId: $boardId, userId: $userId, startedAt: $startedAt, lastSyncedAt: $lastSyncedAt, isDirty: $isDirty}';
+    return '{"id": $id, "sessionId": $sessionId, "boardId": $boardId, "userId": $userId, "startedAt": $startedAt, "lastSyncedAt": $lastSyncedAt, "isDirty": $isDirty}';
   }
 }

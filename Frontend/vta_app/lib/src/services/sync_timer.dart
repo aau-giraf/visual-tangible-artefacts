@@ -14,35 +14,43 @@ class SyncTimer {
   final SyncService _syncService = SyncService();
   late final UserInfo _userInfo;
   bool _isRunning = false;
+  int _syncCount = 0;
 
   /// Start the periodic sync timer
   /// [interval] - Duration between sync attempts (default: 30 seconds)
   void start({Duration interval = const Duration(seconds: 30)}) {
     if (_isRunning) {
-      print('[SYNC-TIMER] Already running, ignoring start request');
+      stop();
+    }
+    
+    try {
+      // Get the singleton UserInfo from GetIt
+      _userInfo = GetIt.I.get<UserInfo>();
+      print('[SYNC-TIMER] Starting periodic sync (${interval.inSeconds}s interval)');
+    } catch (e) {
+      print('[SYNC-TIMER] ERROR: Failed to get UserInfo: $e');
       return;
     }
-
-    print('[SYNC-TIMER] Starting periodic sync with interval: $interval');
-    
-    // Get the singleton UserInfo from GetIt
-    _userInfo = GetIt.I.get<UserInfo>();
-    print('[SYNC-TIMER] UserInfo singleton retrieved, current user ID: ${_userInfo.userId}');
     
     _isRunning = true;
+    _syncCount = 0;
 
     // Run initial sync immediately
     _performSync();
 
     // Set up periodic timer
-    _timer = Timer.periodic(interval, (timer) {
-      _performSync();
-    });
+    try {
+      _timer = Timer.periodic(interval, (timer) {
+        _performSync();
+      });
+    } catch (e) {
+      print('[SYNC-TIMER] ERROR creating timer: $e');
+      _isRunning = false;
+    }
   }
 
   /// Stop the periodic sync timer
   void stop() {
-    print('[SYNC-TIMER] Stopping periodic sync');
     _timer?.cancel();
     _timer = null;
     _isRunning = false;
@@ -50,15 +58,10 @@ class SyncTimer {
 
   /// Perform a single sync operation
   Future<void> _performSync() async {
-    print('[SYNC-TIMER] ========================================');
-    print('[SYNC-TIMER] Periodic sync triggered at ${DateTime.now()}');
+    _syncCount++;
     
     final userId = _userInfo.userId;
-    print('[SYNC-TIMER] Current user ID from singleton: $userId');
-    if (userId == null) {
-      print('[SYNC-TIMER] No user logged in, skipping sync');
-      return;
-    }
+    if (userId == null || userId.isEmpty) return;
 
     try {
       // Use autoSync which checks if sync is needed based on threshold
@@ -70,18 +73,15 @@ class SyncTimer {
       if (success) {
         print('[SYNC-TIMER] Sync completed successfully');
       } else {
-        print('[SYNC-TIMER] Sync failed or returned false');
+        print('[SYNC-TIMER] Sync failed');
       }
     } catch (e) {
       print('[SYNC-TIMER] ERROR during sync: $e');
     }
-    
-    print('[SYNC-TIMER] ========================================');
   }
 
   /// Manually trigger a sync outside the timer
   Future<void> syncNow() async {
-    print('[SYNC-TIMER] Manual sync requested');
     await _performSync();
   }
 
@@ -90,4 +90,21 @@ class SyncTimer {
 
   /// Get the current sync service instance
   SyncService get syncService => _syncService;
+  
+  /// Get current status for debugging
+  String getStatus() {
+    return '''
+[SYNC-TIMER] Status Report:
+  - isRunning: $_isRunning
+  - timer exists: ${_timer != null}
+  - timer is active: ${_timer?.isActive ?? false}
+  - sync count: $_syncCount
+  - user ID: ${_userInfo.userId ?? "not initialized"}
+''';
+  }
+  
+  /// Print current status
+  void printStatus() {
+    print(getStatus());
+  }
 }
