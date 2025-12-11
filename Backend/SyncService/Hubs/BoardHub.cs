@@ -335,14 +335,14 @@ namespace SyncService.Hubs
             }
             
             // Verify artifact image and sound URLs match the data from the request
-            if (!string.IsNullOrWhiteSpace(dbArtefact.ImagePath) && (artifact.ImageUrl?.EndsWith(dbArtefact.ImagePath) ?? false))
+            if (!string.IsNullOrWhiteSpace(dbArtefact.ImagePath) && (!artifact.ImageUrl?.EndsWith(dbArtefact.ImagePath) ?? false))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: ImageUrl mismatch. Expected={dbArtefact.ImagePath}, Received={artifact.ImageUrl}");
                 await Clients.Caller.SendAsync("ArtifactRejected", data);
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(dbArtefact.SoundPath) && (artifact.ImageUrl?.EndsWith(dbArtefact.SoundPath) ?? false))
+            if (!string.IsNullOrWhiteSpace(dbArtefact.SoundPath) && (!artifact.ImageUrl?.EndsWith(dbArtefact.SoundPath) ?? false))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: SoundUrl mismatch. Expected={dbArtefact.SoundPath}, Received={artifact.SoundUrl}");
                 await Clients.Caller.SendAsync("ArtifactRejected", data);

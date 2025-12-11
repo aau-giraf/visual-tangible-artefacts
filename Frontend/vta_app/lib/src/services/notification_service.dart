@@ -14,7 +14,7 @@ class NotificationService {
 
   bool _isInitialized = false;
 
-  /// Initialize notifications - call this in main.dart
+  /// Initialize notifications
   Future<void> initialize() async {
     debugPrint('NotificationService.initialize()');
 
