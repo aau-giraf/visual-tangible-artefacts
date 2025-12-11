@@ -12,43 +12,14 @@ using VTA.API.Models;
 namespace SyncService.Hubs
 {
     [Authorize]
-    public class BoardHub(VTAContext dbContext) : Hub
-    public class BoardHub : Hub
+    public class BoardHub(VTAContext context) : Hub
     {
-        private static readonly Dictionary<string, string> userConnections = new(); // userId -> connectionId
-        private static readonly Dictionary<string, BoardSession> boardSessions = new(); // sessionId -> session
-        
-        public async Task RegisterUser(string userId)
         private static readonly Dictionary<string, string> userConnections = new();
         private static readonly Dictionary<string, BoardSession> boardSessions = new();
         private static readonly HashSet<string> onlineUsers = new();
         private static readonly Dictionary<string, List<string>> userContactsMap = new();
         private static readonly Dictionary<string, UserInfo> userInfoMap = new(); 
         private static readonly Dictionary<string, PendingSessionRequest> pendingRequests = new(); 
-
-
-        public class UserInfo
-        {
-            public required string UserId { get; set; }
-            public required string Name { get; set; }
-        }
-
-        public class BoardSession
-        {
-            public required string SessionId { get; init; }
-            public required string User1Id { get; init; }
-            public required string User2Id { get; init; }
-            public required string BoardId { get; init; }
-            public HashSet<string> Connections { get; set; } = new();
-        }
-
-        private class PendingSessionRequest
-        {
-            public required string FromUserId { get; set; }
-            public required string ToUserId { get; set; }
-            public required DateTime RequestTime { get; set; }
-            public required CancellationTokenSource TimeoutCts { get; set; }
-        }
 
         public async Task RegisterUser(string userId, List<string> contactIds)
         {
@@ -264,8 +235,8 @@ namespace SyncService.Hubs
                     CallStatus = CallStatus.Accepted
                 };
 
-                dbContext.Sessions.Add(dbSession);
-                await dbContext.SaveChangesAsync();
+                context.Sessions.Add(dbSession);
+                await context.SaveChangesAsync();
                 Console.WriteLine($"[Hub] Session logged to database with Id={dbSession.Id}");
             }
             catch (Exception ex)
@@ -296,8 +267,8 @@ namespace SyncService.Hubs
                         CallStatus = CallStatus.Rejected
                     };
 
-                    dbContext.Sessions.Add(dbSession);
-                    await dbContext.SaveChangesAsync();
+                    context.Sessions.Add(dbSession);
+                    await context.SaveChangesAsync();
                     Console.WriteLine($"[Hub] Rejected session logged to database with Id={dbSession.Id}");
                 }
                 catch (Exception ex)
@@ -353,7 +324,7 @@ namespace SyncService.Hubs
                 return;
             }
 
-            var dbArtefact = await dbContext.Artefacts
+            var dbArtefact = await context.Artefacts
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.ArtefactId == artifact.Id && a.UserId == userId);
 
@@ -499,7 +470,7 @@ namespace SyncService.Hubs
             {
                 try
                 {
-                    var dbSession = await dbContext.Sessions
+                    var dbSession = await context.Sessions
                         .Where(s => (s.CallerId == boardSession.User1Id && s.CalleeId == boardSession.User2Id) ||
                                     (s.CallerId == boardSession.User2Id && s.CalleeId == boardSession.User1Id))
                         .Where(s => s.CallStatus == CallStatus.Accepted)
@@ -515,7 +486,7 @@ namespace SyncService.Hubs
                         }
                         dbSession.CallStatus = CallStatus.Completed;
 
-                        await dbContext.SaveChangesAsync();
+                        await context.SaveChangesAsync();
                         Console.WriteLine($"[Hub] Session {dbSession.Id} ended. Duration: {dbSession.Duration}");
                     }
                     else
@@ -546,7 +517,7 @@ namespace SyncService.Hubs
                     var boardSession = sessionKvp.Value;
                     try
                     {
-                        var dbSession = await dbContext.Sessions
+                        var dbSession = await context.Sessions
                             .Where(s => (s.CallerId == boardSession.User1Id && s.CalleeId == boardSession.User2Id) ||
                                         (s.CallerId == boardSession.User2Id && s.CalleeId == boardSession.User1Id))
                             .Where(s => s.CallStatus == CallStatus.Accepted)
@@ -561,7 +532,7 @@ namespace SyncService.Hubs
                                 dbSession.Duration = dbSession.EndTime.Value - dbSession.StartTime.Value;
                             }
                             dbSession.CallStatus = CallStatus.Failed;
-                            await dbContext.SaveChangesAsync();
+                            await context.SaveChangesAsync();
                             Console.WriteLine($"[Hub] Session {dbSession.Id} marked as failed due to disconnection");
                         }
                     }

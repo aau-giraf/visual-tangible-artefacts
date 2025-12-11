@@ -2,6 +2,6 @@ namespace SyncService.Models.ArtifactAdded;
 
 public class ArtifactAddedPayload
 {
-    public string SessionId { get; set; } = string.Empty;
+    public required string SessionId { get; set; }
     public ArtifactPayload Artifact { get; set; }
 }
