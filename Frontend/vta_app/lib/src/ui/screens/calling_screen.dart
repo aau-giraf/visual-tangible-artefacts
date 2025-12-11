@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'dart:async';
 
-/// Calling screen shown to CAREGIVER when they initiate a call
-/// Shows "Ringer til <Child Name>..." with cancel button
 class CallingScreen extends StatefulWidget {
   static const String routeName = "/calling";
 
@@ -15,86 +13,124 @@ class CallingScreen extends StatefulWidget {
 
 class _CallingScreenState extends State<CallingScreen>
     with SingleTickerProviderStateMixin {
-  late String childId;
-  late String childName;
+  String? childId;
+  String? childName;
+  bool _callInitiated = false;
   bool _isCallActive = true;
+  bool _isDisposed = false;
   late AnimationController _pulseController;
   Timer? _timeoutTimer;
+
+  // Store original callbacks
+  void Function(String, String)? _originalOnSessionStarted;
+  void Function()? _originalOnSessionRejected;
 
   @override
   void initState() {
     super.initState();
-    
-    // Pulse animation for the phone icon
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     )..repeat(reverse: true);
 
-    // Listen for session events
+    // Get arguments and initiate call ONCE using post-frame callback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_callInitiated && mounted) {
+        _initializeCall();
+      }
+    });
+
     _setupSignalRListeners();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    
-    // Get arguments
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null) {
+  void _initializeCall() {
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+    debugPrint('[CallingScreen] ═══════════════════════════════');
+    debugPrint('[CallingScreen] Initializing call');
+    debugPrint('[CallingScreen] Arguments: $args');
+
+    if (args != null && !_callInitiated) {
       childId = args['childId'] as String;
       childName = args['childName'] as String;
-      
-      // Send call request
+
+      debugPrint('[CallingScreen] ✓ childId: $childId');
+      debugPrint('[CallingScreen] ✓ childName: $childName');
+
+      _callInitiated = true;
       _initiateCall();
+    } else if (args == null) {
+      debugPrint('[CallingScreen] ❌ ERROR: No arguments received!');
     }
+    debugPrint('[CallingScreen] ═══════════════════════════════');
   }
 
   void _setupSignalRListeners() {
-    // When session is accepted
-    SignalRService().onSessionStarted = (sessionId, boardId) {
-      if (!mounted || !_isCallActive) return;
-      
-      _timeoutTimer?.cancel();
-      
-      // Navigate to active call screen
-      Navigator.of(context).pushReplacementNamed(
-        "/remote-board",
-        arguments: {
-          'sessionId': sessionId,
-          'boardId': boardId,
-        },
-      );
-    };
+    final signalR = SignalRService();
+
+    // Save existing callbacks
+    _originalOnSessionStarted = signalR.onSessionStarted;
+    _originalOnSessionRejected = signalR.onSessionRejected;
 
     // When session is rejected
-    SignalRService().onSessionRejected = () {
-      if (!mounted || !_isCallActive) return;
-      
-      _timeoutTimer?.cancel();
-      
-      _showRejectionDialog();
+    signalR.onSessionRejected = () {
+      debugPrint('[CallingScreen] Call rejected');
+      if (!_isDisposed && mounted && _isCallActive) {
+        _timeoutTimer?.cancel();
+        _showRejectionDialog();
+      }
+      _originalOnSessionRejected?.call();
+    };
+
+    // When session is accepted
+    signalR.onSessionStarted = (sessionId, boardId) {
+      debugPrint('[CallingScreen] Call accepted! SessionId: $sessionId');
+      if (!_isDisposed && mounted && _isCallActive) {
+        _timeoutTimer?.cancel();
+        // CallManager handles navigation
+        Navigator.of(context).pop();
+      }
+      _originalOnSessionStarted?.call(sessionId, boardId);
     };
   }
 
   Future<void> _initiateCall() async {
+    if (_callInitiated && childId == null) {
+      debugPrint('[CallingScreen] ERROR: childId is null!');
+      return;
+    }
+
+    debugPrint('[CallingScreen]_initiateCall START');
+    debugPrint('[CallingScreen] childId: $childId');
+    debugPrint(
+        '[CallingScreen] SignalR.isConnected: ${SignalRService().isConnected}');
+
     try {
-      await SignalRService().requestSession(childId);
-      
+      debugPrint('[CallingScreen] Calling requestSession...');
+      await SignalRService().requestSession(childId!);
+      debugPrint('[CallingScreen] ✓ requestSession completed');
+
       // Set timeout (30 seconds)
+      debugPrint('[CallingScreen] Starting 30-second timeout');
       _timeoutTimer = Timer(const Duration(seconds: 30), () {
-        if (mounted && _isCallActive) {
+        debugPrint('[CallingScreen] Timeout reached!');
+        if (mounted && _isCallActive && !_isDisposed) {
           _showTimeoutDialog();
         }
       });
     } catch (e) {
-      if (mounted) {
+      debugPrint('[CallingScreen] ERROR: $e');
+      if (!_isDisposed && mounted) {
         _showErrorDialog(e.toString());
       }
     }
+    debugPrint('[CallingScreen] _initiateCall END');
   }
 
   void _cancelCall() {
+    debugPrint('[CallingScreen] User cancelled call');
     setState(() {
       _isCallActive = false;
     });
@@ -108,12 +144,12 @@ class _CallingScreenState extends State<CallingScreen>
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text("Opkald afvist"),
-        content: Text("$childName afviste opkaldet."),
+        content: Text("${childName ?? 'Bruger'} afviste opkaldet."),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Close calling screen
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
             },
             child: const Text("OK"),
           ),
@@ -128,12 +164,12 @@ class _CallingScreenState extends State<CallingScreen>
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text("Intet svar"),
-        content: Text("$childName svarede ikke på opkaldet."),
+        content: Text("${childName ?? 'Bruger'} svarede ikke på opkaldet."),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Close calling screen
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
             },
             child: const Text("OK"),
           ),
@@ -152,8 +188,8 @@ class _CallingScreenState extends State<CallingScreen>
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Close calling screen
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
             },
             child: const Text("OK"),
           ),
@@ -164,8 +200,15 @@ class _CallingScreenState extends State<CallingScreen>
 
   @override
   void dispose() {
+    _isDisposed = true;
     _pulseController.dispose();
     _timeoutTimer?.cancel();
+
+    // Restore original callbacks
+    final signalR = SignalRService();
+    signalR.onSessionStarted = _originalOnSessionStarted;
+    signalR.onSessionRejected = _originalOnSessionRejected;
+
     super.dispose();
   }
 
@@ -184,13 +227,11 @@ class _CallingScreenState extends State<CallingScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Top section - child info
               Expanded(
                 flex: 2,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Animated phone icon
                     ScaleTransition(
                       scale: Tween<double>(begin: 0.9, end: 1.1).animate(
                         CurvedAnimation(
@@ -213,8 +254,6 @@ class _CallingScreenState extends State<CallingScreen>
                       ),
                     ),
                     const SizedBox(height: 40),
-                    
-                    // "Ringer til..." text
                     const Text(
                       "Ringer til",
                       style: TextStyle(
@@ -224,10 +263,8 @@ class _CallingScreenState extends State<CallingScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Child name
                     Text(
-                      childName,
+                      childName ?? '...',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -236,8 +273,6 @@ class _CallingScreenState extends State<CallingScreen>
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Waiting indicator
                     const SizedBox(
                       width: 30,
                       height: 30,
@@ -249,13 +284,10 @@ class _CallingScreenState extends State<CallingScreen>
                   ],
                 ),
               ),
-
-              // Bottom section - cancel button
               Padding(
                 padding: const EdgeInsets.all(40.0),
                 child: Column(
                   children: [
-                    // Cancel button
                     ElevatedButton(
                       onPressed: _cancelCall,
                       style: ElevatedButton.styleFrom(

@@ -6,6 +6,7 @@ import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_board_screen.dart';
 import 'package:vta_app/src/ui/screens/video_call_screen.dart';
+import 'package:vta_app/src/ui/screens/calling_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/views/splash_view.dart';
 import 'package:vta_app/theme/app_theme.dart';
@@ -27,7 +28,8 @@ class MyApp extends StatelessWidget {
 
   final ArtefactController artifactController;
 
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -70,13 +72,17 @@ class MyApp extends StatelessWidget {
                     );
                   case RemoteSessionScreen.routeName:
                     return const RemoteSessionScreen();
+                  // ← ADD THIS CASE
+                  case CallingScreen.routeName:
+                    return const CallingScreen();
                   case RemoteBoardScreen.routeName:
                     return RemoteBoardScreen(
                       artifactController: artifactController,
                       settingsController: settingsController,
                     );
                   case VideoCallScreen.routeName:
-                    final args = routeSettings.arguments as Map<String, dynamic>?;
+                    final args =
+                        routeSettings.arguments as Map<String, dynamic>?;
                     if (args == null) {
                       return SplashView(controller: authController);
                     }
