@@ -42,6 +42,8 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   bool _isDraggingOverTrashCan = false;
   bool _isHoveringTrashCan = false;
   bool _isPlayingAllSounds = false;
+  // Track if any artifact is currently being dragged to prevent size updates
+  bool _isDragging = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final BoardLayoutService _boardLayoutService = BoardLayoutService();
   String? _currentBoardId; // Track the current board being edited
@@ -662,21 +664,35 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
   // Access the size of the artifact's content after it has been rendered
   void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Don't update sizes while dragging - this prevents other artifacts from resizing
+      if (_isDragging) {
+        return;
+      }
+      
+      final String artifactId = artifact.baseArtefact?.artefactId ?? 'unknown';
+      
       final RenderBox? renderBox =
           key.currentContext?.findRenderObject() as RenderBox?;
       if (renderBox != null) {
         final size = renderBox.size;
-        final String artifactId = artifact.baseArtefact?.artefactId ?? 'unknown';
         
-        if (artifact.renderedSize != size) {
-          debugPrint('[TalkingMat] Artifact ID:$artifactId - Rendered size updated: ${artifact.renderedSize} -> $size');
+        // Only update if renderedSize is null (first time) or if the size has changed significantly
+        // This prevents constant updates during drag operations that cause other artifacts to resize
+        if (artifact.renderedSize == null) {
+          artifact.renderedSize = size;
+          debugPrint('[TalkingMat] Artifact ID:$artifactId - Initial rendered size set: $size');
+        } else {
+          // Only update if the size difference is significant (> 50px) to avoid micro-adjustments
+          // This prevents artifacts from constantly resizing when other artifacts are dragged
+          final sizeDiff = (artifact.renderedSize!.width - size.width).abs();
+          if (sizeDiff > 50.0) {
+            debugPrint('[TalkingMat] Artifact ID:$artifactId - Rendered size updated: ${artifact.renderedSize} -> $size');
+            artifact.renderedSize = size;
+          }
         }
-        
-        // Update the rendered size in the artifact
-        artifact.renderedSize = size;
       } else {
-        final String artifactId = artifact.baseArtefact?.artefactId ?? 'unknown';
-        debugPrint('[TalkingMat] Artifact ID:$artifactId - WARNING: Could not get RenderBox, key.currentContext is null');
+        // Don't log warnings if the context is null - this is normal when an artifact is being dragged
+        // (childWhenDragging replaces the child, so the key context becomes null)
       }
     });
   }
@@ -904,39 +920,70 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                             controller: widget.controller,
                             artifactKey: artifactKey,
                             artifactController: GetIt.instance.get<ArtefactController>(),
-                            child: Draggable<BoardArtefact>(
-                              data: artefact,
-                              feedback: Transform.scale(
-                                scale: 1.2,
-                                child: Container(
-                                  constraints: BoxConstraints(
-                                    maxWidth: artifactSize * 1.2,
-                                    maxHeight: artifactSize * 1.2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 10,
-                                        spreadRadius: 0,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Opacity(
-                                    opacity: 0.5,
-                                    child: artefact.content,
-                                  ),
-                                ),
-                              ),
-                              childWhenDragging: Container(),
-                              child: Container(key: artifactKey, child: artefact.content),
-                              onDragEnd: (details) {
-                                if (_isInsideMat(details.offset)) {
-                                  _updateArtifactPosition(artefact, details.offset);
+                            child: Listener(
+                              behavior: HitTestBehavior.translucent,
+                              onPointerMove: (_) {
+                                // Track drag when pointer moves (actual drag, not just press)
+                                if (!_isDragging) {
+                                  setState(() {
+                                    _isDragging = true;
+                                  });
                                 }
                               },
+                              onPointerUp: (_) {
+                                // Track drag end - use a small delay to ensure drag has completed
+                                Future.delayed(const Duration(milliseconds: 50), () {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isDragging = false;
+                                    });
+                                  }
+                                });
+                              },
+                              onPointerCancel: (_) {
+                                // Clear dragging state if pointer is cancelled
+                                setState(() {
+                                  _isDragging = false;
+                                });
+                              },
+                              child: Draggable<BoardArtefact>(
+                                data: artefact,
+                                feedback: Transform.scale(
+                                  scale: 1.2,
+                                  child: Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth: artifactSize * 1.2,
+                                      maxHeight: artifactSize * 1.2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 10,
+                                          spreadRadius: 0,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Opacity(
+                                      opacity: 0.5,
+                                      child: artefact.content,
+                                    ),
+                                  ),
+                                ),
+                                childWhenDragging: Container(),
+                                child: Container(key: artifactKey, child: artefact.content),
+                                onDragEnd: (details) {
+                                  // Clear dragging state
+                                  setState(() {
+                                    _isDragging = false;
+                                  });
+                                  if (_isInsideMat(details.offset)) {
+                                    _updateArtifactPosition(artefact, details.offset);
+                                  }
+                                },
+                              ),
                             ),
                           ),
                         ),
@@ -946,36 +993,41 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin, W
                   alignment: Alignment.lerp(
                           Alignment.bottomCenter, Alignment.center, 0.1) ??
                       Alignment.bottomCenter,
-                  child: DragTarget<BoardArtefact>(
-                        builder: (context, data, rejectedData) {
-                          double screenWidth = MediaQuery.of(context).size.width;
+                  child: Builder(
+                        builder: (context) {
+                          // Use matWidth from LayoutBuilder instead of MediaQuery to avoid zoom issues
+                          double screenWidth = matWidth;
                           double baseSize = screenWidth > 600 ? 50 : 35;
                           double expandedSize = screenWidth > 600 ? 120 : 80;
                           final size = _isDraggingOverTrashCan ? expandedSize : baseSize;
-                          return buildTrashCan(
-                            height: size,
-                            width: size,
+                          return DragTarget<BoardArtefact>(
+                            builder: (context, data, rejectedData) {
+                              return buildTrashCan(
+                                height: size,
+                                width: size,
+                              );
+                            },
+                            onAcceptWithDetails: (details) {
+                              var artefact = details.data;
+                              widget.controller.removeArtifact(artefact);
+                              setState(() {
+                                _isDraggingOverTrashCan = false;
+                              });
+                            },
+                            onWillAcceptWithDetails: (details) {
+                              setState(() {
+                                _isDraggingOverTrashCan = true;
+                              });
+                              return true;
+                            },
+                            onLeave: (details) {
+                              setState(() {
+                                _isDraggingOverTrashCan = false;
+                              });
+                            },
                           );
                         },
-                        onAcceptWithDetails: (details) {
-                          var artefact = details.data;
-                          widget.controller.removeArtifact(artefact);
-                          setState(() {
-                            _isDraggingOverTrashCan = false;
-                          });
-                        },
-                        onWillAcceptWithDetails: (details) {
-                          setState(() {
-                            _isDraggingOverTrashCan = true;
-                          });
-                          return true;
-                        },
-                        onLeave: (details) {
-                          setState(() {
-                            _isDraggingOverTrashCan = false;
-                          });
-                        },
-                    ),
+                      ),
                 ),
 
                       ],
