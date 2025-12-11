@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/utilities/extensions/string_extension.dart';
 import 'settings_controller.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 
@@ -20,8 +19,13 @@ class SettingsView extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Settings'),
         ),
-        body: ListView(
-          children: [buildTextUnderImages(), buildLinearArtifactCount()/*, buildLanguage()*/],
+        body: ListenableBuilder(
+          listenable: controller,
+          builder: (context, child) {
+            return ListView(
+              children: [buildTextUnderImages(), buildLinearArtifactCount()/*, buildLanguage()*/],
+            );
+          },
         ));
   }
 
@@ -34,15 +38,14 @@ class SettingsView extends StatelessWidget {
     await controller.updateLinearArtifactCount(linearArtifactCount);
   }
 
-  Future<void> _onToggleLocalization(int? value) async {
-    await controller.updateLocalization(Localization.values[value ?? 0]);
-  }
+
 
   Widget buildTextUnderImages() {
     return SwitchSettingsTile(
       settingKey: 'textUnderImagesSwitch',
+      defaultValue: controller.textUnderImages,
       title: 'Text under billeder',
-      subtitle: 'Vis billed navne under billeder',
+      subtitle: 'Vis billed navne over billeder',
       leading: Icon(Icons.text_fields),
       onChange: _onToggleTextUnderImages,
     );
@@ -53,7 +56,7 @@ class SettingsView extends StatelessWidget {
       settingKey: 'linearArtifactCount',
       title: 'Antal lineære artifakter',
       subtitle: 'Mængde af artifakter i lineær board',
-      selected: 4, // Default value
+      selected: controller.linearArtifactCount, // Use value from controller/database
       values: <int, String>{
         2: '2',
         4: '4',

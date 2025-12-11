@@ -160,93 +160,86 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     _scheduleAutoSave();
   }
 
-  /// Play all artefact sounds on the board sequentially
-  Future<void> _playAllArtefactSounds() async {
-    if (_isPlayingAllSounds) {
-      // If already playing, stop the current playback
-      await _audioPlayer.stop();
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isPlayingAllSounds = true;
-    });
-
-    // debug prints removed
-
-    final artefacts = widget.controller.value
-        .where((artifact) => artifact.baseArtefact?.soundUrl?.isNotEmpty == true)
-        .toList();
-
-    if (artefacts.isEmpty) {
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-      return;
-    }
-
-    // playing artefact sounds sequentially
-
-    try {
-      for (var boardArtefact in artefacts) {
-        if (_isPlayingAllSounds) {
-          try {
-            final token = GetIt.instance.get<Token>().value;
-            final apiProvider = GetIt.instance.get<ApiProvider>();
-
-            if (token != null) {
-              final audioUrl = '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
-              // debug print removed
-
-              // Fetch audio data with proper authentication
-              final response = await http.get(
-                Uri.parse(audioUrl),
-                headers: {
-                  'Authorization': 'Bearer $token',
-                },
-              );
-
-              if (response.statusCode == 200) {
-                // Set audio source from bytes and play
-                await _audioPlayer.setAudioSource(
-                  AudioSource.uri(Uri.dataFromBytes(response.bodyBytes, mimeType: 'audio/mpeg')),
-                );
-                await _audioPlayer.play();
-                } else {
-                // failed to fetch audio
-                continue; // Skip to next artefact
-              }
-
-              // Wait for the audio to complete before playing the next one
-              await _audioPlayer.playerStateStream
-                  .firstWhere((state) => state.processingState == ProcessingState.completed);
-
-              // finished playing sound for artefact
-            }
-          } catch (e) {
-            // Error playing sound for this artefact, continue
-          }
-        }
-      }
-    } finally {
-      setState(() {
-        _isPlayingAllSounds = false;
-      });
-    }
-
-    // finished playing all artefact sounds
-  }
 
   /// Auto-save board layout with debouncing to avoid too frequent saves
-  /// Reduced debounce to save more often while still avoiding extreme request rates.
   void _scheduleAutoSave() {
+    if (_inhibitAutoSave) return;
     _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(milliseconds: 800), () {
+    _saveTimer = Timer(const Duration(seconds: 1), () {
       _autoSaveBoardLayout();
     });
+  }
+
+  /// Immediate save without debouncing for critical events
+  void _immediateAutoSave() {
+    if (_inhibitAutoSave) return;
+    _saveTimer?.cancel(); // Cancel any pending debounced save
+    _autoSaveBoardLayout(); // Save immediately
+  }
+
+  /// Public helper to allow external controllers (e.g., settings or option wheels)
+  /// to immediately persist the current board layout, including nameVisible flags.
+  Future<void> forceAutoSave() async {
+    if (_inhibitAutoSave) return;
+    _saveTimer?.cancel();
+    await _autoSaveBoardLayout();
+  }
+
+  /// Handle app lifecycle changes to save when app loses focus (mobile/tablet specific)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+        // App sent to background (home button pressed, another app opened) - save immediately
+        _immediateAutoSave();
+        break;
+      case AppLifecycleState.detached:
+        // App is being terminated - save immediately
+        _immediateAutoSave();
+        break;
+      case AppLifecycleState.inactive:
+        // App temporarily lost focus (notification pulled down, phone call, etc.) - save as precaution
+        _scheduleAutoSave();
+        break;
+      case AppLifecycleState.resumed:
+        // App came back to foreground from background - no save needed
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden but still in memory - save immediately
+        _immediateAutoSave();
+        break;
+    }
+  }
+
+  /// Check if layout data has changed compared to last saved state
+  bool _hasLayoutChanged(BoardArtefactLayout layout) {
+    final lastSaved = _lastSavedLayouts[layout.savedArtefactId ?? layout.artefactId];
+    if (lastSaved == null) return true; // New artefact
+    
+    return lastSaved.posX != layout.posX ||
+           lastSaved.posY != layout.posY ||
+           lastSaved.width != layout.width ||
+           lastSaved.height != layout.height ||
+           lastSaved.nameVisible != layout.nameVisible;
+  }
+
+  /// Update tracking of last saved layout data
+  void _updateLastSavedLayouts(List<BoardArtefactLayout> layouts) {
+    _lastSavedLayouts.clear();
+    for (final layout in layouts) {
+      final key = layout.savedArtefactId ?? layout.artefactId;
+      _lastSavedLayouts[key] = BoardArtefactLayout(
+        artefactId: layout.artefactId,
+        savedArtefactId: layout.savedArtefactId,
+        posX: layout.posX,
+        posY: layout.posY,
+        width: layout.width,
+        height: layout.height,
+        nameVisible: layout.nameVisible,
+      );
+    }
   }
 
   /// Auto-save the current board layout
@@ -265,6 +258,39 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     }
 
     try {
+      // Partition layouts into those with saved IDs (update via PATCH) and those without (create via PUT)
+      final toPatch = layoutData.where((l) => l.savedArtefactId != null).toList();
+      final toCreate = layoutData.where((l) => l.savedArtefactId == null).toList();
+
+      // First, update existing saved instances via PATCH (only if changed)
+      final toPatchChanged = toPatch.where((layout) => _hasLayoutChanged(layout)).toList();
+      
+      for (final artefactLayout in toPatchChanged) {
+        final request = UpdateArtefactLayoutRequest(
+          savedArtefactId: artefactLayout.savedArtefactId,
+          artefactId: artefactLayout.artefactId,
+          posX: artefactLayout.posX,
+          posY: artefactLayout.posY,
+          width: artefactLayout.width,
+          height: artefactLayout.height,
+          nameVisible: artefactLayout.nameVisible,
+        );
+
+        final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
+        // TODO: pause timer while resizing or dragging as they cause problems.
+        /*
+        if (!success) {
+          print('Debug: Failed to auto-save layout for artefact ${artefactLayout.artefactId}');
+        }
+        */
+      }
+
+      // If there are artefacts without saved IDs, perform a full board update (PUT) to create them in one go
+      if (toCreate.isNotEmpty) {
+        final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
+        final updatedBoard = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
+        if (updatedBoard != null) {
+          // Map returned saved IDs onto local instances
       // Send the whole board as a single request (POST to create, PUT to update)
       final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
 
@@ -336,10 +362,40 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
     // Add each saved artefact instance to the board
     for (final artefactLayout in boardLayout.artefacts) {
       try {
-        // Always fetch and add each artefact instance from the saved layout
-        // This ensures we restore the exact number of instances that were saved
-        await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
-        // restored artefact instance
+        // Find the best local match: same artefactId and smallest distance between positions
+        BoardArtefact? best;
+        double bestDist = double.infinity;
+        for (final local in unmatchedLocal) {
+          if (local.baseArtefact?.artefactId == artefactLayout.artefactId) {
+            final localPos = local.position ?? Offset.zero;
+            final dx = localPos.dx - artefactLayout.posX;
+            final dy = localPos.dy - artefactLayout.posY;
+            final dist = dx * dx + dy * dy; // squared distance
+            if (dist < bestDist) {
+              bestDist = dist;
+              best = local;
+            }
+          }
+        }
+
+        if (best != null) {
+          // Assign position/size/saved id to matched local instance
+          setState(() {
+            best!.position = Offset(artefactLayout.posX, artefactLayout.posY);
+            best.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
+            best.savedArtefactId = artefactLayout.savedArtefactId;
+            // Restore per-instance name visibility if provided
+            if (artefactLayout.nameVisible != null) {
+              best.nameVisible = artefactLayout.nameVisible!;
+            }
+          });
+          // remove from unmatched list so we don't match it again
+          unmatchedLocal.remove(best);
+          print('Debug: Matched existing local artefact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
+        } else {
+          // No local match found: fetch and add a fresh instance
+          await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
+        }
       } catch (e) {
         // error restoring artefact instance
       }
@@ -377,6 +433,12 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
       boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
   // Set the saved instance id so future updates target this specific instance
   boardArtefact.savedArtefactId = layout.savedArtefactId;
+  
+
+  // NOTE: We do NOT override the base artefact's nameShown with the layout's computed value
+  // The nameVisible from layout is already computed on the backend (SavedArtefact ?? BaseArtefact ?? User)
+  // But we should always display what the base artefact actually says, not override it
+  // This ensures that when the base artefact's nameShown changes, all instances update automatically
 
       // Add it to the controller
       widget.controller.addArtifact(boardArtefact);
@@ -439,6 +501,7 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
         posY: position.dy,
         width: size.width,
         height: size.height,
+        nameVisible: artifact.nameVisible,
       );
     }).toList();
     
@@ -607,54 +670,67 @@ class TalkingMatState extends State<TalkingMat> with TickerProviderStateMixin {
                     controller: widget.controller,
                     artifactKey: measurementKey,
                     artifactController: GetIt.instance<ArtefactController>(),
-                    child: Draggable<BoardArtefact>(
-                      data: artefact,
-                      feedback: Transform.scale(
-                        scale: 1.2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 4),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: artefact.showResizeHandle,
+                      builder: (context, isResizing, child) {
+                        // When resizing, render content directly without Draggable
+                        if (isResizing) {
+                          return RepaintBoundary(
+                            key: measurementKey,
+                            child: artefact.content,
+                          );
+                        }
+                        // When not resizing, wrap in Draggable
+                        return Draggable<BoardArtefact>(
+                          data: artefact,
+                          feedback: Transform.scale(
+                            scale: 1.2,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    spreadRadius: 0,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ],
+                              child: Opacity(
+                                opacity: 0.5,
+                                child: artefact.content,
+                              ),
+                            ),
                           ),
-                          child: Opacity(
-                            opacity: 0.5,
+                          childWhenDragging: const SizedBox.shrink(),
+                          child: RepaintBoundary(
+                            key: measurementKey,
                             child: artefact.content,
                           ),
-                        ),
-                      ),
-                      childWhenDragging: const SizedBox.shrink(),
-                      child: RepaintBoundary(
-                        key: measurementKey,
-                        child: artefact.content,
-                      ),
-                      onDragStarted: () {
-                        setState(() {
-                          _zOrder[artefact] = ++_zTick; // bring instance to front
-                        });
-                      },
-                      onDragEnd: (details) {
-                        final Size artSize = artefact.renderedSize ?? const Size(200, 200);
-                        if (_isInsideMat(details.offset, artefactSize: artSize)) {
-                          Offset adjustedPosition = details.offset;
-                          if (artefact.baseArtefact?.nameShown == true) {
-                            final double nameOffset = _getNameDisplayOffset(
-                              artefact.baseArtefact?.name ?? '',
-                              context,
-                            );
-                            adjustedPosition = Offset(
-                              details.offset.dx,
-                              details.offset.dy - nameOffset,
-                            );
-                          }
-                          _updateArtifactPosition(artefact, adjustedPosition);
-                        }
+                          onDragStarted: () {
+                            setState(() {
+                              _zOrder[artefact] = ++_zTick; // bring instance to front
+                            });
+                          },
+                          onDragEnd: (details) {
+                            final Size artSize = artefact.renderedSize ?? const Size(200, 200);
+                            if (_isInsideMat(details.offset, artefactSize: artSize)) {
+                              Offset adjustedPosition = details.offset;
+                              if (artefact.nameVisible == true) {
+                                final double nameOffset = _getNameDisplayOffset(
+                                  artefact.baseArtefact?.name ?? '',
+                                  context,
+                                );
+                                adjustedPosition = Offset(
+                                  details.offset.dx,
+                                  details.offset.dy - nameOffset,
+                                );
+                              }
+                              _updateArtifactPosition(artefact, adjustedPosition);
+                            }
+                          },
+                        );
                       },
                     ),
                   ),

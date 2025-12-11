@@ -172,7 +172,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return Forbid();
         }
 
-        // Check if artefact with this ID already exists
+        // Get user's default NameVisible setting for new artefacts
+        var user = await context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return Unauthorized("User not found");
+        }        // Check if artefact with this ID already exists
         string artefactId;
         Artefact? existingArtefact = null;
         
@@ -239,7 +244,13 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
-        
+
+        // If NameShown not explicitly set, inherit from user's default setting
+        if (artefact.NameShown == null)
+        {
+            artefact.NameShown = user.NameVisible;
+        }
+                
 
         context.Artefacts.Add(artefact);
         try
@@ -741,6 +752,40 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return false;
         }
         return AllowedVoiceIds.Contains(voiceId.Trim());
+    }
+
+    /// <summary>
+    /// Update nameShown for all artefacts owned by the current user
+    /// </summary>
+    /// <param name="request">Request containing the nameShown value to apply to all artefacts</param>
+    /// <returns>
+    /// Status code 200 (Ok) with count of updated artefacts<br />
+    /// Status code 401 (Unauthorized) if user token is invalid
+    /// </returns>
+    [HttpPatch("bulk-update-name-shown")]
+    public async Task<IActionResult> BulkUpdateNameShown([FromBody] BulkUpdateNameShownDTO request)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Invalid token");
+        }
+
+        // Get all artefacts for this user
+        var artefacts = await context.Artefacts
+            .Where(a => a.UserId == userId)
+            .ToListAsync();
+
+        // Update nameShown for all artefacts
+        foreach (var artefact in artefacts)
+        {
+            artefact.NameShown = request.NameShown;
+        }
+
+        await context.SaveChangesAsync();
+
+        return Ok(new { updatedCount = artefacts.Count, nameShown = request.NameShown });
     }
 
     private bool ArtefactExists(string id)

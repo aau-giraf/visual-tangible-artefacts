@@ -77,7 +77,9 @@ public static class DTOConverter
             Id = user.Id,
             Name = user.Name,
             GuardianKey = user.GuardianKey,
-            Username = user.Username
+            Username = user.Username,
+            NameVisible = user.NameVisible,
+            FieldCount = user.FieldCount
         };
     }
 

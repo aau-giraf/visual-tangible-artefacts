@@ -18,22 +18,28 @@ public class BoardArtefactLayoutDTO
     /// <summary>
     /// X position on the board
     /// </summary>
-    public float PosX { get; set; }
+    public float PosX { get; set; } = 0;
 
     /// <summary>
     /// Y position on the board  
     /// </summary>
-    public float PosY { get; set; }
+    public float PosY { get; set; } = 0;
 
     /// <summary>
     /// Width of the artefact
     /// </summary>
-    public float Width { get; set; }
+    public float Width { get; set; } = 200;
 
     /// <summary>
     /// Height of the artefact
     /// </summary>
-    public float Height { get; set; }
+    public float Height { get; set; } = 200;
+
+    /// <summary>
+    /// Per-tile flag indicating if the artefact's name should be visible.
+    /// Mirrors the Flutter field `nameVisible`.
+    /// </summary>
+    public bool? NameVisible { get; set; }
 }
 
 /// <summary>
@@ -121,5 +127,10 @@ public class UpdateArtefactLayoutDTO
     /// New height of the artefact
     /// </summary>
     public float Height { get; set; }
-}
 
+    /// <summary>
+    /// Per-tile flag indicating if the artefact's name should be visible (optional).
+    /// Mirrors the Flutter field `nameVisible`.
+    /// </summary>
+    public bool? NameVisible { get; set; }
+}

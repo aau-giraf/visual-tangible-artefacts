@@ -265,4 +265,58 @@ class UserRepository extends ApiDataRepository {
       return null;
     }
   }
+
+  /// Update user settings (NameVisible, FieldCount)
+  Future<bool> updateUserSettings({
+    required String token,
+    bool? nameVisible,
+    int? fieldCount,
+  }) async {
+    try {
+    
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      
+      Map<String, dynamic> body = {};
+      if (nameVisible != null) body['nameVisible'] = nameVisible;
+      if (fieldCount != null) body['fieldCount'] = fieldCount;
+      
+      
+      var response = await apiProvider.patchAsJson('Users', 
+        headers: headers, 
+        body: body
+      );
+      
+      return responseOk(response);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Bulk update nameShown for all user's artefacts
+  Future<bool> bulkUpdateArtefactsNameShown({
+    required String token,
+    required bool nameShown,
+  }) async {
+    try {
+      
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      
+      Map<String, dynamic> body = {'nameShown': nameShown};
+            
+      var response = await apiProvider.patchAsJson(
+        'Users/Artefacts/bulk-update-name-shown', 
+        headers: headers, 
+        body: body
+      );
+
+      
+      return responseOk(response);
+    } catch (e) {
+      return false;
+    }
+  }
 }

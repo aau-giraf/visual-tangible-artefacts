@@ -61,19 +61,45 @@ class ArtifactBoardController {
     _setupLinearBoardController();
     getCurrentBoardStatus();
 
-    // Apply initial setting for text under images (default false)
-    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
-    // Listen for changes to settings and sync name visibility
+    // Listen for changes to settings
     settingsController.addListener(_onSettingsChanged);
   }
 
   void _onSettingsChanged() {
-    // When the setting toggles, update all current artefacts' name visibility
-    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
+    // When textUnderImages setting changes, update all artefacts on both boards
+    // to match the new setting value
+    final newNameVisible = settingsController.textUnderImages;
+    
+    print('Debug: _onSettingsChanged - Updating all artefacts to nameShown: $newNameVisible');
+    
+    // Update all artefacts on the TalkingMat
+    final talkingMatArtefacts = talkingmatController.value;
+    for (var boardArtefact in talkingMatArtefacts) {
+      if (boardArtefact.baseArtefact != null) {
+        boardArtefact.baseArtefact!.nameShown = newNameVisible;
+        print('Debug: _onSettingsChanged - Updated TalkingMat artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
+      }
+    }
+    
+    // Update all artefacts on the LinearBoard
+    final linearArtefacts = linearBoardController.artifacts;
+    for (var boardArtefact in linearArtefacts) {
+      if (boardArtefact?.baseArtefact != null) {
+        boardArtefact!.baseArtefact!.nameShown = newNameVisible;
+        print('Debug: _onSettingsChanged - Updated LinearBoard artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
+      }
+    }
+    
+    // Trigger refresh on TalkingMat controller to rebuild all widgets
+    talkingmatController.refresh();
+    
     // Sync linear board field count when setting changes
     linearBoardController.setFieldCount(settingsController.linearArtifactCount);
-    // Optionally notify view in case other UI depends on settings 
+    
+    // Notify view to trigger rebuild and show updated name visibility
     notifyView();
+    
+    print('Debug: _onSettingsChanged - Completed updating all artefacts');
   }
 
 
@@ -112,8 +138,8 @@ class ArtifactBoardController {
 
   /// Add an artifact to the currently active board
   void addArtifactToCurrentBoard(BoardArtefact artifact) {
-    // Apply current setting for name visibility to the new artefact before adding
-    artifact.nameVisible = settingsController.textUnderImages;
+    // Note: artifact.nameVisible now reads from baseArtefact.nameShown
+    // New artefacts will already have the correct nameShown value from the backend
     if (showDirectional) {
       linearBoardController.addArtifact(artifact);
     } else {
