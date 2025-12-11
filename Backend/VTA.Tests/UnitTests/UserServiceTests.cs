@@ -38,7 +38,7 @@ namespace VTA.Tests.UnitTests
             Assert.Equal(HttpStatusCode.OK, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
-            var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/{signUpResult.userId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
 
             var response = await _client.SendAsync(request);
