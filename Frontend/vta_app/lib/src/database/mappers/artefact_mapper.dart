@@ -1,7 +1,7 @@
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import '../models/artefact_db.dart';
 
-/// Convert DTO into ArtefactDB model
+/// Convert DTO into ArtefactDB model local database
 ArtefactDB artefactToDb(Artefact a) {
   return ArtefactDB(
     artefactId: a.artefactId ?? '',
