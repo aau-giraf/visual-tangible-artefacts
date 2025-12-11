@@ -18,17 +18,17 @@ public class BoardArtefactLayoutDTO
     /// <summary>
     /// X position on the board
     /// </summary>
-    public float PosX { get; set; }
+    public float PosX { get; set; } = 0;
 
     /// <summary>
     /// Y position on the board  
     /// </summary>
-    public float PosY { get; set; }
+    public float PosY { get; set; } = 0;
 
     /// <summary>
     /// Width of the artefact
     /// </summary>
-    public float Width { get; set; }
+    public float Width { get; set; } = 200;
 
     /// <summary>
     /// Height of the artefact
@@ -40,7 +40,6 @@ public class BoardArtefactLayoutDTO
     /// Mirrors the Flutter field `nameVisible`.
     /// </summary>
     public bool? NameVisible { get; set; }
-    public float Height { get; set; }
 }
 
 /// <summary>
