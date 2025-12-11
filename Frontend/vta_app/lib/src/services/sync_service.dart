@@ -320,7 +320,6 @@ class SyncService {
       // Update sync metadata
       await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
 
-      print('[SYNC] Synced $totalSynced items from server');
       return true;
     } catch (e) {
       print('[SYNC] ERROR in syncFromServer: $e');
@@ -378,9 +377,6 @@ class SyncService {
             missingBoards++;
           }
         }
-      }
-      if (updatedArtefacts > 0 || updatedBoards > 0) {
-        print('[SYNC] Updated $updatedArtefacts artefacts, $updatedBoards boards');
       }
     } catch (e) {
       print('[SYNC] ERROR in _updateLocalDatabase: $e');
@@ -546,12 +542,7 @@ class SyncService {
       } else if (syncDirection == 'upload') {
         // Local is newer, upload to server
         if (existing != null) {
-          final backendId = await _uploadArtefact(existing);
-          // Return the backend ID so it can be added to syncedIds
-          if (backendId != null && backendId != artefactId) {
-            // Backend assigned a different ID, but we still consider this artefact synced
-            print('[SYNC] Backend assigned new ID: $backendId for local ID: $artefactId');
-          }
+          await _uploadArtefact(existing);
         }
         return;
       }
@@ -791,12 +782,8 @@ class SyncService {
   /// Upload a single artefact to the backend
   Future<String?> _uploadArtefact(ArtefactDB artefact) async {
     try {
-      print('[SYNC-UPLOAD] Uploading artefact ${artefact.artefactId}');
-      
       // Prepare multipart request
       final uri = Uri.parse(_apiProvider.baseUrl + 'Users/Artefacts');
-      print('[SYNC-UPLOAD] URL: $uri');
-      
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer ${_token.value}';
       
@@ -809,52 +796,36 @@ class SyncService {
         request.fields['CategoryId'] = artefact.categoryId!;
       }
       
-      print('[SYNC-UPLOAD] Fields: ${request.fields}');
-      
       // Upload image file if it exists locally
       if (artefact.imagePath != null) {
         final imageFile = await _getLocalFile('Artefacts', artefact.imagePath!, _userInfo.userId ?? '');
         if (imageFile != null && await imageFile.exists()) {
-          print('[SYNC-UPLOAD] Adding image file: ${imageFile.path}');
           request.files.add(await http.MultipartFile.fromPath('Image', imageFile.path));
-        } else {
-          print('[SYNC-UPLOAD] Image file not found: ${artefact.imagePath}');
         }
-      } else {
-        print('[SYNC-UPLOAD] No imagePath in artefact');
       }
       
       // Upload sound file if it exists locally
       if (artefact.soundPath != null) {
         final soundFile = await _getLocalFile('Sounds', artefact.soundPath!, _userInfo.userId ?? '');
         if (soundFile != null && await soundFile.exists()) {
-          print('[SYNC-UPLOAD] Adding sound file: ${soundFile.path}');
           request.files.add(await http.MultipartFile.fromPath('Sound', soundFile.path));
-        } else {
-          print('[SYNC-UPLOAD] Sound file not found: ${artefact.soundPath}');
         }
       }
       
-      print('[SYNC-UPLOAD] Sending request with ${request.files.length} files...');
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       
-      print('[SYNC-UPLOAD] Response status: ${response.statusCode}');
-      print('[SYNC-UPLOAD] Response body: $responseBody');
-      
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('[SYNC] Uploaded artefact: ${artefact.artefactId}');
-        
         // Parse response to get the backend's artefact ID
         try {
           final responseData = json.decode(responseBody);
           final backendArtefactId = responseData['artefactId'] as String?;
           return backendArtefactId;
         } catch (e) {
-          print('[SYNC] Warning: Could not parse artefact ID from response: $e');
+          print('[SYNC] ERROR: Could not parse artefact ID from response: $e');
         }
       } else {
-        print('[SYNC] Failed to upload artefact ${artefact.artefactId}: ${response.statusCode}');
+        print('[SYNC] ERROR: Failed to upload artefact ${artefact.artefactId}: ${response.statusCode}');
         print('[SYNC] Response: $responseBody');
       }
       return null;
@@ -887,10 +858,10 @@ class SyncService {
       }
       
       final response = await request.send();
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('[SYNC] Uploaded category: ${category.categoryId}');
-      } else {
-        print('[SYNC] Failed to upload category ${category.categoryId}: ${response.statusCode}');
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final responseBody = await response.stream.bytesToString();
+        print('[SYNC] ERROR: Failed to upload category ${category.categoryId}: ${response.statusCode}');
+        print('[SYNC] Response: $responseBody');
       }
     } catch (e) {
       print('[SYNC] ERROR uploading category: $e');
@@ -915,10 +886,8 @@ class SyncService {
         },
       );
       
-      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
-        print('[SYNC] Uploaded board: ${board.id}');
-      } else {
-        print('[SYNC] Failed to upload board ${board.id}: ${response?.statusCode}');
+      if (response == null || (response.statusCode != 200 && response.statusCode != 201)) {
+        print('[SYNC] ERROR: Failed to upload board ${board.id}: ${response?.statusCode}');
       }
     } catch (e) {
       print('[SYNC] ERROR uploading board: $e');

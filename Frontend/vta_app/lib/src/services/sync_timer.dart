@@ -70,9 +70,7 @@ class SyncTimer {
         threshold: Duration.zero, // Always sync when called
       );
       
-      if (success) {
-        print('[SYNC-TIMER] Sync completed successfully');
-      } else {
+      if (!success) {
         print('[SYNC-TIMER] Sync failed');
       }
     } catch (e) {
