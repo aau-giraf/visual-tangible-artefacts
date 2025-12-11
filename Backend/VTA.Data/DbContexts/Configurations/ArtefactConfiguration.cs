@@ -48,7 +48,7 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
 
         builder.HasOne(d => d.User).WithMany(p => p.Artefacts)
             .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.ClientSetNull)
+            .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("artefact_ibfk_1");
 
         builder.HasMany(d => d.SavedArtefacts).WithOne(p => p.Artefact)

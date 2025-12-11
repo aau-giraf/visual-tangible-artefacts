@@ -39,7 +39,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.HasOne(d => d.User).WithMany(p => p.Categories)
             .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.ClientSetNull)
+            .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("category_ibfk_1");
     }
 }
