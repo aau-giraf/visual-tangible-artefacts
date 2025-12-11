@@ -2,12 +2,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy csproj and restore dependencies
-COPY ["SyncService.csproj", "./"]
-RUN dotnet restore "SyncService.csproj"
+# Copy csproj files and restore dependencies
+COPY ["SyncService/SyncService.csproj", "SyncService/"]
+COPY ["VTA.API/VTA.API.csproj", "VTA.API/"]
+RUN dotnet restore "SyncService/SyncService.csproj"
 
 # Copy everything else and build
 COPY . .
+WORKDIR "/src/SyncService"
 RUN dotnet build "SyncService.csproj" -c Release -o /app/build
 
 # Publish stage

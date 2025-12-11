@@ -44,8 +44,8 @@ services:
 
   syncservice:
     build:
-      context: ./SyncService
-      dockerfile: Dockerfile
+      context: ./Backend
+      dockerfile: SyncService/Dockerfile
     container_name: vta-syncservice
     restart: unless-stopped
     ports:
