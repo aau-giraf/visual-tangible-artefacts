@@ -74,7 +74,6 @@ class TalkingMatState extends State<TalkingMat>
   late List<BoardArtefact> unmatchedLocal;
   bool _isRemoteSession = false;
   bool _initialLoadComplete = false;
-  Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
   Set<String> _backendSavedArtefactIds = {}; // Track IDs that exist in backend
 
   @override
@@ -234,17 +233,7 @@ class TalkingMatState extends State<TalkingMat>
     await _autoSaveBoardLayout();
   }
 
-  /// Handle app lifecycle changes to save when app loses focus (mobile/tablet specific)
-    debugPrint("TalkingMat => _immediateAutoSave called (_inhibitAutoSave=$_inhibitAutoSave, _isRemoteSession=$_isRemoteSession, _initialLoadComplete=$_initialLoadComplete)");
-    if (_inhibitAutoSave || _isRemoteSession || !_initialLoadComplete) {
-      debugPrint("TalkingMat => Auto-save blocked by flags or initial load not complete");
-      return;
-    }
-    _saveTimer?.cancel();
-    debugPrint("TalkingMat => Proceeding to _autoSaveBoardLayout");
-    _autoSaveBoardLayout();
-  }
-  
+  /// Public method to trigger auto-save (called by external controllers)
   void triggerAutoSave() {
     debugPrint("TalkingMat => triggerAutoSave called");
     _immediateAutoSave();
@@ -278,9 +267,6 @@ class TalkingMatState extends State<TalkingMat>
            lastSaved.width != layout.width ||
            lastSaved.height != layout.height ||
            lastSaved.nameVisible != layout.nameVisible;
-        lastSaved.posY != layout.posY ||
-        lastSaved.width != layout.width ||
-        lastSaved.height != layout.height;
   }
 
   void _updateLastSavedLayouts(List<BoardArtefactLayout> layouts) {
@@ -337,40 +323,11 @@ class TalkingMatState extends State<TalkingMat>
         );
 
         await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
-        final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
-        // TODO: pause timer while resizing or dragging as they cause problems.
-        /*
-        if (!success) {
-          print(
-              'Debug: Failed to auto-save layout for artefact ${artefactLayout.artefactId}');
-        }
-        */
       }
 
       if (toCreate.isNotEmpty) {
         final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
-        await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
-      } else {
-        // Send the whole board as a single request (POST to create, PUT to update)
-        final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
-
-        final response = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
-        if (response != null) {
-          // map returned saved artefact ids (in case of reordering/new instances)
-          try {
-            final current = widget.controller.value;
-            final returned = response.artefacts;
-            final count = math.min(current.length, returned.length);
-            for (var i = 0; i < count; i++) {
-              current[i].savedArtefactId = returned[i].savedArtefactId;
-            }
-          } catch (_) {}
-        }
-      }
-        final saveRequest =
-            SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
-        final updatedBoard = await _boardLayoutService.updateBoard(
-            _currentBoardId!, saveRequest);
+        final updatedBoard = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
         if (updatedBoard != null) {
           try {
             _assignReturnedSavedIdsToLocal(updatedBoard.artefacts);
@@ -382,11 +339,8 @@ class TalkingMatState extends State<TalkingMat>
             }
             debugPrint("TalkingMat => Now tracking ${_backendSavedArtefactIds.length} backend savedArtefactIds");
           } catch (e) {
-            print('Debug: Error mapping returned saved ids after update: $e');
+            debugPrint('TalkingMat => Error mapping returned saved ids after update: $e');
           }
-        } else {
-          print(
-              'Debug: Failed to update board to create missing artefact instances');
         }
       }
 
@@ -417,24 +371,7 @@ class TalkingMatState extends State<TalkingMat>
 
   /// Restore artefacts from a saved board layout
   Future<void> _restoreArtefactsFromBoard(BoardLayoutResponse boardLayout) async {
-    // restoring artefact instances from saved board
-    
-    // Clear the current board first to avoid conflicts
-    widget.controller.value.clear();
-    
-    // Add each saved artefact instance to the board
-    } finally {
-      // Mark initial load as complete, allowing auto-save
-      _initialLoadComplete = true;
-      debugPrint("TalkingMat => Initial board load complete, auto-save now enabled");
-      
-      // Notify listeners that board has finished loading
-      widget.onBoardLoaded?.call();
-    }
-  }
-
-  Future<void> _restoreArtefactsFromBoard(
-      BoardLayoutResponse boardLayout) async {
+    try {
     debugPrint("TalkingMat => Restoring ${boardLayout.artefacts.length} artifacts from board");
     final current = widget.controller.value;
     debugPrint("TalkingMat => Current controller has ${current.length} artifacts");
@@ -491,6 +428,14 @@ class TalkingMatState extends State<TalkingMat>
     }
 
     setState(() {});
+    } finally {
+      // Mark initial load as complete, allowing auto-save
+      _initialLoadComplete = true;
+      debugPrint("TalkingMat => Initial board load complete, auto-save now enabled");
+
+      // Notify listeners that board has finished loading
+      widget.onBoardLoaded?.call();
+    }
   }
 
   Future<void> _addArtefactToBoard(
@@ -519,22 +464,11 @@ class TalkingMatState extends State<TalkingMat>
       // Set the position and size from the saved layout
       boardArtefact.position = Offset(layout.posX, layout.posY);
       boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
-  // Set the saved instance id so future updates target this specific instance
-  boardArtefact.savedArtefactId = layout.savedArtefactId;
-  
-
-  // NOTE: We do NOT override the base artefact's nameShown with the layout's computed value
-  // The nameVisible from layout is already computed on the backend (SavedArtefact ?? BaseArtefact ?? User)
-  // But we should always display what the base artefact actually says, not override it
-  // This ensures that when the base artefact's nameShown changes, all instances update automatically
-      boardArtefact.position = Offset(layout.posX, layout.posY);
-      boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
+      // Set the saved instance id so future updates target this specific instance
       boardArtefact.savedArtefactId = layout.savedArtefactId;
 
       widget.controller.addArtifact(boardArtefact);
     } catch (e) {
-      // error adding artefact to board
-    }
       // Silently handle artefact addition errors
     }
   }
@@ -587,21 +521,10 @@ class TalkingMatState extends State<TalkingMat>
         _currentBoardId = response.boardId;
         // Map returned saved artefact instance ids back onto the local artifacts
         try {
-          final current = widget.controller.value;
-          final returned = response.artefacts;
-          final count = math.min(current.length, returned.length);
-          for (var i = 0; i < count; i++) {
-            current[i].savedArtefactId = returned[i].savedArtefactId;
-          }
-        print(
-            'Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
-        try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
         } catch (_) {
           // ignore mapping errors
         }
-      } else {
-        // failed to create default board
       }
     } catch (e) {
       // error creating default board
@@ -649,19 +572,12 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        // saved board
         // Map returned saved artefact instance ids back onto local artifacts
         try {
-          final current = widget.controller.value;
-          final returned = response.artefacts;
-          final count = math.min(current.length, returned.length);
-          for (var i = 0; i < count; i++) {
-            current[i].savedArtefactId = returned[i].savedArtefactId;
-          }
-        print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
-        try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
-        } catch (_) {}
+        } catch (_) {
+          // ignore mapping errors
+        }
 
         return response.boardId;
       }
@@ -954,64 +870,41 @@ class TalkingMatState extends State<TalkingMat>
                             var artefact = details.data;
 
                             // Persist deletion on server if we have a board id and a saved instance id
-                            try {
-                              if (_currentBoardId != null && artefact.savedArtefactId != null) {
-                                final success = await _boardLayoutService.deleteSavedArtefact(
+                            if (_currentBoardId != null && artefact.savedArtefactId != null) {
+                              _inhibitAutoSave = true;
+                              try {
+                                await _boardLayoutService.deleteSavedArtefact(
                                   _currentBoardId!,
                                   artefact.savedArtefactId!,
                                 );
-                              if (_currentBoardId != null &&
-                                  artefact.savedArtefactId != null) {
-                                _inhibitAutoSave = true;
-                                try {
-                                  final success = await _boardLayoutService
-                                      .deleteSavedArtefact(
-                                    _currentBoardId!,
-                                    artefact.savedArtefactId!,
-                                  );
-
-                                if (!success) {
-                                  // failed to delete saved artefact on server
-                                  if (!success) {
-                                    print(
-                                        'Debug: Failed to delete saved artefact ${artefact.savedArtefactId} on server');
-                                  }
-                                } finally {
-                                  _inhibitAutoSave = false;
-                                }
+                              } catch (e) {
+                                debugPrint('TalkingMat => Error deleting saved artefact on server: $e');
+                              } finally {
+                                _inhibitAutoSave = false;
                               }
-                            } catch (e) {
-                              // error while deleting saved artefact on server
                             }
 
-                            // Remove from the local controller (this updates the UI)
-                            widget.controller.removeArtifact(artefact);
-
-                              print(
-                                  'Debug: Error while deleting saved artefact on server: $e');
-                            }
-                            if (artefact.baseArtefact?.categoryId ==
-                                'Session-Artefact') {
+                            // Handle Session-Artefact deletion
+                            if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
                               try {
-                                final artefactController =
-                                    GetIt.instance.get<ArtefactController>();
-                                final deleted =
-                                    await artefactController.deleteArtefact(
-                                        context, artefact.baseArtefact!);
+                                final artefactController = GetIt.instance.get<ArtefactController>();
+                                final deleted = await artefactController.deleteArtefact(
+                                  context, artefact.baseArtefact!);
                                 if (deleted) {
                                   widget.controller.removeArtifact(artefact);
                                   // Notify remote session if callback is provided
                                   widget.onArtifactRemoved?.call(artefact);
                                 }
                               } catch (e) {
-                                debugPrint(
-                                    'Failed to delete session artefact from server: $e');
+                                debugPrint('TalkingMat => Failed to delete session artefact from server: $e');
                               }
                             } else {
+                              // Remove from the local controller (this updates the UI)
                               widget.controller.removeArtifact(artefact);
                               // Notify remote session if callback is provided
                               widget.onArtifactRemoved?.call(artefact);
                             }
+
                             _animationController.reverse();
                             _animationController.addStatusListener((status) {
                               if (status == AnimationStatus.dismissed) {

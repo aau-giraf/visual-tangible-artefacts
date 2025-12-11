@@ -368,18 +368,7 @@ class _LoginViewState extends State<LoginView> {
                           ),
                         );
                       }
-                      final guardianKey = guardianKeyController.text;
-                      
-                      try {
-                        await controller.signup(
-                            username, password, name, guardianKey,
-                            context: context);
-                      } catch (e) {
-                        setState(() {
-                          _errorMessage = _translateErrorToDanish(e.toString());
-                        });
-                      }
-                      
+
                       setState(() {
                         _isLoading = false;
                       });
