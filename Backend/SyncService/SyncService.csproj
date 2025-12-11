@@ -15,15 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VTA.API\VTA.API.csproj">
-      <Private>false</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\VTA.Data\VTA.Data.csproj" />
   </ItemGroup>
-
-  <Target Name="RemoveVTAAPIContentFiles" AfterTargets="ComputeFilesToPublish">
-    <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.SourcePath)').Contains('VTA.API')) AND ('%(Extension)' == '.json' OR '%(Extension)' == '.xml')" />
-    </ItemGroup>
-  </Target>
 
 </Project>

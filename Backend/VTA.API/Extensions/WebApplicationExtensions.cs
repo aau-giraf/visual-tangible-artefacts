@@ -1,40 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
-using VTA.API.Models;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace VTA.API.Extensions;
 
-#pragma warning disable CS1591
-
-public static class DbContextExtensions
+public static class WebApplicationExtensions
 {
-    public static WebApplicationBuilder AddVTAContext(this WebApplicationBuilder builder)
-    {
-        const string connectionType = "DefaultConnection";
-
-        builder.Services.AddDbContext<VTAContext>(opt =>
-        {
-            try
-            {
-                opt.UseMySql(
-                    builder.Configuration.GetConnectionString(connectionType),
-                    ServerVersion.AutoDetect(builder.Configuration.GetConnectionString(connectionType)),
-                    options =>
-                    {
-                        options.EnableStringComparisonTranslations();
-                        options.EnableRetryOnFailure();
-                    }
-                );
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"An error occurred while configuring MySQL: {e.Message}\n\n Falling Back to a volatile DB");
-            }
-        });
-        return builder;
-    }
-
-    public static async Task<WebApplication> MigrateVTAContext(this WebApplication app)
+    public static async Task<WebApplication> MigrateVTAContext(this WebApplication application)
     {
         const string environmentKey = "AUTO_CREATE_DATABASE";
 
@@ -42,11 +14,9 @@ public static class DbContextExtensions
         var environmentVariable = Environment.GetEnvironmentVariable(environmentKey);
         var autoCreateDb = string.IsNullOrWhiteSpace(environmentVariable) || bool.Parse(environmentVariable);
 
-        if (!autoCreateDb) return app;
-
-
-        using var scope = app.Services.CreateScope();
-
+        if (!autoCreateDb) return application;
+        
+        await using var scope = application.Services.CreateAsyncScope();
 
         try
         {
@@ -64,15 +34,14 @@ public static class DbContextExtensions
             throw;
         }
 
-        return app;
+        return application;
     }
 
     private static async Task<VTAContext> MigrateVTAContext(this IServiceScope scope)
     {
         var vtaContext = scope.ServiceProvider.GetRequiredService<VTAContext>();
         await vtaContext.Database.EnsureCreatedAsync();
-
-
+        
         return vtaContext;
     }
 
@@ -143,5 +112,3 @@ public static class DbContextExtensions
         return context;
     }
 }
-
-#pragma warning restore CS1591

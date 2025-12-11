@@ -5,10 +5,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
 using VTA.API.Utilities;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
 /// <summary>

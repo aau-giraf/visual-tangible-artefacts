@@ -2,18 +2,18 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SyncService.Hubs;
-using VTA.API.Extensions;
+using VTA.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddVTAContext();
+builder.Services.AddVTAContext(builder.Configuration);
 
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFlutter", builder =>
+    options.AddPolicy("AllowFlutter", policyBuilder =>
     {
-        builder.AllowAnyOrigin()
+        policyBuilder.AllowAnyOrigin()
                .AllowAnyMethod()
                .AllowAnyHeader();
     });

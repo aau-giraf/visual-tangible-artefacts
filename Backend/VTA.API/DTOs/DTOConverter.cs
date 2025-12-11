@@ -1,5 +1,4 @@
-using System.Drawing;
-using VTA.API.Models;
+using VTA.Data.Models;
 
 namespace VTA.API.DTOs;
 
@@ -76,11 +75,9 @@ public static class DTOConverter
         {
             Id = user.Id,
             Name = user.Name,
-            GuardianKey = user.GuardianKey,
             Username = user.Username,
             NameVisible = user.NameVisible,
-            FieldCount = user.FieldCount
-            Username = user.Username,
+            FieldCount = user.FieldCount,
             Role = user.Role
         };
     }

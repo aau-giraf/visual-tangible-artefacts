@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using VTA.API.Models;
+using VTA.Data.Models;
 
-namespace VTA.API.DbContexts.Configurations;
+namespace VTA.Data.DbContexts.Configurations;
 
 public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {

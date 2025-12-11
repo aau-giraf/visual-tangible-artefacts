@@ -1,8 +1,7 @@
-
 using Microsoft.EntityFrameworkCore;
-using VTA.API.Models;
+using VTA.Data.Models;
 
-namespace VTA.API.DbContexts;
+namespace VTA.Data.DbContexts;
 
 public partial class VTAContext : DbContext
 {
@@ -34,5 +33,3 @@ public partial class VTAContext : DbContext
             .HasCharSet("utf8mb4")
             .ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
 }
-}
-

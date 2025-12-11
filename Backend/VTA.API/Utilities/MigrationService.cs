@@ -1,15 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
-using VTA.API.Models;
+using VTA.Data.DbContexts;
 
-namespace VTA.API.Scripts;
+namespace VTA.API.Utilities;
 
 /// <summary>
 /// Migration script to reorganize files from flat structure to user-based structure
 /// Old structure: Assets/{type}/{filename}
 /// New structure: Assets/{type}/{userId}/{filename}
 /// </summary>
-public class MigrateToUserBasedStorage
+public class MigrationService
 {
     private readonly VTAContext _context;
     private readonly string _assetsPath;
@@ -17,7 +16,7 @@ public class MigrateToUserBasedStorage
     private int _skippedFiles = 0;
     private int _errorFiles = 0;
 
-    public MigrateToUserBasedStorage(VTAContext context)
+    public MigrationService(VTAContext context)
     {
         _context = context;
         _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets");

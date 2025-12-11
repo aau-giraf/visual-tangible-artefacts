@@ -1,4 +1,4 @@
-﻿using VTA.API.Models;
+﻿using VTA.Data.Models;
 
 namespace VTA.API.DTOs;
 

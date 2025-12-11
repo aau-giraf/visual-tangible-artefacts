@@ -1,5 +1,3 @@
-using VTA.API.Models;
-
 namespace VTA.API.DTOs;
 
 public class PairingDTO

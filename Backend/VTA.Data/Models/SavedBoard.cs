@@ -1,4 +1,4 @@
-namespace VTA.API.Models;
+namespace VTA.Data.Models;
 
 public class SavedBoard
 {

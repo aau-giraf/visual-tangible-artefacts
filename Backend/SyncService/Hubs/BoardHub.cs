@@ -2,12 +2,12 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using SyncService.Models;
 using SyncService.Models.ArtifactAdded;
-using VTA.API.DbContexts;
-using VTA.API.Models;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace SyncService.Hubs
 {

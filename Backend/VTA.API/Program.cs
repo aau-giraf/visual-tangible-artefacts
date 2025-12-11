@@ -5,9 +5,9 @@ using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
-using VTA.API.DbContexts;
 using VTA.API.Extensions;
 using VTA.API.Utilities;
+using VTA.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +28,7 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.AddHttpClient();
 
 // Register our DB context
-builder.AddVTAContext();
+builder.Services.AddVTAContext(builder.Configuration);
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
