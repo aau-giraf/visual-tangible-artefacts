@@ -38,18 +38,23 @@ public static class DbContextExtensions
     {
         const string environmentKey = "AUTO_CREATE_DATABASE";
 
+
         var environmentVariable = Environment.GetEnvironmentVariable(environmentKey);
         var autoCreateDb = string.IsNullOrWhiteSpace(environmentVariable) || bool.Parse(environmentVariable);
 
         if (!autoCreateDb) return app;
 
+
         using var scope = app.Services.CreateScope();
+
 
         try
         {
             var vtaContext = await scope.MigrateVTAContext();
 
+
             await vtaContext.SeedTestUser();
+
 
             await vtaContext.SaveChangesAsync();
         }
@@ -66,6 +71,7 @@ public static class DbContextExtensions
     {
         var vtaContext = scope.ServiceProvider.GetRequiredService<VTAContext>();
         await vtaContext.Database.EnsureCreatedAsync();
+
 
         return vtaContext;
     }

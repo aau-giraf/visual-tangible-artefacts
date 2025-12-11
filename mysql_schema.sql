@@ -24,14 +24,16 @@ CREATE TABLE user (
   password     VARCHAR(255) NOT NULL,
   guardianKey  VARCHAR(255) NULL,
   username     VARCHAR(50)  NOT NULL,
+  nameVisible  TINYINT(1) NOT NULL DEFAULT 0,
+  fieldCount   INT        NOT NULL DEFAULT 4,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
 -- Insert a system user and a default "Session-Artefact" category if they don't already exist.
-INSERT INTO user (id, name, password, guardianKey, username)
-SELECT 'system', 'System', '', NULL, 'system'
+INSERT INTO user (id, name, password, guardianKey, username, nameVisible, fieldCount)
+SELECT 'system', 'System', '', NULL, 'system', 0, 4
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM user WHERE id = 'system');
 
@@ -106,7 +108,6 @@ CREATE TABLE savedBoard (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
-
 -- SAVED ARTEFACT
 CREATE TABLE savedArtefact (
   id          VARCHAR(36)  NOT NULL,
@@ -117,6 +118,7 @@ CREATE TABLE savedArtefact (
   width       FLOAT        NOT NULL DEFAULT 200,
   height      FLOAT        NOT NULL DEFAULT 200,
   createdDate DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  nameVisible TINYINT(1)   NULL DEFAULT NULL,
   PRIMARY KEY (id),
   KEY artefactId (artefactId),
   KEY boardId (boardId),
@@ -131,6 +133,7 @@ CREATE TABLE savedArtefact (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
 
 -- Username is frequently used for login lookups
 CREATE INDEX idx_user_username ON user(username);

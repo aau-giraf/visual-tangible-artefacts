@@ -38,11 +38,14 @@ abstract class ApiDataRepository {
 
 class AuthRepository extends ApiDataRepository {
   Future<LoginResponse?> login(String username, String password) async {
-    try {
-      var loginForm = LoginForm(username: username, password: password);
+    var loginForm = LoginForm(username: username, password: password);
 
-      final response =
-          await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
+    final response =
+        await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
+    
+    // responseOk() will throw exception for 401, 500, etc. or return true for success
+    // It should never return false, but if it does, we'll handle it
+    try {
       if (responseOk(response)) {
         var loginResponse = LoginResponse.fromJson(json.decode(response!.body));
         if (loginResponse.token != null) {
@@ -54,11 +57,13 @@ class AuthRepository extends ApiDataRepository {
           throw Exception('Login response received, but token is null.');
         }
       } else {
-        return null;
+        // This should never happen since responseOk() throws exceptions
+        throw Exception('Unexpected login failure.');
       }
     } catch (e) {
-      debugPrint('An error occurred during login: $e');
-      return null;
+      // Re-throw the exception so it bubbles up to the UI
+      debugPrint('Login error in AuthRepository: $e');
+      rethrow;
     }
   }
 
@@ -312,6 +317,60 @@ class UserRepository extends ApiDataRepository {
     } catch (e) {
       debugPrint("An error occured while fetching related contacts: $e");
       return null;
+    }
+  }
+
+  /// Update user settings (NameVisible, FieldCount)
+  Future<bool> updateUserSettings({
+    required String token,
+    bool? nameVisible,
+    int? fieldCount,
+  }) async {
+    try {
+    
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      
+      Map<String, dynamic> body = {};
+      if (nameVisible != null) body['nameVisible'] = nameVisible;
+      if (fieldCount != null) body['fieldCount'] = fieldCount;
+      
+      
+      var response = await apiProvider.patchAsJson('Users', 
+        headers: headers, 
+        body: body
+      );
+      
+      return responseOk(response);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Bulk update nameShown for all user's artefacts
+  Future<bool> bulkUpdateArtefactsNameShown({
+    required String token,
+    required bool nameShown,
+  }) async {
+    try {
+      
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      
+      Map<String, dynamic> body = {'nameShown': nameShown};
+            
+      var response = await apiProvider.patchAsJson(
+        'Users/Artefacts/bulk-update-name-shown', 
+        headers: headers, 
+        body: body
+      );
+
+      
+      return responseOk(response);
+    } catch (e) {
+      return false;
     }
   }
 }

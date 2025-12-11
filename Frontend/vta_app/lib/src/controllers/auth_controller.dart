@@ -7,6 +7,7 @@ import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
+import 'package:vta_app/src/services/sync_timer.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/services/call_manager.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
@@ -24,6 +25,7 @@ class AuthController extends ChangeNotifier {
     var status = await _model.checkAuth();
     if (status) {
       await _model.loadCache();
+      SyncTimer().start();
       
       // Connect to SignalR and setup callbacks if already authenticated
       final userId = _model.userInfo.userId;
@@ -94,9 +96,16 @@ class AuthController extends ChangeNotifier {
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
     } catch (e) {
+      // Clear any existing SnackBars to prevent keyboard issues
       if (context != null && context.mounted) {
-        _showErrorSnackBar(context, e.toString());
+        try {
+          ScaffoldMessenger.of(context).clearSnackBars();
+        } catch (_) {}
       }
+      
+      debugPrint('[AUTH] Error: ${e.toString()}');
+      // Re-throw the exception so LoginView can catch and display it
+      rethrow;
     } finally {
       notifyListeners();
     }
@@ -135,10 +144,27 @@ class AuthController extends ChangeNotifier {
     try {
       var form = SignupForm(username: username, password: password, name: name);
       await _model.signup(form);
+      
+      // If successful, navigate to main screen
+     // if (context != null && context.mounted) {
+     //   await artifactController.updateArtifacts(context: context);
+     //   if(!context.mounted) return;
+     //   await artifactController.updateMostUsedCategories(context: context);
+     //   if(!context.mounted) return;
+     //   Navigator.of(context)
+     //       .pushReplacementNamed(ArtifactBoardScreen.routeName);
+   //   }
     } catch (e) {
+      // Clear any existing SnackBars to prevent keyboard issues
       if (context != null && context.mounted) {
-        _showErrorSnackBar(context, e.toString());
+        try {
+          ScaffoldMessenger.of(context).clearSnackBars();
+        } catch (_) {}
       }
+      
+      debugPrint('[AUTH] Signup Error: ${e.toString()}');
+      // Re-throw the exception so LoginView can catch and display it
+      rethrow;
     } finally {
       notifyListeners();
     }
@@ -199,10 +225,17 @@ class AuthController extends ChangeNotifier {
     return null;
   }
 
-  /// Shows a snackbar with an error message
+  /// Shows error message without SnackBar to prevent keyboard issues
   void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    GlobalSnackbar.show(context, message,
-        color: Colors.white, iconColor: Colors.red);
+    // Clear any existing SnackBars to prevent layout conflicts
+    try {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    } catch (e) {
+      // Ignore any clearing errors
+    }
+    
+    // Instead of SnackBar, we'll rely on the login screen's inline error display
+    // This prevents floating UI elements that interfere with Android keyboard
+    debugPrint('[AUTH] Error: $message'); // For debugging
   }
 }

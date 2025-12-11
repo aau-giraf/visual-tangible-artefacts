@@ -61,19 +61,40 @@ class ArtifactBoardController {
     _setupLinearBoardController();
     getCurrentBoardStatus();
 
-    // Apply initial setting for text under images (default false)
-    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
-    // Listen for changes to settings and sync name visibility
+    // Listen for changes to settings
     settingsController.addListener(_onSettingsChanged);
   }
 
   void _onSettingsChanged() {
-    // When the setting toggles, update all current artefacts' name visibility
-    talkingmatController.setNamesVisibleForAll(settingsController.textUnderImages);
+    // When textUnderImages setting changes, update all artefacts on both boards
+    // to match the new setting value
+    final newNameVisible = settingsController.textUnderImages;
+        
+    // Update all artefacts on the TalkingMat
+    final talkingMatArtefacts = talkingmatController.value;
+    for (var boardArtefact in talkingMatArtefacts) {
+      if (boardArtefact.baseArtefact != null) {
+        boardArtefact.baseArtefact!.nameShown = newNameVisible;
+      }
+    }
+    
+    // Update all artefacts on the LinearBoard
+    final linearArtefacts = linearBoardController.artifacts;
+    for (var boardArtefact in linearArtefacts) {
+      if (boardArtefact?.baseArtefact != null) {
+        boardArtefact!.baseArtefact!.nameShown = newNameVisible;
+        print('Debug: _onSettingsChanged - Updated LinearBoard artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
+      }
+    }
+    
+    // Trigger refresh on TalkingMat controller to rebuild all widgets
+    talkingmatController.refresh();
+    
     // Sync linear board field count when setting changes
     linearBoardController.setFieldCount(settingsController.linearArtifactCount);
-    // Optionally notify view in case other UI depends on settings 
-    notifyView();
+    
+    // Notify view to trigger rebuild and show updated name visibility
+    notifyView();    
   }
 
 
@@ -112,8 +133,8 @@ class ArtifactBoardController {
 
   /// Add an artifact to the currently active board
   void addArtifactToCurrentBoard(BoardArtefact artifact) {
-    // Apply current setting for name visibility to the new artefact before adding
-    artifact.nameVisible = settingsController.textUnderImages;
+    // Note: artifact.nameVisible now reads from baseArtefact.nameShown
+    // New artefacts will already have the correct nameShown value from the backend
     if (showDirectional) {
       linearBoardController.addArtifact(artifact);
     } else {
@@ -141,14 +162,7 @@ class ArtifactBoardController {
       // Get artefacts from the current board
       if (showDirectional) {
         // Linear board
-        print('Debug: ArtifactBoardController - Total artefacts on linear board: ${linearBoardController.artifacts.length}');
-        
-        // Debug each artefact
-        for (var artifact in linearBoardController.artifacts) {
-          if (artifact != null) {
-            print('Debug: ArtifactBoardController - Linear Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
-          }
-        }
+        // debug prints removed
         
         artefacts = linearBoardController.artifacts
             .where((artifact) => artifact?.baseArtefact?.soundUrl?.isNotEmpty == true)
@@ -156,12 +170,7 @@ class ArtifactBoardController {
             .toList();
       } else {
         // Talking mat
-        print('Debug: ArtifactBoardController - Total artefacts on talking mat: ${talkingmatController.value.length}');
-        
-        // Debug each artefact
-        for (var artifact in talkingmatController.value) {
-          print('Debug: ArtifactBoardController - TalkingMat Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
-        }
+        // debug prints removed
         
         artefacts = talkingmatController.value
             .where((artifact) => artifact.baseArtefact?.soundUrl?.isNotEmpty == true)
@@ -169,13 +178,10 @@ class ArtifactBoardController {
       }
 
       if (artefacts.isEmpty) {
-        print('Debug: ArtifactBoardController - No artefacts with sound found on the board');
         _isPlayingAllSounds = false;
         notifyView();
         return;
       }
-
-      print('Debug: ArtifactBoardController - Playing ${artefacts.length} artefact sounds sequentially');
 
       for (var boardArtefact in artefacts) {
         if (_isPlayingAllSounds) {
@@ -185,7 +191,6 @@ class ArtifactBoardController {
             
             if (token != null) {
               final audioUrl = '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
-              print('Debug: ArtifactBoardController - Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               
               // Fetch the audio data
               final response = await http.get(
@@ -207,12 +212,11 @@ class ArtifactBoardController {
                 await _audioPlayer.playerStateStream
                     .firstWhere((state) => state.processingState == ProcessingState.completed);
                 
-                print('Debug: ArtifactBoardController - Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
+                // finished playing sound for artefact
               }
             }
           } catch (e) {
-            print('Debug: ArtifactBoardController - Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
-            // Continue to next artefact even if this one fails
+            // Error playing sound for artefact, continue
           }
         }
       }
@@ -221,7 +225,7 @@ class ArtifactBoardController {
       notifyView();
     }
     
-    print('Debug: ArtifactBoardController - Finished playing all artefact sounds');
+    // finished playing all artefact sounds
   }
 
   /// Dispose of resources

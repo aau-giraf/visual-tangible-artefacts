@@ -17,6 +17,7 @@ public class SavedArtefact
     public float Height { get; set; } = 200;
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public bool? NameVisible { get; set; }
 
     // Navigation properties
     public virtual Artefact Artefact { get; set; } = null!;

@@ -34,3 +34,5 @@ public partial class VTAContext : DbContext
             .HasCharSet("utf8mb4")
             .ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
 }
+}
+

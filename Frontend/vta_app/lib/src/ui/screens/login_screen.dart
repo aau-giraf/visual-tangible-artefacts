@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/services/sync_timer.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -19,24 +21,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _errorMessage = ''; // Clear previous error
+      });
       try {
         var username = _usernameController.text;
         var password = _passwordController.text;
         var authState = Provider.of<AuthState>(context, listen: false);
         Provider.of<ArtifactState>(context, listen: false);
+        
+        debugPrint('Attempting login for username: $username');
         await authState.login(username, password);
+        
+        // If we reach here without exception, login was successful
         if (authState.token != null) {
+          // Start the sync timer after successful login
+          SyncTimer().start(interval: const Duration(seconds: 30));
+          
+          debugPrint('Login successful, navigating to AuthPage');
           // Navigate to user page
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => AuthPage()));
         } else {
+          // This shouldn't happen anymore since login() throws exceptions on failure
           setState(() {
-            _errorMessage = 'Brugernavn eller adgangskode forkert.';
+            _errorMessage = 'Unexpected login error - no token received';
           });
         }
       } catch (e) {
+        debugPrint('Login exception caught: $e');
         setState(() {
-          _errorMessage = 'Ukendt fejl: $e';
+          // Display the actual error message from the backend
+          String errorMsg = e.toString();
+          if (errorMsg.startsWith('Exception: ')) {
+            errorMsg = errorMsg.substring(11); // Remove 'Exception: ' prefix
+          }
+          _errorMessage = errorMsg;
+          debugPrint('Setting error message to: $_errorMessage');
         });
       }
     }
@@ -123,11 +144,29 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     if (_errorMessage.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20.0),
-                        child: Text(
-                          _errorMessage,
-                          style: TextStyle(color: Colors.red),
+                      Container(
+                        margin: const EdgeInsets.only(top: 16.0),
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          border: Border.all(color: Colors.red.shade300),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage,
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     SizedBox(height: 32),

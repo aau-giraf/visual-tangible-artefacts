@@ -11,6 +11,9 @@ using VTA.API.Models;
 using VTA.API.Utilities;
 
 namespace VTA.API.Controllers;
+/// <summary>
+/// Controller responsible for user-related endpoints.
+/// </summary>
 //Mark the entire controller to require a valid token
 [Authorize]
 [Route("api/[controller]")]//Define where all endpoints are
@@ -85,6 +88,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         context.Users.Add(user);
+
+        var defaultBoard = new SavedBoard
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Board1",
+            UserId = user.Id,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        context.SavedBoards.Add(defaultBoard);
+
         try
         {
             await context.SaveChangesAsync();
@@ -297,6 +311,8 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var user = await context.Users
             .Include(u => u.Categories)
                 .ThenInclude(c => c.Artefacts)
+            .Include(u => u.SavedBoards)
+                .ThenInclude(sb => sb.SavedArtefacts)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
@@ -321,7 +337,69 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
         }
 
+        // Delete saved boards and their data
+        foreach (var savedBoard in user.SavedBoards.ToList())
+        {
+            // Delete snapshot file if it exists
+            if (!string.IsNullOrEmpty(savedBoard.SnapshotPath))
+            {
+                try
+                {
+                    var snapshotPath = Path.Combine("wwwroot", savedBoard.SnapshotPath.TrimStart('/'));
+                    if (System.IO.File.Exists(snapshotPath))
+                    {
+                        System.IO.File.Delete(snapshotPath);
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var savedArtefact in savedBoard.SavedArtefacts.ToList())
+            {
+                context.SavedArtefacts.Remove(savedArtefact);
+            }
+
+            context.SavedBoards.Remove(savedBoard);
+        }
+
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
+        await context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Update user settings (NameVisible, FieldCount)
+    /// </summary>
+    /// <param name="dto">User settings to update</param>
+    /// <returns>Status code 204 (No Content) on success</returns>
+    [HttpPatch]
+    public async Task<IActionResult> PatchUser([FromBody] UserPatchDTO dto)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Invalid token");
+        }
+
+        var user = await context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+        // Update fields if provided
+        if (dto.NameVisible != null)
+        {
+            user.NameVisible = dto.NameVisible.Value;
+        }
+        if (dto.FieldCount != null)
+        {
+            user.FieldCount = dto.FieldCount.Value;
+        }
+
+        context.Entry(user).State = EntityState.Modified;
         await context.SaveChangesAsync();
 
         return NoContent();

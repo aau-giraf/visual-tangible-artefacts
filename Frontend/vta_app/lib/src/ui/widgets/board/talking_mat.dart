@@ -62,8 +62,16 @@ class TalkingMatState extends State<TalkingMat>
   String? _currentBoardId;
 
   Timer? _saveTimer;
+  
+  // Flag to prevent auto-saving during certain operations
   Timer? _periodicSaveTimer;
   bool _inhibitAutoSave = false;
+  
+  // Track last saved state of each artefact layout to detect changes
+  final Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
+  
+  // Track local artefacts that haven't been matched to saved instances
+  late List<BoardArtefact> unmatchedLocal;
   bool _isRemoteSession = false;
   bool _initialLoadComplete = false;
   Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
@@ -72,7 +80,9 @@ class TalkingMatState extends State<TalkingMat>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     artifacts = widget.artifacts ?? [];
+    unmatchedLocal = List.from(artifacts);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -99,6 +109,7 @@ class TalkingMatState extends State<TalkingMat>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     _audioPlayer.dispose();
     _saveTimer?.cancel();
@@ -163,6 +174,7 @@ class TalkingMatState extends State<TalkingMat>
                 setState(() {
                   artifacts.clear();
                 });
+                Navigator.of(context).pop(); // Close the dialog
                 Navigator.of(context).pop();
                 _immediateAutoSave();
               },
@@ -209,6 +221,20 @@ class TalkingMatState extends State<TalkingMat>
   }
 
   void _immediateAutoSave() {
+    if (_inhibitAutoSave) return;
+    _saveTimer?.cancel(); // Cancel any pending debounced save
+    _autoSaveBoardLayout(); // Save immediately
+  }
+
+  /// Public helper to allow external controllers (e.g., settings or option wheels)
+  /// to immediately persist the current board layout, including nameVisible flags.
+  Future<void> forceAutoSave() async {
+    if (_inhibitAutoSave) return;
+    _saveTimer?.cancel();
+    await _autoSaveBoardLayout();
+  }
+
+  /// Handle app lifecycle changes to save when app loses focus (mobile/tablet specific)
     debugPrint("TalkingMat => _immediateAutoSave called (_inhibitAutoSave=$_inhibitAutoSave, _isRemoteSession=$_isRemoteSession, _initialLoadComplete=$_initialLoadComplete)");
     if (_inhibitAutoSave || _isRemoteSession || !_initialLoadComplete) {
       debugPrint("TalkingMat => Auto-save blocked by flags or initial load not complete");
@@ -248,6 +274,10 @@ class TalkingMatState extends State<TalkingMat>
     if (lastSaved == null) return true;
 
     return lastSaved.posX != layout.posX ||
+           lastSaved.posY != layout.posY ||
+           lastSaved.width != layout.width ||
+           lastSaved.height != layout.height ||
+           lastSaved.nameVisible != layout.nameVisible;
         lastSaved.posY != layout.posY ||
         lastSaved.width != layout.width ||
         lastSaved.height != layout.height;
@@ -264,6 +294,7 @@ class TalkingMatState extends State<TalkingMat>
         posY: layout.posY,
         width: layout.width,
         height: layout.height,
+        nameVisible: layout.nameVisible,
       );
     }
   }
@@ -302,8 +333,10 @@ class TalkingMatState extends State<TalkingMat>
           posY: artefactLayout.posY,
           width: artefactLayout.width,
           height: artefactLayout.height,
+          nameVisible: artefactLayout.nameVisible,
         );
 
+        await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
         final success = await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
         // TODO: pause timer while resizing or dragging as they cause problems.
         /*
@@ -315,6 +348,25 @@ class TalkingMatState extends State<TalkingMat>
       }
 
       if (toCreate.isNotEmpty) {
+        final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
+        await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
+      } else {
+        // Send the whole board as a single request (POST to create, PUT to update)
+        final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
+
+        final response = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
+        if (response != null) {
+          // map returned saved artefact ids (in case of reordering/new instances)
+          try {
+            final current = widget.controller.value;
+            final returned = response.artefacts;
+            final count = math.min(current.length, returned.length);
+            for (var i = 0; i < count; i++) {
+              current[i].savedArtefactId = returned[i].savedArtefactId;
+            }
+          } catch (_) {}
+        }
+      }
         final saveRequest =
             SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
         final updatedBoard = await _boardLayoutService.updateBoard(
@@ -340,7 +392,7 @@ class TalkingMatState extends State<TalkingMat>
 
       _updateLastSavedLayouts(layoutData);
     } catch (e) {
-      // Silently handle auto-save errors
+      // error auto-saving board layout
     }
   }
 
@@ -354,10 +406,23 @@ class TalkingMatState extends State<TalkingMat>
         );
 
         _currentBoardId = currentBoard.boardId;
+        // restore the board layout on startup
         await _restoreArtefactsFromBoard(currentBoard);
       }
     } catch (e) {
+      // no existing boards found or error loading
       // This is fine - a new board will be created when first needed
+    }
+  }
+
+  /// Restore artefacts from a saved board layout
+  Future<void> _restoreArtefactsFromBoard(BoardLayoutResponse boardLayout) async {
+    // restoring artefact instances from saved board
+    
+    // Clear the current board first to avoid conflicts
+    widget.controller.value.clear();
+    
+    // Add each saved artefact instance to the board
     } finally {
       // Mark initial load as complete, allowing auto-save
       _initialLoadComplete = true;
@@ -410,6 +475,10 @@ class TalkingMatState extends State<TalkingMat>
             best.sizeNotifier.value =
                 Size(artefactLayout.width, artefactLayout.height);
             best.savedArtefactId = artefactLayout.savedArtefactId;
+            // Restore per-instance name visibility if provided
+            if (artefactLayout.nameVisible != null) {
+              best.nameVisible = artefactLayout.nameVisible!;
+            }
           });
           unmatchedLocal.remove(best);
           debugPrint('TalkingMat => Matched existing local artifact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
@@ -417,7 +486,7 @@ class TalkingMatState extends State<TalkingMat>
           await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
         }
       } catch (e) {
-        // Silently handle restoration errors
+        // error restoring artefact instance
       }
     }
 
@@ -447,12 +516,25 @@ class TalkingMatState extends State<TalkingMat>
         headers: {'Authorization': 'Bearer ${token.value}'},
       );
 
+      // Set the position and size from the saved layout
+      boardArtefact.position = Offset(layout.posX, layout.posY);
+      boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
+  // Set the saved instance id so future updates target this specific instance
+  boardArtefact.savedArtefactId = layout.savedArtefactId;
+  
+
+  // NOTE: We do NOT override the base artefact's nameShown with the layout's computed value
+  // The nameVisible from layout is already computed on the backend (SavedArtefact ?? BaseArtefact ?? User)
+  // But we should always display what the base artefact actually says, not override it
+  // This ensures that when the base artefact's nameShown changes, all instances update automatically
       boardArtefact.position = Offset(layout.posX, layout.posY);
       boardArtefact.sizeNotifier.value = Size(layout.width, layout.height);
       boardArtefact.savedArtefactId = layout.savedArtefactId;
 
       widget.controller.addArtifact(boardArtefact);
     } catch (e) {
+      // error adding artefact to board
+    }
       // Silently handle artefact addition errors
     }
   }
@@ -503,6 +585,14 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
+        // Map returned saved artefact instance ids back onto the local artifacts
+        try {
+          final current = widget.controller.value;
+          final returned = response.artefacts;
+          final count = math.min(current.length, returned.length);
+          for (var i = 0; i < count; i++) {
+            current[i].savedArtefactId = returned[i].savedArtefactId;
+          }
         print(
             'Debug: Created default board "${defaultBoardName}" with ID: ${response.boardId}');
         try {
@@ -511,10 +601,10 @@ class TalkingMatState extends State<TalkingMat>
           // ignore mapping errors
         }
       } else {
-        print('Debug: Failed to create default board');
+        // failed to create default board
       }
     } catch (e) {
-      print('Debug: Error creating default board: $e');
+      // error creating default board
     }
   }
 
@@ -528,6 +618,8 @@ class TalkingMatState extends State<TalkingMat>
         .map((artifact) {
       final position = artifact.position ?? Offset.zero;
       final size = artifact.sizeNotifier.value;
+      
+      // saving artifact layout
 
       return BoardArtefactLayout(
         savedArtefactId: artifact.savedArtefactId,
@@ -536,8 +628,11 @@ class TalkingMatState extends State<TalkingMat>
         posY: position.dy,
         width: size.width,
         height: size.height,
+        nameVisible: artifact.nameVisible,
       );
     }).toList();
+    
+    // valid artifacts for saving: ${validArtifacts.length}
 
     return validArtifacts;
   }
@@ -554,6 +649,15 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
+        // saved board
+        // Map returned saved artefact instance ids back onto local artifacts
+        try {
+          final current = widget.controller.value;
+          final returned = response.artefacts;
+          final count = math.min(current.length, returned.length);
+          for (var i = 0; i < count; i++) {
+            current[i].savedArtefactId = returned[i].savedArtefactId;
+          }
         print('Debug: Saved board "${boardName}" with ID: ${response.boardId}');
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
@@ -562,7 +666,7 @@ class TalkingMatState extends State<TalkingMat>
         return response.boardId;
       }
     } catch (e) {
-      print('Debug: Error saving board: $e');
+      // error saving board
     }
     return null;
   }
@@ -572,12 +676,28 @@ class TalkingMatState extends State<TalkingMat>
       final boardLayout = await _boardLayoutService.getBoard(boardId);
       if (boardLayout != null) {
         _currentBoardId = boardId;
+        
+        // Update artifact positions and sizes using the controller's artifacts
+        final currentArtifacts = widget.controller.value;
+        for (final artefactLayout in boardLayout.artefacts) {
+          final artifact = currentArtifacts.firstWhere(
+            (a) => a.baseArtefact?.artefactId == artefactLayout.artefactId,
+            orElse: () => throw StateError('Artefact not found'),
+          );
+          
+          setState(() {
+            artifact.position = Offset(artefactLayout.posX, artefactLayout.posY);
+            artifact.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
+          });
+        }
+        
+        // loaded board
         await _restoreArtefactsFromBoard(boardLayout);
         print(
             'Debug: Loaded board "${boardLayout.name}" with ${boardLayout.artefacts.length} artefacts');
       }
     } catch (e) {
-      print('Debug: Error loading board: $e');
+      // error loading board
     }
   }
 
@@ -585,7 +705,7 @@ class TalkingMatState extends State<TalkingMat>
     try {
       return await _boardLayoutService.getBoards();
     } catch (e) {
-      print('Debug: Error getting saved boards: $e');
+      // error getting saved boards
       return null;
     }
   }
@@ -620,6 +740,7 @@ class TalkingMatState extends State<TalkingMat>
     return insideHoriz && insideVert;
   }
 
+  // name offset calculation based on text metrics
   double _getNameDisplayOffset(String name, BuildContext context) {
     if (name.isEmpty) return 0.0;
     final TextPainter textPainter = TextPainter(
@@ -736,7 +857,7 @@ class TalkingMatState extends State<TalkingMat>
                             final Size artSize = artefact.renderedSize ?? const Size(200, 200);
                             if (_isInsideMat(details.offset, artefactSize: artSize)) {
                               Offset adjustedPosition = details.offset;
-                              if (artefact.baseArtefact?.nameShown == true) {
+                              if (artefact.nameVisible == true) {
                                 final double nameOffset = _getNameDisplayOffset(
                                   artefact.baseArtefact?.name ?? '',
                                   context,
@@ -756,27 +877,11 @@ class TalkingMatState extends State<TalkingMat>
                 );
               }).toList();
 
-              return DragTarget<BoardArtefact>(
-                onWillAcceptWithDetails: (details) => true,
-                onMove: (details) {
-                  final artefact = details.data;
-                  // Adjust anchoring if name is shown so pointer aligns with image
-                  Offset adjusted = details.offset;
-                  if (artefact.nameVisible == true) {
-                    final double nameOffset = _getNameDisplayOffset(
-                      artefact.baseArtefact?.name ?? '',
-                      context,
-                    );
-                    adjusted = Offset(details.offset.dx, details.offset.dy - nameOffset);
-                  }
-                  _updateArtifactPosition(artefact, adjusted);
-                },
-                builder: (context, candidate, rejected) {
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      ...itemWidgets,
-                      Align(
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ...itemWidgets,
+                  Align(
                     alignment: Alignment.lerp(
                             Alignment.bottomCenter, Alignment.center, 0.1) ??
                         Alignment.bottomCenter,
@@ -816,15 +921,16 @@ class TalkingMatState extends State<TalkingMat>
 
                           if (shouldDelete == true) {
                             if (_currentBoardId != null) {
-                              _inhibitAutoSave = true;
                               try {
                                 final ok = await _boardLayoutService
                                     .deleteAllSavedArtefacts(_currentBoardId!);
                                 if (!ok) {
+                                  // server failed to clear board
                                   print(
                                       'Debug: Server failed to clear board ${_currentBoardId}');
                                 }
                               } catch (e) {
+                                // error clearing board on server
                                 print(
                                     'Debug: Error clearing board on server: $e');
                               } finally {
@@ -833,7 +939,7 @@ class TalkingMatState extends State<TalkingMat>
                             }
 
                             widget.controller.value.clear();
-                            widget.controller.notifyListeners();
+                            widget.controller.refresh();
                             setState(() {});
                           }
                         },
@@ -846,7 +952,14 @@ class TalkingMatState extends State<TalkingMat>
                           },
                           onAcceptWithDetails: (details) async {
                             var artefact = details.data;
+
+                            // Persist deletion on server if we have a board id and a saved instance id
                             try {
+                              if (_currentBoardId != null && artefact.savedArtefactId != null) {
+                                final success = await _boardLayoutService.deleteSavedArtefact(
+                                  _currentBoardId!,
+                                  artefact.savedArtefactId!,
+                                );
                               if (_currentBoardId != null &&
                                   artefact.savedArtefactId != null) {
                                 _inhibitAutoSave = true;
@@ -857,6 +970,8 @@ class TalkingMatState extends State<TalkingMat>
                                     artefact.savedArtefactId!,
                                   );
 
+                                if (!success) {
+                                  // failed to delete saved artefact on server
                                   if (!success) {
                                     print(
                                         'Debug: Failed to delete saved artefact ${artefact.savedArtefactId} on server');
@@ -866,6 +981,12 @@ class TalkingMatState extends State<TalkingMat>
                                 }
                               }
                             } catch (e) {
+                              // error while deleting saved artefact on server
+                            }
+
+                            // Remove from the local controller (this updates the UI)
+                            widget.controller.removeArtifact(artefact);
+
                               print(
                                   'Debug: Error while deleting saved artefact on server: $e');
                             }
@@ -922,10 +1043,8 @@ class TalkingMatState extends State<TalkingMat>
                         ),
                       ),
                     ]),
-                      ),
-                    ],
-                  );
-                },
+                  ),
+                ],
               );
             },
           ),

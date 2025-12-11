@@ -18,8 +18,8 @@ public static class DTOConverter
             CategoryId = artefact.CategoryId,
             Name = artefact.Name,
             NameShown = artefact.NameShown ?? false,
-            ImageUrl = scheme + "://" + host + artefact.ImagePath,
-            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? null : scheme + "://" + host + artefact.SoundPath
+            ImageUrl = string.IsNullOrEmpty(artefact.ImagePath) ? string.Empty : scheme + "://" + host + artefact.ImagePath,
+            SoundUrl = string.IsNullOrEmpty(artefact.SoundPath) ? string.Empty : scheme + "://" + host + artefact.SoundPath
         };
     }
 
@@ -76,6 +76,10 @@ public static class DTOConverter
         {
             Id = user.Id,
             Name = user.Name,
+            GuardianKey = user.GuardianKey,
+            Username = user.Username,
+            NameVisible = user.NameVisible,
+            FieldCount = user.FieldCount
             Username = user.Username,
             Role = user.Role
         };
@@ -102,6 +106,35 @@ public static class DTOConverter
             Password = user.Password,
             Username = user.Username,
             Role = user.Role
+        };
+    }
+
+    public static SavedArtefactGetDTO MapSavedArtefactToSavedArtefactGetDTO(SavedArtefact savedArtefact, string scheme, string host)
+    {
+        return new SavedArtefactGetDTO
+        {
+            Id = savedArtefact.Id,
+            ArtefactId = savedArtefact.ArtefactId,
+            BoardId = savedArtefact.BoardId,
+            PosX = savedArtefact.PosX,
+            PosY = savedArtefact.PosY,
+            Width = savedArtefact.Width,
+            Height = savedArtefact.Height,
+            CreatedDate = savedArtefact.CreatedDate,
+            Artefact = MapArtefactToArtefactGetDTO(savedArtefact.Artefact, scheme, host)
+        };
+    }
+
+    public static SavedArtefact MapSavedArtefactPostDTOToSavedArtefact(SavedArtefactPostDTO dto, string id, string boardId)
+    {
+        return new SavedArtefact
+        {
+            Id = id,
+            ArtefactId = dto.ArtefactId,
+            BoardId = boardId,
+            PosX = dto.PosX,
+            PosY = dto.PosY,
+            CreatedDate = DateTime.UtcNow
         };
     }
 
