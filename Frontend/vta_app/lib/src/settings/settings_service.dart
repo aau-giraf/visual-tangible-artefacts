@@ -50,9 +50,7 @@ class SettingsService {
     int? fieldCount,
     bool bulkUpdateArtefacts = false,
   }) async {
-    try {
-      debugPrint('_updateUserSettingsInDatabase: Starting with nameVisible=$nameVisible, fieldCount=$fieldCount, bulkUpdate=$bulkUpdateArtefacts');
-      
+    try {      
       final token = GetIt.instance.get<Token>().value;
       if (token == null) {
         return;

@@ -815,7 +815,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                         }
                                       });
                                     } catch (e) {
-                                      print('Playback error: $e');
+                                      debugPrint('Playback error: $e');
                                       tempPlayer.dispose();
                                       scaffoldMessenger.showSnackBar(
                                         SnackBar(
@@ -824,7 +824,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                       );
                                     }
                                   } catch (e) {
-                                    print('Player initialization error: $e');
+                                    debugPrint('Player initialization error: $e');
                                     scaffoldMessenger.showSnackBar(
                                       SnackBar(
                                         content: Text('Kunne ikke initialisere afspiller: $e'),
@@ -1076,11 +1076,11 @@ class _AddItemPopupState extends State<AddItemPopup> {
         // authentication failed - token might be expired or invalid
         throw Exception('Authentication failed. Please log in again.');
       } else {
-        print('Backend API error: ${response.statusCode} ${response.body}');
+        debugPrint('Backend API error: ${response.statusCode} ${response.body}');
         throw Exception('Backend API error: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error calling backend API: $e');
+      debugPrint('Error calling backend API: $e');
       rethrow;
     }
   }

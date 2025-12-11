@@ -44,7 +44,6 @@ class _LoginScreenState extends State<LoginScreen> {
               MaterialPageRoute(builder: (context) => AuthPage()));
         } else {
           // This shouldn't happen anymore since login() throws exceptions on failure
-          debugPrint('Login completed but no token received');
           setState(() {
             _errorMessage = 'Unexpected login error - no token received';
           });

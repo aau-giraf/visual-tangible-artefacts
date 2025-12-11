@@ -72,7 +72,7 @@ class BoardArtefact {
             await player.setUrl(artefact.soundUrl!);
             await player.play();
           } catch (e) {
-            print('Error playing sound: $e');
+            debugPrint('Error playing sound: $e');
           }
         },
         child: Container(
