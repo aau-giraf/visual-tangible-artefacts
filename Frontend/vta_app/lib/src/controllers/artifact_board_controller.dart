@@ -69,15 +69,12 @@ class ArtifactBoardController {
     // When textUnderImages setting changes, update all artefacts on both boards
     // to match the new setting value
     final newNameVisible = settingsController.textUnderImages;
-    
-    print('Debug: _onSettingsChanged - Updating all artefacts to nameShown: $newNameVisible');
-    
+        
     // Update all artefacts on the TalkingMat
     final talkingMatArtefacts = talkingmatController.value;
     for (var boardArtefact in talkingMatArtefacts) {
       if (boardArtefact.baseArtefact != null) {
         boardArtefact.baseArtefact!.nameShown = newNameVisible;
-        print('Debug: _onSettingsChanged - Updated TalkingMat artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
       }
     }
     
@@ -97,9 +94,7 @@ class ArtifactBoardController {
     linearBoardController.setFieldCount(settingsController.linearArtifactCount);
     
     // Notify view to trigger rebuild and show updated name visibility
-    notifyView();
-    
-    print('Debug: _onSettingsChanged - Completed updating all artefacts');
+    notifyView();    
   }
 
 
