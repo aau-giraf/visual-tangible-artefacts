@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
+using VTA.Data.DbContexts;
 
 namespace VTA.API.Controllers;
 

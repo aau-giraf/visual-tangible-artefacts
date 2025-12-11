@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -10,9 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MySql.Data.MySqlClient;
 using Testcontainers.MySql;
-using VTA.API.DbContexts;
-using Xunit;
 using Microsoft.Extensions.Logging;
+using VTA.Data.DbContexts;
 
 namespace VTA.Tests.TestHelpers
 {

@@ -1,0 +1,25 @@
+import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
+
+const apiClient = axios.create({
+  baseURL: 'https://vta.syncr.dev/api/', // Adjust to your backend URL
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const authStore = useAuthStore();
+    const token = authStore.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;

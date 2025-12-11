@@ -1,5 +1,4 @@
-using System.Drawing;
-using VTA.API.Models;
+using VTA.Data.Models;
 
 namespace VTA.API.DTOs;
 
@@ -76,10 +75,10 @@ public static class DTOConverter
         {
             Id = user.Id,
             Name = user.Name,
-            GuardianKey = user.GuardianKey,
             Username = user.Username,
             NameVisible = user.NameVisible,
-            FieldCount = user.FieldCount
+            FieldCount = user.FieldCount,
+            Role = user.Role
         };
     }
 
@@ -91,9 +90,10 @@ public static class DTOConverter
             Name = dto.Name,
             Password = dto.Password,
             Username = dto.Username,
-            GuardianKey = dto.GuardianKey
+            Role = dto.Role
         };
     }
+
     public static User MapUserPostDTOToUser(UserPostDTO user, string id)
     {
         return new User
@@ -101,8 +101,8 @@ public static class DTOConverter
             Id = id,
             Name = user.Name,
             Password = user.Password,
-            GuardianKey = user.GuardianKey,
-            Username = user.Username
+            Username = user.Username,
+            Role = user.Role
         };
     }
 

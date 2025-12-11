@@ -1,4 +1,6 @@
-﻿namespace VTA.API.DTOs;
+﻿using VTA.Data.Models;
+
+namespace VTA.API.DTOs;
 
 public partial class UserPostDTO
 {
@@ -6,9 +8,9 @@ public partial class UserPostDTO
 
     public required string Password { get; set; }
 
-    public string GuardianKey { get; set; } = null!;
-
     public string Username { get; set; } = null!;
+
+    public UserRole Role { get; set; } = UserRole.Child;
 }
 
 public partial class UserGetDTO
@@ -17,13 +19,13 @@ public partial class UserGetDTO
 
     public string? Name { get; set; }
 
-    public string GuardianKey { get; set; } = null!;
-
     public string Username { get; set; } = null!;
 
     public bool NameVisible { get; set; }
 
     public int FieldCount { get; set; }
+
+    public UserRole Role { get; set; }
 
     public virtual ICollection<CategoryGetDTO> Categories { get; set; } = new List<CategoryGetDTO>();
 }
@@ -33,7 +35,7 @@ public class UserSignupDTO
     required public string Username { get; set; }
     required public string Password { get; set; }
     required public string Name { get; set; }
-    public string? GuardianKey { get; set; }
+    public UserRole Role { get; set; } = UserRole.Child;
 }
 
 public class UserLoginDTO
@@ -47,7 +49,6 @@ public class UserLoginResponseDTO
     public string Token { get; set; } = null!;
     public string userId { get; set; }
 }
-
 
 
 

@@ -8,6 +8,7 @@ import 'package:vta_app/src/modelsDTOs/login_form.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'dart:convert';
 
 abstract class ApiDataRepository {
@@ -15,7 +16,8 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
+    apiProvider = ApiProvider(baseUrl: PlatformUtils.getApiUrl());
+    debugPrint('[DataRepository] Using API URL: ${PlatformUtils.getApiUrl()}');
   }
 
   bool responseOk(http.Response? response) {
@@ -151,8 +153,8 @@ class ArtifactRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response = await apiProvider.fetchAsJson('Users/Artefacts/$artefactId',
-          headers: headers);
+      var response = await apiProvider
+          .fetchAsJson('Users/Artefacts/$artefactId', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
         return Artefact.fromJson(jsonResponse);
@@ -262,6 +264,58 @@ class UserRepository extends ApiDataRepository {
       }
     } catch (e) {
       debugPrint("An error occured while fetching user data: $e");
+      return null;
+    }
+  }
+
+  Future<List<User>?> fetchAllUsers(String token) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Users', headers: headers);
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body) as List;
+        var users = jsonResponse
+            .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
+            .toList();
+        return users;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint("An error occured while fetching users: $e");
+      return null;
+    }
+  }
+
+  /// Fetch only related contacts for the current user
+  /// For caregivers: returns their connected children
+  /// For children: returns their connected caregivers
+  Future<List<User>?> fetchRelatedContacts(String token) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Contacts',
+          headers: headers);
+
+      debugPrint('Related contacts response: ${response?.body}');
+      debugPrint('Related contacts status code: ${response?.statusCode}');
+      debugPrint('Related contacts headers: ${response?.headers}');
+      debugPrint('Related contacts request: ${response?.request}');
+
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body) as List;
+        var users = jsonResponse
+            .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
+            .toList();
+        return users;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint("An error occured while fetching related contacts: $e");
       return null;
     }
   }

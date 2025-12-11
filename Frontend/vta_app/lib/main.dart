@@ -10,9 +10,11 @@ import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/models/artefact_model.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
+import 'package:vta_app/src/services/notification_service.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:vta_app/src/services/sync_timer.dart';
 import 'src/app.dart';
@@ -53,9 +55,7 @@ void main() async {
   var userInfo = GetIt.I.get<UserInfo>();
 
   // Set up the providers
-  final apiProvider = ApiProvider(
-      baseUrl: GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['Remote']);
+  final apiProvider = ApiProvider(baseUrl: PlatformUtils.getApiUrl());
   GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
   // Set up the controllers
@@ -72,6 +72,8 @@ void main() async {
   // Load the user's preferred theme while the splash screen is displayed.
   // This prevents a sudden theme change when the app is first displayed.
   await settingsController.loadSettings();
+  // Initialize Notification Service
+  await NotificationService().initialize();
 
   await Settings.init(cacheProvider: SharePreferenceCache());
   

@@ -5,8 +5,13 @@ import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/services/sync_timer.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:vta_app/src/services/call_manager.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
@@ -21,6 +26,26 @@ class AuthController extends ChangeNotifier {
     if (status) {
       await _model.loadCache();
       SyncTimer().start();
+      
+      // Connect to SignalR and setup callbacks if already authenticated
+      final userId = _model.userInfo.userId;
+      if (userId != null && userId.isNotEmpty) {
+        try {
+          await SignalRService().connect(userId);
+          
+          // Load contacts cache and setup call UI callbacks
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('jwtToken');
+          if (token != null) {
+            await SignalRService().loadContacts(token);
+          }
+          CallManager().setupCallbacks();
+          
+          debugPrint("SignalR: connected & registered user $userId (from checkAuth)");
+        } catch (e) {
+          debugPrint("SignalR: connect failed in checkAuth => $e");
+        }
+      }
     }
     return status;
   }
@@ -33,9 +58,40 @@ class AuthController extends ChangeNotifier {
 
       if (context != null && context.mounted) {
         await artifactController.updateArtifacts(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
         await artifactController.updateMostUsedCategories(context: context);
-        if(!context.mounted) return;
+        if (!context.mounted) return;
+        final userId = _model.userInfo.userId;
+        if (userId != null && userId.isNotEmpty) {
+          try {
+            await SignalRService().connect(userId);
+            
+            // Load contacts cache and setup call UI callbacks
+            final prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('jwtToken');
+            if (token != null) {
+              await SignalRService().loadContacts(token);
+            }
+            CallManager().setupCallbacks();
+            
+            debugPrint("SignalR: connected & registered user $userId");
+          } catch (e) {
+            debugPrint("SignalR: connect failed => $e");
+          }
+        } else {
+          debugPrint("WARNING: No userId available for SignalR connection");
+        }
+        if (!context.mounted) return;
+
+        if (userId != null) {
+          final user = await _model.getUser(userId);
+          if (user != null && user.role == user_model.UserRole.caregiver) {
+            Navigator.of(context)
+                .pushReplacementNamed(RemoteSessionScreen.routeName);
+            return;
+          }
+        }
+
         Navigator.of(context)
             .pushReplacementNamed(ArtifactBoardScreen.routeName);
       }
@@ -64,8 +120,17 @@ class AuthController extends ChangeNotifier {
       await _showLogoutConfirmationDialog(context);
     } else {
       try {
+        // Clear call callbacks
+        CallManager().clearCallbacks();
+        
+        // Disconnect from SignalR
+        await SignalRService().disconnect();
+        
+        // Clear all user data
         await artifactController.clearUserData();
         await _model.logout();
+        
+        debugPrint('[AuthController.logout] Logout complete');
       } catch (e) {
         debugPrint('[AuthController.logout] clearUserData failed: $e');
       }
@@ -73,16 +138,11 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Signs up the user with the provided [email] and [password]
-  Future<void> signup(
-      String username, String password, String name, String guardianKey,
+  /// Signs up the user with the provided [username], [password], and [name]
+  Future<void> signup(String username, String password, String name,
       {BuildContext? context}) async {
     try {
-      var form = SignupForm(
-          username: username,
-          password: password,
-          name: name,
-          guardianKey: guardianKey);
+      var form = SignupForm(username: username, password: password, name: name);
       await _model.signup(form);
       
       // If successful, navigate to main screen
@@ -130,8 +190,17 @@ class AuthController extends ChangeNotifier {
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 try {
+                  // Clear call callbacks
+                  CallManager().clearCallbacks();
+                  
+                  // Disconnect from SignalR
+                  await SignalRService().disconnect();
+                  
+                  // Clear all user data
                   await artifactController.clearUserData();
                   await _model.logout();
+                  
+                  debugPrint('[AuthController.logout] Logout complete');
                 } catch (e) {
                   debugPrint(
                       '[AuthController.logout] clearUserData failed: $e');
@@ -145,6 +214,15 @@ class AuthController extends ChangeNotifier {
         );
       },
     );
+  }
+
+  /// Gets the current user based on the stored user ID
+  Future<user_model.User?> getCurrentUser() async {
+    final userId = _model.userInfo.userId;
+    if (userId != null && userId.isNotEmpty) {
+      return await _model.getUser(userId);
+    }
+    return null;
   }
 
   /// Shows error message without SnackBar to prevent keyboard issues

@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
-namespace VTA.API.Controllers;
+namespace VTA.Tests.IntegrationTests.ControllerTests;
 
 /// <summary>
 /// Controller for managing saved artefacts on boards.

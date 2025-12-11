@@ -1,6 +1,6 @@
-using VTA.API.Models;
 using VTA.API.DTOs;
 using System.Text.Json;
+using VTA.Data.Models;
 
 namespace VTA.Tests.UnitTests;
 
