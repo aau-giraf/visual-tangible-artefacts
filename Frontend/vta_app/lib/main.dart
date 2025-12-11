@@ -20,6 +20,8 @@ import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:get_it/get_it.dart';
+import 'package:vta_app/src/database/database_helper.dart';
+import 'package:vta_app/src/database/database_debug_helper.dart';
 
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -30,7 +32,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
-
+  
+  // Initialize SQLite database (only on mobile platforms, not web)
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    try {
+      await DatabaseHelper.instance.database;
+      print('SQLite database initialized successfully');
+      await DatabaseDebugHelper.printDatabasePath();
+    } catch (e) {
+      print('Failed to initialize SQLite database: $e');
+    }
+  }
   // Load global configuration from assets/cfg/app_settings.json
   await GlobalConfiguration().loadFromAsset("app_settings");
 

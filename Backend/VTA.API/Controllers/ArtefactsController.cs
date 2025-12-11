@@ -5,6 +5,7 @@ using VTA.API.DbContexts;
 using VTA.API.DTOs;
 using VTA.API.Models;
 using VTA.API.Utilities;
+using System.Collections.Generic;
 
 namespace VTA.API.Controllers;
 
@@ -13,6 +14,12 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class ArtefactsController(VTAContext context) : ControllerBase
 {
+    private static readonly HashSet<string> AllowedVoiceIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ElevenLabsService.DefaultVoiceId,
+        "Xb7hH8MSUJpSbSDYk0k2"
+    };
+
     // GET: api/Artefacts
     /// <summary>
     /// Gets all artefacts that a user owns
@@ -334,11 +341,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(request.VoiceId);
+
             // Generate speech with multilingual support for Danish
-            // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                voiceId: voiceId,
                 modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
@@ -416,11 +424,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(request.VoiceId);
+
             // Generate speech with multilingual support for Danish
-            // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                voiceId: voiceId,
                 modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
@@ -493,10 +502,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(request.VoiceId);
+
             // Generate speech using v2.5 turbo model which supports audio tags
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
+                voiceId: voiceId,
                 modelId: "eleven_turbo_v2_5" // v2.5 model supports audio tags like <break>, <emphasis>, etc.
             );
 
@@ -637,10 +648,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(ttsDto.VoiceId);
+
             // Generate speech
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: ttsDto.Text,
-                voiceId: ttsDto.VoiceId,
+                voiceId: voiceId,
                 modelId: ttsDto.ModelId,
                 stability: ttsDto.Stability,
                 similarityBoost: ttsDto.SimilarityBoost,
@@ -698,6 +711,36 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             return StatusCode(500, $"An error occurred while generating speech: {ex.Message}");
         }
+    }
+
+    private string ResolveVoiceId(string? requestedVoiceId)
+    {
+        if (string.IsNullOrWhiteSpace(requestedVoiceId))
+        {
+            Console.WriteLine("Warning: Empty or null voiceId requested. Using default voice.");
+            return ElevenLabsService.DefaultVoiceId;
+        }
+
+        // Normalize the voice ID (trim whitespace and ensure consistent casing)
+        var normalizedVoiceId = requestedVoiceId.Trim();
+
+        if (AllowedVoiceIds.Contains(normalizedVoiceId))
+        {
+            Console.WriteLine($"Info: Using voice ID: {normalizedVoiceId}");
+            return normalizedVoiceId;
+        }
+
+        Console.WriteLine($"Warning: Unsupported voiceId '{requestedVoiceId}' requested. Falling back to default voice ID: {ElevenLabsService.DefaultVoiceId}");
+        return ElevenLabsService.DefaultVoiceId;
+    }
+
+    private bool IsValidVoiceId(string? voiceId)
+    {
+        if (string.IsNullOrWhiteSpace(voiceId))
+        {
+            return false;
+        }
+        return AllowedVoiceIds.Contains(voiceId.Trim());
     }
 
     private bool ArtefactExists(string id)

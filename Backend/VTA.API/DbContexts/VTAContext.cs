@@ -24,9 +24,12 @@ public partial class VTAContext : DbContext
 
     public virtual DbSet<SavedArtefact> SavedArtefacts { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder
-            .UseCollation("utf8mb4_0900_ai_ci")
-            .HasCharSet("utf8mb4")
-            .ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
+   protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    // Apply all IEntityTypeConfiguration classes from the Configurations folder
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
 }
+}
+

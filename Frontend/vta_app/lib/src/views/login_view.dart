@@ -17,6 +17,32 @@ class _LoginViewState extends State<LoginView> {
   final sharedPasswordController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
+  String _errorMessage = '';
+
+  /// Translates error messages to Danish
+  String _translateErrorToDanish(String error) {
+    // Remove 'Exception: ' prefix if present
+    if (error.startsWith('Exception: ')) {
+      error = error.substring(11);
+    }
+    
+    // Translate common error messages to Danish
+    switch (error.toLowerCase()) {
+      case 'invalid username or password':
+        return 'Ugyldigt brugernavn eller adgangskode';
+      case 'this username already exists, please choose another':
+        return 'Dette brugernavn eksisterer allerede, vælg venligst et andet';
+      case 'no response from server':
+        return 'Ingen respons fra serveren';
+      case 'a server error occured':
+        return 'Der opstod en serverfejl';
+      case 'an unknown error occured':
+        return 'Der opstod en ukendt fejl';
+      default:
+        // If no translation found, return the original error
+        return error;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +122,32 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
+          if (_errorMessage.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 16.0),
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                border: Border.all(color: Colors.red.shade300),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage,
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           SizedBox(height: 32),
           ElevatedButton(
             onPressed: _isLoading
@@ -104,11 +156,20 @@ class _LoginViewState extends State<LoginView> {
                     if (formKey.currentState!.validate()) {
                       setState(() {
                         _isLoading = true;
+                        _errorMessage = ''; // Clear previous error
                       });
                       final username = sharedUsernameController.text;
                       final password = sharedPasswordController.text;
-                      await controller.login(username, password,
-                          context: context);
+                      
+                      try {
+                        await controller.login(username, password,
+                            context: context);
+                      } catch (e) {
+                        setState(() {
+                          _errorMessage = _translateErrorToDanish(e.toString());
+                        });
+                      }
+                      
                       setState(() {
                         _isLoading = false;
                       });
@@ -216,6 +277,32 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
+          if (_errorMessage.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 16.0),
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                border: Border.all(color: Colors.red.shade300),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage,
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           SizedBox(height: 32),
           ElevatedButton(
             onPressed: _isLoading
@@ -224,14 +311,23 @@ class _LoginViewState extends State<LoginView> {
                     if (formKey.currentState!.validate()) {
                       setState(() {
                         _isLoading = true;
+                        _errorMessage = ''; // Clear previous error
                       });
                       final username = sharedUsernameController.text;
                       final password = sharedPasswordController.text;
                       final name = nameController.text;
                       final guardianKey = guardianKeyController.text;
-                      await controller.signup(
-                          username, password, name, guardianKey,
-                          context: context);
+                      
+                      try {
+                        await controller.signup(
+                            username, password, name, guardianKey,
+                            context: context);
+                      } catch (e) {
+                        setState(() {
+                          _errorMessage = _translateErrorToDanish(e.toString());
+                        });
+                      }
+                      
                       setState(() {
                         _isLoading = false;
                       });

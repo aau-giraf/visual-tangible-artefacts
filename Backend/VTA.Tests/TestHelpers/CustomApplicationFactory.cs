@@ -24,20 +24,21 @@ namespace VTA.Tests.TestHelpers
         {
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
+                .AddJsonFile("../VTA.API/appsettings.json", optional: true)
                 .AddJsonFile("appsettings.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
 
-            var connectionString = config.GetValue<string>("ConnectionStrings:TestConnection")
-                                   ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
+            var connectionString = config.GetValue<string>("ConnectionStrings:TEST_CONNECTION_STRING")
+                                   ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
+                                   ?? "server=localhost;port=3306;user=vta_user;password=vta_password;database=vta_test";
 
             var jwtSecretConfig = new JwtSecretConfig
             {
                 SecretKey = config.GetValue<string>("Secret:SecretKey")
-                            ?? Environment.GetEnvironmentVariable("JWT_SECRET"),
-                ValidIssuer = "api.vta.com",
-                ValidAudience = "user.vta.com"
+                            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY"),
+                ValidIssuer = config.GetValue<string>("Secret:ValidIssuer") ?? "api.vta.com",
+                ValidAudience = config.GetValue<string>("Secret:ValidAudience") ?? "user.vta.com"
             };
 
             if (string.IsNullOrEmpty(jwtSecretConfig.SecretKey))
@@ -46,9 +47,9 @@ namespace VTA.Tests.TestHelpers
             }
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
-            var database = builder.Database;
-            var username = builder.UserID;
-            var password = builder.Password;
+            var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
+            var username = string.IsNullOrEmpty(builder.UserID) ? "root" : builder.UserID;
+            var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
             _mySqlContainer = new MySqlBuilder()
                 .WithImage("mysql:8.0")
@@ -71,9 +72,15 @@ namespace VTA.Tests.TestHelpers
             await vtaContext.Database.EnsureCreatedAsync();
         }
 
-        public async Task DisposeAsync()
+        public override async ValueTask DisposeAsync()
         {
             await _mySqlContainer.DisposeAsync();
+            await base.DisposeAsync();
+        }
+
+        async Task IAsyncLifetime.DisposeAsync()
+        {
+            await DisposeAsync();
         }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -82,7 +89,10 @@ namespace VTA.Tests.TestHelpers
             {
                 var descriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<VTAContext>));
-                services.Remove(descriptor);
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
 
                 services.AddDbContext<VTAContext>(options =>
                     options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
@@ -106,9 +116,9 @@ namespace VTA.Tests.TestHelpers
 
         private class JwtSecretConfig
         {
-            public string SecretKey { get; set; }
-            public string ValidIssuer { get; set; }
-            public string ValidAudience { get; set; }
+            public string? SecretKey { get; set; }
+            public string? ValidIssuer { get; set; }
+            public string? ValidAudience { get; set; }
         }
     }
 }
