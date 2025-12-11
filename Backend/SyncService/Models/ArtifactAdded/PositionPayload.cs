@@ -2,6 +2,6 @@ namespace SyncService.Models.ArtifactAdded;
 
 public class PositionPayload
 {
-    public required string Dx { get; set; }
-    public required string Dy { get; set; }
+    public required int Dx { get; set; }
+    public required int Dy { get; set; }
 }
