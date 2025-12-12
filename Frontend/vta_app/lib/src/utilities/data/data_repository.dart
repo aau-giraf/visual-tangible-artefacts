@@ -8,6 +8,7 @@ import 'package:vta_app/src/modelsDTOs/login_form.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'dart:convert';
 
 abstract class ApiDataRepository {
@@ -15,7 +16,8 @@ abstract class ApiDataRepository {
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
-    apiProvider = ApiProvider(baseUrl: apiSettings['BaseUrl']['Remote']);
+    apiProvider = ApiProvider(baseUrl: PlatformUtils.getApiUrl());
+    debugPrint('[DataRepository] Using API URL: ${PlatformUtils.getApiUrl()}');
   }
 
   bool responseOk(http.Response? response) {
@@ -36,11 +38,14 @@ abstract class ApiDataRepository {
 
 class AuthRepository extends ApiDataRepository {
   Future<LoginResponse?> login(String username, String password) async {
-    try {
-      var loginForm = LoginForm(username: username, password: password);
+    var loginForm = LoginForm(username: username, password: password);
 
-      final response =
-          await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
+    final response =
+        await apiProvider.postAsJson('Users/Login', body: loginForm.toJson());
+    
+    // responseOk() will throw exception for 401, 500, etc. or return true for success
+    // It should never return false, but if it does, we'll handle it
+    try {
       if (responseOk(response)) {
         var loginResponse = LoginResponse.fromJson(json.decode(response!.body));
         if (loginResponse.token != null) {
@@ -52,11 +57,13 @@ class AuthRepository extends ApiDataRepository {
           throw Exception('Login response received, but token is null.');
         }
       } else {
-        return null;
+        // This should never happen since responseOk() throws exceptions
+        throw Exception('Unexpected login failure.');
       }
     } catch (e) {
-      debugPrint('An error occurred during login: $e');
-      return null;
+      // Re-throw the exception so it bubbles up to the UI
+      debugPrint('Login error in AuthRepository: $e');
+      rethrow;
     }
   }
 
@@ -146,8 +153,8 @@ class ArtifactRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response = await apiProvider.fetchAsJson('Users/Artefacts/$artefactId',
-          headers: headers);
+      var response = await apiProvider
+          .fetchAsJson('Users/Artefacts/$artefactId', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
         return Artefact.fromJson(jsonResponse);
@@ -258,6 +265,112 @@ class UserRepository extends ApiDataRepository {
     } catch (e) {
       debugPrint("An error occured while fetching user data: $e");
       return null;
+    }
+  }
+
+  Future<List<User>?> fetchAllUsers(String token) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Users', headers: headers);
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body) as List;
+        var users = jsonResponse
+            .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
+            .toList();
+        return users;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint("An error occured while fetching users: $e");
+      return null;
+    }
+  }
+
+  /// Fetch only related contacts for the current user
+  /// For caregivers: returns their connected children
+  /// For children: returns their connected caregivers
+  Future<List<User>?> fetchRelatedContacts(String token) async {
+    try {
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      var response = await apiProvider.fetchAsJson('Contacts',
+          headers: headers);
+
+      debugPrint('Related contacts response: ${response?.body}');
+      debugPrint('Related contacts status code: ${response?.statusCode}');
+      debugPrint('Related contacts headers: ${response?.headers}');
+      debugPrint('Related contacts request: ${response?.request}');
+
+      if (responseOk(response)) {
+        var jsonResponse = json.decode(response!.body) as List;
+        var users = jsonResponse
+            .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
+            .toList();
+        return users;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint("An error occured while fetching related contacts: $e");
+      return null;
+    }
+  }
+
+  /// Update user settings (NameVisible, FieldCount)
+  Future<bool> updateUserSettings({
+    required String token,
+    bool? nameVisible,
+    int? fieldCount,
+  }) async {
+    try {
+    
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      
+      Map<String, dynamic> body = {};
+      if (nameVisible != null) body['nameVisible'] = nameVisible;
+      if (fieldCount != null) body['fieldCount'] = fieldCount;
+      
+      
+      var response = await apiProvider.patchAsJson('Users', 
+        headers: headers, 
+        body: body
+      );
+      
+      return responseOk(response);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Bulk update nameShown for all user's artefacts
+  Future<bool> bulkUpdateArtefactsNameShown({
+    required String token,
+    required bool nameShown,
+  }) async {
+    try {
+      
+      Map<String, String> headers = {
+        "Authorization": 'Bearer $token',
+      };
+      
+      Map<String, dynamic> body = {'nameShown': nameShown};
+            
+      var response = await apiProvider.patchAsJson(
+        'Users/Artefacts/bulk-update-name-shown', 
+        headers: headers, 
+        body: body
+      );
+
+      
+      return responseOk(response);
+    } catch (e) {
+      return false;
     }
   }
 }

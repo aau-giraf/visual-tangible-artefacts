@@ -110,7 +110,7 @@ namespace VTA.Tests.IntegrationTests.ControllerTests
         {
             var token = await _utilities.CreateUserAndReturnTokenAsync();
 
-            var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Users");
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await _client.SendAsync(request);

@@ -26,9 +26,9 @@ class Board {
     this.showDirectional = false,
     this.linearBoardFieldCount = 4,
   }) : 
-    this.id = id ?? _generateId(),
-    this.talkingMatArtifacts = talkingMatArtifacts ?? [],
-    this.linearBoardArtifacts = linearBoardArtifacts ?? List.filled(4, null);
+    id = id ?? _generateId(),
+    talkingMatArtifacts = talkingMatArtifacts ?? [],
+    linearBoardArtifacts = linearBoardArtifacts ?? List.filled(4, null);
 
   static String _generateId() {
     return '${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(10000)}';

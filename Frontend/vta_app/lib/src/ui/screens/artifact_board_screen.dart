@@ -5,11 +5,16 @@ import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
+import 'package:vta_app/src/services/signalr_service.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
+import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
+import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
+import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 
 import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
 
@@ -36,8 +41,46 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   void _notifyView() {
     if (mounted) {
-      debugPrint('[ArtifactBoardScreen] notifyView callback - calling setState');
+      debugPrint(
+          '[ArtifactBoardScreen] notifyView callback - calling setState');
       setState(() {});
+    }
+  }
+
+  void _showMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green.shade600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 4,
+        ),
+      );
     }
   }
 
@@ -47,17 +90,23 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
       final existingController = GetIt.instance.get<ArtifactBoardController>(
         instanceName: _controllerKey,
       );
-      debugPrint('[ArtifactBoardScreen] get controller - Reusing existing controller from GetIt: ${existingController.hashCode}');
+      debugPrint(
+          '[ArtifactBoardScreen] get controller - Reusing existing controller from GetIt: ${existingController.hashCode}');
       // Update the notifyView callback to point to current widget state
       existingController.updateNotifyView(_notifyView);
+      // Update the showMessage callback to point to current widget state
+      existingController.updateShowMessage(_showMessage);
       return existingController;
     } catch (e) {
       // Controller doesn't exist yet, create and register it
-      debugPrint('[ArtifactBoardScreen] get controller - Creating NEW ArtifactBoardController and registering in GetIt');
+      debugPrint(
+          '[ArtifactBoardScreen] get controller - Creating NEW ArtifactBoardController and registering in GetIt');
       final newController = ArtifactBoardController(
         notifyView: _notifyView,
         settingsController: widget.settingsController,
       );
+      // Set the showMessage callback
+      newController.updateShowMessage(_showMessage);
       GetIt.instance.registerSingleton<ArtifactBoardController>(
         newController,
         instanceName: _controllerKey,
@@ -66,20 +115,37 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     }
   }
 
+  user_model.User? currentUser;
+  late Future<user_model.User?> userFuture;
+
   @override
   void initState() {
     super.initState();
     debugPrint('[ArtifactBoardScreen] initState - Initializing state');
     // Controller will be lazily initialized on first access via GetIt
     // This ensures it persists across widget recreations
+    // Load user data as a future that will be awaited
+    userFuture = _loadCurrentUser();
   }
 
   @override
   void dispose() {
-    debugPrint('[ArtifactBoardScreen] dispose - Disposing state (controller persists in GetIt)');
+    debugPrint(
+        '[ArtifactBoardScreen] dispose - Disposing state (controller persists in GetIt)');
     // DON'T remove controller from GetIt - it should persist across widget recreations
     // Only remove it when truly leaving the screen (e.g., in a route guard)
     super.dispose();
+  }
+
+  Future<user_model.User?> _loadCurrentUser() async {
+    final user = await widget.authController.getCurrentUser();
+    debugPrint('Loaded user: ${user?.username}, role: ${user?.role}');
+    if (mounted) {
+      setState(() {
+        currentUser = user;
+      });
+    }
+    return user;
   }
 
   @override
@@ -147,22 +213,17 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: padding),
                         child: Center(
-                          child: Builder(
-                            builder: (context) {
-                              if (controller.showDirectional) {
-                                debugPrint('[ArtifactBoardScreen] Showing linear board, linearBoard is null: ${controller.linearBoard == null}');
-                                return controller.linearBoard ?? const Center(child: Text('Linear board not initialized'));
-                              } else {
-                                final talkingMatWidget = controller.talkingMat;
-                                if (talkingMatWidget == null) {
-                                  debugPrint('[ArtifactBoardScreen] TalkingMat is null');
-                                  return const SizedBox.shrink();
-                                }
-                                debugPrint('[ArtifactBoardScreen] Using talkingMat widget with controller: ${talkingMatWidget.controller.hashCode}');
-                                return talkingMatWidget;
-                              }
-                            },
-                          ),
+                          child: controller.showDirectional
+                              ? LinearBoard(
+                                  key: controller.linearBoardKey,
+                                  linearBoardController:
+                                      controller.linearBoardController,
+                                )
+                              : TalkingMat(
+                                  key: controller.talkingMatKey,
+                                  artifacts: [],
+                                  controller: controller.talkingmatController,
+                                ),
                         ),
                       ),
                       Positioned(
@@ -173,82 +234,150 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             offset: Offset(0, screenWidth > 600 ? 60 : 40),
                             icon: Icon(Icons.supervised_user_circle_outlined,
                                 size: screenWidth > 600 ? 50 : 35),
-                            iconSize: screenWidth > 600 ? 50 : 35, // ensures shadow matches icon
-                            padding: EdgeInsets.zero,               // removes extra padding around the icon
-                            itemBuilder: (context) => [
+                            iconSize: screenWidth > 600
+                                ? 50
+                                : 35, // ensures shadow matches icon
+                            padding: EdgeInsets
+                                .zero, // removes extra padding around the icon
+                            itemBuilder: (context) {
+                              List<PopupMenuItem> items = [];
+
+                              debugPrint(
+                                  'Building menu - currentUser: ${currentUser?.username}, role: ${currentUser?.role}');
+                              debugPrint(
+                                  'Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
+
+                              // [MERGED] Tavler Item (from HEAD)
+                              items.add(
+                                PopupMenuItem(
+                                  padding: EdgeInsets.zero,
+                                  child: ListTile(
+                                    leading: Icon(Icons.dashboard,
+                                        size: screenWidth > 600 ? 20 : 16),
+                                    title: Text(
+                                        'Tavler (${controller.activeBoard.title})',
+                                        style: TextStyle(
+                                            fontSize:
+                                                screenWidth > 600 ? 16 : 14)),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(20)),
+                                        ),
+                                        builder: (context) =>
+                                            DraggableScrollableSheet(
+                                          initialChildSize: 0.6,
+                                          minChildSize: 0.4,
+                                          maxChildSize: 0.9,
+                                          expand: false,
+                                          builder:
+                                              (context, scrollController) =>
+                                                  BoardSelectionSheet(
+                                            controller: controller,
+                                            scrollController: scrollController,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+
+                              // [MERGED] "Start Opkald" Item (from Incoming) - Only for caregivers
+                              if (currentUser?.role ==
+                                  user_model.UserRole.caregiver) {
+                                items.add(
                                   PopupMenuItem(
                                     padding: EdgeInsets.zero,
                                     child: ListTile(
-                                      leading: Icon(Icons.dashboard, size: screenWidth > 600 ? 20 : 16),
-                                      title: Text('Tavler (${controller.activeBoard.title})', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
+                                      leading: Icon(Icons.call,
+                                          size: screenWidth > 600 ? 20 : 16),
+                                      title: Text('Start Opkald',
+                                          style: TextStyle(
+                                              fontSize:
+                                                  screenWidth > 600 ? 16 : 14)),
                                       onTap: () {
-                                        Navigator.pop(context);
-                                        showModalBottomSheet(
-                                          context: context,
-                                          isScrollControlled: true,
-                                          shape: const RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                                          ),
-                                          builder: (context) => DraggableScrollableSheet(
-                                            initialChildSize: 0.6,
-                                            minChildSize: 0.4,
-                                            maxChildSize: 0.9,
-                                            expand: false,
-                                            builder: (context, scrollController) => BoardSelectionSheet(
-                                              controller: controller,
-                                              scrollController: scrollController,
-                                            ),
-                                          ),
-                                        );
+                                        Navigator.of(context).pop();
+                                        SignalRService()
+                                            .setOwnerBoardController(
+                                                controller);
+                                        Navigator.of(context).pushNamed(
+                                            RemoteSessionScreen.routeName);
                                       },
                                     ),
                                   ),
-                                  PopupMenuItem(
-                                    padding: EdgeInsets.zero, // Remove default padding
-                                    child: ListTile(
-                                      leading: Icon(Icons.settings, size: screenWidth > 600 ? 20 : 16),
-                                      title: Text('Indstillinger', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
-                                      onTap: () {
-                                        Navigator.of(context)
-                                            .pushNamed('/settings');
-                                      },
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    padding: EdgeInsets.zero, // Remove default padding
-                                    child: ListTile(
-                                      leading: Icon(Icons.logout, size: screenWidth > 600 ? 20 : 16),
-                                      title: Text('Log ud', style: TextStyle(fontSize: screenWidth > 600 ? 16 : 14)),
-                                      onTap: () {
-                                        widget.authController.logout(context);
-                                      },
-                                    ),
-                                  ),
-                                ]),
-                      ),
+                                );
+                              }
 
-                      
+                              // [MERGED] Settings and Logout (Common to both)
+                              items.addAll([
+                                PopupMenuItem(
+                                  padding: EdgeInsets.zero,
+                                  child: ListTile(
+                                    leading: Icon(Icons.settings,
+                                        size: screenWidth > 600 ? 20 : 16),
+                                    title: Text('Indstillinger',
+                                        style: TextStyle(
+                                            fontSize:
+                                                screenWidth > 600 ? 16 : 14)),
+                                    onTap: () {
+                                      Navigator.of(context).pop();
+                                      Navigator.of(context)
+                                          .pushNamed('/settings');
+                                    },
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  padding: EdgeInsets.zero,
+                                  child: ListTile(
+                                    leading: Icon(Icons.logout,
+                                        size: screenWidth > 600 ? 20 : 16),
+                                    title: Text('Log ud',
+                                        style: TextStyle(
+                                            fontSize:
+                                                screenWidth > 600 ? 16 : 14)),
+                                    onTap: () {
+                                      Navigator.of(context).pop();
+                                      widget.authController.logout(context);
+                                    },
+                                  ),
+                                ),
+                              ]);
+
+                              return items;
+                            }),
+                      ),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
-                          padding: EdgeInsets.only(left: screenWidth > 600 ? 20 : 10),
+                          padding: EdgeInsets.only(
+                              left: screenWidth > 600 ? 20 : 10),
                           child: RelationalBoardButton(
                             onPressed: () {
                               controller.switchCurrentBoard();
                             },
                             icon: controller.showDirectional
                                 ? Icon(
-                              IconData(0xf685, fontFamily: 'MaterialIcons'),
-                              size: screenWidth > 600 ? 24.0 : 20.0,
-                            )
+                                    IconData(0xf685,
+                                        fontFamily: 'MaterialIcons'),
+                                    size: screenWidth > 600 ? 24.0 : 20.0,
+                                  )
                                 : Icon(
-                              IconData(0xf601, fontFamily: 'MaterialIcons'),
-                              size: screenWidth > 600 ? 24.0 : 20.0,
-                            ),
+                                    IconData(0xf601,
+                                        fontFamily: 'MaterialIcons'),
+                                    size: screenWidth > 600 ? 24.0 : 20.0,
+                                  ),
                           ),
                         ),
                       ),
-                      QuickAddArtefactButton(artefactController: artifactController, onArtifactAdded: controller.addArtifactToCurrentBoard),
+                      QuickAddArtefactButton(
+                          artefactController: artifactController,
+                          onArtifactAdded:
+                              controller.addArtifactToCurrentBoard),
                       const QuickChatButton(),
                     ],
                   ),

@@ -6,6 +6,7 @@ class BoardArtefactLayout {
   final double posY;
   final double width;
   final double height;
+  final bool? nameVisible;
 
   BoardArtefactLayout({
     this.savedArtefactId,
@@ -14,6 +15,7 @@ class BoardArtefactLayout {
     required this.posY,
     required this.width,
     required this.height,
+    this.nameVisible,
   });
 
   factory BoardArtefactLayout.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,7 @@ class BoardArtefactLayout {
       posY: (json['posY'] as num).toDouble(),
       width: (json['width'] as num).toDouble(),
       height: (json['height'] as num).toDouble(),
+      nameVisible: json['nameVisible'] as bool?,
     );
   }
 
@@ -35,6 +38,7 @@ class BoardArtefactLayout {
       'posY': posY,
       'width': width,
       'height': height,
+      if (nameVisible != null) 'nameVisible': nameVisible,
     };
   }
 
@@ -44,6 +48,7 @@ class BoardArtefactLayout {
     double? posY,
     double? width,
     double? height,
+    bool? nameVisible,
   }) {
     return BoardArtefactLayout(
       artefactId: artefactId ?? this.artefactId,
@@ -51,6 +56,7 @@ class BoardArtefactLayout {
       posY: posY ?? this.posY,
       width: width ?? this.width,
       height: height ?? this.height,
+      nameVisible: nameVisible ?? this.nameVisible,
     );
   }
 }
@@ -109,6 +115,7 @@ class UpdateArtefactLayoutRequest {
   final double posY;
   final double width;
   final double height;
+  final bool? nameVisible;
 
   UpdateArtefactLayoutRequest({
     this.savedArtefactId,
@@ -117,6 +124,7 @@ class UpdateArtefactLayoutRequest {
     required this.posY,
     required this.width,
     required this.height,
+    this.nameVisible,
   });
 
   Map<String, dynamic> toJson() {
@@ -129,6 +137,9 @@ class UpdateArtefactLayoutRequest {
     };
     if (savedArtefactId != null) {
       map['savedArtefactId'] = savedArtefactId;
+    }
+    if (nameVisible != null) {
+      map['nameVisible'] = nameVisible;
     }
     return map;
   }

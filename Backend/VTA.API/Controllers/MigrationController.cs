@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
-using VTA.API.Scripts;
+using VTA.API.Utilities;
+using VTA.Data.DbContexts;
 
 namespace VTA.API.Controllers;
 
@@ -32,7 +31,7 @@ public class MigrationController : ControllerBase
     {
         try
         {
-            var migration = new MigrateToUserBasedStorage(_context);
+            var migration = new MigrationService(_context);
             var result = await migration.MigrateAsync(dryRun);
 
             if (result.Success)

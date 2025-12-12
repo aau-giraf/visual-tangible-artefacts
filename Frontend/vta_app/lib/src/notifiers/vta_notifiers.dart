@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,11 +16,25 @@ class AuthState with ChangeNotifier {
   String? get userId => _userId;
 
   Future<String?> login(String username, String password) async {
-    var loginResponse = await AuthRepository().login(username, password);
-    _token = loginResponse?.token;
-    _userId = loginResponse?.userId;
-    notifyListeners();
-    return token;
+    try {
+      var loginResponse = await AuthRepository().login(username, password);
+      if (loginResponse != null) {
+        _token = loginResponse.token;
+        _userId = loginResponse.userId;
+        notifyListeners();
+        return token;
+      } else {
+        // This shouldn't happen since AuthRepository throws exceptions
+        throw Exception('Login failed - no response received');
+      }
+    } catch (e) {
+      // Clear any existing token/userId on login failure
+      _token = null;
+      _userId = null;
+      notifyListeners();
+      // Re-throw the exception so it reaches the UI
+      rethrow;
+    }
   }
 
   Future<bool> loadTokenFromCache() async {

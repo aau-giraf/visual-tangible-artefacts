@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5192/api', // Adjust to your backend URL
+  baseURL: 'https://vta.syncr.dev/api/', // Adjust to your backend URL
   headers: {
     'Content-Type': 'application/json',
   },

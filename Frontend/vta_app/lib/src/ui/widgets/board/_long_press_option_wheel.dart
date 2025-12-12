@@ -176,9 +176,23 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) async {
-                  // Toggle per-instance, do not persist visibility to backend.
-                  widget.artifact.nameVisible = val;
+                  // Update baseArtefact.nameShown (which updates all instances)
+                  widget.artifact.baseArtefact!.nameShown = val;
                   setState(() { _showName = val; });
+
+                  // Notify the controller to rebuild all artifacts on the board
+                  // This ensures all instances of this artefact (and others) update their name visibility
+                  widget.controller.refresh();
+
+                  // Persist to backend via PATCH
+                  try {
+                    await widget.artifactController.updateArtefact(
+                      context,
+                      widget.artifact.baseArtefact!,
+                    );
+                  } catch (e) {
+                    debugPrint('Error updating nameShown: $e');
+                  }
               },
               playSound: () async {
                 await _soundPlayer.playArtefactSound(widget.artifact.baseArtefact!);

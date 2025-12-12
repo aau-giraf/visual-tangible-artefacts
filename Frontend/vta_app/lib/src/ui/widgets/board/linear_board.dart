@@ -8,15 +8,21 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 
+typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
+typedef OnArtifactMoved = void Function(BoardArtefact artifact, int fromIndex, int toIndex);
 
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
   final LinearBoardController linearBoardController;
+  final OnArtifactRemoved? onArtifactRemoved;
+  final OnArtifactMoved? onArtifactMoved;
 
   const LinearBoard({
     super.key,
     this.backgroundColor,
     required this.linearBoardController,
+    this.onArtifactRemoved,
+    this.onArtifactMoved,
   });
 
   @override
@@ -229,6 +235,8 @@ class LinearBoardState extends State<LinearBoard>
               _linearBoardController.artifacts.indexOf(details.data);
           if (currentIndex != -1) {
             _linearBoardController.moveArtifact(currentIndex, index);
+            // Notify remote controller about the move
+            widget.onArtifactMoved?.call(details.data, currentIndex, index);
           }
         },
         builder: (BuildContext context, List<BoardArtefact?> candidateData,
@@ -337,6 +345,8 @@ class LinearBoardState extends State<LinearBoard>
                         final deleted = await artefactController.deleteArtefact(context, candidate!.baseArtefact!);
                         if (deleted) {
                           _linearBoardController.removeArtifact(artifactIndex);
+                          // Notify remote session if callback is provided
+                          widget.onArtifactRemoved?.call(candidate);
                         } else {
                           // User cancelled deletion: leave artifact in place
                         }
@@ -346,6 +356,8 @@ class LinearBoardState extends State<LinearBoard>
                     } else {
                       // Non-session artefacts: remove locally
                       _linearBoardController.removeArtifact(artifactIndex);
+                      // Notify remote session if callback is provided
+                      widget.onArtifactRemoved?.call(candidate!);
                     }
                   }
                   _disableTrashcanAnimation();

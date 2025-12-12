@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/models/board_layout.dart';
@@ -25,7 +27,8 @@ class BoardLayoutService {
       if (response != null && response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data
-            .map((board) => BoardLayoutResponse.fromJson(board as Map<String, dynamic>))
+            .map((board) =>
+                BoardLayoutResponse.fromJson(board as Map<String, dynamic>))
             .toList();
       }
       return null;
@@ -59,10 +62,8 @@ class BoardLayoutService {
   /// Save a new board layout
   Future<BoardLayoutResponse?> saveBoard(SaveBoardRequest request) async {
     try {
-      print('Debug: Attempting to save board with ${request.artefacts.length} artefacts');
-      print('Debug: API URL: ${_apiProvider.baseUrl}Users/Boards');
-      print('Debug: Token available: ${_token.value != null}');
-      
+      // debug logs removed
+
       final response = await _apiProvider.postAsJson(
         'Users/Boards',
         headers: {
@@ -71,10 +72,7 @@ class BoardLayoutService {
         body: request.toJson(),
       );
 
-      print('Debug: Save board response status: ${response?.statusCode}');
-      if (response != null) {
-        print('Debug: Save board response body: ${response.body}');
-      }
+      // debug logs removed
 
       if (response != null && response.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -88,12 +86,9 @@ class BoardLayoutService {
   }
 
   /// Update an existing board layout
-  Future<BoardLayoutResponse?> updateBoard(String boardId, SaveBoardRequest request) async {
+  Future<BoardLayoutResponse?> updateBoard(
+      String boardId, SaveBoardRequest request) async {
     try {
-      for (int i = 0; i < request.artefacts.length; i++) {
-        final artefact = request.artefacts[i];
-      }
-      
       final response = await _apiProvider.putAsJson(
         'Users/Boards/$boardId',
         headers: {
@@ -114,7 +109,8 @@ class BoardLayoutService {
   }
 
   /// Update the position and size of a specific artefact on a board
-  Future<bool> updateArtefactLayout(String boardId, UpdateArtefactLayoutRequest request) async {
+  Future<bool> updateArtefactLayout(
+      String boardId, UpdateArtefactLayoutRequest request) async {
     try {
       final response = await _apiProvider.patchAsJson(
         'Users/Boards/$boardId/artefacts',
@@ -149,7 +145,8 @@ class BoardLayoutService {
   }
 
   /// Delete a specific saved artefact instance from a board
-  Future<bool> deleteSavedArtefact(String boardId, String savedArtefactId) async {
+  Future<bool> deleteSavedArtefact(
+      String boardId, String savedArtefactId) async {
     try {
       final response = await _apiProvider.delete(
         'Users/Boards/$boardId/artefacts/$savedArtefactId',

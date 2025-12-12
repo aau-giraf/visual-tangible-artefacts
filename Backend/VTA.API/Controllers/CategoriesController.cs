@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
 using VTA.API.Utilities;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
-
+/// <summary>
+/// Controller for managing categories owned by a user.
+/// </summary>
 [Authorize]
 [Route("api/Users/Categories")]//We designed the route so that *Users* OWNS *Categories* and this route reflects it
 [ApiController]
@@ -146,8 +148,49 @@ public class CategoriesController(VTAContext context) : ControllerBase
             return Forbid();
         }
 
-        string id = Guid.NewGuid().ToString();
-        string? imageUrl = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
+        // Check if category with this ID already exists
+        string id;
+        Category? existingCategory = null;
+        
+        if (!string.IsNullOrEmpty(categoryPostDTO.CategoryId))
+        {
+            existingCategory = await context.Categories.FindAsync(categoryPostDTO.CategoryId);
+            id = categoryPostDTO.CategoryId;
+        }
+        else
+        {
+            id = Guid.NewGuid().ToString();
+        }
+
+        // If category exists, update it instead of creating new
+        if (existingCategory != null)
+        {
+            // Update existing category
+            existingCategory.Name = categoryPostDTO.Name;
+            existingCategory.CategoryIndex = categoryPostDTO.CategoryIndex;
+
+            // Update image if provided
+            if (categoryPostDTO.Image != null)
+            {
+                // Delete old image if it exists
+                if (!string.IsNullOrEmpty(existingCategory.ImagePath))
+                {
+                    ImageUtilities.DeleteImage(existingCategory.CategoryId, "Categories", userId);
+                }
+                existingCategory.ImagePath = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
+            }
+
+            context.Entry(existingCategory).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+
+            CategoryGetDTO existingDTO = DTOConverter.MapCategoryToCategoryGetDTO(existingCategory, Request.Scheme, Request.Host.ToString());
+            return Ok(existingDTO);
+        }
+
+        // Create new category
+        string? imageUrl = categoryPostDTO.Image != null 
+            ? await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId)
+            : null;
 
         // Image is optional - allow null imageUrl
         Category category = DTOConverter.MapCategoryPostDTOToCategory(categoryPostDTO, id, imageUrl);

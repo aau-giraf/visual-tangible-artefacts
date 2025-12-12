@@ -1,4 +1,4 @@
-﻿using VTA.API.Models;
+﻿using VTA.Data.Models;
 
 namespace VTA.API.DTOs;
 
@@ -20,6 +20,10 @@ public partial class UserGetDTO
     public string? Name { get; set; }
 
     public string Username { get; set; } = null!;
+
+    public bool NameVisible { get; set; }
+
+    public int FieldCount { get; set; }
 
     public UserRole Role { get; set; }
 
@@ -48,3 +52,18 @@ public class UserLoginResponseDTO
 
 
 
+/// <summary>
+/// DTO for updating user settings
+/// </summary>
+public partial class UserPatchDTO
+{
+    /// <summary>
+    /// Whether artefact names should be shown by default
+    /// </summary>
+    public bool? NameVisible { get; set; }
+    
+    /// <summary>
+    /// Number of fields/columns in the linear layout
+    /// </summary>
+    public int? FieldCount { get; set; }
+}

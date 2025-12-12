@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
 
@@ -19,7 +19,6 @@ public class AdminController : ControllerBase
         _context = context;
     }
 
-    // GET: api/Admin/caregivers
     [HttpGet("caregivers")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetCaregivers()
     {
@@ -32,7 +31,6 @@ public class AdminController : ControllerBase
         return Ok(caregiversDto);
     }
 
-    // GET: api/Admin/children
     [HttpGet("children")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetChildren()
     {
@@ -45,7 +43,6 @@ public class AdminController : ControllerBase
         return Ok(childrenDto);
     }
 
-    // GET: api/Admin/admins
     [HttpGet("admins")]
     public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetAdmins()
     {
@@ -58,7 +55,6 @@ public class AdminController : ControllerBase
         return Ok(adminsDto);
     }
 
-    // POST: api/Admin/admins
     [HttpPost("admins")]
     public async Task<ActionResult<UserGetDTO>> CreateAdmin(UserSignupDTO adminDto)
     {
@@ -82,7 +78,6 @@ public class AdminController : ControllerBase
         return CreatedAtAction(nameof(GetAdmins), DTOConverter.MapUserToUserGetDTO(admin));
     }
 
-    // DELETE: api/Admin/users/{id}
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
@@ -98,7 +93,6 @@ public class AdminController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Admin/users/{id}/make-admin
     [HttpPost("users/{id}/make-admin")]
     public async Task<IActionResult> MakeUserAdmin(string id)
     {
@@ -114,11 +108,10 @@ public class AdminController : ControllerBase
         return Ok();
     }
 
-    // GET: api/Admin/pairings
     [HttpGet("pairings")]
     public async Task<ActionResult<IEnumerable<object>>> GetPairings()
     {
-        var pairings = await _context.CaregiverChildPairings
+        var pairings = await _context.Relations
             .Include(p => p.Caregiver)
             .Include(p => p.Child)
             .Where(p => p.IsActive)
@@ -137,11 +130,9 @@ public class AdminController : ControllerBase
         return Ok(pairings);
     }
 
-    // POST: api/Admin/pairings
     [HttpPost("pairings")]
     public async Task<ActionResult> CreatePairing([FromBody] CreatePairingRequest request)
     {
-        // Validate that both users exist
         var caregiver = await _context.Users.FindAsync(request.CaregiverId);
         var child = await _context.Users.FindAsync(request.ChildId);
 
@@ -160,8 +151,7 @@ public class AdminController : ControllerBase
             return BadRequest("The specified child is not a child user");
         }
 
-        // Check if pairing already exists
-        var existingPairing = await _context.CaregiverChildPairings
+        var existingPairing = await _context.Relations
             .AnyAsync(p => p.CaregiverId == request.CaregiverId && p.ChildId == request.ChildId && p.IsActive);
 
         if (existingPairing)
@@ -169,7 +159,7 @@ public class AdminController : ControllerBase
             return Conflict("This pairing already exists");
         }
 
-        var pairing = new CaregiverChildPairing
+        var pairing = new Relation
         {
             CaregiverId = request.CaregiverId,
             ChildId = request.ChildId,
@@ -177,23 +167,22 @@ public class AdminController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.CaregiverChildPairings.Add(pairing);
+        _context.Relations.Add(pairing);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Pairing created successfully", id = pairing.Id });
     }
 
-    // DELETE: api/Admin/pairings/{id}
     [HttpDelete("pairings/{id}")]
     public async Task<IActionResult> DeletePairing(string id)
     {
-        var pairing = await _context.CaregiverChildPairings.FindAsync(id);
+        var pairing = await _context.Relations.FindAsync(id);
         if (pairing == null)
         {
             return NotFound();
         }
 
-        pairing.IsActive = false; // Soft delete
+        pairing.IsActive = false;
         await _context.SaveChangesAsync();
 
         return NoContent();

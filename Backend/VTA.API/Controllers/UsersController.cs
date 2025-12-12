@@ -5,12 +5,15 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
 using VTA.API.Utilities;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
+/// <summary>
+/// Controller responsible for user-related endpoints.
+/// </summary>
 //Mark the entire controller to require a valid token
 [Authorize]
 [Route("api/[controller]")]//Define where all endpoints are
@@ -85,6 +88,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         context.Users.Add(user);
+
+        var defaultBoard = new SavedBoard
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Board1",
+            UserId = user.Id,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        context.SavedBoards.Add(defaultBoard);
+
         try
         {
             await context.SaveChangesAsync();
@@ -146,7 +160,65 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         return userGetDTOs;
     }
 
-    // GET: api/Users/5
+    // GET: api/Users/related-contacts
+    /// <summary>
+    /// Get related contacts for the current user.
+    /// For caregivers: returns their connected children.
+    /// For children: returns their connected caregivers.
+    /// </summary>
+    /// <returns>A list of related users (contacts)</returns>
+    [HttpGet("related-contacts")]
+    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetRelatedContacts()
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User ID not found in token");
+        }
+
+        var currentUser = await context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser == null)
+        {
+            return NotFound("Current user not found");
+        }
+
+        List<UserGetDTO> relatedUsers = new List<UserGetDTO>();
+
+        if (currentUser.Role == UserRole.Caregiver)
+        {
+            // Get all children connected to this caregiver
+            var children = await context.Relations
+                .Where(r => r.CaregiverId == userId && r.IsActive)
+                .Include(r => r.Child)
+                .AsNoTracking()
+                .ToListAsync();
+
+            relatedUsers = children
+                .Select(r => DTOConverter.MapUserToUserGetDTO(r.Child))
+                .ToList();
+        }
+        else if (currentUser.Role == UserRole.Child)
+        {
+            // Get all caregivers connected to this child
+            var caregivers = await context.Relations
+                .Where(r => r.ChildId == userId && r.IsActive)
+                .Include(r => r.Caregiver)
+                .AsNoTracking()
+                .ToListAsync();
+
+            relatedUsers = caregivers
+                .Select(r => DTOConverter.MapUserToUserGetDTO(r.Caregiver))
+                .ToList();
+        }
+
+        return relatedUsers;
+    }
+
+    // GET: api/Users/{id}
     /// <summary>
     /// Get information about a specific user
     /// </summary>
@@ -239,6 +311,8 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var user = await context.Users
             .Include(u => u.Categories)
                 .ThenInclude(c => c.Artefacts)
+            .Include(u => u.SavedBoards)
+                .ThenInclude(sb => sb.SavedArtefacts)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
@@ -263,7 +337,69 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
         }
 
+        // Delete saved boards and their data
+        foreach (var savedBoard in user.SavedBoards.ToList())
+        {
+            // Delete snapshot file if it exists
+            if (!string.IsNullOrEmpty(savedBoard.SnapshotPath))
+            {
+                try
+                {
+                    var snapshotPath = Path.Combine("wwwroot", savedBoard.SnapshotPath.TrimStart('/'));
+                    if (System.IO.File.Exists(snapshotPath))
+                    {
+                        System.IO.File.Delete(snapshotPath);
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var savedArtefact in savedBoard.SavedArtefacts.ToList())
+            {
+                context.SavedArtefacts.Remove(savedArtefact);
+            }
+
+            context.SavedBoards.Remove(savedBoard);
+        }
+
         context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
+        await context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Update user settings (NameVisible, FieldCount)
+    /// </summary>
+    /// <param name="dto">User settings to update</param>
+    /// <returns>Status code 204 (No Content) on success</returns>
+    [HttpPatch]
+    public async Task<IActionResult> PatchUser([FromBody] UserPatchDTO dto)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Invalid token");
+        }
+
+        var user = await context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+        // Update fields if provided
+        if (dto.NameVisible != null)
+        {
+            user.NameVisible = dto.NameVisible.Value;
+        }
+        if (dto.FieldCount != null)
+        {
+            user.FieldCount = dto.FieldCount.Value;
+        }
+
+        context.Entry(user).State = EntityState.Modified;
         await context.SaveChangesAsync();
 
         return NoContent();
@@ -271,7 +407,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
 
     private bool UserIdExists(string id)
     {
-        return context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID 
+        return context.Users.Any(e => e.Id == id);//Returns true if any ID column within the *Users* table contains the ID
     }
     private bool UsernameExists(string username)
     {
@@ -287,7 +423,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     private string GenerateJwt(User user)
     {
         var secretKey = config.GetValue<string>("Secret:SecretKey")
-                        ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables 
+                        ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables
                         ?? throw new InvalidOperationException("A JWT secret is required for token generation."); //Throw if no secret is found
         var validIssuer = "api.vta.com";
         var validAudience = "user.vta.com";
@@ -300,7 +436,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var claims = new[]
         {
         new Claim("id", user.Id),
-        new Claim(ClaimTypes.Role, user.Role.ToString()),
+        new Claim("role", user.Role.ToString()),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
     };

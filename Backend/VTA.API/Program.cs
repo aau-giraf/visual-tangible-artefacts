@@ -2,13 +2,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
-using VTA.API.DbContexts;
 using VTA.API.Extensions;
 using VTA.API.Utilities;
+using VTA.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // test comment test, test push, test
 
@@ -25,7 +28,7 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.AddHttpClient();
 
 // Register our DB context
-builder.AddVTAContext();
+builder.Services.AddVTAContext(builder.Configuration);
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -64,6 +67,7 @@ builder.Services.AddAuthentication(options =>
 
     .AddJwtBearer(options =>
             {
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -73,7 +77,8 @@ builder.Services.AddAuthentication(options =>
                     ValidIssuer = jwtIssuer,
                     ValidAudience = jwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero,
+                    RoleClaimType = "role"
                 };
             });
 
@@ -82,7 +87,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:8080")
+        // Allow any localhost origin for development (required when using AllowCredentials)
+        policy.SetIsOriginAllowed(origin => 
+                origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase) ||
+                origin.StartsWith("https://localhost:", StringComparison.OrdinalIgnoreCase) ||
+                origin.StartsWith("http://127.0.0.1:", StringComparison.OrdinalIgnoreCase) ||
+                origin.StartsWith("https://127.0.0.1:", StringComparison.OrdinalIgnoreCase))
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -123,6 +133,32 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.IncludeXmlComments(Assembly.GetExecutingAssembly());//For XML comments to be included in the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/?tab=readme-ov-file#include-descriptions-from-xml-comments
     //options.EnableAnnotations();// For using Attributes to document the swagger UI https://github.com/domaindrivendev/Swashbuckle.AspNetCore/#enrich-operation-metadata
+
+        // Add JWT Authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below.\r\n\r\nExample: \"abc123token\""
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 builder.WebHost.ConfigureKestrel(options =>

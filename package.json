@@ -5,6 +5,7 @@
     "vue3-apexcharts": "^1.10.0"
   },
   "devDependencies": {
-    "postcss-import": "^16.1.1"
+    "postcss-import": "^16.1.1",
+    "sqlite": "^5.1.1"
   }
 }

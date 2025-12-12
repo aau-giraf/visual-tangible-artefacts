@@ -4,6 +4,7 @@ WORKDIR /src
 
 # Copy csproj and restore dependencies
 COPY ["VTA.API/VTA.API.csproj", "VTA.API/"]
+COPY ["VTA.Data/VTA.Data.csproj", "VTA.Data/"]
 RUN dotnet restore "VTA.API/VTA.API.csproj"
 
 # Copy everything else and build

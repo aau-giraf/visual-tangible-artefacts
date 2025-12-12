@@ -1,14 +1,14 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
+using VTA.Tests.TestHelpers;
 
 namespace VTA.Tests.IntegrationTests.BasicTests;
 
-public class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
+public class ProgramTests : IClassFixture<CustomApplicationFactory>
 {
     // Inshallah we remove this one day
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomApplicationFactory _factory;
 
-    public ProgramTests(WebApplicationFactory<Program> factory)
+    public ProgramTests(CustomApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VTA.API.DbContexts;
 using VTA.API.DTOs;
-using VTA.API.Models;
 using VTA.API.Utilities;
+using VTA.Data.DbContexts;
+using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
 
@@ -13,6 +13,12 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class ArtefactsController(VTAContext context) : ControllerBase
 {
+    private static readonly HashSet<string> AllowedVoiceIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ElevenLabsService.DefaultVoiceId,
+        "Xb7hH8MSUJpSbSDYk0k2"
+    };
+
     // GET: api/Artefacts
     /// <summary>
     /// Gets all artefacts that a user owns
@@ -165,9 +171,63 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             return Forbid();
         }
 
+        // Get user's default NameVisible setting for new artefacts
+        var user = await context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return Unauthorized("User not found");
+        }        // Check if artefact with this ID already exists
+        string artefactId;
+        Artefact? existingArtefact = null;
+        
+        if (!string.IsNullOrEmpty(artefactPostDTO.ArtefactId))
+        {
+            existingArtefact = await context.Artefacts.FindAsync(artefactPostDTO.ArtefactId);
+            artefactId = artefactPostDTO.ArtefactId;
+        }
+        else
+        {
+            artefactId = Guid.NewGuid().ToString();
+        }
 
+        // If artefact exists, update it instead of creating new
+        if (existingArtefact != null)
+        {
+            // Update existing artefact
+            existingArtefact.Name = artefactPostDTO.Name;
+            existingArtefact.NameShown = artefactPostDTO.NameShown ?? existingArtefact.NameShown;
+            existingArtefact.CategoryId = artefactPostDTO.CategoryId ?? existingArtefact.CategoryId;
+            existingArtefact.ArtefactIndex = artefactPostDTO.ArtefactIndex;
 
-        string artefactId = Guid.NewGuid().ToString();
+            // Update image if provided
+            if (artefactPostDTO.Image != null)
+            {
+                // Delete old image if it exists
+                if (!string.IsNullOrEmpty(existingArtefact.ImagePath))
+                {
+                    ImageUtilities.DeleteImage(existingArtefact.ArtefactId, "Artefacts", userId);
+                }
+                existingArtefact.ImagePath = await ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
+            }
+
+            // Update sound if provided
+            if (artefactPostDTO.Sound != null)
+            {
+                // Delete old sound if it exists
+                if (!string.IsNullOrEmpty(existingArtefact.SoundPath))
+                {
+                    SoundUtilities.DeleteSound(existingArtefact.ArtefactId, userId);
+                }
+                existingArtefact.SoundPath = await SoundUtilities.AddSound(artefactPostDTO.Sound, artefactId, userId);
+            }
+
+            context.Entry(existingArtefact).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+
+            ArtefactGetDTO existingDTO = DTOConverter.MapArtefactToArtefactGetDTO(existingArtefact, Request.Scheme, Request.Host.ToString());
+            return Ok(existingDTO);
+        }
+
         string? imageUrl = await ImageUtilities.AddImage(artefactPostDTO.Image, artefactId, "Artefacts", userId);
         string? soundUrl = null;
 
@@ -183,7 +243,13 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         Artefact artefact = DTOConverter.MapArtefactPostDTOToArtefact(artefactPostDTO, artefactId, imageUrl, soundUrl);
         artefact.UserId = userId;
         artefact.Name = artefactPostDTO.Name;
-        
+
+        // If NameShown not explicitly set, inherit from user's default setting
+        if (artefact.NameShown == null)
+        {
+            artefact.NameShown = user.NameVisible;
+        }
+                
 
         context.Artefacts.Add(artefact);
         try
@@ -285,11 +351,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(request.VoiceId);
+
             // Generate speech with multilingual support for Danish
-            // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                voiceId: voiceId,
                 modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
@@ -367,11 +434,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(request.VoiceId);
+
             // Generate speech with multilingual support for Danish
-            // Backend controls the voice - frontend doesn't specify it
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                // voiceId not specified - uses backend default (Bj9UqZbhQsanLzgalpEG)
+                voiceId: voiceId,
                 modelId: "eleven_turbo_v2_5", // Use v2.5 turbo model (supports audio tags + multilingual)
                 languageCode: "da" // Explicitly set Danish
             );
@@ -444,10 +512,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(request.VoiceId);
+
             // Generate speech using v2.5 turbo model which supports audio tags
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: request.Text,
-                voiceId: request.VoiceId ?? "Bj9UqZbhQsanLzgalpEG", // Default to your specified voice
+                voiceId: voiceId,
                 modelId: "eleven_turbo_v2_5" // v2.5 model supports audio tags like <break>, <emphasis>, etc.
             );
 
@@ -588,10 +658,12 @@ public class ArtefactsController(VTAContext context) : ControllerBase
             var httpClient = httpClientFactory.CreateClient();
             var elevenLabsService = new ElevenLabsService(httpClient, apiKey);
 
+            var voiceId = ResolveVoiceId(ttsDto.VoiceId);
+
             // Generate speech
             var audioData = await elevenLabsService.GenerateSpeechAsync(
                 text: ttsDto.Text,
-                voiceId: ttsDto.VoiceId,
+                voiceId: voiceId,
                 modelId: ttsDto.ModelId,
                 stability: ttsDto.Stability,
                 similarityBoost: ttsDto.SimilarityBoost,
@@ -649,6 +721,70 @@ public class ArtefactsController(VTAContext context) : ControllerBase
         {
             return StatusCode(500, $"An error occurred while generating speech: {ex.Message}");
         }
+    }
+
+    private string ResolveVoiceId(string? requestedVoiceId)
+    {
+        if (string.IsNullOrWhiteSpace(requestedVoiceId))
+        {
+            Console.WriteLine("Warning: Empty or null voiceId requested. Using default voice.");
+            return ElevenLabsService.DefaultVoiceId;
+        }
+
+        // Normalize the voice ID (trim whitespace and ensure consistent casing)
+        var normalizedVoiceId = requestedVoiceId.Trim();
+
+        if (AllowedVoiceIds.Contains(normalizedVoiceId))
+        {
+            Console.WriteLine($"Info: Using voice ID: {normalizedVoiceId}");
+            return normalizedVoiceId;
+        }
+
+        Console.WriteLine($"Warning: Unsupported voiceId '{requestedVoiceId}' requested. Falling back to default voice ID: {ElevenLabsService.DefaultVoiceId}");
+        return ElevenLabsService.DefaultVoiceId;
+    }
+
+    private bool IsValidVoiceId(string? voiceId)
+    {
+        if (string.IsNullOrWhiteSpace(voiceId))
+        {
+            return false;
+        }
+        return AllowedVoiceIds.Contains(voiceId.Trim());
+    }
+
+    /// <summary>
+    /// Update nameShown for all artefacts owned by the current user
+    /// </summary>
+    /// <param name="request">Request containing the nameShown value to apply to all artefacts</param>
+    /// <returns>
+    /// Status code 200 (Ok) with count of updated artefacts<br />
+    /// Status code 401 (Unauthorized) if user token is invalid
+    /// </returns>
+    [HttpPatch("bulk-update-name-shown")]
+    public async Task<IActionResult> BulkUpdateNameShown([FromBody] BulkUpdateNameShownDTO request)
+    {
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Invalid token");
+        }
+
+        // Get all artefacts for this user
+        var artefacts = await context.Artefacts
+            .Where(a => a.UserId == userId)
+            .ToListAsync();
+
+        // Update nameShown for all artefacts
+        foreach (var artefact in artefacts)
+        {
+            artefact.NameShown = request.NameShown;
+        }
+
+        await context.SaveChangesAsync();
+
+        return Ok(new { updatedCount = artefacts.Count, nameShown = request.NameShown });
     }
 
     private bool ArtefactExists(string id)

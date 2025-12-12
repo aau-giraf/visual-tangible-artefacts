@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/modelsDTOs/login_response.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
+import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -105,6 +106,20 @@ class AuthModel {
     }
     
     await clearCacheData();
+  }
+
+  Future<User?> getUser(String userId) async {
+    try {
+      final response = await apiProvider.fetchAsJson('Users/$userId', headers: {
+        'Authorization': 'Bearer ${token.value}',
+      });
+      if (response != null && response.ok) {
+        return User.fromJson(jsonDecode(response.body));
+      }
+    } catch (e) {
+      debugPrint('Error fetching user: $e');
+    }
+    return null;
   }
 
   /// Signs up the user with the provided [email] and [password]

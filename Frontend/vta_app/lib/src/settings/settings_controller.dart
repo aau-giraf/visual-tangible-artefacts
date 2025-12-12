@@ -29,13 +29,13 @@ class SettingsController with ChangeNotifier {
   /// local database or the internet. The controller only knows it can load the
   /// settings from the service.
   Future<void> loadSettings() async {
-    // Load textUnderImages
-    var textUnderImages = await _settingsService.textUnderImages();
+    // Load textUnderImages from API first, then fall back to local storage
+    var textUnderImages = await _settingsService.textUnderImagesFromApi();
     if (textUnderImages != null) {
       _textUnderImages = textUnderImages;
     }
-    // Load linearArtifactCount
-    var tempLinearArtifactCount = await _settingsService.linearArtifactCount();
+    // Load linearArtifactCount from API first, then fall back to local storage
+    var tempLinearArtifactCount = await _settingsService.linearArtifactCountFromApi();
     if (tempLinearArtifactCount != null) {
       _linearArtifactCount = tempLinearArtifactCount;
     }
@@ -43,6 +43,12 @@ class SettingsController with ChangeNotifier {
     //var localization = await _settingsService.localization();
     //_localization = Localization.values[localization];
       // Important! Inform listeners a change has occurred.
+    // Load localization (commented out)
+    // var localization = await _settingsService.localization();
+    // if (localization != null) {
+    //   _localization = Localization.values[localization];
+    // }
+    // Important! Inform listeners a change has occurred.
     notifyListeners();
   }
 
