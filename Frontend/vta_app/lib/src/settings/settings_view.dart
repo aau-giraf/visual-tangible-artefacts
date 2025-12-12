@@ -27,14 +27,14 @@ class SettingsView extends StatelessWidget {
           title: const Text('Settings'),
         ),
         body: ListenableBuilder(
-        listenable: controller,
-        builder: (context, child) {
-          return ListView(
-            children: [
-              buildProfilePicture(context), // From HEAD
-              buildTextUnderImages(),
-              buildLinearArtifactCount()/*, buildLanguage()*/
-            ],
+          listenable: controller,
+          builder: (context, child) {
+            return ListView(
+              children: [
+                buildProfilePicture(context),
+                buildTextUnderImages(),
+                buildLinearArtifactCount() /*, buildLanguage()*/
+              ],
             );
           },
         ));
@@ -73,7 +73,8 @@ class SettingsView extends StatelessWidget {
       settingKey: 'linearArtifactCount',
       title: 'Antal lineære artifakter',
       subtitle: 'Mængde af artifakter i lineær board',
-      selected: controller.linearArtifactCount, // Use value from controller/database
+      selected:
+          controller.linearArtifactCount, // Use value from controller/database
       values: <int, String>{
         2: '2',
         4: '4',
@@ -101,10 +102,12 @@ class SettingsView extends StatelessWidget {
 
 class _ProfilePictureSettingsTile extends StatefulWidget {
   @override
-  State<_ProfilePictureSettingsTile> createState() => _ProfilePictureSettingsTileState();
+  State<_ProfilePictureSettingsTile> createState() =>
+      _ProfilePictureSettingsTileState();
 }
 
-class _ProfilePictureSettingsTileState extends State<_ProfilePictureSettingsTile> {
+class _ProfilePictureSettingsTileState
+    extends State<_ProfilePictureSettingsTile> {
   Uint8List? _profilePictureBytes;
   bool _isLoading = true;
 
@@ -173,7 +176,7 @@ class _ProfilePictureSettingsTileState extends State<_ProfilePictureSettingsTile
       final base64String = base64Encode(bytes);
       await prefs.setString('profilePicture', base64String);
       await prefs.setString('profilePictureSet', 'true');
-      
+
       if (mounted) {
         setState(() {
           _profilePictureBytes = bytes;
@@ -202,7 +205,7 @@ class _ProfilePictureSettingsTileState extends State<_ProfilePictureSettingsTile
         allowMultiple: false,
         withData: true,
       );
-      
+
       if (result != null && result.files.single.bytes != null) {
         await _saveProfilePicture(result.files.single.bytes!);
       }
@@ -301,7 +304,8 @@ class _ProfilePictureSettingsTileState extends State<_ProfilePictureSettingsTile
                   ),
                 ),
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : ClipOval(
                         child: _profilePictureBytes != null
                             ? Image.memory(

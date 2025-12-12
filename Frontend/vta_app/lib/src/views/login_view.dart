@@ -28,10 +28,8 @@ class _LoginViewState extends State<LoginView> {
   String? _loginErrorMessage;
   String? _signupErrorMessage;
 
-  // [FROM INCOMING] Keep the new role selection state
   UserRole _selectedRole = UserRole.child;
 
-  // [FROM HEAD] Keep the cleanup logic
   @override
   void dispose() {
     sharedUsernameController.dispose();
@@ -41,7 +39,6 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  // [FROM INCOMING] Keep the translation helper
   /// Translates error messages to Danish
   String translateErrorToDanish(String error) {
     // Remove 'Exception: ' prefix if present
@@ -463,8 +460,6 @@ class _LoginViewState extends State<LoginView> {
                 return null;
               },
             ),
-
-            // [MERGED] Added User Role Dropdown from Incoming
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
             DropdownButtonFormField<UserRole>(
               value: _selectedRole,
@@ -493,8 +488,6 @@ class _LoginViewState extends State<LoginView> {
                 }
               },
             ),
-
-            // [KEPT HEAD] Guardian Key Field
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 16 : 12),
             TextFormField(
               controller: guardianKeyController,
@@ -516,8 +509,6 @@ class _LoginViewState extends State<LoginView> {
                 return null;
               },
             ),
-
-            // [KEPT HEAD] Error Message Display Container
             if (_signupErrorMessage != null) ...[
               SizedBox(height: 12),
               Container(
@@ -542,16 +533,12 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
             ],
-
             SizedBox(height: MediaQuery.of(context).size.width > 600 ? 32 : 24),
-
-            // [MERGED] Button with Combined Logic
             ElevatedButton(
               onPressed: _isLoading
                   ? null
                   : () async {
                       if (formKey.currentState!.validate()) {
-                        // Access parent state safely (Pattern from HEAD)
                         final parentState =
                             context.findAncestorStateOfType<_LoginViewState>();
 
@@ -574,8 +561,6 @@ class _LoginViewState extends State<LoginView> {
                           final password = sharedPasswordController.text;
                           final name = nameController.text.trim();
 
-                          // [MERGED LOGIC] Use manual API call (Incoming) to support Role
-                          // because the simple controller.signup method might not support it yet.
                           final signupForm = SignupForm(
                             username: username,
                             password: password,
@@ -609,7 +594,6 @@ class _LoginViewState extends State<LoginView> {
                           }
                         } catch (e) {
                           updateState(() {
-                            // Use translation helper (from Incoming)
                             _signupErrorMessage =
                                 translateErrorToDanish(e.toString());
                           });

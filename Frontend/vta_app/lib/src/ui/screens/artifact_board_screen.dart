@@ -247,7 +247,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                               debugPrint(
                                   'Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
 
-                              // [MERGED] Tavler Item (from HEAD)
                               items.add(
                                 PopupMenuItem(
                                   padding: EdgeInsets.zero,
@@ -287,7 +286,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                 ),
                               );
 
-                              // [MERGED] "Start Opkald" Item (from Incoming) - Only for caregivers
+                              // Only for caregivers
                               if (currentUser?.role ==
                                   user_model.UserRole.caregiver) {
                                 items.add(
@@ -313,7 +312,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                 );
                               }
 
-                              // [MERGED] Settings and Logout (Common to both)
                               items.addAll([
                                 PopupMenuItem(
                                   padding: EdgeInsets.zero,
