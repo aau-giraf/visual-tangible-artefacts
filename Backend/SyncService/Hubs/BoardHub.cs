@@ -580,5 +580,16 @@ namespace SyncService.Hubs
                 await Clients.Client(targetConn).SendAsync("ReceiveIceCandidate", sessionId, candidate);
             }
         }
+
+        // Test helper method to clear static state between tests
+        public static void ClearStaticState()
+        {
+            UserConnections.Clear();
+            BoardSessions.Clear();
+            OnlineUsers.Clear();
+            UserContactsMap.Clear();
+            UserInfoMap.Clear();
+            PendingRequests.Clear();
+        }
     }
 }

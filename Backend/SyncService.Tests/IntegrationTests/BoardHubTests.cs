@@ -36,6 +36,9 @@ namespace SyncService.Tests.IntegrationTests
 
         private BoardHub CreateHub()
         {
+            // Clear static state before each test to ensure isolation
+            BoardHub.ClearStaticState();
+            
             var hub = new BoardHub(_dbFixture.DbContext);
             hub.Clients = _fixture.MockClients.Object;
             hub.Context = _fixture.MockHubCallerContext.Object;
