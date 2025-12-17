@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using SyncService.Hubs;
 using SyncService.Models.ArtifactAdded;
 using SyncService.Tests.Helpers;
@@ -359,6 +360,239 @@ namespace SyncService.Tests.IntegrationTests
                 _dbFixture.DbContext.Users.Remove(userToDelete);
                 await _dbFixture.DbContext.SaveChangesAsync();
             }
+        }
+
+        // Missed Call Notification Tests - User Story Verification
+        [Fact]
+        public async Task RequestSession_WhenNotAnswered_SendsMissedCallNotificationAfter30Seconds()
+        {
+            // Arrange
+            await AddTestUserToDb();
+            
+            var hub = CreateHub();
+            
+            // Setup caller and callee by registering them (this populates UserConnections)
+            await hub.RegisterUser(CallerId, new List<string>());
+            
+            // Setup callee context with a different connection ID
+            var calleeContext = new Mock<HubCallerContext>();
+            calleeContext.Setup(c => c.ConnectionId).Returns("callee-connection-id");
+            calleeContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(CalleeId, "CalleeUser"));
+            hub.Context = calleeContext.Object;
+            await hub.RegisterUser(CalleeId, new List<string>());
+            
+            // Reset context back to caller
+            hub.Context = _fixture.MockHubCallerContext.Object;
+            
+            // Track if MissedCall was sent
+            var missedCallSent = false;
+            string? missedCallUserId = null;
+            string? missedCallUserName = null;
+            
+            _fixture.OnMessage("MissedCall", args =>
+            {
+                missedCallSent = true;
+                if (args.Length >= 2)
+                {
+                    missedCallUserId = args[0] as string;
+                    missedCallUserName = args[1] as string;
+                }
+                _output.WriteLine($"[MissedCall] Sent to callee from {missedCallUserName} (userId: {missedCallUserId})");
+            });
+            
+            // Act
+            await hub.RequestSession(CallerId, CalleeId);
+            
+            // Verify SessionRequested was sent
+            _fixture.MockClients.Verify(c => c.Client(It.IsAny<string>()), Times.AtLeastOnce);
+            
+            // Wait for the 30-second timeout to trigger
+            await Task.Delay(31000); // Wait slightly longer than timeout
+            
+            // Assert
+            Assert.True(missedCallSent, "MissedCall notification was not sent after timeout");
+            Assert.Equal(CallerId, missedCallUserId);
+            Assert.NotNull(missedCallUserName);
+            
+            // Cleanup
+            await CleanupTestData();
+        }
+
+        [Fact]
+        public async Task RequestSession_WhenAccepted_DoesNotSendMissedCallNotification()
+        {
+            // Arrange
+            var hub = CreateHub();
+            
+            // Register users
+            await hub.RegisterUser(CallerId, new List<string>());
+            
+            var calleeContext = new Mock<HubCallerContext>();
+            calleeContext.Setup(c => c.ConnectionId).Returns("callee-connection-id");
+            calleeContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(CalleeId, "CalleeUser"));
+            hub.Context = calleeContext.Object;
+            await hub.RegisterUser(CalleeId, new List<string>());
+            
+            hub.Context = _fixture.MockHubCallerContext.Object;
+            
+            var missedCallSent = false;
+            
+            _fixture.OnMessage("MissedCall", args =>
+            {
+                missedCallSent = true;
+                _output.WriteLine("[MissedCall] Unexpectedly sent");
+            });
+            
+            // Act
+            await hub.RequestSession(CallerId, CalleeId);
+            
+            // Accept the session before timeout
+            await Task.Delay(1000); // Short delay
+            await hub.AcceptSession(SessionId, CallerId, CalleeId, BoardId);
+            
+            // Wait beyond the timeout period
+            await Task.Delay(31000);
+            
+            // Assert - MissedCall should NOT be sent because session was accepted
+            Assert.False(missedCallSent, "MissedCall notification should not be sent when call is accepted");
+        }
+
+        [Fact]
+        public async Task RequestSession_WhenRejected_DoesNotSendMissedCallNotification()
+        {
+            // Arrange
+            var hub = CreateHub();
+            
+            // Register users
+            await hub.RegisterUser(CallerId, new List<string>());
+            
+            var calleeContext = new Mock<HubCallerContext>();
+            calleeContext.Setup(c => c.ConnectionId).Returns("callee-connection-id");
+            calleeContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(CalleeId, "CalleeUser"));
+            hub.Context = calleeContext.Object;
+            await hub.RegisterUser(CalleeId, new List<string>());
+            
+            var missedCallSent = false;
+            
+            _fixture.OnMessage("MissedCall", args =>
+            {
+                missedCallSent = true;
+                _output.WriteLine("[MissedCall] Unexpectedly sent");
+            });
+            
+            hub.Context = _fixture.MockHubCallerContext.Object;
+            
+            // Act
+            await hub.RequestSession(CallerId, CalleeId);
+            
+            // Reject the session before timeout
+            await Task.Delay(1000);
+            hub.Context = calleeContext.Object;
+            await hub.RejectSession(CallerId);
+            
+            // Wait beyond the timeout period
+            await Task.Delay(31000);
+            
+            // Assert - MissedCall should NOT be sent because session was rejected
+            Assert.False(missedCallSent, "MissedCall notification should not be sent when call is rejected");
+        }
+
+        [Fact]
+        public async Task RequestSession_MissedCallNotification_IncludesCallerName()
+        {
+            // Arrange
+            await AddTestUserToDb(); // Add a user with known name
+            
+            var hub = CreateHub();
+            var callerId = UserId; // Use the test user ID with known name
+            var calleeId = "different-callee-id";
+            
+            // Register users - caller with custom user context
+            var callerContext = new Mock<HubCallerContext>();
+            callerContext.Setup(c => c.ConnectionId).Returns("caller-connection-id");
+            callerContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(callerId, "Test User"));
+            hub.Context = callerContext.Object;
+            await hub.RegisterUser(callerId, new List<string>());
+            
+            // Register callee
+            var calleeContext = new Mock<HubCallerContext>();
+            calleeContext.Setup(c => c.ConnectionId).Returns("callee-connection-id");
+            calleeContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(calleeId, "Callee User"));
+            hub.Context = calleeContext.Object;
+            await hub.RegisterUser(calleeId, new List<string>());
+            
+            string? receivedCallerName = null;
+            
+            _fixture.OnMessage("MissedCall", args =>
+            {
+                if (args.Length >= 2)
+                {
+                    receivedCallerName = args[1] as string;
+                }
+                _output.WriteLine($"[MissedCall] Caller name: {receivedCallerName}");
+            });
+            
+            // Reset to caller context for RequestSession
+            hub.Context = callerContext.Object;
+            
+            // Act
+            await hub.RequestSession(callerId, calleeId);
+            await Task.Delay(31000);
+            
+            // Assert
+            Assert.NotNull(receivedCallerName);
+            Assert.Equal("Test User", receivedCallerName); // Should match the name from RegisterUser
+            
+            // Cleanup
+            await CleanupTestData();
+        }
+
+        [Fact]
+        public async Task RequestSession_MissedCallNotification_IncludesCallerUserId()
+        {
+            // Arrange
+            await AddTestUserToDb();
+            
+            var hub = CreateHub();
+            var callerId = UserId;
+            var calleeId = "different-callee-id";
+            
+            // Register users
+            var callerContext = new Mock<HubCallerContext>();
+            callerContext.Setup(c => c.ConnectionId).Returns("caller-connection-id");
+            callerContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(callerId, "Test User"));
+            hub.Context = callerContext.Object;
+            await hub.RegisterUser(callerId, new List<string>());
+            
+            var calleeContext = new Mock<HubCallerContext>();
+            calleeContext.Setup(c => c.ConnectionId).Returns("callee-connection-id");
+            calleeContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(calleeId, "Callee User"));
+            hub.Context = calleeContext.Object;
+            await hub.RegisterUser(calleeId, new List<string>());
+            
+            string? receivedCallerUserId = null;
+            
+            _fixture.OnMessage("MissedCall", args =>
+            {
+                if (args.Length >= 2)
+                {
+                    receivedCallerUserId = args[0] as string;
+                }
+                _output.WriteLine($"[MissedCall] Caller userId: {receivedCallerUserId}");
+            });
+            
+            hub.Context = callerContext.Object;
+            
+            // Act
+            await hub.RequestSession(callerId, calleeId);
+            await Task.Delay(31000);
+            
+            // Assert
+            Assert.NotNull(receivedCallerUserId);
+            Assert.Equal(UserId, receivedCallerUserId);
+            
+            // Cleanup
+            await CleanupTestData();
         }
     }
 }
