@@ -594,5 +594,315 @@ namespace SyncService.Tests.IntegrationTests
             // Cleanup
             await CleanupTestData();
         }
+
+        // Online/Offline Status Tests - User Story Verification
+        [Fact]
+        public async Task RegisterUser_AddsUserToOnlineUsers()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "online-user-1";
+            
+            // Act
+            await hub.RegisterUser(userId, new List<string>());
+            var isOnline = hub.IsUserOnline(userId);
+            
+            // Assert
+            Assert.True(isOnline, "User should be marked as online after registration");
+        }
+
+        [Fact]
+        public async Task RegisterUser_WithContacts_NotifiesContactsOfOnlineStatus()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "user-1";
+            var contactId1 = "contact-1";
+            var contactId2 = "contact-2";
+            
+            // Register contacts first (they need to be online to receive notifications)
+            var contact1Context = new Mock<HubCallerContext>();
+            contact1Context.Setup(c => c.ConnectionId).Returns("contact1-conn-id");
+            contact1Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(contactId1, "Contact 1"));
+            hub.Context = contact1Context.Object;
+            await hub.RegisterUser(contactId1, new List<string>());
+            
+            var contact2Context = new Mock<HubCallerContext>();
+            contact2Context.Setup(c => c.ConnectionId).Returns("contact2-conn-id");
+            contact2Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(contactId2, "Contact 2"));
+            hub.Context = contact2Context.Object;
+            await hub.RegisterUser(contactId2, new List<string>());
+            
+            // Track status change notifications
+            var statusChanges = new List<(string userId, bool isOnline)>();
+            _fixture.OnMessage("UserOnlineStatusChanged", args =>
+            {
+                if (args.Length >= 2 && args[0] is string uid && args[1] is bool online)
+                {
+                    statusChanges.Add((uid, online));
+                    _output.WriteLine($"[UserOnlineStatusChanged] userId: {uid}, isOnline: {online}");
+                }
+            });
+            
+            // Reset context to new user
+            var userContext = new Mock<HubCallerContext>();
+            userContext.Setup(c => c.ConnectionId).Returns("user-conn-id");
+            userContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(userId, "User 1"));
+            hub.Context = userContext.Object;
+            
+            // Act - Register user with contacts list
+            await hub.RegisterUser(userId, new List<string> { contactId1, contactId2 });
+            
+            // Assert
+            Assert.True(hub.IsUserOnline(userId), "User should be online after registration");
+            Assert.Contains(statusChanges, sc => sc.userId == userId && sc.isOnline == true);
+            _output.WriteLine($"Total status changes received: {statusChanges.Count}");
+        }
+
+        [Fact]
+        public async Task GetOnlineUsers_ReturnsListOfOnlineUsers()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var user1Id = "online-user-1";
+            var user2Id = "online-user-2";
+            var user3Id = "online-user-3";
+            
+            // Register multiple users
+            var user1Context = new Mock<HubCallerContext>();
+            user1Context.Setup(c => c.ConnectionId).Returns("user1-conn");
+            user1Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(user1Id, "User 1"));
+            hub.Context = user1Context.Object;
+            await hub.RegisterUser(user1Id, new List<string>());
+            
+            var user2Context = new Mock<HubCallerContext>();
+            user2Context.Setup(c => c.ConnectionId).Returns("user2-conn");
+            user2Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(user2Id, "User 2"));
+            hub.Context = user2Context.Object;
+            await hub.RegisterUser(user2Id, new List<string>());
+            
+            var user3Context = new Mock<HubCallerContext>();
+            user3Context.Setup(c => c.ConnectionId).Returns("user3-conn");
+            user3Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(user3Id, "User 3"));
+            hub.Context = user3Context.Object;
+            await hub.RegisterUser(user3Id, new List<string>());
+            
+            // Act
+            var onlineUsers = hub.GetOnlineUsers();
+            
+            // Assert
+            Assert.NotNull(onlineUsers);
+            Assert.Contains(user1Id, onlineUsers);
+            Assert.Contains(user2Id, onlineUsers);
+            Assert.Contains(user3Id, onlineUsers);
+            Assert.Equal(3, onlineUsers.Count);
+            _output.WriteLine($"Online users: {string.Join(", ", onlineUsers)}");
+        }
+
+        [Fact]
+        public async Task IsUserOnline_ReturnsTrueForOnlineUser()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "test-online-user";
+            
+            // Act
+            await hub.RegisterUser(userId, new List<string>());
+            var isOnline = hub.IsUserOnline(userId);
+            
+            // Assert
+            Assert.True(isOnline, "IsUserOnline should return true for registered user");
+        }
+
+        [Fact]
+        public void IsUserOnline_ReturnsFalseForOfflineUser()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "offline-user";
+            
+            // Act
+            var isOnline = hub.IsUserOnline(userId);
+            
+            // Assert
+            Assert.False(isOnline, "IsUserOnline should return false for unregistered user");
+        }
+
+        [Fact]
+        public async Task OnDisconnectedAsync_RemovesUserFromOnlineUsers()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "disconnecting-user";
+            
+            // Register user first
+            await hub.RegisterUser(userId, new List<string>());
+            Assert.True(hub.IsUserOnline(userId), "User should be online before disconnect");
+            
+            // Act
+            await hub.OnDisconnectedAsync(null);
+            
+            // Assert
+            var isOnlineAfterDisconnect = hub.IsUserOnline(userId);
+            Assert.False(isOnlineAfterDisconnect, "User should be offline after disconnect");
+        }
+
+        [Fact]
+        public async Task OnDisconnectedAsync_NotifiesContactsOfOfflineStatus()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "user-going-offline";
+            var contactId = "contact-to-notify";
+            
+            // Register contact first
+            var contactContext = new Mock<HubCallerContext>();
+            contactContext.Setup(c => c.ConnectionId).Returns("contact-conn-id");
+            contactContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(contactId, "Contact User"));
+            hub.Context = contactContext.Object;
+            await hub.RegisterUser(contactId, new List<string>());
+            
+            // Track status changes
+            var statusChanges = new List<(string userId, bool isOnline)>();
+            _fixture.OnMessage("UserOnlineStatusChanged", args =>
+            {
+                if (args.Length >= 2 && args[0] is string uid && args[1] is bool online)
+                {
+                    statusChanges.Add((uid, online));
+                    _output.WriteLine($"[UserOnlineStatusChanged] userId: {uid}, isOnline: {online}");
+                }
+            });
+            
+            // Register user with contact
+            var userContext = new Mock<HubCallerContext>();
+            userContext.Setup(c => c.ConnectionId).Returns("user-conn-id");
+            userContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(userId, "Main User"));
+            hub.Context = userContext.Object;
+            await hub.RegisterUser(userId, new List<string> { contactId });
+            
+            // Clear previous status changes from registration
+            statusChanges.Clear();
+            
+            // Act - Disconnect user
+            await hub.OnDisconnectedAsync(new Exception("Connection lost"));
+            
+            // Assert
+            Assert.False(hub.IsUserOnline(userId), "User should be offline after disconnect");
+            Assert.Contains(statusChanges, sc => sc.userId == userId && sc.isOnline == false);
+            _output.WriteLine($"Offline notifications sent: {statusChanges.Count(sc => !sc.isOnline)}");
+        }
+
+        [Fact]
+        public async Task OnlineStatus_UpdatesInRealTime_WhenMultipleUsersConnectAndDisconnect()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var user1Id = "user-1";
+            var user2Id = "user-2";
+            var user3Id = "user-3";
+            
+            // Act & Assert - Initially no users online
+            var onlineUsers = hub.GetOnlineUsers();
+            Assert.Empty(onlineUsers);
+            
+            // User 1 connects
+            var user1Context = new Mock<HubCallerContext>();
+            user1Context.Setup(c => c.ConnectionId).Returns("user1-conn");
+            user1Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(user1Id, "User 1"));
+            hub.Context = user1Context.Object;
+            await hub.RegisterUser(user1Id, new List<string>());
+            
+            onlineUsers = hub.GetOnlineUsers();
+            Assert.Single(onlineUsers);
+            Assert.Contains(user1Id, onlineUsers);
+            
+            // User 2 connects
+            var user2Context = new Mock<HubCallerContext>();
+            user2Context.Setup(c => c.ConnectionId).Returns("user2-conn");
+            user2Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(user2Id, "User 2"));
+            hub.Context = user2Context.Object;
+            await hub.RegisterUser(user2Id, new List<string>());
+            
+            onlineUsers = hub.GetOnlineUsers();
+            Assert.Equal(2, onlineUsers.Count);
+            Assert.Contains(user2Id, onlineUsers);
+            
+            // User 3 connects
+            var user3Context = new Mock<HubCallerContext>();
+            user3Context.Setup(c => c.ConnectionId).Returns("user3-conn");
+            user3Context.Setup(c => c.User).Returns(_fixture.CreateTestUser(user3Id, "User 3"));
+            hub.Context = user3Context.Object;
+            await hub.RegisterUser(user3Id, new List<string>());
+            
+            onlineUsers = hub.GetOnlineUsers();
+            Assert.Equal(3, onlineUsers.Count);
+            
+            // User 2 disconnects
+            hub.Context = user2Context.Object;
+            await hub.OnDisconnectedAsync(null);
+            
+            onlineUsers = hub.GetOnlineUsers();
+            Assert.Equal(2, onlineUsers.Count);
+            Assert.DoesNotContain(user2Id, onlineUsers);
+            Assert.Contains(user1Id, onlineUsers);
+            Assert.Contains(user3Id, onlineUsers);
+            
+            _output.WriteLine($"Final online users: {string.Join(", ", onlineUsers)}");
+        }
+
+        [Fact]
+        public async Task RegisterUser_OnlyNotifiesOnlineContacts()
+        {
+            // Arrange
+            var hub = CreateHub();
+            var userId = "new-user";
+            var onlineContactId = "online-contact";
+            var offlineContactId = "offline-contact";
+            
+            // Register only one contact (the online one)
+            var contactContext = new Mock<HubCallerContext>();
+            contactContext.Setup(c => c.ConnectionId).Returns("contact-conn-id");
+            contactContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(onlineContactId, "Online Contact"));
+            hub.Context = contactContext.Object;
+            await hub.RegisterUser(onlineContactId, new List<string>());
+            
+            // Track which users received notifications
+            var notifiedUsers = new List<string>();
+            _fixture.OnMessage("UserOnlineStatusChanged", args =>
+            {
+                if (args.Length >= 2 && args[0] is string uid)
+                {
+                    notifiedUsers.Add(uid);
+                    _output.WriteLine($"[UserOnlineStatusChanged] notification about userId: {uid}");
+                }
+            });
+            
+            // Register new user with both online and offline contacts
+            var userContext = new Mock<HubCallerContext>();
+            userContext.Setup(c => c.ConnectionId).Returns("user-conn-id");
+            userContext.Setup(c => c.User).Returns(_fixture.CreateTestUser(userId, "New User"));
+            hub.Context = userContext.Object;
+            
+            // Act
+            await hub.RegisterUser(userId, new List<string> { onlineContactId, offlineContactId });
+            
+            // Assert - Notification should be sent about new user
+            Assert.Contains(userId, notifiedUsers);
+            _output.WriteLine($"Notifications sent to online contacts only. Total: {notifiedUsers.Count}");
+        }
+
+        [Fact]
+        public async Task GetOnlineUsers_ReturnsEmptyListWhenNoUsersOnline()
+        {
+            // Arrange
+            var hub = CreateHub();
+            
+            // Act
+            var onlineUsers = hub.GetOnlineUsers();
+            
+            // Assert
+            Assert.NotNull(onlineUsers);
+            Assert.Empty(onlineUsers);
+        }
     }
 }
