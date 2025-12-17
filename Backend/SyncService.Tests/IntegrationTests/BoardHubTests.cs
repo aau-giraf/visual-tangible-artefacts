@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using SyncService.Hubs;
 using SyncService.Models.ArtifactAdded;
 using SyncService.Tests.Helpers;
@@ -89,25 +90,32 @@ namespace SyncService.Tests.IntegrationTests
         [Fact]
         public async Task AcceptSession_WithValidParams_Completes()
         {
+            await AddCallerAndCalleeToDb();
             var hub = CreateHub();
             await hub.AcceptSession(SessionId, CallerId, CalleeId, BoardId);
             _fixture.MockClients.Verify(c => c.Group(SessionId), Times.Once);
+            await CleanupTestData();
         }
 
         [Fact]
         public async Task AcceptSession_CallsGroup()
         {
+            await AddCallerAndCalleeToDb();
             var hub = CreateHub();
             await hub.AcceptSession(SessionId, CallerId, CalleeId, BoardId);
             _fixture.MockClients.Verify(c => c.Group(SessionId), Times.Once);
+            await CleanupTestData();
         }
 
         [Fact]
         public async Task RejectSession_WithValidUser_Completes()
         {
+            await AddTestUserToDb(); // Add the current user (test-user-id)
+            await AddUserToDb(CallerId, "Caller User", "CallerUser"); // Add the caller
             var hub = CreateHub();
             await hub.RejectSession(CallerId);
             _fixture.MockHubCallerContext.Verify(c => c.User, Times.AtLeastOnce);
+            await CleanupTestData();
         }
 
         [Fact]
@@ -337,12 +345,41 @@ namespace SyncService.Tests.IntegrationTests
 
         private async Task AddTestUserToDb()
         {
+            await AddUserToDb(UserId, "Test User", "TestUser");
+        }
+        
+        private async Task AddCallerAndCalleeToDb()
+        {
+            await AddUserToDb(CallerId, "Caller User", "CallerUser");
+            await AddUserToDb(CalleeId, "Callee User", "CalleeUser");
+        }
+        
+        private async Task AddUserToDb(string userId, string name, string username)
+        {
+            // Check if user already exists in database
+            var existingUser = await _dbFixture.DbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            
+            if (existingUser != null)
+            {
+                return; // User already exists, no need to add
+            }
+            
+            // Clear any tracked entities with the same ID to avoid conflicts
+            var trackedEntity = _dbFixture.DbContext.ChangeTracker.Entries<User>()
+                .FirstOrDefault(e => e.Entity.Id == userId);
+            if (trackedEntity != null)
+            {
+                _dbFixture.DbContext.Entry(trackedEntity.Entity).State = EntityState.Detached;
+            }
+            
             var user = new User
             {
-                Id = UserId,
-                Name = "Test User",
+                Id = userId,
+                Name = name,
                 Password = "hashedpassword",
-                Username = "TestUser"
+                Username = username
             };
             _dbFixture.DbContext.Users.Add(user);
             await _dbFixture.DbContext.SaveChangesAsync();
@@ -350,6 +387,20 @@ namespace SyncService.Tests.IntegrationTests
 
         private async Task CleanupTestData()
         {
+            // Delete sessions first (to avoid FK constraint violations)
+            var sessionsToDelete = _dbFixture.DbContext.Sessions
+                .Where(s => s.CallerId == UserId || s.CalleeId == UserId || 
+                            s.CallerId == CallerId || s.CalleeId == CallerId ||
+                            s.CallerId == CalleeId || s.CalleeId == CalleeId ||
+                            s.CallerId == "different-callee-id" || s.CalleeId == "different-callee-id")
+                .ToList();
+            
+            if (sessionsToDelete.Any())
+            {
+                _dbFixture.DbContext.Sessions.RemoveRange(sessionsToDelete);
+                await _dbFixture.DbContext.SaveChangesAsync();
+            }
+            
             var artifactToDelete = _dbFixture.DbContext.Artefacts.FirstOrDefault(a => a.ArtefactId == ArtifactId);
             if (artifactToDelete != null)
             {
@@ -357,11 +408,16 @@ namespace SyncService.Tests.IntegrationTests
                 await _dbFixture.DbContext.SaveChangesAsync();
             }
 
-            var userToDelete = _dbFixture.DbContext.Users.FirstOrDefault(u => u.Id == UserId);
-            if (userToDelete != null)
+            // Remove all test users
+            var userIds = new[] { UserId, CallerId, CalleeId, "different-callee-id" };
+            foreach (var userId in userIds)
             {
-                _dbFixture.DbContext.Users.Remove(userToDelete);
-                await _dbFixture.DbContext.SaveChangesAsync();
+                var userToDelete = _dbFixture.DbContext.Users.FirstOrDefault(u => u.Id == userId);
+                if (userToDelete != null)
+                {
+                    _dbFixture.DbContext.Users.Remove(userToDelete);
+                    await _dbFixture.DbContext.SaveChangesAsync();
+                }
             }
         }
 
@@ -370,7 +426,7 @@ namespace SyncService.Tests.IntegrationTests
         public async Task RequestSession_WhenNotAnswered_SendsMissedCallNotificationAfter30Seconds()
         {
             // Arrange
-            await AddTestUserToDb();
+            await AddCallerAndCalleeToDb();
             
             var hub = CreateHub();
             
@@ -425,6 +481,7 @@ namespace SyncService.Tests.IntegrationTests
         public async Task RequestSession_WhenAccepted_DoesNotSendMissedCallNotification()
         {
             // Arrange
+            await AddCallerAndCalleeToDb();
             var hub = CreateHub();
             
             // Register users
@@ -458,12 +515,16 @@ namespace SyncService.Tests.IntegrationTests
             
             // Assert - MissedCall should NOT be sent because session was accepted
             Assert.False(missedCallSent, "MissedCall notification should not be sent when call is accepted");
+            
+            // Cleanup
+            await CleanupTestData();
         }
 
         [Fact]
         public async Task RequestSession_WhenRejected_DoesNotSendMissedCallNotification()
         {
             // Arrange
+            await AddCallerAndCalleeToDb();
             var hub = CreateHub();
             
             // Register users
@@ -498,6 +559,9 @@ namespace SyncService.Tests.IntegrationTests
             
             // Assert - MissedCall should NOT be sent because session was rejected
             Assert.False(missedCallSent, "MissedCall notification should not be sent when call is rejected");
+            
+            // Cleanup
+            await CleanupTestData();
         }
 
         [Fact]
@@ -505,6 +569,7 @@ namespace SyncService.Tests.IntegrationTests
         {
             // Arrange
             await AddTestUserToDb(); // Add a user with known name
+            await AddUserToDb("different-callee-id", "Callee User", "CalleeUser"); // Add callee user
             
             var hub = CreateHub();
             var callerId = UserId; // Use the test user ID with known name
@@ -555,6 +620,7 @@ namespace SyncService.Tests.IntegrationTests
         {
             // Arrange
             await AddTestUserToDb();
+            await AddUserToDb("different-callee-id", "Callee User", "CalleeUser"); // Add callee user
             
             var hub = CreateHub();
             var callerId = UserId;
