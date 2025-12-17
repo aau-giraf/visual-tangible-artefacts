@@ -14,12 +14,12 @@ namespace SyncService.Hubs
     [Authorize]
     public class BoardHub(VTAContext context) : Hub
     {
-        private static readonly Dictionary<string, string> userConnections = new();
-        private static readonly Dictionary<string, BoardSession> boardSessions = new();
-        private static readonly HashSet<string> onlineUsers = new();
-        private static readonly Dictionary<string, List<string>> userContactsMap = new();
-        private static readonly Dictionary<string, UserInfo> userInfoMap = new(); 
-        private static readonly Dictionary<string, PendingSessionRequest> pendingRequests = new(); 
+        private static readonly Dictionary<string, string> UserConnections = new();
+        private static readonly Dictionary<string, BoardSession> BoardSessions = new();
+        private static readonly HashSet<string> OnlineUsers = new();
+        private static readonly Dictionary<string, List<string>> UserContactsMap = new();
+        private static readonly Dictionary<string, UserInfo> UserInfoMap = new(); 
+        private static readonly Dictionary<string, PendingSessionRequest> PendingRequests = new(); 
 
         public async Task RegisterUser(string userId, List<string> contactIds)
         {
@@ -29,12 +29,12 @@ namespace SyncService.Hubs
                 return;
             }
 
-            userConnections[userId] = Context.ConnectionId;
-            onlineUsers.Add(userId);
-            userContactsMap[userId] = contactIds ?? new List<string>();
+            UserConnections[userId] = Context.ConnectionId;
+            OnlineUsers.Add(userId);
+            UserContactsMap[userId] = contactIds ?? new List<string>();
             
             var userName = Context.User?.FindFirst("name")?.Value ?? Context.User?.FindFirst("username")?.Value ?? "User";
-            userInfoMap[userId] = new UserInfo { UserId = userId, Name = userName };
+            UserInfoMap[userId] = new UserInfo { UserId = userId, Name = userName };
             
             Console.WriteLine($"[Hub] RegisterUser => UserId={userId} Name={userName} Conn={Context.ConnectionId} with {contactIds?.Count ?? 0} contacts");
             
@@ -45,7 +45,7 @@ namespace SyncService.Hubs
         {
             try
             {
-                if (!userContactsMap.TryGetValue(userId, out var contactIds))
+                if (!UserContactsMap.TryGetValue(userId, out var contactIds))
                 {
                     return;
                 }
@@ -54,7 +54,7 @@ namespace SyncService.Hubs
                 
                 foreach (var contactId in contactIds)
                 {
-                    if (userConnections.TryGetValue(contactId, out var contactConn))
+                    if (UserConnections.TryGetValue(contactId, out var contactConn))
                     {
                         await Clients.Client(contactConn).SendAsync("UserOnlineStatusChanged", userId, isOnline);
                         Console.WriteLine($"[Hub]   Notified {contactId} that {userId} is {(isOnline ? "online" : "offline")}");
@@ -69,14 +69,14 @@ namespace SyncService.Hubs
 
         public List<string> GetOnlineUsers()
         {
-            var onlineList = onlineUsers.ToList();
+            var onlineList = OnlineUsers.ToList();
             Console.WriteLine($"[Hub] GetOnlineUsers => Returning {onlineList.Count} online users");
             return onlineList;
         }
 
         public bool IsUserOnline(string userId)
         {
-            var isOnline = onlineUsers.Contains(userId);
+            var isOnline = OnlineUsers.Contains(userId);
             Console.WriteLine($"[Hub] IsUserOnline => userId={userId} isOnline={isOnline}");
             return isOnline;
         }
@@ -96,9 +96,9 @@ namespace SyncService.Hubs
                 TimeoutCts = cts
             };
             
-            pendingRequests[requestKey] = request;
+            PendingRequests[requestKey] = request;
 
-            if (userConnections.TryGetValue(toUserId, out var toConn))
+            if (UserConnections.TryGetValue(toUserId, out var toConn))
             {
                 await Clients.Client(toConn).SendAsync("SessionRequested", fromUserId);
                 Console.WriteLine($"[Hub] Sent SessionRequested to {toUserId}");
@@ -117,15 +117,15 @@ namespace SyncService.Hubs
                         Console.WriteLine($"[Hub] Session request timed out - sending missed call notification");
                         
                         // Check if it's still pending (not accepted or rejected)
-                        if (pendingRequests.ContainsKey(requestKey))
+                        if (PendingRequests.ContainsKey(requestKey))
                         {
-                            pendingRequests.Remove(requestKey);
+                            PendingRequests.Remove(requestKey);
                             
                             // Get the caller's name from stored user info
                             var callerName = await GetUserName(fromUserId);
                             
                             // Check if connection still exists before sending
-                            if (userConnections.ContainsValue(connectionId))
+                            if (UserConnections.ContainsValue(connectionId))
                             {
                                 try
                                 {
@@ -160,7 +160,7 @@ namespace SyncService.Hubs
             else
             {
                 await Clients.Client(Context.ConnectionId).SendAsync("UserOffline", toUserId);
-                pendingRequests.Remove(requestKey);
+                PendingRequests.Remove(requestKey);
                 Console.WriteLine($"[Hub] User {toUserId} is offline");
             }
         }
@@ -169,7 +169,7 @@ namespace SyncService.Hubs
         {
             try
             {
-                if (userInfoMap.TryGetValue(userId, out var userInfo))
+                if (UserInfoMap.TryGetValue(userId, out var userInfo))
                 {
                     return userInfo.Name;
                 }
@@ -186,17 +186,17 @@ namespace SyncService.Hubs
         {
             Console.WriteLine($"[Hub] AcceptSession => {sessionId} from {fromUserId} + {toUserId} with boardId={boardId}");
 
-            var keysToRemove = pendingRequests
+            var keysToRemove = PendingRequests
                 .Where(x => x.Value.FromUserId == fromUserId && x.Value.ToUserId == toUserId)
                 .Select(x => x.Key)
                 .ToList();
             
             foreach (var key in keysToRemove)
             {
-                if (pendingRequests.TryGetValue(key, out var request))
+                if (PendingRequests.TryGetValue(key, out var request))
                 {
                     request.TimeoutCts.Cancel();
-                    pendingRequests.Remove(key);
+                    PendingRequests.Remove(key);
                     Console.WriteLine($"[Hub] Cancelled pending timeout for {fromUserId}");
                 }
             }
@@ -209,21 +209,21 @@ namespace SyncService.Hubs
                 BoardId = boardId
             };
 
-            if (userConnections.TryGetValue(fromUserId, out var fromConn))
+            if (UserConnections.TryGetValue(fromUserId, out var fromConn))
             {
                 await Groups.AddToGroupAsync(fromConn, sessionId);
                 session.Connections.Add(fromConn);
                 Console.WriteLine($"[Hub] Added {fromUserId} to group {sessionId}");
             }
 
-            if (userConnections.TryGetValue(toUserId, out var toConn))
+            if (UserConnections.TryGetValue(toUserId, out var toConn))
             {
                 await Groups.AddToGroupAsync(toConn, sessionId);
                 session.Connections.Add(toConn);
                 Console.WriteLine($"[Hub] Added {toUserId} to group {sessionId}");
             }
 
-            boardSessions[sessionId] = session;
+            BoardSessions[sessionId] = session;
 
             try
             {
@@ -277,21 +277,21 @@ namespace SyncService.Hubs
                 }
             }
 
-            var keysToRemove = pendingRequests
+            var keysToRemove = PendingRequests
                 .Where(x => x.Value.FromUserId == fromUserId)
                 .Select(x => x.Key)
                 .ToList();
             
             foreach (var key in keysToRemove)
             {
-                if (pendingRequests.TryGetValue(key, out var request))
+                if (PendingRequests.TryGetValue(key, out var request))
                 {
                     request.TimeoutCts.Cancel();
-                    pendingRequests.Remove(key);
+                    PendingRequests.Remove(key);
                 }
             }
 
-            if (userConnections.TryGetValue(fromUserId, out var conn))
+            if (UserConnections.TryGetValue(fromUserId, out var conn))
                 await Clients.Client(conn).SendAsync("SessionRejected");
         }
 
@@ -321,6 +321,7 @@ namespace SyncService.Hubs
             if (string.IsNullOrEmpty(userId))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: Unauthorized - no user ID in context");
+                await Clients.Caller.SendAsync("ArtifactRejected", data, "Unauthorized: No user ID in context");
                 return;
             }
 
@@ -331,6 +332,7 @@ namespace SyncService.Hubs
             if (dbArtefact is null)
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: Artefact not found or doesn't belong to user. ArtefactId={artifact.SavedArtefactId}, UserId={userId}");
+                await Clients.Caller.SendAsync("ArtifactRejected", data, "Artifact not found or does not belong to you");
                 return;
             }
             
@@ -338,14 +340,14 @@ namespace SyncService.Hubs
             if (!string.IsNullOrWhiteSpace(dbArtefact.ImagePath) && (!artifact.ImageUrl?.EndsWith(dbArtefact.ImagePath) ?? false))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: ImageUrl mismatch. Expected={dbArtefact.ImagePath}, Received={artifact.ImageUrl}");
-                await Clients.Caller.SendAsync("ArtifactRejected", data);
+                await Clients.Caller.SendAsync("ArtifactRejected", data, "Image URL mismatch");
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(dbArtefact.SoundPath) && (!artifact.ImageUrl?.EndsWith(dbArtefact.SoundPath) ?? false))
             {
                 Console.WriteLine($"[Hub] ArtifactAdded: SoundUrl mismatch. Expected={dbArtefact.SoundPath}, Received={artifact.SoundUrl}");
-                await Clients.Caller.SendAsync("ArtifactRejected", data);
+                await Clients.Caller.SendAsync("ArtifactRejected", data, "Sound URL mismatch");
                 return;
             }
 
@@ -453,7 +455,7 @@ namespace SyncService.Hubs
         {
             Console.WriteLine($"[Hub] EndSession => {sessionId}");
 
-            if (boardSessions.TryGetValue(sessionId, out var boardSession))
+            if (BoardSessions.TryGetValue(sessionId, out var boardSession))
             {
                 try
                 {
@@ -488,17 +490,17 @@ namespace SyncService.Hubs
             }
 
             await Clients.Group(sessionId).SendAsync("SessionEnded");
-            boardSessions.Remove(sessionId);
+            BoardSessions.Remove(sessionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            var user = userConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
+            var user = UserConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
             if (user != null)
             {
                 Console.WriteLine($"[Hub] User disconnected => {user}");
 
-                var userSessions = boardSessions.Where(s => s.Value.User1Id == user || s.Value.User2Id == user).ToList();
+                var userSessions = BoardSessions.Where(s => s.Value.User1Id == user || s.Value.User2Id == user).ToList();
                 foreach (var sessionKvp in userSessions)
                 {
                     var boardSession = sessionKvp.Value;
@@ -528,15 +530,15 @@ namespace SyncService.Hubs
                         Console.WriteLine($"[Hub] Error updating session on disconnect: {ex.Message}");
                     }
 
-                    boardSessions.Remove(sessionKvp.Key);
+                    BoardSessions.Remove(sessionKvp.Key);
                 }
                 
                 await NotifyContactsOfStatusChange(user, false);
                 
-                userConnections.Remove(user);
-                onlineUsers.Remove(user);
-                userContactsMap.Remove(user);
-                userInfoMap.Remove(user); 
+                UserConnections.Remove(user);
+                OnlineUsers.Remove(user);
+                UserContactsMap.Remove(user);
+                UserInfoMap.Remove(user); 
             }
 
             await base.OnDisconnectedAsync(exception);
@@ -547,7 +549,7 @@ namespace SyncService.Hubs
         {
             Console.WriteLine($"[Hub] SendOffer => sessionId={sessionId}, target={targetUserId}");
 
-            if (userConnections.TryGetValue(targetUserId, out var targetConn))
+            if (UserConnections.TryGetValue(targetUserId, out var targetConn))
             {
                 await Clients.Client(targetConn).SendAsync("ReceiveOffer", sessionId, sdpOffer);
                 Console.WriteLine($"[Hub] Sent offer to {targetUserId}");
@@ -562,7 +564,7 @@ namespace SyncService.Hubs
         {
             Console.WriteLine($"[Hub] SendAnswer => sessionId={sessionId}, target={targetUserId}");
 
-            if (userConnections.TryGetValue(targetUserId, out var targetConn))
+            if (UserConnections.TryGetValue(targetUserId, out var targetConn))
             {
                 await Clients.Client(targetConn).SendAsync("ReceiveAnswer", sessionId, sdpAnswer);
                 Console.WriteLine($"[Hub] Sent answer to {targetUserId}");
@@ -573,7 +575,7 @@ namespace SyncService.Hubs
         {
             Console.WriteLine($"[Hub] SendIceCandidate => sessionId={sessionId}, target={targetUserId}");
 
-            if (userConnections.TryGetValue(targetUserId, out var targetConn))
+            if (UserConnections.TryGetValue(targetUserId, out var targetConn))
             {
                 await Clients.Client(targetConn).SendAsync("ReceiveIceCandidate", sessionId, candidate);
             }
