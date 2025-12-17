@@ -187,4 +187,121 @@ public class AdminController : ControllerBase
 
         return NoContent();
     }
+
+    // GET: api/Admin/sessions
+    [HttpGet("sessions")]
+    public async Task<ActionResult<IEnumerable<SessionGetDTO>>> GetSessions(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? userId = null)
+    {
+        var query = _context.Sessions
+            .Include(s => s.Caller)
+            .Include(s => s.Callee)
+            .AsNoTracking();
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(s => s.StartTime >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(s => s.StartTime <= endDate.Value);
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            query = query.Where(s => s.CallerId == userId || s.CalleeId == userId);
+        }
+
+        var sessions = await query
+            .OrderByDescending(s => s.StartTime)
+            .Select(s => new SessionGetDTO
+            {
+                Id = s.Id,
+                CallerId = s.CallerId,
+                CallerName = s.Caller.Name,
+                CalleeId = s.CalleeId,
+                CalleeName = s.Callee.Name,
+                StartTime = s.StartTime.HasValue ? s.StartTime.Value : DateTime.MinValue,
+                EndTime = s.EndTime,
+                Duration = s.Duration,
+                CallStatus = s.CallStatus
+            })
+            .ToListAsync();
+
+        return Ok(sessions);
+    }
+
+    // GET: api/Admin/sessions/{id}
+    [HttpGet("sessions/{id}")]
+    public async Task<ActionResult<SessionGetDTO>> GetSession(int id)
+    {
+        var session = await _context.Sessions
+            .Include(s => s.Caller)
+            .Include(s => s.Callee)
+            .AsNoTracking()
+            .Where(s => s.Id == id)
+            .Select(s => new SessionGetDTO
+            {
+                Id = s.Id,
+                CallerId = s.CallerId,
+                CallerName = s.Caller.Name,
+                CalleeId = s.CalleeId,
+                CalleeName = s.Callee.Name,
+                StartTime = s.StartTime.HasValue ? s.StartTime.Value : DateTime.MinValue,
+                EndTime = s.EndTime,
+                Duration = s.Duration,
+                CallStatus = s.CallStatus
+            })
+            .FirstOrDefaultAsync();
+
+        if (session == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(session);
+    }
+
+    // GET: api/Admin/sessions/statistics
+    [HttpGet("sessions/statistics")]
+    public async Task<ActionResult<SessionStatisticsDTO>> GetSessionStatistics(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        var query = _context.Sessions.AsNoTracking();
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(s => s.StartTime >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(s => s.StartTime <= endDate.Value);
+        }
+
+        var sessions = await query.ToListAsync();
+
+        var statistics = new SessionStatisticsDTO
+        {
+            TotalSessions = sessions.Count,
+            CompletedSessions = sessions.Count(s => s.CallStatus == CallStatus.Completed),
+            RejectedSessions = sessions.Count(s => s.CallStatus == CallStatus.Rejected),
+            FailedSessions = sessions.Count(s => s.CallStatus == CallStatus.Failed),
+            TotalDuration = sessions
+                .Where(s => s.Duration.HasValue)
+                .Select(s => s.Duration!.Value)
+                .Aggregate(TimeSpan.Zero, (sum, duration) => sum + duration),
+            AverageDuration = sessions.Any(s => s.Duration.HasValue)
+                ? TimeSpan.FromTicks((long)sessions
+                    .Where(s => s.Duration.HasValue)
+                    .Average(s => s.Duration!.Value.Ticks))
+                : null
+        };
+
+        return Ok(statistics);
+    }
 }
