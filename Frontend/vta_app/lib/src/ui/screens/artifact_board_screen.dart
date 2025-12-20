@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
@@ -12,6 +13,10 @@ import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
+import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
+
+import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
 
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({
@@ -31,21 +36,105 @@ class ArtifactBoardScreen extends StatefulWidget {
 }
 
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
-  late ArtifactBoardController controller;
   List<Category>? categories;
+  static const String _controllerKey = 'ArtifactBoardController';
+
+  void _notifyView() {
+    if (mounted) {
+      debugPrint(
+          '[ArtifactBoardScreen] notifyView callback - calling setState');
+      setState(() {});
+    }
+  }
+
+  void _showMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green.shade600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 4,
+        ),
+      );
+    }
+  }
+
+  ArtifactBoardController get controller {
+    // Use GetIt to store controller persistently across widget recreations
+    try {
+      final existingController = GetIt.instance.get<ArtifactBoardController>(
+        instanceName: _controllerKey,
+      );
+      debugPrint(
+          '[ArtifactBoardScreen] get controller - Reusing existing controller from GetIt: ${existingController.hashCode}');
+      // Update the notifyView callback to point to current widget state
+      existingController.updateNotifyView(_notifyView);
+      // Update the showMessage callback to point to current widget state
+      existingController.updateShowMessage(_showMessage);
+      return existingController;
+    } catch (e) {
+      // Controller doesn't exist yet, create and register it
+      debugPrint(
+          '[ArtifactBoardScreen] get controller - Creating NEW ArtifactBoardController and registering in GetIt');
+      final newController = ArtifactBoardController(
+        notifyView: _notifyView,
+        settingsController: widget.settingsController,
+      );
+      // Set the showMessage callback
+      newController.updateShowMessage(_showMessage);
+      GetIt.instance.registerSingleton<ArtifactBoardController>(
+        newController,
+        instanceName: _controllerKey,
+      );
+      return newController;
+    }
+  }
+
   user_model.User? currentUser;
   late Future<user_model.User?> userFuture;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the controller with a callback to setState
-    controller = ArtifactBoardController(
-        notifyView: () {
-      setState(() {});
-    }, settingsController: widget.settingsController);
+    debugPrint('[ArtifactBoardScreen] initState - Initializing state');
+    // Controller will be lazily initialized on first access via GetIt
+    // This ensures it persists across widget recreations
     // Load user data as a future that will be awaited
     userFuture = _loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    debugPrint(
+        '[ArtifactBoardScreen] dispose - Disposing state (controller persists in GetIt)');
+    // DON'T remove controller from GetIt - it should persist across widget recreations
+    // Only remove it when truly leaving the screen (e.g., in a route guard)
+    super.dispose();
   }
 
   Future<user_model.User?> _loadCurrentUser() async {
@@ -89,10 +178,11 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   }
 
   Scaffold _buildPage(BuildContext context) {
-    double padding = 5;
+    double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-    double categoriesWidgetHeight = 60;
-    double dividerHeight = 5;
+    double padding = screenWidth > 600 ? 5 : 2;
+    double categoriesWidgetHeight = screenWidth > 600 ? 90 : 80;
+    double dividerHeight = screenWidth > 600 ? 10 : 5;
     var artifactController = widget.artifactController;
     categories = artifactController.categories;
 
@@ -124,32 +214,91 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                         padding: EdgeInsets.symmetric(horizontal: padding),
                         child: Center(
                           child: controller.showDirectional
-                              ? controller.linearBoard!
-                              : controller.talkingMat!,
+                              ? LinearBoard(
+                                  key: controller.linearBoardKey,
+                                  linearBoardController:
+                                      controller.linearBoardController,
+                                )
+                              : TalkingMat(
+                                  key: controller.talkingMatKey,
+                                  artifacts: [],
+                                  controller: controller.talkingmatController,
+                                ),
                         ),
                       ),
                       Positioned(
-                        top: 30,
-                        left: 30,
+                        top: screenWidth > 600 ? 10 : 10,
+                        left: screenWidth > 600 ? 15 : 10,
                         child: PopupMenuButton(
                             tooltip: "Brugerindstillinger",
-                            offset: const Offset(0, 60),
+                            offset: Offset(0, screenWidth > 600 ? 60 : 40),
                             icon: Icon(Icons.supervised_user_circle_outlined,
-                                size: 50),
+                                size: screenWidth > 600 ? 50 : 35),
+                            iconSize: screenWidth > 600
+                                ? 50
+                                : 35, // ensures shadow matches icon
+                            padding: EdgeInsets
+                                .zero, // removes extra padding around the icon
                             itemBuilder: (context) {
                               List<PopupMenuItem> items = [];
 
+                              debugPrint(
+                                  'Building menu - currentUser: ${currentUser?.username}, role: ${currentUser?.role}');
+                              debugPrint(
+                                  'Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
 
-                              debugPrint('Building menu - currentUser: ${currentUser?.username}, role: ${currentUser?.role}');
-                              debugPrint('Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
+                              items.add(
+                                PopupMenuItem(
+                                  padding: EdgeInsets.zero,
+                                  child: ListTile(
+                                    leading: Icon(Icons.dashboard,
+                                        size: screenWidth > 600 ? 20 : 16),
+                                    title: Text(
+                                        'Tavler (${controller.activeBoard.title})',
+                                        style: TextStyle(
+                                            fontSize:
+                                                screenWidth > 600 ? 16 : 14)),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(20)),
+                                        ),
+                                        builder: (context) =>
+                                            DraggableScrollableSheet(
+                                          initialChildSize: 0.6,
+                                          minChildSize: 0.4,
+                                          maxChildSize: 0.9,
+                                          expand: false,
+                                          builder:
+                                              (context, scrollController) =>
+                                                  BoardSelectionSheet(
+                                            controller: controller,
+                                            scrollController: scrollController,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
 
-                              // Only show "Start Opkald" for caregivers
-                              if (currentUser?.role == user_model.UserRole.caregiver) {
+                              // Only for caregivers
+                              if (currentUser?.role ==
+                                  user_model.UserRole.caregiver) {
                                 items.add(
                                   PopupMenuItem(
+                                    padding: EdgeInsets.zero,
                                     child: ListTile(
-                                      leading: Icon(Icons.call, size: 20),
-                                      title: const Text('Start Opkald'),
+                                      leading: Icon(Icons.call,
+                                          size: screenWidth > 600 ? 20 : 16),
+                                      title: Text('Start Opkald',
+                                          style: TextStyle(
+                                              fontSize:
+                                                  screenWidth > 600 ? 16 : 14)),
                                       onTap: () {
                                         Navigator.of(context).pop();
                                         SignalRService()
@@ -165,9 +314,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
                               items.addAll([
                                 PopupMenuItem(
+                                  padding: EdgeInsets.zero,
                                   child: ListTile(
-                                    leading: Icon(Icons.settings, size: 20),
-                                    title: const Text('Indstillinger'),
+                                    leading: Icon(Icons.settings,
+                                        size: screenWidth > 600 ? 20 : 16),
+                                    title: Text('Indstillinger',
+                                        style: TextStyle(
+                                            fontSize:
+                                                screenWidth > 600 ? 16 : 14)),
                                     onTap: () {
                                       Navigator.of(context).pop();
                                       Navigator.of(context)
@@ -176,9 +330,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                                   ),
                                 ),
                                 PopupMenuItem(
+                                  padding: EdgeInsets.zero,
                                   child: ListTile(
-                                    leading: Icon(Icons.logout, size: 20),
-                                    title: const Text('Log ud'),
+                                    leading: Icon(Icons.logout,
+                                        size: screenWidth > 600 ? 20 : 16),
+                                    title: Text('Log ud',
+                                        style: TextStyle(
+                                            fontSize:
+                                                screenWidth > 600 ? 16 : 14)),
                                     onTap: () {
                                       Navigator.of(context).pop();
                                       widget.authController.logout(context);
@@ -193,21 +352,22 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
-                          padding: EdgeInsets.only(left: 20),
+                          padding: EdgeInsets.only(
+                              left: screenWidth > 600 ? 20 : 10),
                           child: RelationalBoardButton(
                             onPressed: () {
                               controller.switchCurrentBoard();
                             },
                             icon: controller.showDirectional
-                                ? const Icon(
+                                ? Icon(
                                     IconData(0xf685,
                                         fontFamily: 'MaterialIcons'),
-                                    size: 24.0,
+                                    size: screenWidth > 600 ? 24.0 : 20.0,
                                   )
-                                : const Icon(
+                                : Icon(
                                     IconData(0xf601,
                                         fontFamily: 'MaterialIcons'),
-                                    size: 24.0,
+                                    size: screenWidth > 600 ? 24.0 : 20.0,
                                   ),
                           ),
                         ),
@@ -222,7 +382,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                 ),
               ),
               Divider(
-                color: Colors.transparent,
+                color: const Color.fromARGB(0, 0, 0, 0),
                 height: dividerHeight,
               ),
               Padding(

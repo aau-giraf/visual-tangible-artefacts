@@ -9,11 +9,11 @@ class CaregiverRequestWidget extends StatefulWidget {
   final Function(String sessionId, String childId) onSessionStarted;
 
   const CaregiverRequestWidget({
-    Key? key,
+    super.key,
     required this.caregiverId,
     required this.children,
     required this.onSessionStarted,
-  }) : super(key: key);
+  });
 
   @override
   State<CaregiverRequestWidget> createState() => _CaregiverRequestWidgetState();

@@ -38,7 +38,7 @@ bld/
 #wwwroot/
 
 # Visual Studio 2017 auto generated files
-Generated\ Files/
+Generated Files/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
@@ -409,9 +409,9 @@ Frontend/vta_app/windows/flutter/generated_plugins.cmake
 Frontend/vta_app/assets/cfg/app_settings.json
 Backend/VTA.API/appsettings.json
 Backend/VTA.API/appsettings.Development.json
-Backend/VTA.API/assets/Artefacts
-Backend/VTA.API/assets/Sounds
-Backend/VTA.API/assets/Categories
+Backend/VTA.API/Assets/Artefacts
+Backend/VTA.API/Assets/Sounds
+Backend/VTA.API/Assets/Categories
 
 # Claude Code documentation
 CLAUDE.md

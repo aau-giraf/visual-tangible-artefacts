@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -124,7 +126,7 @@ class ArtifactState with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Error deleting category: $e');
+      print('Fejl ved sletning af kategori: $e');
       return false;
     }
   }
@@ -163,7 +165,7 @@ class ArtifactState with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Error deleting artifact: $e');
+      print('Fejl ved sletning af artefact: $e');
       return false;
     }
   }
@@ -175,9 +177,7 @@ class ArtifactState with ChangeNotifier {
   Future<bool> loadMostUsedCategories(String token, {int limit = 3}) async {
     _mostUsedCategories =
         await ArtifactRepository().fetchMostUsedCategories(token, limit: limit);
-    if (_mostUsedCategories == null) {
-      _mostUsedCategories = [];
-    }
+    _mostUsedCategories ??= [];
     notifyListeners();
     return true;
   }

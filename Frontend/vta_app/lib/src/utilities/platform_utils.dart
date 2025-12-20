@@ -4,44 +4,88 @@ import 'package:global_configuration/global_configuration.dart';
 
 class PlatformUtils {
   static String getApiUrl() {
-    String url;
-    if (kIsWeb) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['Local'];
-      print('[PlatformUtils] Using Web API URL: $url');
-    } else if (Platform.isAndroid) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['LocalAndroid'];
-      print('[PlatformUtils] Using Android API URL: $url');
-    } else if (Platform.isIOS) {
-      url =
-          GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['LocalIOS'];
-      print('[PlatformUtils] Using iOS API URL: $url');
-    } else {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']['Local'];
-      print('[PlatformUtils] Using Desktop API URL: $url');
+    String? url;
+    try {
+      final appConfig = GlobalConfiguration().appConfig;
+      final apiSettings = appConfig['ApiSettings'] as Map<String, dynamic>?;
+      final baseUrl = apiSettings?['BaseUrl'] as Map<String, dynamic>?;
+
+      if (kIsWeb) {
+        url = baseUrl?['Local'] as String? ?? baseUrl?['Remote'] as String?;
+      } else if (Platform.isAndroid) {
+        url = baseUrl?['LocalAndroid'] as String? ??
+            baseUrl?['Local'] as String? ??
+            baseUrl?['Remote'] as String?;
+      } else if (Platform.isIOS) {
+        url = baseUrl?['LocalIOS'] as String? ??
+            baseUrl?['Local'] as String? ??
+            baseUrl?['Remote'] as String?;
+      } else {
+        url = baseUrl?['Local'] as String? ?? baseUrl?['Remote'] as String?;
+      }
+    } catch (e) {
+      debugPrint('[PlatformUtils] Error reading config: $e');
     }
+
+    // Apply fallbacks if url is still null
+    if (url == null) {
+      if (kIsWeb) {
+        url = 'http://localhost:5000/api/'; // Fallback for web
+      } else if (Platform.isAndroid) {
+        url = 'http://10.0.2.2:5000/api/'; // Android emulator default
+      } else if (Platform.isIOS) {
+        url = 'http://localhost:5000/api/'; // iOS simulator default
+      } else {
+        url = 'http://localhost:5000/api/'; // Desktop fallback
+      }
+    }
+
+    print(
+        '[PlatformUtils] Using ${kIsWeb ? 'Web' : Platform.isAndroid ? 'Android' : Platform.isIOS ? 'iOS' : 'Desktop'} API URL: $url');
     return url;
   }
 
   static String getSyncServiceUrl() {
-    String url;
-    if (kIsWeb) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['SyncService'];
-      print('[PlatformUtils] Using Web SyncService URL: $url');
-    } else if (Platform.isAndroid) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['SyncServiceAndroid'];
-      print('[PlatformUtils] Using Android SyncService URL: $url');
-    } else if (Platform.isIOS) {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['SyncServiceIOS'];
-      print('[PlatformUtils] Using iOS SyncService URL: $url');
-    } else {
-      url = GlobalConfiguration().appConfig['ApiSettings']['BaseUrl']
-          ['SyncService'];
-      print('[PlatformUtils] Using Desktop SyncService URL: $url');
+    String? url;
+    try {
+      final appConfig = GlobalConfiguration().appConfig;
+      final apiSettings = appConfig['ApiSettings'] as Map<String, dynamic>?;
+      final baseUrl = apiSettings?['BaseUrl'] as Map<String, dynamic>?;
+
+      if (kIsWeb) {
+        url = baseUrl?['SyncService'] as String? ??
+            baseUrl?['SyncServiceRemote'] as String?;
+      } else if (Platform.isAndroid) {
+        url = baseUrl?['SyncServiceAndroid'] as String? ??
+            baseUrl?['SyncService'] as String? ??
+            baseUrl?['SyncServiceRemote'] as String?;
+      } else if (Platform.isIOS) {
+        url = baseUrl?['SyncServiceIOS'] as String? ??
+            baseUrl?['SyncService'] as String? ??
+            baseUrl?['SyncServiceRemote'] as String?;
+      } else {
+        url = baseUrl?['SyncService'] as String? ??
+            baseUrl?['SyncServiceRemote'] as String?;
+      }
+    } catch (e) {
+      debugPrint('[PlatformUtils] Error reading config: $e');
     }
+
+    // Apply fallbacks if url is still null
+    if (url == null) {
+      if (kIsWeb) {
+        url = 'http://localhost:5001/'; // Fallback for web
+      } else if (Platform.isAndroid) {
+        url = 'http://10.0.2.2:5001/'; // Android emulator default
+      } else if (Platform.isIOS) {
+        url = 'http://localhost:5001/'; // iOS simulator default
+      } else {
+        url = 'http://localhost:5001/'; // Desktop fallback
+      }
+    }
+
+    print(
+        '[PlatformUtils] Using ${kIsWeb ? 'Web' : Platform.isAndroid ? 'Android' : Platform.isIOS ? 'iOS' : 'Desktop'} SyncService URL: $url');
     return url;
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, unused_element
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -8,7 +10,6 @@ import '../database/repositories/artefact_repository.dart';
 import '../database/repositories/category_repository.dart';
 import '../database/mappers/artefact_mapper.dart';
 import '../database/models/category_db.dart';
-
 
 class ArtifactModel {
   List<Category>? categories;
@@ -33,17 +34,20 @@ class ArtifactModel {
     );
   }
 
- Future<void> _fetchAndUpdateCategoriesLocal() async {
-  try {
-      final repo = CategoryRepository();      
+  // Reserved for future offline/local database functionality
+  Future<void> _fetchAndUpdateCategoriesLocal() async {
+    try {
+      final repo = CategoryRepository();
       final dbCategories = await repo.getAll();
-      final jsonString = jsonEncode(dbCategories.map((e) => e.toMap()).toList());
-      
-      print("Local ------------------------------------------------------- " + jsonString);
-      
+      final jsonString =
+          jsonEncode(dbCategories.map((e) => e.toMap()).toList());
+
+      print(
+          "Local ------------------------------------------------------- $jsonString");
+
       // Decode back to List<dynamic> to match online response structure
       var jsonResponse = jsonDecode(jsonString) as List;
-      
+
       var newCategories = jsonResponse
           .map((jsonCategory) =>
               Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -51,14 +55,13 @@ class ArtifactModel {
       newCategories
           .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
       categories = newCategories;
-    
     } catch (e) {
       debugPrint("$e");
       rethrow;
     }
   }
-  
 
+  // Reserved for future offline/local database functionality
   Future<void> _postArtefactLocal(Artefact artefact) async {
     try {
       final repo = ArtefactRepository();
@@ -70,6 +73,7 @@ class ArtifactModel {
     }
   }
 
+  // Reserved for future offline/local database functionality
   Future<void> _postCategoryLocal(Category category) async {
     try {
       final repo = CategoryRepository();
@@ -81,6 +85,7 @@ class ArtifactModel {
     }
   }
 
+  // Reserved for future offline/local database functionality
   Future<void> _deleteCategoryLocal(String categoryId) async {
     try {
       final repo = CategoryRepository();
@@ -91,6 +96,7 @@ class ArtifactModel {
     }
   }
 
+  // Reserved for future offline/local database functionality
   Future<void> _deleteArtefactLocal(String artefactId) async {
     try {
       final repo = ArtefactRepository();
@@ -101,6 +107,7 @@ class ArtifactModel {
     }
   }
 
+  // Reserved for future offline/local database functionality
   Future<void> _updateArtefactLocal(Artefact artefact) async {
     try {
       final repo = ArtefactRepository();
@@ -112,6 +119,7 @@ class ArtifactModel {
     }
   }
 
+  // Reserved for future offline/local database functionality
   Future<void> _trackCategoryUsageLocal(String categoryId) async {
     try {
       final repo = CategoryRepository();
@@ -122,22 +130,24 @@ class ArtifactModel {
     }
   }
 
+  // Reserved for future offline/local database functionality
   Future<void> _fetchAndUpdateMostUsedCategoriesLocal({int limit = 3}) async {
     try {
       final repo = CategoryRepository();
       final dbCategories = await repo.getAll();
-      
+
       // Sort by usage count and take the top N
       dbCategories.sort((a, b) {
         final aUsage = (a as CategoryDB).usageCount;
         final bUsage = (b as CategoryDB).usageCount;
         return bUsage.compareTo(aUsage);
       });
-      
+
       final topCategories = dbCategories.take(limit).toList();
-      final jsonString = jsonEncode(topCategories.map((e) => (e as CategoryDB).toMap()).toList());
+      final jsonString = jsonEncode(
+          topCategories.map((e) => (e as CategoryDB).toMap()).toList());
       var jsonResponse = jsonDecode(jsonString) as List;
-      
+
       var newMostUsedCategories = jsonResponse
           .map((jsonCategory) =>
               Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -162,7 +172,8 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = json.decode(response.body) as List;
 
-        print("Online ------------------------------------------------------- " + jsonResponse.toString());
+        print(
+            "Online ------------------------------------------------------- $jsonResponse");
 
         var newCategories = jsonResponse
             .map((jsonCategory) =>
@@ -174,19 +185,18 @@ class ArtifactModel {
       } else {
         throw ArtifactException(
             message:
-                'Failed to fetch categories with status code: ${response?.statusCode}');
+                'Mislykkedes at hente kategorier, status kode: ${response?.statusCode}');
       }
-      } catch (e) {
+    } catch (e) {
       debugPrint("$e");
       rethrow;
     }
-      try { 
-        /// For future local use only
-        // await _fetchAndUpdateCategoriesLocal();
-      } catch (e) {
-        debugPrint('Local DB fetch failed: $e');
-      }
-    
+    try {
+      /// For future local use only
+      // await _fetchAndUpdateCategoriesLocal();
+    } catch (e) {
+      debugPrint('Local DB fetch failed: $e');
+    }
   }
 
   Future<void> postCategory(Category category, {required String token}) async {
@@ -200,7 +210,7 @@ class ArtifactModel {
         categories!.add(newCategory);
         categories!
             .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
-        
+
         // Save locally
         try {
           // await _postCategoryLocal(newCategory);
@@ -210,7 +220,7 @@ class ArtifactModel {
       } else {
         throw ArtifactException(
             message:
-                'Failed to post category, status code: ${response?.statusCode}');
+                'Mislykkedes at poste kategori, status kode: ${response?.statusCode}');
       }
     } catch (e) {
       debugPrint('$e');
@@ -227,7 +237,7 @@ class ArtifactModel {
       if (response != null && response.ok) {
         categories
             ?.removeWhere((item) => item.categoryId == category.categoryId);
-        
+
         // Delete locally
         try {
           // await _deleteCategoryLocal(category.categoryId!);
@@ -245,7 +255,8 @@ class ArtifactModel {
     }
   }
 
-  Future<Artefact> postArtefact(Artefact artefact, {required String token}) async {
+  Future<Artefact> postArtefact(Artefact artefact,
+      {required String token}) async {
     try {
       // Ensure we pass the sound bytes with the key 'Sound' to match backend IFormFile binding
       var body = artefact.toJson();
@@ -260,7 +271,7 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
         var newArtefact = Artefact.fromJson(jsonResponse);
-        
+
         // SAVE LOCALLY
         try {
           // await _postArtefactLocal(newArtefact);
@@ -273,17 +284,21 @@ class ArtifactModel {
           // Do not add to categories list!!! session artefacts are treated as uncategorized.
         } else {
           if (categories != null) {
-            final idx = categories!.indexWhere((item) => item.categoryId == catId);
+            final idx =
+                categories!.indexWhere((item) => item.categoryId == catId);
             if (idx != -1) {
               categories![idx].artefacts ??= [];
               categories![idx].artefacts!.add(newArtefact);
             } else {
               // Category wrapper to hold the artefact locally
-              categories!.add(Category(categoryId: catId, artefacts: [newArtefact]));
+              categories!
+                  .add(Category(categoryId: catId, artefacts: [newArtefact]));
             }
           } else {
             // No categories cached at all - create the list with a single category
-            categories = [Category(categoryId: catId, artefacts: [newArtefact])];
+            categories = [
+              Category(categoryId: catId, artefacts: [newArtefact])
+            ];
           }
         }
 
@@ -307,12 +322,15 @@ class ArtifactModel {
           headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         if (categories != null) {
-          final idx = categories!.indexWhere((c) => c.categoryId == artefact.categoryId);
+          final idx = categories!
+              .indexWhere((c) => c.categoryId == artefact.categoryId);
           if (idx != -1 && categories![idx].artefacts != null) {
-            categories![idx].artefacts!.removeWhere((a) => a.artefactId == artefact.artefactId);
+            categories![idx]
+                .artefacts!
+                .removeWhere((a) => a.artefactId == artefact.artefactId);
           }
         }
-        
+
         // Delete locally
         try {
           // await _deleteArtefactLocal(artefact.artefactId!);
@@ -330,7 +348,8 @@ class ArtifactModel {
     }
   }
 
-  Future<void> updateArtefact(Artefact artefact, {required String token}) async {
+  Future<void> updateArtefact(Artefact artefact,
+      {required String token}) async {
     try {
       var body = <String, dynamic>{
         'ArtefactId': artefact.artefactId,
@@ -354,12 +373,11 @@ class ArtifactModel {
       if (artefact.nameShown != null) {
         body['NameShown'] = artefact.nameShown;
       }
-      
+
       var response = await apiProvider.sendAsMultiPart(
           'PATCH', "Users/Artefacts",
-          body: body, 
-          headers: {'Authorization': 'Bearer $token'});
-      
+          body: body, headers: {'Authorization': 'Bearer $token'});
+
       if (response != null && response.ok) {
         // Update the local artefact in the categories list
         var category = categories?.firstWhere(
@@ -367,19 +385,18 @@ class ArtifactModel {
           orElse: () => Category(),
         );
         if (category?.artefacts != null) {
-          var index = category!.artefacts!.indexWhere(
-            (a) => a.artefactId == artefact.artefactId
-          );
+          var index = category!.artefacts!
+              .indexWhere((a) => a.artefactId == artefact.artefactId);
           if (index != -1) {
             // Fetch the updated artefact to get the new soundUrl if sound was updated
             var getResponse = await apiProvider.fetchAsJson(
-              "Users/Artefacts/${artefact.artefactId}",
-              headers: {'Authorization': 'Bearer $token'}
-            );
+                "Users/Artefacts/${artefact.artefactId}",
+                headers: {'Authorization': 'Bearer $token'});
             if (getResponse != null && getResponse.ok) {
-              var updatedArtefact = Artefact.fromJson(jsonDecode(getResponse.body));
+              var updatedArtefact =
+                  Artefact.fromJson(jsonDecode(getResponse.body));
               category.artefacts![index] = updatedArtefact;
-              
+
               // Update locally
               try {
                 // await _updateArtefactLocal(updatedArtefact);
@@ -423,7 +440,7 @@ class ArtifactModel {
       debugPrint("$e");
       rethrow;
     }
-    
+
     // Try to update from local DB as fallback
     try {
       // await _fetchAndUpdateMostUsedCategoriesLocal(limit: limit);
@@ -442,14 +459,14 @@ class ArtifactModel {
 
       if (response != null && response.ok) {
         await fetchAndUpdateMostUsedCategories(token: token);
-        
+
         // Track locally
         try {
           // await _trackCategoryUsageLocal(categoryId);
         } catch (e) {
           debugPrint('Local DB usage tracking failed: $e');
         }
-        
+
         return true;
       } else {
         return false;

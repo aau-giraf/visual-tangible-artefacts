@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:get_it/get_it.dart';
@@ -511,12 +513,12 @@ class SyncService {
     }
     
     // Local exists but backend doesn't - upload to server
-    if (localModifiedDate != null && backendModifiedDate == null) {
+    if (backendModifiedDate == null) {
       return 'upload';
     }
     
     // Both exist - compare dates
-    if (backendModifiedDate! > localModifiedDate!) {
+    if (backendModifiedDate! > localModifiedDate) {
       return 'download'; // Backend is newer
     } else if (localModifiedDate > backendModifiedDate) {
       return 'upload'; // Local is newer
@@ -590,7 +592,7 @@ class SyncService {
       } else {
         await _artefactRepo.insert(artefact);
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('[SYNC] ERROR syncing artefact: $e');
     }
   }
@@ -647,7 +649,7 @@ class SyncService {
       } else {
         await _categoryRepo.insert(category);
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('[SYNC] ERROR syncing category: $e');
     }
   }
@@ -708,7 +710,7 @@ class SyncService {
           await _syncSavedArtefact(savedArtefactData, boardId);
         }
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('[SYNC] ERROR syncing board: $e');
     }
   }
@@ -783,7 +785,7 @@ class SyncService {
   Future<String?> _uploadArtefact(ArtefactDB artefact) async {
     try {
       // Prepare multipart request
-      final uri = Uri.parse(_apiProvider.baseUrl + 'Users/Artefacts');
+      final uri = Uri.parse('${_apiProvider.baseUrl}Users/Artefacts');
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer ${_token.value}';
       
@@ -840,7 +842,7 @@ class SyncService {
   Future<void> _uploadCategory(CategoryDB category) async {
     try {
       // Prepare multipart request
-      final uri = Uri.parse(_apiProvider.baseUrl + 'Users/Categories');
+      final uri = Uri.parse('${_apiProvider.baseUrl}Users/Categories');
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer ${_token.value}';
       
@@ -932,7 +934,7 @@ class SyncService {
       } else {
         await _savedArtefactRepo.insert(savedArtefact);
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('[SYNC] ERROR syncing saved artefact: $e');
     }
   }

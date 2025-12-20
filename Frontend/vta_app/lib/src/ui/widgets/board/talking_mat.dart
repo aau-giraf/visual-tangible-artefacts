@@ -1,12 +1,13 @@
+// ignore_for_file: avoid_print, deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/models/board_layout.dart';
 import 'package:vta_app/src/services/board_layout_service.dart';
@@ -32,7 +33,7 @@ class TalkingMat extends StatefulWidget {
   TalkingMat({
     super.key,
     this.artifacts,
-    TalkingmatController? controller,
+    required TalkingmatController controller,
     this.width,
     this.height,
     this.backgroundColor,
@@ -40,7 +41,7 @@ class TalkingMat extends StatefulWidget {
     this.onArtifactRemoved,
     this.onBoardLoaded,
     this.readOnly = false,
-  }) : controller = controller ?? TalkingmatController();
+  }) : controller = controller;
 
   @override
   createState() => TalkingMatState();
@@ -52,29 +53,35 @@ class TalkingMatState extends State<TalkingMat>
   final Expando<int> _zOrder = Expando<int>('z');
   int _zTick = 0;
   bool isGestureInsideMat = false;
-  late AnimationController _animationController;
-  late Animation<Offset> _offsetAnimation;
-  bool _showDeleteHover = false;
   bool _isDraggingOverTrashCan = false;
+  bool _isHoveringTrashCan = false;
   bool _isPlayingAllSounds = false;
+  BoardArtefact? _draggedArtifactBeingDeleted;
+  // Track if any artifact is currently being dragged to prevent size updates
+  bool _isDragging = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final BoardLayoutService _boardLayoutService = BoardLayoutService();
-  String? _currentBoardId;
+  String? _currentBoardId; // Track the current board being edited
 
+  // GlobalKeys for artifacts (using savedArtefactId or artefactId as key)
+  final Map<String, GlobalKey> _artifactKeys = {};
+
+  // Debounce timer for auto-save
   Timer? _saveTimer;
-  
+
   // Flag to prevent auto-saving during certain operations
   Timer? _periodicSaveTimer;
   bool _inhibitAutoSave = false;
-  
+
   // Track last saved state of each artefact layout to detect changes
   final Map<String, BoardArtefactLayout> _lastSavedLayouts = {};
-  
+
   // Track local artefacts that haven't been matched to saved instances
   late List<BoardArtefact> unmatchedLocal;
   bool _isRemoteSession = false;
   bool _initialLoadComplete = false;
-  Set<String> _backendSavedArtefactIds = {}; // Track IDs that exist in backend
+  final Set<String> _backendSavedArtefactIds =
+      {}; // Track IDs that exist in backend
 
   @override
   void initState() {
@@ -82,20 +89,6 @@ class TalkingMatState extends State<TalkingMat>
     WidgetsBinding.instance.addObserver(this);
     artifacts = widget.artifacts ?? [];
     unmatchedLocal = List.from(artifacts);
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _offsetAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(-2.5, 0),
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
-
-    WidgetsBinding.instance.addObserver(this);
 
     _periodicSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (artifacts.isNotEmpty && !_inhibitAutoSave && _initialLoadComplete) {
@@ -109,7 +102,6 @@ class TalkingMatState extends State<TalkingMat>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _animationController.dispose();
     _audioPlayer.dispose();
     _saveTimer?.cancel();
     _periodicSaveTimer?.cancel();
@@ -124,15 +116,20 @@ class TalkingMatState extends State<TalkingMat>
       _saveTimer?.cancel();
       _periodicSaveTimer?.cancel();
       _initialLoadComplete = true;
-      debugPrint("TalkingMat => Remote session mode enabled, auto-save disabled");
+      debugPrint(
+          "TalkingMat => Remote session mode enabled, auto-save disabled");
     } else {
       // Re-enable periodic saves
       _periodicSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-        if (artifacts.isNotEmpty && !_inhibitAutoSave && !_isRemoteSession && _initialLoadComplete) {
+        if (artifacts.isNotEmpty &&
+            !_inhibitAutoSave &&
+            !_isRemoteSession &&
+            _initialLoadComplete) {
           _autoSaveBoardLayout();
         }
       });
-      debugPrint("TalkingMat => Remote session mode disabled, auto-save re-enabled");
+      debugPrint(
+          "TalkingMat => Remote session mode disabled, auto-save re-enabled");
     }
   }
 
@@ -148,7 +145,16 @@ class TalkingMatState extends State<TalkingMat>
 
   void removeArtifactById(String artefactId) {
     setState(() {
-      artifacts.removeWhere((artifact) => artifact.artefactId == artefactId);
+      artifacts.removeWhere((artifact) {
+        final shouldRemove = artifact.artefactId == artefactId;
+        if (shouldRemove) {
+          // Clean up the GlobalKey for this artifact
+          final keyId = artifact.savedArtefactId ??
+              '${artifact.baseArtefact?.artefactId ?? 'unknown'}_${artifact.hashCode}';
+          _artifactKeys.remove(keyId);
+        }
+        return shouldRemove;
+      });
     });
     _immediateAutoSave();
   }
@@ -187,22 +193,33 @@ class TalkingMatState extends State<TalkingMat>
   void _updateArtifactPosition(BoardArtefact artifact, Offset offset) {
     Size artSize = artifact.renderedSize ?? const Size(200, 200);
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
 
+    if (renderBox == null) {
+      debugPrint(
+          '[TalkingMat] _updateArtifactPosition - renderBox is null, cannot update position');
+      return;
+    }
+
+    // Convert the global touch/click position to local coordinates
+    // This ensures the position is relative to the board's coordinate space
     final localPosition = renderBox.globalToLocal(offset);
-    final boardSize = renderBox.size;
+    debugPrint(
+        '[TalkingMat] _updateArtifactPosition - Local position: $localPosition');
 
-    final double maxX = math.max(0.0, boardSize.width - artSize.width);
-    final double maxY = math.max(0.0, boardSize.height - artSize.height);
+    // Clamp the position to keep the artifact within bounds
+    // Account for the artifact's own size to prevent it from going off-screen
+    final double maxX = math.max(0.0, renderBox.size.width - artSize.width);
+    final double maxY = math.max(0.0, renderBox.size.height - artSize.height);
+    final clampedX = localPosition.dx.clamp(0.0, maxX);
+    final clampedY = localPosition.dy.clamp(0.0, maxY);
 
-    double x = localPosition.dx;
-    double y = localPosition.dy;
-
-    x = math.max(0.0, math.min(x, maxX));
-    y = math.max(0.0, math.min(y, maxY));
+    if (localPosition.dx != clampedX || localPosition.dy != clampedY) {
+      debugPrint(
+          '[TalkingMat] _updateArtifactPosition - Position clamped: (${localPosition.dx}, ${localPosition.dy}) -> ($clampedX, $clampedY)');
+    }
 
     setState(() {
-      artifact.position = Offset(x, y);
+      artifact.position = Offset(clampedX, clampedY);
     });
 
     // Call sync callback if provided (for remote sessions)
@@ -263,10 +280,10 @@ class TalkingMatState extends State<TalkingMat>
     if (lastSaved == null) return true;
 
     return lastSaved.posX != layout.posX ||
-           lastSaved.posY != layout.posY ||
-           lastSaved.width != layout.width ||
-           lastSaved.height != layout.height ||
-           lastSaved.nameVisible != layout.nameVisible;
+        lastSaved.posY != layout.posY ||
+        lastSaved.width != layout.width ||
+        lastSaved.height != layout.height ||
+        lastSaved.nameVisible != layout.nameVisible;
   }
 
   void _updateLastSavedLayouts(List<BoardArtefactLayout> layouts) {
@@ -297,20 +314,24 @@ class TalkingMatState extends State<TalkingMat>
         return;
       }
     }
-    
+
     debugPrint("TalkingMat => Saving to board: $_currentBoardId");
 
     try {
-      final toPatch = layoutData.where((l) => 
-        l.savedArtefactId != null && _backendSavedArtefactIds.contains(l.savedArtefactId)
-      ).toList();
-      final toCreate = layoutData.where((l) => 
-        l.savedArtefactId == null || !_backendSavedArtefactIds.contains(l.savedArtefactId)
-      ).toList();
-      
+      final toPatch = layoutData
+          .where((l) =>
+              l.savedArtefactId != null &&
+              _backendSavedArtefactIds.contains(l.savedArtefactId))
+          .toList();
+      final toCreate = layoutData
+          .where((l) =>
+              l.savedArtefactId == null ||
+              !_backendSavedArtefactIds.contains(l.savedArtefactId))
+          .toList();
+
       final toPatchChanged =
           toPatch.where((layout) => _hasLayoutChanged(layout)).toList();
-      
+
       for (final artefactLayout in toPatchChanged) {
         final request = UpdateArtefactLayoutRequest(
           savedArtefactId: artefactLayout.savedArtefactId,
@@ -322,12 +343,15 @@ class TalkingMatState extends State<TalkingMat>
           nameVisible: artefactLayout.nameVisible,
         );
 
-        await _boardLayoutService.updateArtefactLayout(_currentBoardId!, request);
+        await _boardLayoutService.updateArtefactLayout(
+            _currentBoardId!, request);
       }
 
       if (toCreate.isNotEmpty) {
-        final saveRequest = SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
-        final updatedBoard = await _boardLayoutService.updateBoard(_currentBoardId!, saveRequest);
+        final saveRequest =
+            SaveBoardRequest(name: 'Current Board', artefacts: layoutData);
+        final updatedBoard = await _boardLayoutService.updateBoard(
+            _currentBoardId!, saveRequest);
         if (updatedBoard != null) {
           try {
             _assignReturnedSavedIdsToLocal(updatedBoard.artefacts);
@@ -337,9 +361,11 @@ class TalkingMatState extends State<TalkingMat>
                 _backendSavedArtefactIds.add(layout.savedArtefactId!);
               }
             }
-            debugPrint("TalkingMat => Now tracking ${_backendSavedArtefactIds.length} backend savedArtefactIds");
+            debugPrint(
+                "TalkingMat => Now tracking ${_backendSavedArtefactIds.length} backend savedArtefactIds");
           } catch (e) {
-            debugPrint('TalkingMat => Error mapping returned saved ids after update: $e');
+            debugPrint(
+                'TalkingMat => Error mapping returned saved ids after update: $e');
           }
         }
       }
@@ -370,68 +396,76 @@ class TalkingMatState extends State<TalkingMat>
   }
 
   /// Restore artefacts from a saved board layout
-  Future<void> _restoreArtefactsFromBoard(BoardLayoutResponse boardLayout) async {
+  Future<void> _restoreArtefactsFromBoard(
+      BoardLayoutResponse boardLayout) async {
     try {
-    debugPrint("TalkingMat => Restoring ${boardLayout.artefacts.length} artifacts from board");
-    final current = widget.controller.value;
-    debugPrint("TalkingMat => Current controller has ${current.length} artifacts");
-    
-    // Track all savedArtefactIds from backend
-    _backendSavedArtefactIds.clear();
-    for (final layout in boardLayout.artefacts) {
-      if (layout.savedArtefactId != null) {
-        _backendSavedArtefactIds.add(layout.savedArtefactId!);
-      }
-    }
-    debugPrint("TalkingMat => Tracked ${_backendSavedArtefactIds.length} backend savedArtefactIds");
-    
-    final unmatchedLocal = <BoardArtefact>[];
-    unmatchedLocal.addAll(current);
+      debugPrint(
+          "TalkingMat => Restoring ${boardLayout.artefacts.length} artifacts from board");
+      final current = widget.controller.value;
+      debugPrint(
+          "TalkingMat => Current controller has ${current.length} artifacts");
 
-    for (final artefactLayout in boardLayout.artefacts) {
-      debugPrint("TalkingMat => Processing artifact: ${artefactLayout.artefactId} (savedId: ${artefactLayout.savedArtefactId})");
-      try {
-        BoardArtefact? best;
-        double bestDist = double.infinity;
-        for (final local in unmatchedLocal) {
-          if (local.baseArtefact?.artefactId == artefactLayout.artefactId) {
-            final localPos = local.position ?? Offset.zero;
-            final dx = localPos.dx - artefactLayout.posX;
-            final dy = localPos.dy - artefactLayout.posY;
-            final dist = dx * dx + dy * dy;
-            if (dist < bestDist) {
-              bestDist = dist;
-              best = local;
+      // Track all savedArtefactIds from backend
+      _backendSavedArtefactIds.clear();
+      for (final layout in boardLayout.artefacts) {
+        if (layout.savedArtefactId != null) {
+          _backendSavedArtefactIds.add(layout.savedArtefactId!);
+        }
+      }
+      debugPrint(
+          "TalkingMat => Tracked ${_backendSavedArtefactIds.length} backend savedArtefactIds");
+
+      final unmatchedLocal = <BoardArtefact>[];
+      unmatchedLocal.addAll(current);
+
+      for (final artefactLayout in boardLayout.artefacts) {
+        debugPrint(
+            "TalkingMat => Processing artifact: ${artefactLayout.artefactId} (savedId: ${artefactLayout.savedArtefactId})");
+        try {
+          BoardArtefact? best;
+          double bestDist = double.infinity;
+          for (final local in unmatchedLocal) {
+            if (local.baseArtefact?.artefactId == artefactLayout.artefactId) {
+              final localPos = local.position ?? Offset.zero;
+              final dx = localPos.dx - artefactLayout.posX;
+              final dy = localPos.dy - artefactLayout.posY;
+              final dist = dx * dx + dy * dy;
+              if (dist < bestDist) {
+                bestDist = dist;
+                best = local;
+              }
             }
           }
-        }
 
-        if (best != null) {
-          setState(() {
-            best!.position = Offset(artefactLayout.posX, artefactLayout.posY);
-            best.sizeNotifier.value =
-                Size(artefactLayout.width, artefactLayout.height);
-            best.savedArtefactId = artefactLayout.savedArtefactId;
-            // Restore per-instance name visibility if provided
-            if (artefactLayout.nameVisible != null) {
-              best.nameVisible = artefactLayout.nameVisible!;
-            }
-          });
-          unmatchedLocal.remove(best);
-          debugPrint('TalkingMat => Matched existing local artifact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
-        } else {
-          await _addArtefactToBoard(artefactLayout.artefactId, artefactLayout);
+          if (best != null) {
+            setState(() {
+              best!.position = Offset(artefactLayout.posX, artefactLayout.posY);
+              best.sizeNotifier.value =
+                  Size(artefactLayout.width, artefactLayout.height);
+              best.savedArtefactId = artefactLayout.savedArtefactId;
+              // Restore per-instance name visibility if provided
+              if (artefactLayout.nameVisible != null) {
+                best.nameVisible = artefactLayout.nameVisible!;
+              }
+            });
+            unmatchedLocal.remove(best);
+            debugPrint(
+                'TalkingMat => Matched existing local artifact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
+          } else {
+            await _addArtefactToBoard(
+                artefactLayout.artefactId, artefactLayout);
+          }
+        } catch (e) {
+          // error restoring artefact instance
         }
-      } catch (e) {
-        // error restoring artefact instance
       }
-    }
 
-    setState(() {});
+      setState(() {});
     } finally {
       // Mark initial load as complete, allowing auto-save
       _initialLoadComplete = true;
-      debugPrint("TalkingMat => Initial board load complete, auto-save now enabled");
+      debugPrint(
+          "TalkingMat => Initial board load complete, auto-save now enabled");
 
       // Notify listeners that board has finished loading
       widget.onBoardLoaded?.call();
@@ -443,7 +477,8 @@ class TalkingMatState extends State<TalkingMat>
     try {
       final token = GetIt.instance.get<Token>();
       if (token.value == null) {
-        debugPrint('TalkingMat => No auth token available for fetching artifact');
+        debugPrint(
+            'TalkingMat => No auth token available for fetching artifact');
         return;
       }
 
@@ -452,7 +487,8 @@ class TalkingMatState extends State<TalkingMat>
           token: token.value!);
 
       if (artefact == null) {
-        debugPrint('TalkingMat => Could not fetch artifact $artefactId from API');
+        debugPrint(
+            'TalkingMat => Could not fetch artifact $artefactId from API');
         return;
       }
 
@@ -475,7 +511,7 @@ class TalkingMatState extends State<TalkingMat>
 
   void _assignReturnedSavedIdsToLocal(List<BoardArtefactLayout> returned) {
     final current = widget.controller.value;
-    final unmatchedLocal = <BoardArtefact>[]..addAll(current);
+    final unmatchedLocal = <BoardArtefact>[...current];
 
     for (final artefactLayout in returned) {
       BoardArtefact? best;
@@ -519,7 +555,10 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        // Map returned saved artefact instance ids back onto the local artifacts
+        print(
+            'Debug: Created default board "$defaultBoardName" with ID: ${response.boardId}');
+        // Map returned saved artefact instance ids back onto the local artifacts by best-match
+
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
         } catch (_) {
@@ -541,7 +580,7 @@ class TalkingMatState extends State<TalkingMat>
         .map((artifact) {
       final position = artifact.position ?? Offset.zero;
       final size = artifact.sizeNotifier.value;
-      
+
       // saving artifact layout
 
       return BoardArtefactLayout(
@@ -554,7 +593,7 @@ class TalkingMatState extends State<TalkingMat>
         nameVisible: artifact.nameVisible,
       );
     }).toList();
-    
+
     // valid artifacts for saving: ${validArtifacts.length}
 
     return validArtifacts;
@@ -572,7 +611,8 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        // Map returned saved artefact instance ids back onto local artifacts
+        print('Debug: Saved board "$boardName" with ID: ${response.boardId}');
+        // Map returned saved artefact instance ids back onto local artifacts by best-match
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
         } catch (_) {
@@ -592,7 +632,7 @@ class TalkingMatState extends State<TalkingMat>
       final boardLayout = await _boardLayoutService.getBoard(boardId);
       if (boardLayout != null) {
         _currentBoardId = boardId;
-        
+
         // Update artifact positions and sizes using the controller's artifacts
         final currentArtifacts = widget.controller.value;
         for (final artefactLayout in boardLayout.artefacts) {
@@ -600,13 +640,15 @@ class TalkingMatState extends State<TalkingMat>
             (a) => a.baseArtefact?.artefactId == artefactLayout.artefactId,
             orElse: () => throw StateError('Artefact not found'),
           );
-          
+
           setState(() {
-            artifact.position = Offset(artefactLayout.posX, artefactLayout.posY);
-            artifact.sizeNotifier.value = Size(artefactLayout.width, artefactLayout.height);
+            artifact.position =
+                Offset(artefactLayout.posX, artefactLayout.posY);
+            artifact.sizeNotifier.value =
+                Size(artefactLayout.width, artefactLayout.height);
           });
         }
-        
+
         // loaded board
         await _restoreArtefactsFromBoard(boardLayout);
         print(
@@ -628,13 +670,37 @@ class TalkingMatState extends State<TalkingMat>
 
   void _loadArtifactSize(GlobalKey key, BoardArtefact artifact) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final optionContext = key.currentContext;
-      if (optionContext != null) {
-        final renderObject = optionContext.findRenderObject();
-        if (renderObject is RenderBox) {
-          final size = renderObject.size;
+      // Don't update sizes while dragging - this prevents other artifacts from resizing
+      if (_isDragging) {
+        return;
+      }
+
+      final String artifactId = artifact.baseArtefact?.artefactId ?? 'unknown';
+
+      final RenderBox? renderBox =
+          key.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final size = renderBox.size;
+
+        // Only update if renderedSize is null (first time) or if the size has changed significantly
+        // This prevents constant updates during drag operations that cause other artifacts to resize
+        if (artifact.renderedSize == null) {
           artifact.renderedSize = size;
+          debugPrint(
+              '[TalkingMat] Artifact ID:$artifactId - Initial rendered size set: $size');
+        } else {
+          // Only update if the size difference is significant (> 50px) to avoid micro-adjustments
+          // This prevents artifacts from constantly resizing when other artifacts are dragged
+          final sizeDiff = (artifact.renderedSize!.width - size.width).abs();
+          if (sizeDiff > 50.0) {
+            debugPrint(
+                '[TalkingMat] Artifact ID:$artifactId - Rendered size updated: ${artifact.renderedSize} -> $size');
+            artifact.renderedSize = size;
+          }
         }
+      } else {
+        // Don't log warnings if the context is null - this is normal when an artifact is being dragged
+        // (childWhenDragging replaces the child, so the key context becomes null)
       }
     });
   }
@@ -642,18 +708,25 @@ class TalkingMatState extends State<TalkingMat>
   bool _isInsideMat(Offset globalOffset, {Size? artefactSize}) {
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return false;
-    final localPos = renderBox.globalToLocal(globalOffset);
-    final boardSize = renderBox.size;
 
-    final double artWidth = artefactSize?.width ?? 0.0;
-    final double artHeight = artefactSize?.height ?? 0.0;
+    // Convert global offset to local coordinates
+    final Offset localPos = renderBox.globalToLocal(globalOffset);
+    final Size matSize = renderBox.size;
 
-    final bool insideHoriz =
-        localPos.dx >= 0 && (localPos.dx + artWidth) <= boardSize.width;
-    final bool insideVert =
-        localPos.dy >= 0 && (localPos.dy + artHeight) <= boardSize.height;
-
-    return insideHoriz && insideVert;
+    // If artefactSize is provided, check if the artifact fits within bounds
+    if (artefactSize != null) {
+      final bool insideHoriz = localPos.dx >= 0 &&
+          (localPos.dx + artefactSize.width) <= matSize.width;
+      final bool insideVert = localPos.dy >= 0 &&
+          (localPos.dy + artefactSize.height) <= matSize.height;
+      return insideHoriz && insideVert;
+    } else {
+      // Just check if the point is inside the mat
+      return localPos.dx >= 0 &&
+          localPos.dx <= matSize.width &&
+          localPos.dy >= 0 &&
+          localPos.dy <= matSize.height;
+    }
   }
 
   // name offset calculation based on text metrics
@@ -672,145 +745,176 @@ class TalkingMatState extends State<TalkingMat>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Container(
-          height: widget.height ?? constraints.maxHeight,
-          width: widget.width ?? constraints.maxWidth,
-          decoration: BoxDecoration(
-            color: widget.backgroundColor ?? Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                spreadRadius: 2,
-                blurRadius: 2,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ValueListenableBuilder<List<BoardArtefact>>(
-            valueListenable: widget.controller,
-            builder: (context, artefacts, child) {
-              final indexed = artefacts.asMap().entries.toList();
-              indexed.sort((a, b) {
-                final za = _zOrder[a.value] ?? 0;
-                final zb = _zOrder[b.value] ?? 0;
-                if (za != zb) return za.compareTo(zb);
-                return a.key.compareTo(b.key);
-              });
-              final ordered = indexed.map((e) => e.value).toList();
+        // Ensure constraints are valid and finite
+        double matWidth = widget.width ?? constraints.maxWidth;
+        double matHeight = widget.height ?? constraints.maxHeight;
 
-              final itemWidgets = ordered.map<Widget>((artefact) {
-                final measurementKey = GlobalKey();
-                _loadArtifactSize(measurementKey, artefact);
+        // Validate and clamp to reasonable values
+        if (!matWidth.isFinite || matWidth <= 0) {
+          matWidth = MediaQuery.of(context).size.width * 0.8;
+        }
+        if (!matHeight.isFinite || matHeight <= 0) {
+          matHeight = MediaQuery.of(context).size.height * 0.6;
+        }
+        // Ensure minimum size
+        matWidth = matWidth.clamp(100.0, double.infinity);
+        matHeight = matHeight.clamp(100.0, double.infinity);
 
-                artefact.position ??= Offset(
-                  (widget.width ?? constraints.maxWidth) / 2,
-                  (widget.height ?? constraints.maxHeight) / 2,
-                );
+        // Debug mat dimensions
+        debugPrint(
+            '[TalkingMat] LayoutBuilder - Constraints: ${constraints.maxWidth.toInt()}x${constraints.maxHeight.toInt()}, Mat: ${matWidth.toInt()}x${matHeight.toInt()}');
 
-                return Positioned(
-                  key: ValueKey('pos-${identityHashCode(artefact)}'),
-                  left: artefact.position?.dx,
-                  top: artefact.position?.dy,
-                  child: LongPressOptionWheel(
-                    artifact: artefact,
-                    controller: widget.controller,
-                    artifactKey: measurementKey,
-                    artifactController: GetIt.instance<ArtefactController>(),
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: artefact.showResizeHandle,
-                      builder: (context, isResizing, child) {
-                        // If readOnly mode, just display the artifact without interaction
-                        if (widget.readOnly) {
-                          return RepaintBoundary(
-                            key: measurementKey,
-                            child: IgnorePointer(
-                              child: artefact.content,
-                            ),
-                          );
-                        }
-                        // When resizing, render content directly without Draggable
-                        if (isResizing) {
-                          return RepaintBoundary(
-                            key: measurementKey,
-                            child: artefact.content,
-                          );
-                        }
-                        // When not resizing, wrap in Draggable
-                        return Draggable<BoardArtefact>(
-                          data: artefact,
-                          feedback: Transform.scale(
-                            scale: 1.2,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 216, 216, 216).withOpacity(0.15),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Opacity(
-                                opacity: 0.5,
+        return SizedBox(
+          height: matHeight.isFinite ? matHeight : constraints.maxHeight,
+          width: matWidth.isFinite ? matWidth : constraints.maxWidth,
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.backgroundColor ?? Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 2,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ValueListenableBuilder<List<BoardArtefact>>(
+              valueListenable: widget.controller,
+              builder: (context, artefacts, child) {
+                final indexed = artefacts.asMap().entries.toList();
+                indexed.sort((a, b) {
+                  final za = _zOrder[a.value] ?? 0;
+                  final zb = _zOrder[b.value] ?? 0;
+                  if (za != zb) return za.compareTo(zb);
+                  return a.key.compareTo(b.key);
+                });
+                final ordered = indexed.map((e) => e.value).toList();
+
+                final itemWidgets = ordered.map<Widget>((artefact) {
+                  final measurementKey = GlobalKey();
+                  _loadArtifactSize(measurementKey, artefact);
+
+                  artefact.position ??= Offset(
+                    (widget.width ?? constraints.maxWidth) / 2,
+                    (widget.height ?? constraints.maxHeight) / 2,
+                  );
+
+                  return Positioned(
+                    key: ValueKey('pos-${identityHashCode(artefact)}'),
+                    left: artefact.position?.dx,
+                    top: artefact.position?.dy,
+                    child: LongPressOptionWheel(
+                      artifact: artefact,
+                      controller: widget.controller,
+                      artifactKey: measurementKey,
+                      artifactController: GetIt.instance<ArtefactController>(),
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: artefact.showResizeHandle,
+                        builder: (context, isResizing, child) {
+                          // If readOnly mode, just display the artifact without interaction
+                          if (widget.readOnly) {
+                            return RepaintBoundary(
+                              key: measurementKey,
+                              child: IgnorePointer(
                                 child: artefact.content,
                               ),
+                            );
+                          }
+                          // When resizing, render content directly without Draggable
+                          if (isResizing) {
+                            return RepaintBoundary(
+                              key: measurementKey,
+                              child: artefact.content,
+                            );
+                          }
+                          // When not resizing, wrap in Draggable
+                          return Draggable<BoardArtefact>(
+                            data: artefact,
+                            feedback: Opacity(
+                              opacity: 0.7,
+                              child: Transform.scale(
+                                scale: 1.2,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color:
+                                        const Color.fromARGB(255, 216, 216, 216)
+                                            .withOpacity(0.3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 15,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: artefact.content,
+                                ),
+                              ),
                             ),
-                          ),
-                          childWhenDragging: const SizedBox.shrink(),
-                          child: RepaintBoundary(
-                            key: measurementKey,
-                            child: artefact.content,
-                          ),
-                          onDragStarted: () {
-                            setState(() {
-                              _zOrder[artefact] = ++_zTick; // bring instance to front
-                            });
-                          },
-                          onDragEnd: (details) {
-                            final Size artSize = artefact.renderedSize ?? const Size(200, 200);
-                            if (_isInsideMat(details.offset, artefactSize: artSize)) {
-                              Offset adjustedPosition = details.offset;
-                              if (artefact.nameVisible == true) {
-                                final double nameOffset = _getNameDisplayOffset(
-                                  artefact.baseArtefact?.name ?? '',
-                                  context,
-                                );
-                                adjustedPosition = Offset(
-                                  details.offset.dx,
-                                  details.offset.dy - nameOffset,
-                                );
+                            childWhenDragging: const SizedBox.shrink(),
+                            child: RepaintBoundary(
+                              key: measurementKey,
+                              child: artefact.content,
+                            ),
+                            onDragStarted: () {
+                              setState(() {
+                                _zOrder[artefact] =
+                                    ++_zTick; // bring instance to front
+                              });
+                            },
+                            onDragEnd: (details) {
+                              // Don't update position if this artifact was deleted (dropped on trashcan)
+                              if (_draggedArtifactBeingDeleted == artefact) {
+                                _draggedArtifactBeingDeleted = null;
+                                return;
                               }
-                              _updateArtifactPosition(artefact, adjustedPosition);
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                );
-              }).toList();
 
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ...itemWidgets,
-                  Align(
-                    alignment: Alignment.lerp(
-                            Alignment.bottomCenter, Alignment.center, 0.1) ??
-                        Alignment.bottomCenter,
-                    child: Stack(alignment: Alignment.center, children: [
-                      SlideTransition(
-                          position: _offsetAnimation,
-                          child: _showDeleteHover
-                              ? buildTrashCan(
-                                  height: 30,
-                                  width: 30,
-                                  color: const Color.fromARGB(255, 235, 32, 18))
-                              : null),
-                      GestureDetector(
+                              final Size artSize =
+                                  artefact.renderedSize ?? const Size(200, 200);
+                              if (_isInsideMat(details.offset,
+                                  artefactSize: artSize)) {
+                                Offset adjustedPosition = details.offset;
+                                if (artefact.nameVisible == true) {
+                                  final double nameOffset =
+                                      _getNameDisplayOffset(
+                                    artefact.baseArtefact?.name ?? '',
+                                    context,
+                                  );
+                                  adjustedPosition = Offset(
+                                    details.offset.dx,
+                                    details.offset.dy - nameOffset,
+                                  );
+                                }
+                                _updateArtifactPosition(
+                                    artefact, adjustedPosition);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                }).toList();
+
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ...itemWidgets,
+                    // Trashcan positioned on top with higher z-index
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Align(
+                        alignment: Alignment.lerp(
+                                Alignment.bottomCenter, Alignment.center, 0.1) ??
+                            Alignment.bottomCenter,
+                        child: IgnorePointer(
+                          ignoring: false,
+                          child: GestureDetector(
                         onTap: () async {
                           final shouldDelete = await showDialog<bool>(
                             context: context,
@@ -843,7 +947,7 @@ class TalkingMatState extends State<TalkingMat>
                                 if (!ok) {
                                   // server failed to clear board
                                   print(
-                                      'Debug: Server failed to clear board ${_currentBoardId}');
+                                      'Debug: Server failed to clear board $_currentBoardId');
                                 }
                               } catch (e) {
                                 // error clearing board on server
@@ -862,15 +966,19 @@ class TalkingMatState extends State<TalkingMat>
                         child: DragTarget<BoardArtefact>(
                           builder: (context, data, rejectedData) {
                             return buildTrashCan(
-                              height: _isDraggingOverTrashCan ? 120 : 50,
-                              width: _isDraggingOverTrashCan ? 120 : 50,
+                              height: _isDraggingOverTrashCan ? 90 : 50,
+                              width: _isDraggingOverTrashCan ? 90 : 50,
                             );
                           },
                           onAcceptWithDetails: (details) async {
                             var artefact = details.data;
 
+                            // Mark this artifact as being deleted to prevent onDragEnd from updating position
+                            _draggedArtifactBeingDeleted = artefact;
+
                             // Persist deletion on server if we have a board id and a saved instance id
-                            if (_currentBoardId != null && artefact.savedArtefactId != null) {
+                            if (_currentBoardId != null &&
+                                artefact.savedArtefactId != null) {
                               _inhibitAutoSave = true;
                               try {
                                 await _boardLayoutService.deleteSavedArtefact(
@@ -878,25 +986,30 @@ class TalkingMatState extends State<TalkingMat>
                                   artefact.savedArtefactId!,
                                 );
                               } catch (e) {
-                                debugPrint('TalkingMat => Error deleting saved artefact on server: $e');
+                                debugPrint(
+                                    'TalkingMat => Error deleting saved artefact on server: $e');
                               } finally {
                                 _inhibitAutoSave = false;
                               }
                             }
 
                             // Handle Session-Artefact deletion
-                            if (artefact.baseArtefact?.categoryId == 'Session-Artefact') {
+                            if (artefact.baseArtefact?.categoryId ==
+                                'Session-Artefact') {
                               try {
-                                final artefactController = GetIt.instance.get<ArtefactController>();
-                                final deleted = await artefactController.deleteArtefact(
-                                  context, artefact.baseArtefact!);
+                                final artefactController =
+                                    GetIt.instance.get<ArtefactController>();
+                                final deleted =
+                                    await artefactController.deleteArtefact(
+                                        context, artefact.baseArtefact!);
                                 if (deleted) {
                                   widget.controller.removeArtifact(artefact);
                                   // Notify remote session if callback is provided
                                   widget.onArtifactRemoved?.call(artefact);
                                 }
                               } catch (e) {
-                                debugPrint('TalkingMat => Failed to delete session artefact from server: $e');
+                                debugPrint(
+                                    'TalkingMat => Failed to delete session artefact from server: $e');
                               }
                             } else {
                               // Remove from the local controller (this updates the UI)
@@ -905,41 +1018,31 @@ class TalkingMatState extends State<TalkingMat>
                               widget.onArtifactRemoved?.call(artefact);
                             }
 
-                            _animationController.reverse();
-                            _animationController.addStatusListener((status) {
-                              if (status == AnimationStatus.dismissed) {
-                                setState(() {
-                                  _showDeleteHover = false;
-                                });
-                              }
+                            setState(() {
+                              _isDraggingOverTrashCan = false;
                             });
+                            _draggedArtifactBeingDeleted = null;
                           },
                           onWillAcceptWithDetails: (details) {
                             setState(() {
-                              _showDeleteHover = true;
                               _isDraggingOverTrashCan = true;
                             });
-                            _animationController.forward();
                             return true;
                           },
                           onLeave: (details) {
-                            _animationController.reverse();
-                            _isDraggingOverTrashCan = false;
-                            _animationController.addStatusListener((status) {
-                              if (status == AnimationStatus.dismissed) {
-                                setState(() {
-                                  _showDeleteHover = false;
-                                });
-                              }
+                            setState(() {
+                              _isDraggingOverTrashCan = false;
                             });
                           },
                         ),
                       ),
-                    ]),
+                    ),
                   ),
-                ],
-              );
-            },
+                  ),
+                  ],
+                );
+              },
+            ),
           ),
         );
       },
@@ -950,33 +1053,48 @@ class TalkingMatState extends State<TalkingMat>
       {double width = 50,
       double height = 50,
       Color color = const Color(0xFFF0F2D9)}) {
-    return Stack(children: [
-      Container(
-        width: width,
-        height: width,
-        decoration: ShapeDecoration(
-          color: color,
-          shape: const OvalBorder(),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        child: Center(
-          child: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/icons/trash_bin.png'),
-                fit: BoxFit.scaleDown,
-              ),
-            ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: ShapeDecoration(
+        color: color,
+        shape: const OvalBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+            spreadRadius: 0,
+          )
+        ],
+      ),
+      child: MouseRegion(
+        child: IconButton(
+          icon: Icon(
+            Icons.delete_outline,
+            color: _isHoveringTrashCan ? Colors.white : Colors.grey[600],
+            size: width * 0.5,
+          ),
+          onPressed: () {
+            widget.controller.removeAllArtifacts(context: context);
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            hoverColor: const Color.fromARGB(255, 244, 0, 0).withOpacity(0.9),
+            shape: const CircleBorder(),
           ),
         ),
+        onEnter: (_) {
+          setState(() {
+            _isHoveringTrashCan = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHoveringTrashCan = false;
+          });
+        },
       ),
-    ]);
+    );
   }
 }

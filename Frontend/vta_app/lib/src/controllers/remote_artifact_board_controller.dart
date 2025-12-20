@@ -197,12 +197,12 @@ class RemoteArtifactBoardController {
 
     // Listen to size changes with debouncing
     if (!_sizeListeners.containsKey(artefact.savedArtefactId)) {
-      final listener = () {
+      void listener() {
         if (isOwner) {
           debugPrint("RemoteSync => Size listener triggered for ${artefact.savedArtefactId}");
           _debouncedSizeUpdate(artefact);
         }
-      };
+      }
       _sizeListeners[artefact.savedArtefactId!] = listener;
       artefact.sizeNotifier.addListener(listener);
     }
@@ -1080,10 +1080,10 @@ class RemoteArtifactBoardController {
       
       // Attach size listener if not already attached
       if (!_sizeListeners.containsKey(artifact.savedArtefactId)) {
-        final listener = () {
+        void listener() {
           debugPrint("RemoteSync => Size listener triggered for ${artifact.savedArtefactId}");
           _debouncedSizeUpdate(artifact);
-        };
+        }
         _sizeListeners[artifact.savedArtefactId!] = listener;
         artifact.sizeNotifier.addListener(listener);
         debugPrint("RemoteSync => Attached size listener to existing artifact ${artifact.savedArtefactId}");

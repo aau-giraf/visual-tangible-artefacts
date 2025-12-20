@@ -9,11 +9,11 @@ class ChildAcceptSessionScreen extends StatefulWidget {
   final Function(String sessionId) onSessionAccepted;
 
   const ChildAcceptSessionScreen({
-    Key? key,
+    super.key,
     required this.childId,
     required this.childName,
     required this.onSessionAccepted,
-  }) : super(key: key);
+  });
 
   @override
   State<ChildAcceptSessionScreen> createState() =>

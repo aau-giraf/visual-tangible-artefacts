@@ -32,7 +32,7 @@ class AddItemPopup extends StatefulWidget {
     required this.isCategory,
     required this.onSubmit,
     this.category,
-    required this.title,
+    this.title = 'Tilføj ',
   });
 
   @override
@@ -41,7 +41,7 @@ class AddItemPopup extends StatefulWidget {
 
 class _LevelBar extends StatelessWidget {
   final double level; // 0.0 - 1.0
-  const _LevelBar({Key? key, required this.level}) : super(key: key);
+  const _LevelBar({required this.level});
 
   @override
   Widget build(BuildContext context) {
@@ -193,8 +193,14 @@ class _AddItemPopupState extends State<AddItemPopup> {
   @override
   Widget build(BuildContext context) {
     var screenSize = MediaQuery.of(context).size;
-    var minHeight = screenSize.height * 0.8;
-    var minWidth = screenSize.width * 0.6;
+    // Use responsive width: 90% on mobile, 55% on larger screens
+    var minWidth = screenSize.width < 600 
+        ? screenSize.width * 0.9 
+        : screenSize.width * 0.55;
+    minWidth = minWidth.clamp(300.0, 600.0);
+    
+    var minHeight = screenSize.height * 0.75;
+    minHeight = minHeight.clamp(400.0, 800.0);
 
     return Dialog(
       child: Container(
@@ -219,7 +225,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
         ),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(8.0),
             child: _buildForm(minWidth, formKey, nameController),
           ),
         ),
@@ -229,6 +235,18 @@ class _AddItemPopupState extends State<AddItemPopup> {
 
   Widget _buildForm(double minWidth, GlobalKey<FormState> formKey,
       TextEditingController nameController) {
+    final screenSize = MediaQuery.of(context).size;
+    
+    // Responsive font size based on screen width
+    final titleFontSize = screenSize.width < 600 
+        ? (screenSize.width * 0.06).clamp(14.0, 24.0)
+        : (minWidth * 0.05).clamp(16.0, 28.0);
+    
+    // Responsive image size - smaller on mobile, larger on desktop
+    final imageDisplaySize = screenSize.width < 600
+        ? (screenSize.width * 0.25).clamp(60.0, 120.0)
+        : (minWidth * 0.3).clamp(80.0, 150.0);
+
     return Form(
       key: formKey,
       child: Column(
@@ -238,14 +256,17 @@ class _AddItemPopupState extends State<AddItemPopup> {
             widget.title,
             style: TextStyle(
               color: Colors.black,
-              fontSize: 28,
+              fontSize: titleFontSize,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w400,
             ),
+            textAlign: TextAlign.center,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
           SizedBox(
-            width: minWidth * 0.8,
+            width: screenSize.width < 600 
+                ? screenSize.width * 0.85 
+                : minWidth * 0.8,
             child: Column(
               children: [
                 TextFormField(
@@ -270,101 +291,100 @@ class _AddItemPopupState extends State<AddItemPopup> {
                     hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
                   ),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 8),
                 if (imageBytes != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.memory(
                       imageBytes!,
-                      width: 150,
-                      height: 150,
+                      width: imageDisplaySize,
+                      height: imageDisplaySize,
                       fit: BoxFit.cover,
                     ),
                   )
                 else
                   Image.asset(
                     'assets/images/no_image.png',
-                    width: 150,
-                    height: 150,
+                    width: imageDisplaySize,
+                    height: imageDisplaySize,
                   ),
               ],
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildButton(
-                    'Tag billede', 'assets/images/camera_icon_filled.png',
-                    onClick: _onTakePictureButtonPressed),
-                SizedBox(width: 16),
-                _buildButton('Upload', 'assets/images/folder_icon.png',
-                    onClick: () async {
-                  var result = await FilePicker.platform.pickFiles(
-                      type: FileType.image,
-                      allowMultiple: false,
-                      withData: true);
-                  if (result != null) {
-                    setState(() {
-                      imageBytes = result.files.single.bytes;
-                    });
-                  }
-                }),
-                SizedBox(width: 16),
-                _buildButton('Lav med AI', 'assets/images/ai_file.png',
-                    onClick: () {
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildButton(
+                      'Tag nyt billede', 'assets/images/camera_icon_filled.png',
+                      scaleBase: minWidth,
+                      onClick: _onTakePictureButtonPressed),
+                  SizedBox(width: screenSize.width < 600 ? 4 : 8),
+                  _buildButton('Upload', 'assets/images/folder_icon.png',
+                      scaleBase: minWidth, onClick: () async {
+                    var result = await FilePicker.platform.pickFiles(
+                        type: FileType.image,
+                        allowMultiple: false,
+                        withData: true);
+                    if (result != null) {
+                      setState(() {
+                        imageBytes = result.files.single.bytes;
+                      });
+                    }
+                  }),
+                  SizedBox(width: screenSize.width < 600 ? 4 : 8),
+                  _buildButton('Lav med AI', 'assets/images/ai_file.png',
+                      scaleBase: minWidth, onClick: () {
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {
+                      final screenSize = MediaQuery.of(context).size;
+                      final dialogWidth = (screenSize.width * 0.9).clamp(300.0, 760.0);
+                      final dialogHeight = (screenSize.height * 0.8).clamp(400.0, 500.0);
                       return Dialog(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Container(
                           color: Colors.white,
-                          width: 760,
-                          height: 500,
+                          width: dialogWidth,
+                          height: dialogHeight,
+                          constraints: BoxConstraints(
+                            maxWidth: dialogWidth,
+                            maxHeight: dialogHeight,
+                          ),
                           child: AIPage(onImageProcessed: setGeneratedImage),
                         ),
                       );
                     },
                   );
                 }),
-                SizedBox(width: 16),
+                SizedBox(width: screenSize.width < 600 ? 4 : 16),
                 // Only show the sound button when adding an artefact, not a category
                 if (!widget.isCategory)
-                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png',
-                      onClick: () {
+                  _buildButton('Tilføj lyd', 'assets/images/speaker_icon.png', scaleBase: minWidth, onClick: () {
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
+                        final screenSize = MediaQuery.of(context).size;
+                        final dialogWidth = (screenSize.width * 0.9).clamp(300.0, 560.0);
+                        final dialogMaxHeight = (screenSize.height * 0.8).clamp(300.0, 500.0);
                         return Dialog(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: StatefulBuilder(
                             builder: (context, setDialogState) {
-                              // Calculate height based on content visibility
-                              double baseHeight = 450;
-                              if (_showTextToSpeechField) {
-                                baseHeight = 650; // Larger when TTS field is visible
-                              } else if (soundBytes != null) {
-                                baseHeight = 550; // Medium when sound is added (shows playback controls)
-                              }
-                              
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).dialogTheme.backgroundColor ?? 
-                                         Theme.of(context).colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                width: 560,
+                              return Container(
+                                color: Colors.white,
+                                width: dialogWidth,
                                 constraints: BoxConstraints(
-                                  maxHeight: baseHeight,
+                                  maxWidth: dialogWidth,
+                                  maxHeight: dialogMaxHeight,
                                   minHeight: 300,
                                 ),
                                 padding: EdgeInsets.all(16),
@@ -378,18 +398,19 @@ class _AddItemPopupState extends State<AddItemPopup> {
                       },
                     );
                   }),
-              ],
+                ],
+              ),
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  // 0xFF2E7D32 = dark green, 0xFFBADFB5 = light green
-                  backgroundColor:
-                      _canSubmit() ? Color(0xFF2E7D32) : Color(0xFFBADFB5),
+                  backgroundColor: imageBytes != null
+                      ? Color(0xFF4CAF50)
+                      : Color(0xFFBADFB5),
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 onPressed: _canSubmit()
@@ -415,7 +436,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 8),
         ],
       ),
     );
@@ -672,7 +693,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                         ),
                         SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _selectedVoiceId,
+                          initialValue: _selectedVoiceId,
                           decoration: const InputDecoration(
                             labelText: 'Vælg stemme',
                             border: OutlineInputBorder(),
@@ -991,7 +1012,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
       } else {
         _showErrorMessage('Kunne ikke generere lyd fra backend API');
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       // exception in _generateSpeechFromText
 
       String errorMessage = 'Fejl ved generering af lyd';
@@ -1086,18 +1107,37 @@ class _AddItemPopupState extends State<AddItemPopup> {
   }
 
   Widget _buildButton(String label, String imageUrl,
-      {void Function()? onClick}) {
+      {void Function()? onClick, required double scaleBase}) {
+    final screenSize = MediaQuery.of(context).size;
+    final isMobile = screenSize.width < 600;
+    
+    // Use screen width for mobile, scaleBase for desktop
+    final baseSize = isMobile ? screenSize.width : scaleBase;
+    
+    // Smaller buttons on mobile to prevent overflow
+    final idealButtonSize = baseSize * (isMobile ? 0.12 : 0.22);
+    final idealIconSize = baseSize * (isMobile ? 0.06 : 0.11);
+    final idealSpacing = baseSize * (isMobile ? 0.008 : 0.015);
+    final idealFontSize = baseSize * (isMobile ? 0.02 : 0.03);
+
+    
+    final buttonSize = idealButtonSize.clamp(45.0, isMobile ? 70.0 : 100.0);
+    final iconSize = idealIconSize.clamp(20.0, isMobile ? 35.0 : 50.0);
+    final spacing = idealSpacing.clamp(2.0, 6.0);
+    final fontSize = idealFontSize.clamp(8.0, isMobile ? 11.0 : 14.0);
+
+
     return GestureDetector(
       onTap: onClick,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 100,
-            height: 100,
+            width: buttonSize,
+            height: buttonSize,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
                   color: Color(0x3F000000),
@@ -1106,29 +1146,44 @@ class _AddItemPopupState extends State<AddItemPopup> {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage(imageUrl),
-                      fit: BoxFit.contain,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 4.0,
+                vertical: isMobile ? 1.0 : 2.0,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: iconSize,
+                      height: iconSize,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(imageUrl),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(height: spacing.clamp(0.5, isMobile ? 2.0 : 3.0)),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                        fontSize: fontSize,
+                        height: 1.0, // Further reduce line height
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                SizedBox(height: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],

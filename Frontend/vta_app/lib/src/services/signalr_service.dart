@@ -23,7 +23,6 @@ class SignalRService {
   String? _remoteUserId;
   ArtifactBoardController? _ownerBoardController; // Store owner's board
 
-
   // Online status tracking
   final Set<String> _onlineUsers = {};
 
@@ -33,12 +32,10 @@ class SignalRService {
   // Contact cache for name resolution (userId -> name)
   final Map<String, String> _contactCache = {};
 
-
   // WebRTC signaling message queues
   final List<Map<String, dynamic>> _pendingOffers = [];
   final List<Map<String, dynamic>> _pendingAnswers = [];
   final List<Map<String, dynamic>> _pendingIceCandidates = [];
-
 
   // WebRTC signaling callbacks
   void Function(String sessionId, Map<String, dynamic> offer)? onReceiveOffer;
@@ -67,7 +64,6 @@ class SignalRService {
   void clearOwnerBoardController() {
     _ownerBoardController = null;
   }
-
 
   // Online status methods
   /// Check if a specific user is online
@@ -107,7 +103,6 @@ class SignalRService {
     try {
       final contacts = await UserRepository().fetchRelatedContacts(token);
 
-
       if (contacts != null) {
         _contactCache.clear();
         for (var user in contacts) {
@@ -123,15 +118,14 @@ class SignalRService {
     }
   }
 
-
   /// Get contact name from cache, returns null if not found
   String? getContactName(String userId) {
     return _contactCache[userId];
   }
 
-
   void flushWebRTCQueue() {
-    debugPrint('[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
+    debugPrint(
+        '[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
 
     debugPrint(
         '[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
@@ -141,12 +135,10 @@ class SignalRService {
     }
     _pendingOffers.clear();
 
-
     for (var msg in _pendingAnswers) {
       onReceiveAnswer?.call(msg['sessionId'], msg['data']);
     }
     _pendingAnswers.clear();
-
 
     for (var msg in _pendingIceCandidates) {
       onReceiveIceCandidate?.call(msg['sessionId'], msg['data']);
@@ -154,14 +146,12 @@ class SignalRService {
     _pendingIceCandidates.clear();
   }
 
-
   // Callbacks
   void Function(String fromUserId)? onSessionRequested;
   void Function()? onSessionRejected;
   void Function(String sessionId, String boardId)? onSessionStarted;
   void Function(dynamic boardData)? onBoardUpdated;
   void Function()? onSessionEnded;
-
 
   // Online status callback
   void Function(String userId, bool isOnline)? onUserOnlineStatusChanged;
@@ -211,7 +201,11 @@ class SignalRService {
   // Determine URL based on platform
   String _getHubUrl() {
     final baseUrl = PlatformUtils.getSyncServiceUrl();
-    return "$baseUrl/boardHub";
+    // Remove trailing slash if present, then add /boardHub
+    final normalizedUrl = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    return "$normalizedUrl/boardHub";
   }
 
   Future<void> _registerUser() async {
@@ -232,7 +226,6 @@ class SignalRService {
   // ---------------- EVENT HANDLERS ----------------
   void _registerEvents() {
     debugPrint("SignalR: Registering event handlers...");
-
 
     _hubConnection!.on("SessionRequested", (args) {
       debugPrint("SignalR => Received SessionRequested event");
@@ -270,7 +263,6 @@ class SignalRService {
       onSessionEnded?.call();
     });
 
-
     // Online status listener
     _hubConnection!.on("UserOnlineStatusChanged", (args) {
       if (args == null || args.length < 2) return;
@@ -295,7 +287,6 @@ class SignalRService {
       final offer = arguments[1] as Map<String, dynamic>;
       debugPrint('[SignalR] ReceiveOffer: sessionId=$sessionId');
 
-
       if (onReceiveOffer != null) {
         onReceiveOffer!(sessionId, offer);
       } else {
@@ -304,12 +295,10 @@ class SignalRService {
       }
     });
 
-
     _hubConnection!.on('ReceiveAnswer', (arguments) {
       final sessionId = arguments![0] as String;
       final answer = arguments[1] as Map<String, dynamic>;
       debugPrint('[SignalR] ReceiveAnswer: sessionId=$sessionId');
-
 
       if (onReceiveAnswer != null) {
         onReceiveAnswer!(sessionId, answer);
@@ -319,12 +308,10 @@ class SignalRService {
       }
     });
 
-
     _hubConnection!.on('ReceiveIceCandidate', (arguments) {
       final sessionId = arguments![0] as String;
       final candidate = arguments[1] as Map<String, dynamic>;
       debugPrint('[SignalR] ReceiveIceCandidate: sessionId=$sessionId');
-
 
       if (onReceiveIceCandidate != null) {
         onReceiveIceCandidate!(sessionId, candidate);
@@ -383,7 +370,6 @@ class SignalRService {
       debugPrint("SignalR => Calling onFieldCountChanged callback");
       onFieldCountChanged?.call(args[0]);
     });
-
 
     _hubConnection!.on("MissedCall", (args) {
       debugPrint("SignalR => MissedCall EVENT");
@@ -463,7 +449,6 @@ class SignalRService {
 
   // ---------------- DELTA UPDATE API WRAPPERS ----------------
 
-
   Future<void> sendArtifactAdded(dynamic data) async {
     if (!isConnected || _currentSessionId == null) return;
     await _hubConnection!.invoke("ArtifactAdded", args: <Object>[data]);
@@ -533,16 +518,13 @@ class SignalRService {
     onReceiveAnswer = null;
     onReceiveIceCandidate = null;
 
-
     // Clear message queues
     _pendingOffers.clear();
     _pendingAnswers.clear();
     _pendingIceCandidates.clear();
 
-
     // Clear contact cache
     _contactCache.clear();
-
 
     debugPrint("SignalR: All state and callbacks cleared");
   }

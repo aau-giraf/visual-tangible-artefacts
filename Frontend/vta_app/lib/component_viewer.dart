@@ -6,7 +6,7 @@ import 'package:vta_app/src/ui/screens/child_accept_session_screen.dart';
 void main() => runApp(const ComponentViewer());
 
 class ComponentViewer extends StatelessWidget {
-  const ComponentViewer({Key? key}) : super(key: key);
+  const ComponentViewer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class ComponentViewer extends StatelessWidget {
 }
 
 class ComponentViewerHome extends StatelessWidget {
-  const ComponentViewerHome({Key? key}) : super(key: key);
+  const ComponentViewerHome({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +81,7 @@ class ComponentViewerHome extends StatelessWidget {
 }
 
 class Component1Demo extends StatelessWidget {
-  const Component1Demo({Key? key}) : super(key: key);
+  const Component1Demo({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +115,7 @@ class Component1Demo extends StatelessWidget {
   }
 }
 class Component2Demo extends StatelessWidget {
-  const Component2Demo({Key? key}) : super(key: key);
+  const Component2Demo({super.key});
 
   @override
   Widget build(BuildContext context) {

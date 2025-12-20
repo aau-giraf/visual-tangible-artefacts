@@ -5,12 +5,15 @@ class QuickChatButton extends StatefulWidget {
   const QuickChatButton({super.key});
 
   @override
-  State<QuickChatButton> createState() => _FloatingActionButtonExampleState();
+  State<QuickChatButton> createState() => _QuickChatButtonState();
 }
 
-class _FloatingActionButtonExampleState extends State<QuickChatButton> {
+class _QuickChatButtonState extends State<QuickChatButton> {
   bool _isPopupVisible = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  // Visual feedback tracking
+  IconData? _pressedIcon;
 
   @override
   void dispose() {
@@ -27,93 +30,116 @@ class _FloatingActionButtonExampleState extends State<QuickChatButton> {
     }
   }
 
+  // Quick Icon builder WITH visual feedback
+  Widget _quickIcon({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() => _pressedIcon = icon); // Shrink effect
+      },
+      onTapUp: (_) async {
+        await Future.delayed(const Duration(milliseconds: 120));
+        setState(() => _pressedIcon = null); // Restore
+        onTap();
+      },
+      onTapCancel: () {
+        setState(() => _pressedIcon = null);
+      },
+      child: AnimatedScale(
+        scale: _pressedIcon == icon ? 0.85 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 255, 213, 0),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+            icon,
+            size: 40,
+            color: Colors.black,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double fabSize = screenWidth > 600 ? 60.0 : 48.0;
+    double popupTop = screenWidth > 600 ? 30.0 : 15.0;
+    double popupRight = screenWidth > 600 ? 100.0 : 70.0;
+
     return Stack(
       children: [
+        // POPUP
         AnimatedPositioned(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          top: 70,
-          right: _isPopupVisible ? 100 : -250,
+          top: popupTop,
+          right: _isPopupVisible ? popupRight : -250,
           child: Material(
-            color: Colors.transparent,
+            color: const Color.fromARGB(0, 0, 0, 0),
             child: Container(
-              width: 150,
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(8.0),
+                color: const Color.fromARGB(255, 232, 200, 38),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8.0,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
-              child: Column(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  _quickIcon(
+                    icon: Icons.wc,
+                    onTap: () => _playAudio('assets/sound/toilet.mp3'),
                   ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: () => _playAudio('assets/sound/dårligt.mp3'),
-                    icon: const Icon(Icons.sick, color: Colors.white),
-                    label: const Text('Har det ikke godt',
-                        style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black.withOpacity(0.2),
-                    ),
+                  const SizedBox(width: 8),
+                  _quickIcon(
+                    icon: Icons.lunch_dining,
+                    onTap: () => _playAudio('assets/sound/sulten.mp3'),
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _playAudio('assets/sound/toilet.mp3'),
-                    icon: const Icon(Icons.wc, color: Colors.white),
-                    label: const Text('Toilet',
-                        style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black.withOpacity(0.2),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _playAudio('assets/sound/sulten.mp3'),
-                    icon: const Icon(Icons.lunch_dining, color: Colors.white),
-                    label: const Text('Sulten',
-                        style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black.withOpacity(0.2),
-                    ),
+                  const SizedBox(width: 8),
+                  _quickIcon(
+                    icon: Icons.sick,
+                    onTap: () => _playAudio('assets/sound/dårligt.mp3'),
                   ),
                 ],
               ),
             ),
           ),
         ),
+        // MAIN "!" BUTTON
         Align(
           alignment: Alignment.topRight,
-          child: Padding(
-            padding: const EdgeInsets.all(50.50),
-            child: FloatingActionButton(
-              heroTag: 'quick_chat_button',
-              onPressed: () {
-                setState(() {
-                  _isPopupVisible = !_isPopupVisible;
-                });
-              },
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.red,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.lightbulb_circle),
+          child: SizedBox(
+            width: fabSize,
+            height: fabSize,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 20, right: 20),
+              child: FloatingActionButton(
+                onPressed: () {
+                  setState(() {
+                    _isPopupVisible = !_isPopupVisible;
+                  });
+                },
+                foregroundColor: Colors.black,
+                backgroundColor: const Color.fromARGB(255, 232, 201, 38),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(Icons.priority_high),
+              ),
             ),
           ),
         ),

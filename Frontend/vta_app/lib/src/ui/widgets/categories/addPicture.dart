@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
@@ -56,18 +58,15 @@ class _AIPageState extends State<AIPage> {
       switch (selectedOption) {
         case 'Piktogram':
           prompt =
-              "Hvid baggrund, et enkelt ikon med ingen unødvendige detajler, børne venligt, kontinuert line art ingen mellemrum, ingen tekst, simpelt ikon af " +
-                  _controller.text;
+              "Hvid baggrund, et enkelt ikon med ingen unødvendige detajler, børne venligt, kontinuert line art ingen mellemrum, ingen tekst, simpelt ikon af ${_controller.text}";
           break;
         case 'Realistisk':
           prompt =
-              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, høj-kvalitets billede af " +
-                  _controller.text;
+              "Realistisk stil, ingen unødvendig detalje i baggrunden, børne venligt, høj-kvalitets billede af ${_controller.text}";
           break;
         case 'Tegning':
           prompt =
-              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning af " +
-                  _controller.text;
+              "Hvid baggrund, tegne stil, skitsering, sort og hvidt, børne venligt, simpel tegning af ${_controller.text}";
           break;
         default:
           prompt = _controller.text;
@@ -317,7 +316,7 @@ class _AIPageState extends State<AIPage> {
 }
 
 class AddPicturePage extends StatelessWidget {
-  const AddPicturePage({Key? key}) : super(key: key);
+  const AddPicturePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -384,14 +383,21 @@ class AddPicturePage extends StatelessWidget {
                             showDialog(
                               context: context,
                               builder: (BuildContext context) {
+                                final screenSize = MediaQuery.of(context).size;
+                                final dialogWidth = (screenSize.width * 0.9).clamp(300.0, 760.0);
+                                final dialogHeight = (screenSize.height * 0.8).clamp(400.0, 500.0);
                                 return Dialog(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(60),
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760,
-                                    height: 500,
+                                    width: dialogWidth,
+                                    height: dialogHeight,
+                                    constraints: BoxConstraints(
+                                      maxWidth: dialogWidth,
+                                      maxHeight: dialogHeight,
+                                    ),
                                     child: const AIPage(),
                                   ),
                                 );
@@ -407,14 +413,21 @@ class AddPicturePage extends StatelessWidget {
                             showDialog(
                               context: context,
                               builder: (BuildContext context) {
+                                final screenSize = MediaQuery.of(context).size;
+                                final dialogWidth = (screenSize.width * 0.9).clamp(300.0, 760.0);
+                                final dialogHeight = (screenSize.height * 0.8).clamp(400.0, 500.0);
                                 return Dialog(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Container(
                                     color: Colors.white,
-                                    width: 760,
-                                    height: 500,
+                                    width: dialogWidth,
+                                    height: dialogHeight,
+                                    constraints: BoxConstraints(
+                                      maxWidth: dialogWidth,
+                                      maxHeight: dialogHeight,
+                                    ),
                                     child: const AIPage(),
                                   ),
                                 );

@@ -44,8 +44,17 @@ class AuthModel {
         _throwAuthException(response?.statusCode);
       }
     } catch (e) {
+      if (e is AuthException) {
+        rethrow;
+      }
       debugPrint('$e');
-      rethrow;
+      // Handle network errors and other exceptions
+      if (e.toString().contains('SocketException') || 
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw AuthException(message: 'Ingen internetforbindelse. Tjek dit netværk og prøv igen.');
+      }
+      throw AuthException(message: 'En fejl opstod ved login: ${e.toString()}');
     }
   }
 
@@ -73,9 +82,29 @@ class AuthModel {
   }
 
   /// clears all data stored on in the [SharedPreferences]
+  /// Preserves profile picture data so it persists across logouts
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Preserve profile picture data before clearing
+    final profilePicture = prefs.getString('profilePicture');
+    final profilePicturePath = prefs.getString('profilePicturePath');
+    final profilePictureSet = prefs.getString('profilePictureSet');
+    
+    // Clear all preferences
     await prefs.clear();
+    
+    // Restore profile picture data
+    if (profilePicture != null) {
+      await prefs.setString('profilePicture', profilePicture);
+    }
+    if (profilePicturePath != null) {
+      await prefs.setString('profilePicturePath', profilePicturePath);
+    }
+    if (profilePictureSet != null) {
+      await prefs.setString('profilePictureSet', profilePictureSet);
+    }
+    
     await clearCacheData();
   }
 
@@ -105,12 +134,20 @@ class AuthModel {
         userInfo.userId = model.userId;
         cacheData(token: token.value, userId: userInfo.userId);
       } else {
-        // Use proper status code error handling
         _throwAuthException(response?.statusCode);
       }
     } catch (e) {
-      debugPrint('[AUTH-MODEL] Signup error: $e');
-      rethrow;
+      if (e is AuthException) {
+        rethrow;
+      }
+      debugPrint('$e');
+      // Handle network errors and other exceptions
+      if (e.toString().contains('SocketException') || 
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw AuthException(message: 'Ingen internetforbindelse. Tjek dit netværk og prøv igen.');
+      }
+      throw AuthException(message: 'En fejl opstod ved oprettelse af bruger: ${e.toString()}');
     }
   }
 
@@ -118,15 +155,21 @@ class AuthModel {
   void _throwAuthException(int? statusCode) {
     String message;
     if (statusCode == null) {
-      message = 'No response from server';
-    } else if (statusCode == 409) {
-      message = 'This username already exists, please choose another';
+      message = 'Ingen respons fra server. Tjek din internetforbindelse og prøv igen.';
+    } else if (statusCode == 400) {
+      message = 'Ugyldig anmodning. Tjek at alle felter er korrekt udfyldt.';
+    } else if (statusCode == 401) {
+      message = 'Forkert brugernavn eller kodeord';
     } else if (statusCode == 404) {
-      message = 'Invalid username or password';
-    } else if (statusCode <= 500) {
-      message = 'A server error occured';
+      message = 'Forkert brugernavn eller kodeord';
+    } else if (statusCode == 409) {
+      message = 'Dette brugernavn eksisterer allerede. Vælg et andet brugernavn.';
+    } else if (statusCode == 422) {
+      message = 'Ugyldige data. Tjek at alle felter er korrekt udfyldt.';
+    } else if (statusCode >= 500) {
+      message = 'En serverfejl opstod. Prøv igen senere.';
     } else {
-      message = 'An unknown error occured';
+      message = 'En ukendt fejl opstod. Status kode: $statusCode';
     }
     throw AuthException(message: message);
   }

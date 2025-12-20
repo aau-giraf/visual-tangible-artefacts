@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/option_wheel.dart';
-import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
-import 'package:flutter/foundation.dart';
 
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
@@ -68,6 +66,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
  @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedOpacity(
           opacity: _showName ? 1.0 : 0.0,
@@ -76,22 +75,27 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
             ignoring: true,
             child: Container(
               alignment: Alignment.topCenter,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: const BoxDecoration(
                 color: Colors.transparent,
               ),
               child: Text(
                 widget.artifact.baseArtefact?.name ?? '',
-                style: LongPressOptionWheel.nameTextStyle,
+                style: LongPressOptionWheel.nameTextStyle.copyWith(
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ),
         ),
-        GestureDetector(
-          onLongPressStart: _onLongPressStart,
-          child: widget.child,
+        Flexible(
+          child: GestureDetector(
+            onLongPressStart: _onLongPressStart,
+            child: widget.child,
+          ),
         ),
       ],
     );

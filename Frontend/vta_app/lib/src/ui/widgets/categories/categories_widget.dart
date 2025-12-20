@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -10,15 +7,9 @@ import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
-import 'package:vta_app/src/ui/widgets/categories/categories_edit.dart';
 import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
-import 'package:vta_app/src/utilities/services/camera_service.dart';
-import 'package:http/http.dart' as http;
 
 class CategoriesWidget extends StatefulWidget {
   final double widgetHeight;
@@ -368,82 +359,89 @@ Widget _buildImageGrid(Category category) {
       builder: (BuildContext context, StateSetter setState) {
     int totalItems = (category.artefacts?.length ?? 0) + 1;
 
-    return GestureDetector(
-      onTap: () {
-        if (isInDeletionMode) {
-          setState(() {
-            isInDeletionMode = false;
-          });
-        }
-      },
-      child: Column(
-        children: [
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 8,
-              crossAxisSpacing: 50,
-              mainAxisSpacing: 50, 
-),
-              itemCount: totalItems,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _buildAddArtifactButton(category);
-                } else {
-                  final artifactIndex = index - 1;
-                  if (artifactIndex >= category.artefacts!.length) {
-                    return SizedBox();
-                  }
-                  return GestureDetector(
-                    onLongPress: () {
-                      setState(() {
-                        isInDeletionMode = true;
-                      });
-                    },
-                    child: _buildImageGridItem(
-                      context,
-                      artifactIndex,
-                      category,
-                      isInDeletionMode,
-                      () => setState(() {
-                        isInDeletionMode = true;
-                      }),
-                      onDelete: () {
-                        setState(() {});
-                      },
-                      hoveredIndex: hoveredIndex,
-                      onHoverChange: (index) {
+    // Callback to update hovered index
+    void onHoverChange(int? index) {
+      setState(() {
+        hoveredIndex = index;
+      });
+    }
+
+      return GestureDetector(
+        onTap: () {
+          if (isInDeletionMode) {
+            setState(() {
+              isInDeletionMode = false;
+            });
+          }
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  // Responsive grid: 3 columns on mobile, 4 on tablet, 8 on desktop
+                  final crossAxisCount = screenWidth < 600 
+                      ? 3 
+                      : screenWidth < 900 
+                          ? 4 
+                          : 8;
+                  
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(10),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                itemCount: totalItems,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _buildAddArtifactButton(category);
+                  } else {
+                    final artifactIndex = index - 1;
+                    if (artifactIndex >= category.artefacts!.length) {
+                      return SizedBox();
+                    }
+                    return GestureDetector(
+                      onLongPress: () {
                         setState(() {
-                          hoveredIndex = index;
+                          isInDeletionMode = true;
                         });
                       },
-                    ),
-                  );
-                }
-              },
+                      child: _buildImageGridItem(
+                        context,
+                        artifactIndex,
+                        category,
+                        isInDeletionMode,
+                        () => setState(() {
+                          isInDeletionMode = true;
+                        }),
+                        hoveredIndex: hoveredIndex,
+                        onHoverChange: onHoverChange,
+                        onDelete: () {
+                          setState(() {});
+                        },
+                      ),
+                    );
+                  }
+                },
+                );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  });
-}
-Widget _buildImageGridItem(
-  BuildContext context,
-  int index,
-  Category category,
-  bool isInDeletionMode,
-  VoidCallback onLongPress, {
-  required VoidCallback onDelete,
-  int? hoveredIndex,
-  required Function(int?) onHoverChange,
-}) {
-  var authState = Provider.of<AuthState>(context);
-  var artifactState = Provider.of<ArtifactState>(context, listen: false);
-  var headers = <String, String>{
-    'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
-  };
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildImageGridItem(BuildContext context, int index, Category category,
+      bool isInDeletionMode, VoidCallback onLongPress,
+      {required VoidCallback onDelete, int? hoveredIndex, required Function(int?) onHoverChange}) {
+    var headers = <String, String>{
+      'Authorization': 'Bearer ${GetIt.instance.get<Token>().value}'
+    };
 
   if (index >= category.artefacts!.length) {
     return SizedBox(); // Safety check
@@ -461,16 +459,17 @@ Widget _buildImageGridItem(
     child: Stack(
       clipBehavior: Clip.none,
       children: [
-        AnimatedContainer(
-          duration: Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          transform: Matrix4.identity()
-            ..translate(
-              isHovered ? 4.0 : 0.0,
-              isHovered ? -4.0 : 0.0,
-            )
-            ..scale(isHovered ? 1.15 : 1.0),
-          child: ClipRRect(
+        Transform.translate(
+          offset: Offset(
+            isHovered ? 4.0 : 0.0,
+            isHovered ? -4.0 : 0.0,
+          ),
+          child: Transform.scale(
+            scale: isHovered ? 1.15 : 1.0,
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: GestureDetector(
   onTap: isInDeletionMode
@@ -481,7 +480,9 @@ Widget _buildImageGridItem(
 
                   await Future.delayed(Duration(milliseconds: 150));
                   widget.onArtifactAdded(boardArtefacts[index]);
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                   onHoverChange(null);
                  },
               // hold-down effect on mobile
@@ -495,6 +496,8 @@ Widget _buildImageGridItem(
                 cursor: SystemMouseCursors.click,
                 child: boardArtefacts[index].content,
               ),
+            ),
+          ),
             ),
           ),
         ),

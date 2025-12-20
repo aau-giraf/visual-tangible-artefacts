@@ -39,6 +39,10 @@ class SettingsController with ChangeNotifier {
     if (tempLinearArtifactCount != null) {
       _linearArtifactCount = tempLinearArtifactCount;
     }
+    // Load localization
+    //var localization = await _settingsService.localization();
+    //_localization = Localization.values[localization];
+      // Important! Inform listeners a change has occurred.
     // Load localization (commented out)
     // var localization = await _settingsService.localization();
     // if (localization != null) {

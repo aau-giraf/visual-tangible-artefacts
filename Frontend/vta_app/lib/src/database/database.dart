@@ -2,6 +2,7 @@
 /// 
 /// This module provides SQLite database integration for the VTA app.
 /// It includes database models, repositories, and helper classes.
+library;
 
 // Database Helper
 export 'database_helper.dart';

@@ -7,7 +7,7 @@ import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/ui/screens/remote_board_screen.dart';
 
 class CaregiverDashboardView extends StatefulWidget {
-  const CaregiverDashboardView({Key? key}) : super(key: key);
+  const CaregiverDashboardView({super.key});
 
   static const routeName = '/caregiver_dashboard';
 

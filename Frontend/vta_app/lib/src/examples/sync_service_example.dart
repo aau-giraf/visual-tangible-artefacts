@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:vta_app/src/services/sync_service.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';

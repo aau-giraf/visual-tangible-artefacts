@@ -1,5 +1,5 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +34,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
-  
+
+  try {
+    // Load global configuration from assets/cfg/app_settings.json
+    await GlobalConfiguration().loadFromAsset("app_settings");
+  } catch (e) {
+    debugPrint('Error loading configuration: $e');
+    // Continue anyway - will use fallback URL
+  }
+
   // Initialize SQLite database (only on mobile platforms, not web)
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     try {
@@ -45,8 +53,6 @@ void main() async {
       print('Failed to initialize SQLite database: $e');
     }
   }
-  // Load global configuration from assets/cfg/app_settings.json
-  await GlobalConfiguration().loadFromAsset("app_settings");
 
   // Set up global token with GetIt
   GetIt.I.registerSingleton<Token>(Token());
@@ -58,12 +64,13 @@ void main() async {
   final apiProvider = ApiProvider(baseUrl: PlatformUtils.getApiUrl());
   GetIt.I.registerSingleton<ApiProvider>(apiProvider);
 
-  // Set up the controllers
   final settingsController = SettingsController(SettingsService());
-  final ArtefactController artifactController = ArtefactController(ArtifactModel(apiProvider));
+  final ArtefactController artifactController =
+      ArtefactController(ArtifactModel(apiProvider));
   GetIt.I.registerSingleton<ArtefactController>(artifactController);
 
-  final AuthController authController = AuthController(AuthModel(apiProvider, token, userInfo));
+  final AuthController authController =
+      AuthController(AuthModel(apiProvider, token, userInfo));
 
   // Initialize the CameraManager
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -76,10 +83,10 @@ void main() async {
   await NotificationService().initialize();
 
   await Settings.init(cacheProvider: SharePreferenceCache());
-  
+
   // NOTE: Sync timer is started after user logs in
   // See login flow for SyncTimer().start()
-  
+
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes, then passes it further down to the
   // SettingsView.

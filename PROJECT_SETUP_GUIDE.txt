@@ -1,0 +1,173 @@
+===============================================================================
+                    VISUAL TANGIBLE ARTEFACTS - PROJEKT OPSÆTNINGS GUIDE
+===============================================================================
+
+Denne guide vil hjælpe dig med at opsætte Visual Tangible Artefacts projektet på din computer.
+Følg disse trin PRÆCIST som skrevet.
+
+===============================================================================
+                                FORUDSÆTNINGER
+===============================================================================
+
+Før du starter, skal du sikre dig at have disse programmer installeret på din computer:
+
+1. Git (Download fra: https://git-scm.com/downloads)
+   - Under installationen, vælg "Git from the command line and also from 3rd-party software"
+   - Brug standardindstillinger for alt andet
+
+2. Visual Studio Code (Download fra: https://code.visualstudio.com/)
+   - Installer Flutter extension i VS Code
+
+3. Flutter SDK (Download fra: https://docs.flutter.dev/get-started/install)
+   - Følg installationsguiden for dit operativsystem
+   - Sørg for at tilføje Flutter til din system PATH
+
+4. .NET SDK (Download fra: https://dotnet.microsoft.com/download)
+   - Påkrævet for backend API'et
+
+===============================================================================
+                              TRIN-FOR-TRIN OPSÆTNING
+===============================================================================
+
+TRIN 1: OPRET EN PROJEKT MAPPE
+-------------------------------
+1. Åbn File Explorer (Windows) eller Finder (Mac)
+2. Naviger til hvor du vil gemme dine projekter (f.eks. Dokumenter, Skrivebord)
+3. Opret en ny mappe kaldet "University_Projects" (eller hvad du foretrækker)
+4. Åbn denne mappe
+
+TRIN 2: KLON REPOSITORIET
+--------------------------
+1. Åbn Command Prompt (Windows) eller Terminal (Mac/Linux)
+   - Windows: Tryk Win + R, skriv "cmd", tryk Enter
+   - Mac: Tryk Cmd + Space, skriv "Terminal", tryk Enter
+
+2. Naviger til din projekt mappe: 
+   EKSEMPELVIS : cd "C:\Users\[DIT_BRUGERNAVN]\Documents\University_Projects"
+   (Erstat [DIT_BRUGERNAVN] med dit faktiske brugernavn)
+
+3. Klon repositoriet:
+   git clone https://github.com/MrAlooshi/visual-tangible-artefacts.git
+
+4. Naviger ind i det klonede projekt:
+   cd visual-tangible-artefacts
+
+TRIN 3: SKIFT TIL DEN KORREKTE BRANCH
+-------------------------------------
+1. Tjek hvilken branch du er på:
+   git branch
+
+2. Skift til "uifix" branchen:
+   git checkout uifix
+
+3. Bekræft at du er på den korrekte branch:
+   git branch
+   (Du skulle se en stjerne * ved siden af "uifix")
+
+TRIN 4: OPSÆT BACKEND (API)
+---------------------------
+1. Naviger til backend mappen:
+   cd Backend\VTA.API
+
+2. Gendan nu pakker (FØLG VTA SET UP GUIDEN, I SKAL GØR DET IGEN):
+   dotnet restore
+
+3. Byg projektet:
+   dotnet build
+
+4. Kør API'et:
+   dotnet run
+   (Hold dette terminal vindue åbent - API'et kører)
+
+TRIN 5: OPSÆT FRONTEND (Flutter App)
+------------------------------------
+1. Åbn et NYT terminal/command prompt vindue
+2. Naviger til frontend mappen:
+   cd "C:\Users\[DIT_BRUGERNAVN]\Documents\University_Projects\visual-tangible-artefacts\Frontend\vta_app"
+
+3. Hent Flutter dependencies:
+   flutter pub get
+
+4. Kør Flutter appen:
+   flutter run
+   (Dette vil åbne appen i din standard browser eller emulator)
+
+===============================================================================
+                              VIGTIGE NOTER
+===============================================================================
+
+BRANCH HÅNDTERING:
+- Arbejd ALTID på "uifix" branchen
+- Før du starter arbejdet, kør: git checkout uifix
+- Før du laver ændringer, kør: git pull origin uifix
+
+LAVING AF ÆNDRINGER:
+1. Før du starter med at kode:
+   git checkout uifix
+   git pull origin uifix
+
+2. Lav dine ændringer i koden
+
+3. Når du er færdig:
+   git add .
+   git commit -m "Beskrivelse af hvad du ændrede"
+   git push origin uifix
+
+ALMINDELIGE GIT KOMMANDOER DU HAR BRUG FOR:
+- git status (se hvilke filer der er ændret)
+- git pull origin uifix (hent seneste ændringer fra teamet)
+- git add . (staging af alle ændringer)
+- git commit -m "Din besked" (gem dine ændringer)
+- git push origin uifix (upload dine ændringer)
+
+===============================================================================
+                              FEJLFINDING
+===============================================================================
+
+PROBLEM: "git is not recognized as a command"
+LØSNING: Git er ikke installeret eller ikke i din PATH. Geninstaller Git og sørg for at vælge "Git from the command line" under installationen.
+
+PROBLEM: "flutter is not recognized as a command"
+LØSNING: Flutter er ikke installeret eller ikke i din PATH. Følg Flutter installationsguiden og tilføj det til din system PATH.
+
+PROBLEM: "dotnet is not recognized as a command"
+LØSNING: .NET SDK er ikke installeret. Download og installer det fra Microsoft's hjemmeside.
+
+PROBLEM: "Permission denied" eller "Access denied"
+LØSNING: Sørg for at du har skriveadgang til mappen hvor du prøver at klone repositoriet.
+
+PROBLEM: "Branch 'uifix' does not exist"
+LØSNING: Branchen eksisterer måske ikke endnu. Prøv: git fetch origin og derefter git checkout -b uifix origin/uifix
+
+PROBLEM: "Port already in use" når du kører API'et
+LØSNING: En anden instans af API'et kører allerede. Luk alle terminal vinduer og prøv igen.
+
+===============================================================================
+                              FÅ HJÆLP
+===============================================================================
+
+Hvis du stadig har problemer:
+1. Tjek at alle forudsætninger er installeret korrekt
+2. Sørg for at du er i den korrekte mappe
+3. Prøv at genstarte din computer
+4. Spørg om hjælp i gruppechatten med et screenshot af fejlmeddelelsen
+
+HUSK: Arbejd altid på "uifix" branchen og hent de seneste ændringer før du starter arbejdet!
+
+===============================================================================
+                              HURTIG REFERENCE
+===============================================================================
+
+Daglig arbejdsgang:
+1. git checkout uifix
+2. git pull origin uifix
+3. Lav dine ændringer
+4. git add .
+5. git commit -m "Dine ændringer"
+6. git push origin uifix
+
+Kør projektet:
+1. Terminal 1: cd Backend\VTA.API && dotnet run
+2. Terminal 2: cd Frontend\vta_app && flutter run
+
+===============================================================================

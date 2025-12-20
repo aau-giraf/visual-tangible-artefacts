@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
@@ -77,9 +76,16 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: Container(
-              width: 400, // Set a fixed width for the box
-              padding: EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                minWidth: 300,
+              ),
+              child: Container(
+                width: MediaQuery.of(context).size.width > 600 
+                    ? 400 
+                    : MediaQuery.of(context).size.width * 0.9,
+                padding: EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -203,6 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),

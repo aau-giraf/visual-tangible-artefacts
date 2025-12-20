@@ -25,14 +25,14 @@ class VideoCallScreen extends StatefulWidget {
   final bool returnFromBoard;
 
   const VideoCallScreen({
-    Key? key,
+    super.key,
     required this.hubConnection,
     required this.sessionId,
     required this.myUserId,
     required this.remoteUserId,
     required this.isCaller,
     this.returnFromBoard = false,
-  }) : super(key: key);
+  });
 
   @override
   State<VideoCallScreen> createState() => _VideoCallScreenState();

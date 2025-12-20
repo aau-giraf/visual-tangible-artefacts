@@ -17,7 +17,7 @@ class LoadingPage extends StatelessWidget {
           return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return ErrorScreen(
-              errorMessage: 'An error occured while loading page',
+              errorMessage: 'En Fejl skete ved indlæsningen af denne side',
               onRetryChild: this);
         } else {
           return child; // Navigate to ArtifactBoardPage when data is loaded

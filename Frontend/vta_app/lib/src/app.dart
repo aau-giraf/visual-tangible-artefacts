@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
+import 'package:vta_app/src/ui/screens/welcome_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_board_screen.dart';
 import 'package:vta_app/src/ui/screens/video_call_screen.dart';
 import 'package:vta_app/src/ui/screens/calling_screen.dart';
@@ -33,13 +34,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
+    // Glue the SettingsController to the MaterialApp.
+    // The ListenableBuilder Widget listens to the SettingsController for changes.
+    // Only rebuild theme-related parts, not the entire app structure.
     return ListenableBuilder(
       listenable: settingsController,
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
+          key: const ValueKey('MaterialApp'), // Stable key to preserve Navigator state
+          initialRoute: SplashView.routeName,
           navigatorKey: navigatorKey,
           theme: ThemeData(
-            inputDecorationTheme: AppTheme.inputDecorationTheme,
+            inputDecorationTheme: AppTheme.getInputDecorationTheme(context),
           ),
           restorationScopeId: 'app',
           localizationsDelegates: const [
@@ -51,8 +58,29 @@ class MyApp extends StatelessWidget {
           supportedLocales: const [
             Locale('en', ''), // English, no country code
           ],
-          onGenerateTitle: (BuildContext context) =>
-              AppLocalizations.of(context)!.appTitle,
+
+          // Use AppLocalizations to configure the correct application title
+          // depending on the user's locale.
+          //
+          // The appTitle is defined in .arb files found in the localization
+          // directory.
+          onGenerateTitle: (BuildContext context) {
+            try {
+              return AppLocalizations.of(context)?.appTitle ?? 'VTA App';
+            } catch (e) {
+              return 'VTA App';
+            }
+          },
+
+          // Define a light and dark color theme. Then, read the user's
+          // preferred ThemeMode (light, dark, or system default) from the
+          // SettingsController to display the correct theme.
+          // theme: ThemeData(),
+          // darkTheme: ThemeData.dark(),
+          // themeMode: ThemeMode.light,
+
+          // Define a function to handle named routes in order to support
+          // Flutter web url navigation and deep linking.
           onGenerateRoute: (RouteSettings routeSettings) {
             return MaterialPageRoute<void>(
               settings: routeSettings,
@@ -64,6 +92,12 @@ class MyApp extends StatelessWidget {
                     return LoginView(controller: authController);
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
+                  case WelcomeScreen.routeName:
+                    return WelcomeScreen(
+                      authController: authController,
+                      artifactController: artifactController,
+                      settingsController: settingsController,
+                    );
                   case ArtifactBoardScreen.routeName:
                     return ArtifactBoardScreen(
                       artifactController: artifactController,

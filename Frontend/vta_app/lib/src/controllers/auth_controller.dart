@@ -4,6 +4,7 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
+import 'package:vta_app/src/ui/screens/welcome_screen.dart';
 import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
@@ -26,13 +27,13 @@ class AuthController extends ChangeNotifier {
     if (status) {
       await _model.loadCache();
       SyncTimer().start();
-      
+
       // Connect to SignalR and setup callbacks if already authenticated
       final userId = _model.userInfo.userId;
       if (userId != null && userId.isNotEmpty) {
         try {
           await SignalRService().connect(userId);
-          
+
           // Load contacts cache and setup call UI callbacks
           final prefs = await SharedPreferences.getInstance();
           final token = prefs.getString('jwtToken');
@@ -40,8 +41,9 @@ class AuthController extends ChangeNotifier {
             await SignalRService().loadContacts(token);
           }
           CallManager().setupCallbacks();
-          
-          debugPrint("SignalR: connected & registered user $userId (from checkAuth)");
+
+          debugPrint(
+              "SignalR: connected & registered user $userId (from checkAuth)");
         } catch (e) {
           debugPrint("SignalR: connect failed in checkAuth => $e");
         }
@@ -57,6 +59,7 @@ class AuthController extends ChangeNotifier {
       await _model.login(username, password);
 
       if (context != null && context.mounted) {
+        _showSuccessSnackBar(context, 'Login succesfuldt! Velkommen tilbage.');
         await artifactController.updateArtifacts(context: context);
         if (!context.mounted) return;
         await artifactController.updateMostUsedCategories(context: context);
@@ -65,7 +68,7 @@ class AuthController extends ChangeNotifier {
         if (userId != null && userId.isNotEmpty) {
           try {
             await SignalRService().connect(userId);
-            
+
             // Load contacts cache and setup call UI callbacks
             final prefs = await SharedPreferences.getInstance();
             final token = prefs.getString('jwtToken');
@@ -73,7 +76,7 @@ class AuthController extends ChangeNotifier {
               await SignalRService().loadContacts(token);
             }
             CallManager().setupCallbacks();
-            
+
             debugPrint("SignalR: connected & registered user $userId");
           } catch (e) {
             debugPrint("SignalR: connect failed => $e");
@@ -92,19 +95,12 @@ class AuthController extends ChangeNotifier {
           }
         }
 
-        Navigator.of(context)
-            .pushReplacementNamed(ArtifactBoardScreen.routeName);
+        Navigator.of(context).pushReplacementNamed(WelcomeScreen.routeName);
       }
     } catch (e) {
-      // Clear any existing SnackBars to prevent keyboard issues
-      if (context != null && context.mounted) {
-        try {
-          ScaffoldMessenger.of(context).clearSnackBars();
-        } catch (_) {}
-      }
-      
       debugPrint('[AUTH] Error: ${e.toString()}');
       // Re-throw the exception so LoginView can catch and display it
+      // LoginView displays errors inline to prevent keyboard issues
       rethrow;
     } finally {
       notifyListeners();
@@ -122,14 +118,14 @@ class AuthController extends ChangeNotifier {
       try {
         // Clear call callbacks
         CallManager().clearCallbacks();
-        
+
         // Disconnect from SignalR
         await SignalRService().disconnect();
-        
+
         // Clear all user data
         await artifactController.clearUserData();
         await _model.logout();
-        
+
         debugPrint('[AuthController.logout] Logout complete');
       } catch (e) {
         debugPrint('[AuthController.logout] clearUserData failed: $e');
@@ -144,34 +140,34 @@ class AuthController extends ChangeNotifier {
     try {
       var form = SignupForm(username: username, password: password, name: name);
       await _model.signup(form);
-      
-      // If successful, navigate to main screen
-     // if (context != null && context.mounted) {
-     //   await artifactController.updateArtifacts(context: context);
-     //   if(!context.mounted) return;
-     //   await artifactController.updateMostUsedCategories(context: context);
-     //   if(!context.mounted) return;
-     //   Navigator.of(context)
-     //       .pushReplacementNamed(ArtifactBoardScreen.routeName);
-   //   }
-    } catch (e) {
-      // Clear any existing SnackBars to prevent keyboard issues
       if (context != null && context.mounted) {
-        try {
-          ScaffoldMessenger.of(context).clearSnackBars();
-        } catch (_) {}
+        _showSuccessSnackBar(
+            context, 'Bruger oprettet succesfuldt! Du kan nu logge ind.');
+        // Switch back to login form
+        Navigator.of(context).pushReplacementNamed(LoginView.routeName);
       }
-      
+
+      // If successful, navigate to main screen
+      // if (context != null && context.mounted) {
+      //   await artifactController.updateArtifacts(context: context);
+      //   if(!context.mounted) return;
+      //   await artifactController.updateMostUsedCategories(context: context);
+      //   if(!context.mounted) return;
+      //   Navigator.of(context)
+      //       .pushReplacementNamed(ArtifactBoardScreen.routeName);
+      //   }
+    } catch (e) {
       debugPrint('[AUTH] Signup Error: ${e.toString()}');
       // Re-throw the exception so LoginView can catch and display it
+      // LoginView displays errors inline to prevent keyboard issues
       rethrow;
     } finally {
       notifyListeners();
     }
   }
 
-  /// Shows a dialog to confirm the logout action
-  /// redirects to the login page given by [LoginView.routeName]
+  /// Viser en dialog for at bekræfte udlogningen
+  /// Omdirigerer til login siden givet af [LoginView.routeName]
   Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
     await showDialog(
       context: context,
@@ -192,14 +188,14 @@ class AuthController extends ChangeNotifier {
                 try {
                   // Clear call callbacks
                   CallManager().clearCallbacks();
-                  
+
                   // Disconnect from SignalR
                   await SignalRService().disconnect();
-                  
+
                   // Clear all user data
                   await artifactController.clearUserData();
                   await _model.logout();
-                  
+
                   debugPrint('[AuthController.logout] Logout complete');
                 } catch (e) {
                   debugPrint(
@@ -225,17 +221,10 @@ class AuthController extends ChangeNotifier {
     return null;
   }
 
-  /// Shows error message without SnackBar to prevent keyboard issues
-  void _showErrorSnackBar(BuildContext context, String message) {
-    // Clear any existing SnackBars to prevent layout conflicts
-    try {
-      ScaffoldMessenger.of(context).clearSnackBars();
-    } catch (e) {
-      // Ignore any clearing errors
-    }
-    
-    // Instead of SnackBar, we'll rely on the login screen's inline error display
-    // This prevents floating UI elements that interfere with Android keyboard
-    debugPrint('[AUTH] Error: $message'); // For debugging
+  /// Viser en snackbar med en succes meddelelse
+  void _showSuccessSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    GlobalSnackbar.show(context, message,
+        color: Colors.white, iconColor: Colors.green);
   }
 }

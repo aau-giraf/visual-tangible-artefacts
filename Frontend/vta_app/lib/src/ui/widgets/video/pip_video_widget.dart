@@ -7,10 +7,10 @@ class PipVideoWidget extends StatefulWidget {
   final VoidCallback onTap;
 
   const PipVideoWidget({
-    Key? key,
+    super.key,
     required this.remoteRenderer,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<PipVideoWidget> createState() => _PipVideoWidgetState();

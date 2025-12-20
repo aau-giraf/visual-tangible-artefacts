@@ -1,73 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:vta_app/src/modelsDTOs/signup_form.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'package:get_it/get_it.dart';
 import 'login_screen.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
   @override
-  _SignupPageState createState() => _SignupPageState();
+  SignupPageState createState() => SignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage> {
+class SignupPageState extends State<SignupPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  UserRole _selectedRole = UserRole.child;
-
-  // Future<void> _signup() async {
-  //   if (_formKey.currentState!.validate()) {
-  //     try {
-  //       var signupForm = SignupForm(
-  //           username: _usernameController.text,
-  //           password: _passwordController.text);
-
-  //       final response = await apiProvider.postAsJson('/Users/SignUp',
-  //           body: signupForm.toJson());
-
-  //       if (response != null && response.statusCode == 200) {
-  //         var signupResponse =
-  //             SignupResponse.fromJson(json.decode(response.body));
-  void _signup() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      final apiProvider = GetIt.instance.get<ApiProvider>();
-      final signupForm = SignupForm(
-        username: _usernameController.text,
-        name: _nameController.text,
-        password: _passwordController.text,
-        role: _selectedRole,
-      );
-
+  Future<void> _signup() async {
+    if (_formKey.currentState!.validate()) {
       try {
-        final response = await apiProvider.postAsJson(
-          'Users/SignUp',
-          body: signupForm.toJson(),
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
-
-        if (response != null &&
-            (response.statusCode == 200 || response.statusCode == 201)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Konto oprettet succesfuldt!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-        } else {
-          throw Exception('Registration failed');
-        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fejl ved oprettelse af konto: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('En fejl opstod: $e')),
         );
       }
     }
@@ -87,15 +42,22 @@ class _SignupPageState extends State<SignupPage> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: Container(
-              width: 400, // Set a fixed width for the box
-              padding: EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                minWidth: 300,
+              ),
+              child: Container(
+                width: MediaQuery.of(context).size.width > 600 
+                    ? 400 
+                    : MediaQuery.of(context).size.width * 0.9,
+                padding: EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     spreadRadius: 5,
                     blurRadius: 15,
                     offset: Offset(0, 5),
@@ -207,6 +169,7 @@ class _SignupPageState extends State<SignupPage> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),
