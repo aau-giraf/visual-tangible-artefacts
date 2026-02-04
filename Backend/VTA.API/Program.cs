@@ -42,18 +42,16 @@ builder.Services.AddSingleton(provider =>
     }
 );
 
-var config = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables()
-    .Build();
+// Get JWT secret from environment variable (for production/CI) or configuration (for development)
+// Use a helper to treat empty/whitespace strings the same as null
+var envSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+var jwtSecretKey = !string.IsNullOrWhiteSpace(envSecret)
+    ? envSecret
+    : builder.Configuration["Secret:SecretKey"];
 
-var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET") //I still do not know why this was added, we are reading the Secretkey from appsettings, not the OS env variables
-                   ?? config["Secret:SecretKey"];//load our secret
-
-if (string.IsNullOrEmpty(jwtSecretKey))
+if (string.IsNullOrWhiteSpace(jwtSecretKey))
 {
-    throw new ArgumentNullException("JWT_SECRET_KEY environment variable or SecretKey in appsettings.json is required.");
+    throw new ArgumentNullException("JWT_SECRET environment variable or Secret:SecretKey in configuration is required.");
 }
 /*Configure Json Web Tokens*/
 var jwtIssuer = "api.vta.com";

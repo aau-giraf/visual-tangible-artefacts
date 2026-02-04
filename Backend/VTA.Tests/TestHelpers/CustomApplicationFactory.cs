@@ -14,6 +14,18 @@ namespace VTA.Tests.TestHelpers
     {
         private readonly MySqlContainer _mySqlContainer;
 
+        // Static constructor runs once per AppDomain, before any instance is created.
+        // This ensures JWT_SECRET is set before WebApplicationFactory starts any host.
+        static CustomApplicationFactory()
+        {
+            // GitHub Actions doesn't expose secrets to fork PRs for security reasons.
+            // The workflow sets JWT_SECRET from secrets, but it resolves to empty string.
+            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("JWT_SECRET")))
+            {
+                Environment.SetEnvironmentVariable("JWT_SECRET", "test-jwt-secret-for-ci-must-be-at-least-32-chars");
+            }
+        }
+
         public CustomApplicationFactory()
         {
             var config = new ConfigurationBuilder()
@@ -26,19 +38,6 @@ namespace VTA.Tests.TestHelpers
             var connectionString = config.GetValue<string>("ConnectionStrings:TEST_CONNECTION_STRING")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
                                    ?? "server=localhost;port=3306;user=vta_user;password=vta_password;database=vta_test";
-
-            var jwtSecretConfig = new JwtSecretConfig
-            {
-                SecretKey = config.GetValue<string>("Secret:SecretKey")
-                            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY"),
-                ValidIssuer = config.GetValue<string>("Secret:ValidIssuer") ?? "api.vta.com",
-                ValidAudience = config.GetValue<string>("Secret:ValidAudience") ?? "user.vta.com"
-            };
-
-            if (string.IsNullOrEmpty(jwtSecretConfig.SecretKey))
-            {
-                throw new ArgumentNullException("A JWT secret is required for token generation.");
-            }
 
             var builder = new MySqlConnectionStringBuilder(connectionString);
             var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
@@ -97,7 +96,12 @@ namespace VTA.Tests.TestHelpers
                 config
                     .AddJsonFile("/var/www/VTA.API/appsettings.json", optional: true)
                     .AddJsonFile("appsettings.json", optional: true)
-                    .AddEnvironmentVariables();
+                    .AddEnvironmentVariables()
+                    .AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["Secret:SecretKey"] = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+                                               ?? "test-jwt-secret-for-ci-must-be-at-least-32-chars"
+                    });
             });
 
             builder.ConfigureLogging(logging =>
@@ -108,11 +112,5 @@ namespace VTA.Tests.TestHelpers
             });
         }
 
-        private class JwtSecretConfig
-        {
-            public string? SecretKey { get; set; }
-            public string? ValidIssuer { get; set; }
-            public string? ValidAudience { get; set; }
-        }
     }
 }

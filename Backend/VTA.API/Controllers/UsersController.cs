@@ -422,9 +422,13 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     /// <exception cref="InvalidOperationException"></exception>
     private string GenerateJwt(User user)
     {
-        var secretKey = config.GetValue<string>("Secret:SecretKey")
-                        ?? Environment.GetEnvironmentVariable("JWT_SECRET") //Someone added this, why, i do not know, cause the key is stored in the appsettings.json not env variables
-                        ?? throw new InvalidOperationException("A JWT secret is required for token generation."); //Throw if no secret is found
+        // Get secret from configuration first, fall back to environment variable
+        // Use helper variables to properly handle empty strings (not just null)
+        var configSecret = config.GetValue<string>("Secret:SecretKey");
+        var envSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+        var secretKey = !string.IsNullOrWhiteSpace(configSecret) ? configSecret
+                      : !string.IsNullOrWhiteSpace(envSecret) ? envSecret
+                      : throw new InvalidOperationException("A JWT secret is required for token generation.");
         var validIssuer = "api.vta.com";
         var validAudience = "user.vta.com";
 
