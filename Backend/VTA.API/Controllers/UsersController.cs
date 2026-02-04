@@ -68,7 +68,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
     [AllowAnonymous]//Allows a user to not have a JWT
     [Route("SignUp")] // = api/Users/SignUp
     [HttpPost]
-    public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
+    public async Task<ActionResult<UserLoginResponseDTO>> SignUp(UserSignupDTO userSignUp)
     {
         if (userSignUp == null)
         {
