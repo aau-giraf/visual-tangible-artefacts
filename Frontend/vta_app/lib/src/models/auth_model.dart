@@ -47,9 +47,9 @@ class AuthModel {
       if (e is AuthException) {
         rethrow;
       }
-      debugPrint('$e');
+      debugPrint('[AuthModel] Login error: $e');
       // Handle network errors and other exceptions
-      if (e.toString().contains('SocketException') || 
+      if (e.toString().contains('SocketException') ||
           e.toString().contains('Failed host lookup') ||
           e.toString().contains('Network is unreachable')) {
         throw AuthException(message: 'Ingen internetforbindelse. Tjek dit netværk og prøv igen.');
@@ -140,9 +140,9 @@ class AuthModel {
       if (e is AuthException) {
         rethrow;
       }
-      debugPrint('$e');
+      debugPrint('[AuthModel] Signup error: $e');
       // Handle network errors and other exceptions
-      if (e.toString().contains('SocketException') || 
+      if (e.toString().contains('SocketException') ||
           e.toString().contains('Failed host lookup') ||
           e.toString().contains('Network is unreachable')) {
         throw AuthException(message: 'Ingen internetforbindelse. Tjek dit netværk og prøv igen.');

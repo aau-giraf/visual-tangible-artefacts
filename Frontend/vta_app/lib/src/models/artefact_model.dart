@@ -42,9 +42,6 @@ class ArtifactModel {
       final jsonString =
           jsonEncode(dbCategories.map((e) => e.toMap()).toList());
 
-      print(
-          "Local ------------------------------------------------------- $jsonString");
-
       // Decode back to List<dynamic> to match online response structure
       var jsonResponse = jsonDecode(jsonString) as List;
 
@@ -56,7 +53,7 @@ class ArtifactModel {
           .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
       categories = newCategories;
     } catch (e) {
-      debugPrint("$e");
+      debugPrint('[ArtifactModel] Failed to fetch local categories: $e');
       rethrow;
     }
   }
@@ -172,9 +169,6 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = json.decode(response.body) as List;
 
-        print(
-            "Online ------------------------------------------------------- $jsonResponse");
-
         var newCategories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -188,7 +182,7 @@ class ArtifactModel {
                 'Mislykkedes at hente kategorier, status kode: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint("$e");
+      debugPrint('[ArtifactModel] Error: $e');
       rethrow;
     }
     try {
@@ -223,7 +217,7 @@ class ArtifactModel {
                 'Mislykkedes at poste kategori, status kode: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      debugPrint('[ArtifactModel] Error: $e');
       rethrow;
     }
   }
@@ -309,7 +303,7 @@ class ArtifactModel {
                 'Failed to post artefact, status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      debugPrint('[ArtifactModel] Error: $e');
       rethrow;
     }
   }
@@ -343,7 +337,7 @@ class ArtifactModel {
                 'Failed to delete artefact, status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      debugPrint('[ArtifactModel] Error: $e');
       rethrow;
     }
   }
@@ -412,7 +406,7 @@ class ArtifactModel {
                 'Failed to update artefact, status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      debugPrint('[ArtifactModel] Error: $e');
       rethrow;
     }
   }
@@ -437,7 +431,7 @@ class ArtifactModel {
                 'Failed to fetch most used categories with status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint("$e");
+      debugPrint('[ArtifactModel] Error: $e');
       rethrow;
     }
 

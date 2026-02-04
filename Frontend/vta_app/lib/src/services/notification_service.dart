@@ -61,12 +61,10 @@ class NotificationService {
 
   /// Show a missed call notification
   Future<void> showMissedCallNotification(String fromUserName) async {
-    debugPrint('showMissedCallNotification()');
-    debugPrint('From: $fromUserName');
-    debugPrint('Initialized: $_isInitialized');
+    debugPrint('[NotificationService] showMissedCallNotification from=$fromUserName, initialized=$_isInitialized');
 
     if (!_isInitialized) {
-      debugPrint('ERROR: NotificationService not initialized!');
+      debugPrint('[NotificationService] ERROR: Not initialized');
       return;
     }
 
@@ -107,9 +105,7 @@ class NotificationService {
 
       debugPrint('[NotificationService] Notification shown successfully');
     } catch (e, stackTrace) {
-      debugPrint('[NotificationService] ERROR showing notification:');
-      debugPrint('Error: $e');
-      debugPrint('Stack trace: $stackTrace');
+      debugPrint('[NotificationService] ERROR showing notification: $e\n$stackTrace');
     }
   }
 

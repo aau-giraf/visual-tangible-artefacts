@@ -48,23 +48,16 @@ class _CallingScreenState extends State<CallingScreen>
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    debugPrint('[CallingScreen] ═══════════════════════════════');
-    debugPrint('[CallingScreen] Initializing call');
-    debugPrint('[CallingScreen] Arguments: $args');
+    debugPrint('[CallingScreen] Initializing call with args: $args');
 
     if (args != null && !_callInitiated) {
       childId = args['childId'] as String;
       childName = args['childName'] as String;
-
-      debugPrint('[CallingScreen] ✓ childId: $childId');
-      debugPrint('[CallingScreen] ✓ childName: $childName');
-
       _callInitiated = true;
       _initiateCall();
     } else if (args == null) {
-      debugPrint('[CallingScreen] ❌ ERROR: No arguments received!');
+      debugPrint('[CallingScreen] ERROR: No arguments received');
     }
-    debugPrint('[CallingScreen] ═══════════════════════════════');
   }
 
   void _setupSignalRListeners() {
