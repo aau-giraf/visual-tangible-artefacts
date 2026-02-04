@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Moq;
 using SyncService.Hubs;
 using SyncService.Models.ArtifactAdded;
 using SyncService.Tests.Helpers;
@@ -35,7 +37,8 @@ namespace SyncService.Tests.IntegrationTests
 
         private BoardHub CreateHub()
         {
-            var hub = new BoardHub(_dbFixture.DbContext);
+            var mockLogger = new Mock<ILogger<BoardHub>>();
+            var hub = new BoardHub(_dbFixture.DbContext, mockLogger.Object);
             hub.Clients = _fixture.MockClients.Object;
             hub.Context = _fixture.MockHubCallerContext.Object;
             hub.Groups = _fixture.MockGroupManager.Object;
