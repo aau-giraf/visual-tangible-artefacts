@@ -22,7 +22,7 @@ namespace VTA.Tests.UnitTests
         {
             var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
 
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.Equal(HttpStatusCode.Created, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
             var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
@@ -35,7 +35,7 @@ namespace VTA.Tests.UnitTests
             var username = _utilities.GenerateUniqueUsername();
             var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
 
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.Equal(HttpStatusCode.Created, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
             var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/{signUpResult.userId}");
@@ -58,7 +58,7 @@ namespace VTA.Tests.UnitTests
         {
             var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync("testuser", "testpassword", "Test User");
 
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.Equal(HttpStatusCode.Created, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
             var deleteStatus = await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);

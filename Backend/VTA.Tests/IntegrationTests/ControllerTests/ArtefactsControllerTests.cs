@@ -25,7 +25,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData); // Ensure we have valid login data
 
         var content = new MultipartFormDataContent();
@@ -98,7 +98,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create a test user
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Arrange: Prepare test image data
@@ -176,8 +176,8 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "testpassword1", "Test User 1");
         var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "testpassword2", "Test User 2");
 
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus1);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus2);
         Assert.NotNull(loginData1);
         Assert.NotNull(loginData2);
 
@@ -266,7 +266,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Add two test artefacts
@@ -303,7 +303,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create a test artefact
@@ -359,7 +359,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create a test artefact
@@ -388,7 +388,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var content = new MultipartFormDataContent
@@ -415,7 +415,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
@@ -445,7 +445,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Artefacts/non-existent-id");
@@ -462,7 +462,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var content = new MultipartFormDataContent
@@ -490,7 +490,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Users/Artefacts/non-existent-id");

@@ -24,7 +24,7 @@ namespace VTA.Tests.UnitTests
             var username = _utilities.GenerateUniqueUsername();
             var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
 
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.Equal(HttpStatusCode.Created, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
             var categoryPostDTO = new CategoryPostDTO
@@ -63,7 +63,7 @@ namespace VTA.Tests.UnitTests
             var username = _utilities.GenerateUniqueUsername();
             var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
 
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.Equal(HttpStatusCode.Created, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
             var categoryPostDTO = new CategoryPostDTO
@@ -108,7 +108,7 @@ namespace VTA.Tests.UnitTests
             var username = _utilities.GenerateUniqueUsername();
             var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
 
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
+            Assert.Equal(HttpStatusCode.Created, signUpStatus);
             Assert.NotNull(signUpResult?.Token);
 
             var categoryPostDTO = new CategoryPostDTO

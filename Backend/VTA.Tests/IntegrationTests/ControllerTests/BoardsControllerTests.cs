@@ -23,7 +23,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards");
@@ -45,7 +45,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     // Create additional boards (default "Board1" already exists)
@@ -79,7 +79,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var board = await CreateTestBoard(loginData, "Test Board");
@@ -112,7 +112,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var createdBoard = await CreateTestBoard(loginData, "Test Board");
@@ -137,7 +137,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/non-existent-id");
@@ -154,11 +154,11 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username1 = _utilities.GenerateUniqueUsername();
     var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus1);
 
     var username2 = _utilities.GenerateUniqueUsername();
     var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus2);
 
     var board = await CreateTestBoard(loginData1!, "User 1 Board");
 
@@ -186,7 +186,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var boardPostDTO = new BoardPostDTO
@@ -235,7 +235,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var board = await CreateTestBoard(loginData, "Original Name");
@@ -273,7 +273,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var boardPatchDTO = new BoardPatchDTO
@@ -317,7 +317,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var board = await CreateTestBoard(loginData, "Board to Delete");
@@ -342,7 +342,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var username = _utilities.GenerateUniqueUsername();
     var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
+    Assert.Equal(HttpStatusCode.Created, signUpStatus);
     Assert.NotNull(loginData);
 
     var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Users/Boards/non-existent-id");

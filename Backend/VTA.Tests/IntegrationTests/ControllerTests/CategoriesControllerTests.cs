@@ -24,7 +24,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         var token = signUpResult?.Token;
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories");
@@ -44,7 +44,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         var token = signUpResult?.Token;
         var userId = signUpResult?.userId;
 
@@ -77,7 +77,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         var token = signUpResult?.Token;
         var userId = signUpResult?.userId;
 
@@ -119,7 +119,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         var token = signUpResult?.Token;
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/nonexistent");
@@ -139,7 +139,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         var token = signUpResult?.Token;
         var userId = signUpResult?.userId;
 
@@ -197,7 +197,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         var token = signUpResult?.Token;
 
         var patchDTO = new CategoryPatchDTO
@@ -225,13 +225,13 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username1 = _utilities.GenerateUniqueUsername();
         var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus1);
         var token1 = signUpResult1?.Token;
         var userId1 = signUpResult1?.userId;
 
         var username2 = _utilities.GenerateUniqueUsername();
         var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus2);
         var token2 = signUpResult2?.Token;
 
         var categoryPostDTO = new CategoryPostDTO
@@ -268,7 +268,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create a test category
@@ -299,7 +299,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var category = await CreateTestCategory(loginData, "Test Category");
@@ -330,7 +330,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var category = await CreateTestCategory(loginData, "Test Category");
@@ -373,7 +373,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories/non-existent-id/usage");
@@ -390,11 +390,11 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username1 = _utilities.GenerateUniqueUsername();
         var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus1);
 
         var username2 = _utilities.GenerateUniqueUsername();
         var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus2);
 
         var category = await CreateTestCategory(loginData1!, "User 1 Category");
 
@@ -422,7 +422,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create multiple categories with different usage counts
@@ -454,7 +454,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create categories with specific usage patterns
@@ -493,7 +493,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create 5 categories
@@ -526,7 +526,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
@@ -547,7 +547,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         // Create categories with same usage count but different last used dates
@@ -585,11 +585,11 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username1 = _utilities.GenerateUniqueUsername();
         var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus1);
 
         var username2 = _utilities.GenerateUniqueUsername();
         var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus2);
 
         // Create categories for both users
         var user1Category = await CreateTestCategory(loginData1!, "User 1 Category");
@@ -628,7 +628,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var category = await CreateTestCategory(loginData, "Category With Artefacts");

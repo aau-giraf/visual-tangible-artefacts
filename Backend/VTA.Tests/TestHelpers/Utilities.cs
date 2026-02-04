@@ -63,11 +63,10 @@ namespace VTA.Tests.TestHelpers
             return response.StatusCode;
         }
 
-        // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
         public async Task<string?> CreateUserAndReturnTokenAsync()
         {
             var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
-            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
+            if (signUpStatus == HttpStatusCode.Created && signUpResult != null)
             {
                 return signUpResult.Token;
             }
@@ -77,7 +76,7 @@ namespace VTA.Tests.TestHelpers
         public async Task<UserLoginResponseDTO?> CreateUserAndReturnLoginDataAsync()
         {
             var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
-            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
+            if (signUpStatus == HttpStatusCode.Created && signUpResult != null)
             {
                 return signUpResult;
             }

@@ -115,21 +115,17 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             }
         }
 
-        return await AutoSignIn(user);
+        var loginResponse = GenerateLoginResponse(user);
+        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, loginResponse);
     }
 
     /// <summary>
-    /// Requested by the front-end. The intended functionality is pretty clear.
+    /// Generates a login response DTO for a user.
     /// </summary>
-    /// <remarks>
-    /// See <see cref="UsersController.SignUp"/>Refer to the SignUp method for user registration details.
-    /// See <see cref="VTA.API.DTOs.UserLoginResponseDTO"/>Refer to the UserLoginResponseDTO for details on the login response format.
-    /// </remarks>
-    /// <param name="user">The user that was just created in SignUp.</param>
-    /// <returns>A Login object containing authentication details.</returns>
-    private async Task<ActionResult<UserLoginResponseDTO>> AutoSignIn(User user)
+    /// <param name="user">The user to generate a login response for.</param>
+    /// <returns>A UserLoginResponseDTO containing the JWT token and user ID.</returns>
+    private UserLoginResponseDTO GenerateLoginResponse(User user)
     {
-        var userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
         var token = GenerateJwt(user);
         return new UserLoginResponseDTO
         {

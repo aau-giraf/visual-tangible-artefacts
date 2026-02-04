@@ -34,7 +34,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create user and login
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Board Creator");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -94,7 +94,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create user and one artefact
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Duplicate Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -142,7 +142,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create board with duplicate artefacts
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Position Updater");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -213,7 +213,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create board with multiple instances
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Delete Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -268,7 +268,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Error Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -296,7 +296,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create board with artefacts
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Data Verifier");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -343,7 +343,7 @@ public class SavedBoardArtefactsTests : IClassFixture<CustomApplicationFactory>
         // Arrange: Create board with artefacts
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Board Deleter");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;

@@ -34,7 +34,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         // Arrange: Create user and multiple artefacts
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Performance Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -100,7 +100,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         // Arrange: Create board with multiple instances of same artefact
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Concurrency Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -178,7 +178,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         // Arrange: Test with extreme float values
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Extreme Values Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -227,7 +227,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         // Arrange: Complete lifecycle test
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Lifecycle Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
@@ -340,7 +340,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         // Arrange: Create multiple boards
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Multi Board Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
+        Assert.Equal(HttpStatusCode.Created, signUpStatus);
         Assert.NotNull(loginData);
 
         var token = loginData!.Token;
