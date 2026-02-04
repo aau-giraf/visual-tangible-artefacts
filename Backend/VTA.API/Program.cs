@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
+using VTA.API;
 using VTA.API.Extensions;
 using VTA.API.Utilities;
 using VTA.Data.Extensions;
@@ -103,17 +104,17 @@ if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);
 }
-assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Categories");
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", Constants.AssetDirectories.Categories);
 if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);
 }
-assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts");
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", Constants.AssetDirectories.Artefacts);
 if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);
 }
-assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Sounds");
+assetsDirs = Path.Combine(Directory.GetCurrentDirectory(), "Assets", Constants.AssetDirectories.Sounds);
 if (!Directory.Exists(assetsDirs))
 {
     Directory.CreateDirectory(assetsDirs);

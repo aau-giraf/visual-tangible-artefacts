@@ -22,8 +22,8 @@ public static class ImageUtilities
         string _APIEndpoint = "/api/Assets/" + _Dir + "/";
         if (image != null && image.Length > 0)
         {
-            // Add "image_" prefix to filename for clarity
-            string fileName = "image_" + artefactId + Path.GetExtension(image.FileName);
+            // Add image prefix to filename for clarity
+            string fileName = Constants.ImageFilePrefix + artefactId + Path.GetExtension(image.FileName);
             // Create user-specific folder structure: Assets/{dir}/{userId}/
             string imageFolder = Path.Combine(BaseAssetsPath, _Dir, userId);
 
@@ -83,9 +83,9 @@ public static class ImageUtilities
                 return null;
             }
 
-            // Look for files with "image_" prefix
+            // Look for files with image prefix
             var tempfile = Directory.EnumerateFiles(path)
-                        .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals("image_" + fileName, StringComparison.OrdinalIgnoreCase));
+                        .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(Constants.ImageFilePrefix + fileName, StringComparison.OrdinalIgnoreCase));
 
             file = tempfile?.Replace(path, "").Remove(0, 1);
         }

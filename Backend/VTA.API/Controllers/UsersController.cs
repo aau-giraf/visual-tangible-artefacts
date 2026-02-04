@@ -92,7 +92,7 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
         var defaultBoard = new SavedBoard
         {
             Id = Guid.NewGuid().ToString(),
-            Name = "Board1",
+            Name = Constants.DefaultBoardName,
             UserId = user.Id,
             CreatedDate = DateTime.UtcNow
         };

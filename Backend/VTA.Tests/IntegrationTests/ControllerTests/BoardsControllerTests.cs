@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using VTA.API;
 using VTA.API.DTOs;
 using VTA.Tests.TestHelpers;
 
@@ -35,7 +36,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     var boards = await response.Content.ReadFromJsonAsync<List<BoardGetDTO>>();
     Assert.NotNull(boards);
     Assert.Single(boards);
-    Assert.Equal("Board1", boards[0].Name);  // Verify default board exists
+    Assert.Equal(Constants.DefaultBoardName, boards[0].Name);  // Verify default board exists
 
     await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
@@ -48,7 +49,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(HttpStatusCode.OK, signUpStatus);
     Assert.NotNull(loginData);
 
-    // Create additional boards (default "Board1" already exists)
+    // Create additional boards (default board already exists)
     var board2 = await CreateTestBoard(loginData, "Board 2");
     var board3 = await CreateTestBoard(loginData, "Board 3");
 
@@ -93,7 +94,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     var boardList = await response.Content.ReadFromJsonAsync<List<BoardListItemDTO>>();
     Assert.NotNull(boardList);
     Assert.Equal(2, boardList.Count);
-    Assert.Contains(boardList, b => b.Name == "Board1");  // Verify default board
+    Assert.Contains(boardList, b => b.Name == Constants.DefaultBoardName);  // Verify default board
     Assert.Contains(boardList, b => b.Name == "Test Board");  // Verify created board
 
     await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);

@@ -193,11 +193,11 @@ public class SavedArtefactsController : ControllerBase
         _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
       }
 
-      // Also delete any session artefacts (category == 'Session-Artefact') that belong to this user
+      // Also delete any session artefacts that belong to this user
       if (artefactIdsOnBoard.Any())
       {
         var sessionArtefacts = await _context.Artefacts
-            .Where(a => artefactIdsOnBoard.Contains(a.ArtefactId) && a.UserId == userId && a.CategoryId == "Session-Artefact")
+            .Where(a => artefactIdsOnBoard.Contains(a.ArtefactId) && a.UserId == userId && a.CategoryId == Constants.SessionArtefactCategory)
             .ToListAsync();
 
         if (sessionArtefacts != null && sessionArtefacts.Any())
