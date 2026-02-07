@@ -9,7 +9,7 @@ Document COMPLEX files individually (class cards). Group SIMPLE files into per-f
 | Component | Source Files | Complex Cards | Summary Docs | Done |
 |-----------|-------------|---------------|-------------|------|
 | Backend | 54 | 53 (done) | — | ✅ |
-| Flutter | 119 | 18 done + 26 remaining | 12 remaining | partial |
+| Flutter | 119 | 33 done + 11 remaining | 8 done + 4 remaining | partial |
 | Admin | 29 | 4 remaining | 1 remaining | ❌ |
 
 ---
@@ -42,12 +42,13 @@ Document COMPLEX files individually (class cards). Group SIMPLE files into per-f
 - [x] **Cards:** sync_service, signalr_service, webrtc_service, call_manager, board_layout_service
 - [x] `summary_simple_services.md` (5 simple services)
 
-### Phase H: Flutter Controllers
-- [ ] **Cards:** remote_artifact_board_controller, artifact_board_controller, artifact_controller, auth_controller, elevenlabs_controller, talkingmat_controller
+### Phase H: Flutter Controllers — DONE
+- [x] **Cards:** remote_artifact_board_controller, artifact_board_controller, artifact_controller, auth_controller, elevenlabs_controller, talkingmat_controller
+- [x] `summary_simple_controllers.md` (board_controller — empty, linear_board_controller)
 
-### Phase I: Flutter UI Widgets
-- [ ] **Cards:** add_item_popup, option_wheel, talking_mat, linear_board, board_artifact, categories_widget, addPicture, caregiver_request_widget, text_to_speech_widget
-- [ ] `summary_simple_widgets.md` (~8 simple widget files)
+### Phase I: Flutter UI Widgets — PARTIAL
+- [x] **Cards:** add_item_popup, option_wheel, talking_mat, linear_board, board_artifact, categories_widget, addPicture, caregiver_request_widget, text_to_speech_widget
+- [ ] `summary_simple_widgets.md` (~10 simple widget files)
 
 ### Phase J: Flutter UI Screens & Views
 - [ ] **Cards:** video_call_screen, artifact_board_screen, incomming_call_screen, remote_board_screen, remote_session_screen, calling_screen
