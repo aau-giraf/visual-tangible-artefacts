@@ -32,11 +32,11 @@ Document COMPLEX files individually (class cards). Group SIMPLE files into per-f
 - [x] `summary_models_simple.md` (board_layout, board_model, elevenlabs_model — data classes)
 - [x] `summary_modelsDTOs.md` (9 simple DTO files)
 
-### Phase F: Flutter Utilities & Singletons
-- [ ] **Cards:** api_provider, elevenlabs_service, elevenlabs_config, data_repository
-- [ ] `summary_singletons.md` (2 trivial files)
-- [ ] `summary_utilities_audio.md` (7 files)
-- [ ] `summary_utilities_misc.md` (~6 files: extensions, json, platform, camera, ImageData, voice_config_validator)
+### Phase F: Flutter Utilities & Singletons — DONE
+- [x] **Cards:** api_provider, elevenlabs_service, data_repository
+- [x] `summary_singletons.md` (2 trivial files)
+- [x] `summary_utilities_audio.md` (7 files)
+- [x] `summary_utilities_misc.md` (~7 files incl. elevenlabs_config — SharedPreferences wrapper, not complex)
 
 ### Phase G: Flutter Services
 - [ ] **Cards:** sync_service, signalr_service, webrtc_service, call_manager, board_layout_service
