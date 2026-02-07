@@ -570,7 +570,7 @@ class _OptionWheelState extends State<OptionWheel>
                   final token = GetIt.I.get<Token>();
 
                   final response = await apiProvider.postAsJson(
-                    'Users/Artefacts/generate-speech-and-save',
+                    'Artefacts/generate-speech-and-save',
                     headers: {'Authorization': 'Bearer ${token.value}'},
                     body: {
                       'artefactId': widget.artefact.artefactId,

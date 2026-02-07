@@ -13,7 +13,7 @@ namespace VTA.API.Controllers;
 /// Provides endpoints to list, retrieve, create, update and delete saved boards.
 /// </summary>
 [Authorize]
-[Route("api/Users/Boards")]
+[Route("api/Boards")]
 [ApiController]
 public class BoardsController : ControllerBase
 {
@@ -28,7 +28,7 @@ public class BoardsController : ControllerBase
     _context = context;
   }
 
-  // GET: api/Users/Boards
+  // GET: api/Boards
   /// <summary>
   /// Gets all boards that the authenticated user owns
   /// </summary>
@@ -62,7 +62,7 @@ public class BoardsController : ControllerBase
     return Ok(boardDTOs);
   }
 
-  // GET: api/Users/Boards/list
+  // GET: api/Boards/list
   /// <summary>
   /// Gets a lightweight list of board IDs, names, and thumbnails for the authenticated user
   /// </summary>
@@ -92,7 +92,7 @@ public class BoardsController : ControllerBase
     return Ok(boardListItems);
   }
 
-  // GET: api/Users/Boards/{boardId}
+  // GET: api/Boards/{boardId}
   /// <summary>
   /// Gets a specific board with all its saved artefacts
   /// </summary>
@@ -139,7 +139,7 @@ public class BoardsController : ControllerBase
     return Ok(response);
   }
 
-  // POST: api/Users/Boards
+  // POST: api/Boards
   /// <summary>
   /// Creates a new board for the authenticated user. Accepts either the simple
   /// `BoardPostDTO` shape or the richer `SaveBoardRequestDTO` with artefact layouts.
@@ -306,7 +306,7 @@ public class BoardsController : ControllerBase
     return Ok(boardDTO);
   }
 
-  // PATCH: api/Users/Boards
+  // PATCH: api/Boards
   /// <summary>
   /// Updates a board's information
   /// </summary>
@@ -365,7 +365,7 @@ public class BoardsController : ControllerBase
     return NoContent();
   }
 
-  // PUT: api/Users/Boards/{boardId}
+  // PUT: api/Boards/{boardId}
   /// <summary>
   /// Update an existing board layout (name and artefacts). Uses SaveBoardRequestDTO format.
   /// </summary>
@@ -500,7 +500,7 @@ public class BoardsController : ControllerBase
     }
   }
 
-  // PATCH: api/Users/Boards/{boardId}/artefacts
+  // PATCH: api/Boards/{boardId}/artefacts
   /// <summary>
   /// Update the position and size of a specific artefact on a board
   /// </summary>
@@ -613,7 +613,7 @@ public class BoardsController : ControllerBase
     }
   }
 
-  // DELETE: api/Users/Boards/{boardId}/artefacts/{savedArtefactId}
+  // DELETE: api/Boards/{boardId}/artefacts/{savedArtefactId}
   /// <summary>
   /// Remove a specific artefact from a board
   /// </summary>
@@ -671,7 +671,7 @@ public class BoardsController : ControllerBase
     }
   }
 
-  // DELETE: api/Users/Boards/{boardId}/artefacts
+  // DELETE: api/Boards/{boardId}/artefacts
   /// <summary>
   /// Clear all artefacts from a board (without deleting the board itself)
   /// </summary>
@@ -717,7 +717,7 @@ public class BoardsController : ControllerBase
     }
   }
 
-  // DELETE: api/Users/Boards/{boardId}
+  // DELETE: api/Boards/{boardId}
   /// <summary>
   /// Deletes a board and all its saved artefacts
   /// </summary>

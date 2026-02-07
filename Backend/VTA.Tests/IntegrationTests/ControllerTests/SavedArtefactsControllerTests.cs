@@ -12,7 +12,7 @@ namespace VTA.Tests.IntegrationTests.ControllerTests;
 /// Provides endpoints to update artefact layout, remove artefacts from boards, and clear all artefacts from a board.
 /// </summary>
 [Authorize]
-[Route("api/Users/Boards/{boardId}/SavedArtefacts")]
+[Route("api/Boards/{boardId}/SavedArtefacts")]
 [ApiController]
 public class SavedArtefactsController : ControllerBase
 {
@@ -27,7 +27,7 @@ public class SavedArtefactsController : ControllerBase
     _context = context;
   }
 
-  // PATCH: api/Users/Boards/{boardId}/SavedArtefacts
+  // PATCH: api/Boards/{boardId}/SavedArtefacts
   /// <summary>
   /// Updates the position and size of a specific artefact on a board
   /// </summary>
@@ -104,7 +104,7 @@ public class SavedArtefactsController : ControllerBase
     }
   }
 
-  // DELETE: api/Users/Boards/{boardId}/SavedArtefacts/{savedArtefactId}
+  // DELETE: api/Boards/{boardId}/SavedArtefacts/{savedArtefactId}
   /// <summary>
   /// Removes a specific artefact from a board
   /// </summary>
@@ -157,7 +157,7 @@ public class SavedArtefactsController : ControllerBase
     }
   }
 
-  // DELETE: api/Users/Boards/{boardId}/SavedArtefacts
+  // DELETE: api/Boards/{boardId}/SavedArtefacts
   /// <summary>
   /// Clears all artefacts from a board (without deleting the board itself)
   /// </summary>

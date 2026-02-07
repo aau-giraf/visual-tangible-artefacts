@@ -12,7 +12,7 @@ namespace VTA.API.Controllers;
 /// Controller for managing categories owned by a user.
 /// </summary>
 [Authorize]
-[Route("api/Users/Categories")]//We designed the route so that *Users* OWNS *Categories* and this route reflects it
+[Route("api/Categories")]
 [ApiController]
 public class CategoriesController(VTAContext context) : ControllerBase
 {

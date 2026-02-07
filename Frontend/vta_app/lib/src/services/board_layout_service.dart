@@ -18,7 +18,7 @@ class BoardLayoutService {
   Future<List<BoardLayoutResponse>?> getBoards() async {
     try {
       final response = await _apiProvider.fetchAsJson(
-        'Users/Boards',
+        'Boards',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -42,7 +42,7 @@ class BoardLayoutService {
   Future<BoardLayoutResponse?> getBoard(String boardId) async {
     try {
       final response = await _apiProvider.fetchAsJson(
-        'Users/Boards/$boardId',
+        'Boards/$boardId',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -65,7 +65,7 @@ class BoardLayoutService {
       // debug logs removed
 
       final response = await _apiProvider.postAsJson(
-        'Users/Boards',
+        'Boards',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -90,7 +90,7 @@ class BoardLayoutService {
       String boardId, SaveBoardRequest request) async {
     try {
       final response = await _apiProvider.putAsJson(
-        'Users/Boards/$boardId',
+        'Boards/$boardId',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -113,7 +113,7 @@ class BoardLayoutService {
       String boardId, UpdateArtefactLayoutRequest request) async {
     try {
       final response = await _apiProvider.patchAsJson(
-        'Users/Boards/$boardId/artefacts',
+        'Boards/$boardId/artefacts',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -131,7 +131,7 @@ class BoardLayoutService {
   Future<bool> deleteBoard(String boardId) async {
     try {
       final response = await _apiProvider.delete(
-        'Users/Boards/$boardId',
+        'Boards/$boardId',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -149,7 +149,7 @@ class BoardLayoutService {
       String boardId, String savedArtefactId) async {
     try {
       final response = await _apiProvider.delete(
-        'Users/Boards/$boardId/artefacts/$savedArtefactId',
+        'Boards/$boardId/artefacts/$savedArtefactId',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -166,7 +166,7 @@ class BoardLayoutService {
   Future<bool> deleteAllSavedArtefacts(String boardId) async {
     try {
       final response = await _apiProvider.delete(
-        'Users/Boards/$boardId/artefacts',
+        'Boards/$boardId/artefacts',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },

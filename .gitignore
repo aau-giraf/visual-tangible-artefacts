@@ -413,9 +413,6 @@ Backend/VTA.API/Assets/Artefacts
 Backend/VTA.API/Assets/Sounds
 Backend/VTA.API/Assets/Categories
 
-# Claude Code documentation
-CLAUDE.md
-
 # Docker environment variables
 .env
 

@@ -150,7 +150,7 @@ class SyncService {
       // Format the date as ISO 8601 for the query parameter
       final sinceParam = since.toUtc().toIso8601String();
       final apiResponse = await _apiProvider.fetchAsJson(
-        'Users/Sync/changes?since=$sinceParam',
+        'Sync/changes?since=$sinceParam',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -264,7 +264,7 @@ class SyncService {
       
       // 1. Sync artefacts (bidirectional)
       final artefactsResponse = await _apiProvider.fetchAsJson(
-        'Users/Artefacts',
+        'Artefacts',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       
@@ -283,7 +283,7 @@ class SyncService {
 
       // 2. Sync categories (bidirectional)
       final categoriesResponse = await _apiProvider.fetchAsJson(
-        'Users/Categories',
+        'Categories',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       
@@ -302,7 +302,7 @@ class SyncService {
 
       // 3. Sync boards (bidirectional)
       final boardsResponse = await _apiProvider.fetchAsJson(
-        'Users/Boards',
+        'Boards',
         headers: {'Authorization': 'Bearer ${_token.value}'},
       );
       
@@ -411,7 +411,7 @@ class SyncService {
       final sinceParam = since.toUtc().toIso8601String();
       
       final response = await _apiProvider.fetchAsJson(
-        'Users/Sync/summary?since=$sinceParam',
+        'Sync/summary?since=$sinceParam',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
         },
@@ -785,7 +785,7 @@ class SyncService {
   Future<String?> _uploadArtefact(ArtefactDB artefact) async {
     try {
       // Prepare multipart request
-      final uri = Uri.parse('${_apiProvider.baseUrl}Users/Artefacts');
+      final uri = Uri.parse('${_apiProvider.baseUrl}Artefacts');
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer ${_token.value}';
       
@@ -842,7 +842,7 @@ class SyncService {
   Future<void> _uploadCategory(CategoryDB category) async {
     try {
       // Prepare multipart request
-      final uri = Uri.parse('${_apiProvider.baseUrl}Users/Categories');
+      final uri = Uri.parse('${_apiProvider.baseUrl}Categories');
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer ${_token.value}';
       
@@ -874,7 +874,7 @@ class SyncService {
   Future<void> _uploadBoard(SavedBoardDB board) async {
     try {
       final response = await _apiProvider.postAsJson(
-        'Users/Boards',
+        'Boards',
         headers: {
           'Authorization': 'Bearer ${_token.value}',
           'Content-Type': 'application/json',

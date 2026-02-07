@@ -37,7 +37,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         content.Add(new StringContent("0"), "ArtefactIndex");  // Add missing required field
         content.Add(new StringContent("Test Name"), "Name");   // Optional but good to test
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts")
         {
             Content = content
         };
@@ -62,7 +62,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             options
         );
 
-        var getArtefactRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+        var getArtefactRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Artefacts/{artefact.ArtefactId}");
         getArtefactRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getArtefactResponse = await _client.SendAsync(getArtefactRequest);
 
@@ -112,7 +112,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         content.Add(new StringContent("File Path Test Artefact"), "Name");
 
         // Act: Upload the artefact
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts")
         {
             Content = content
         };
@@ -193,7 +193,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         content1.Add(new StringContent("0"), "ArtefactIndex");
         content1.Add(new StringContent("User 1 Artefact"), "Name");
 
-        var request1 = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts") { Content = content1 };
+        var request1 = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts") { Content = content1 };
         request1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData1.Token);
         var response1 = await _client.SendAsync(request1);
 
@@ -206,7 +206,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         content2.Add(new StringContent("0"), "ArtefactIndex");
         content2.Add(new StringContent("User 2 Artefact"), "Name");
 
-        var request2 = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts") { Content = content2 };
+        var request2 = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts") { Content = content2 };
         request2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2.Token);
         var response2 = await _client.SendAsync(request2);
 
@@ -273,7 +273,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var artefacts = await CreateTestArtefacts(loginData, 2);
         Assert.Equal(2, artefacts.Count);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Artefacts");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Artefacts");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -322,7 +322,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent("Updated Name"), "Name" }
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/Users/Artefacts");
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/Artefacts");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         request.Content = content;
 
@@ -330,7 +330,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         // Verify the update
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Artefacts/{artefact.ArtefactId}");
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse = await _client.SendAsync(getRequest);
 
@@ -366,14 +366,14 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var artefacts = await CreateTestArtefacts(loginData, 1);
         var artefact = artefacts[0];
 
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Artefacts/{artefact.ArtefactId}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         // Verify the artefact is deleted
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Artefacts/{artefact.ArtefactId}");
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse = await _client.SendAsync(getRequest);
 
@@ -398,7 +398,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent("Test Name"), "Name" }
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts")
         {
             Content = content
         };
@@ -428,7 +428,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         };
         imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts")
         {
             Content = content
         };
@@ -448,7 +448,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         Assert.NotNull(loginData);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Artefacts/non-existent-id");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Artefacts/non-existent-id");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -473,7 +473,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent("Updated Name"), "Name" }
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Artefacts")
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Artefacts")
         {
             Content = content
         };
@@ -493,7 +493,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         Assert.NotNull(loginData);
 
-        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Users/Artefacts/non-existent-id");
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Artefacts/non-existent-id");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -505,7 +505,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestGetArtefacts_WithoutAuthorization_ShouldReturnUnauthorized()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Artefacts");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Artefacts");
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -526,7 +526,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             content.Add(new StringContent(categoryId), "CategoryId");
             content.Add(new StringContent($"Test Artefact {i}"), "Name");
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts")
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts")
             {
                 Content = content
             };
@@ -555,7 +555,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         foreach (var artefact in artefacts)
         {
-            var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Artefacts/{artefact.ArtefactId}");
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Artefacts/{artefact.ArtefactId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             await _client.SendAsync(request);
 
@@ -582,7 +582,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
         };
 
-        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         postRequest.Content = content;
         var postResponse = await _client.SendAsync(postRequest);
