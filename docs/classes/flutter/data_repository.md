@@ -24,15 +24,15 @@ High-level API repository layer providing typed data access for auth, artefacts,
 ## Class: `ArtifactRepository` extends `ApiDataRepository`
 | Method | Description |
 |--------|-------------|
-| `fetchCategories(token)` | GET `Users/Categories`, sorted by `categoryIndex` |
-| `addCategory(category, token)` | POST `Users/Categories` (multipart) |
-| `updateCategory(category, token)` | PATCH `Users/Categories/` (multipart) |
-| `deleteCategory(categoryId, token)` | DELETE `Users/Categories/{id}` |
-| `fetchArtefact(artefactId, token)` | GET `Users/Artefacts/{id}` |
-| `addArtifact(artefact, token)` | POST `Users/Artefacts` (multipart) |
-| `deleteArtifact(artifactId, token)` | DELETE `Users/Artefacts/{id}` |
-| `fetchMostUsedCategories(token, limit)` | GET `Users/Categories/most-used?limit=N` |
-| `trackCategoryUsage(categoryId, token)` | POST `Users/Categories/{id}/usage` |
+| `fetchCategories(token)` | GET `Categories`, sorted by `categoryIndex` |
+| `addCategory(category, token)` | POST `Categories` (multipart) |
+| `updateCategory(category, token)` | PATCH `Categories/` (multipart) |
+| `deleteCategory(categoryId, token)` | DELETE `Categories/{id}` |
+| `fetchArtefact(artefactId, token)` | GET `Artefacts/{id}` |
+| `addArtifact(artefact, token)` | POST `Artefacts` (multipart) |
+| `deleteArtifact(artifactId, token)` | DELETE `Artefacts/{id}` |
+| `fetchMostUsedCategories(token, limit)` | GET `Categories/most-used?limit=N` |
+| `trackCategoryUsage(categoryId, token)` | POST `Categories/{id}/usage` |
 
 ## Class: `UserRepository` extends `ApiDataRepository`
 | Method | Description |
@@ -41,7 +41,7 @@ High-level API repository layer providing typed data access for auth, artefacts,
 | `fetchAllUsers(token)` | GET `Users` — returns list (same endpoint, different parse) |
 | `fetchRelatedContacts(token)` | GET `Contacts` — connected caregivers/children |
 | `updateUserSettings(token, nameVisible?, fieldCount?)` | PATCH `Users` |
-| `bulkUpdateArtefactsNameShown(token, nameShown)` | PATCH `Users/Artefacts/bulk-update-name-shown` |
+| `bulkUpdateArtefactsNameShown(token, nameShown)` | PATCH `Artefacts/bulk-update-name-shown` |
 
 ## Design Notes
 - **Duplication:** `ArtifactModel` and `ArtifactRepository` (this file) duplicate much of the same API logic. `ArtifactModel` also caches in memory; this class does not.

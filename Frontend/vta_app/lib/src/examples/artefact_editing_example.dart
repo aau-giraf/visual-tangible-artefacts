@@ -24,11 +24,9 @@ class _ArtefactEditingExamplePageState extends State<ArtefactEditingExamplePage>
   @override
   void initState() {
     super.initState();
-    // Initialize ElevenLabs controller when the page loads
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final controller = context.read<ElevenLabsController>();
-      await controller.initialize();
-    });
+    // The ElevenLabsController should be initialised at login time via
+    // controller.initialize(apiProvider, token). By the time this page
+    // is reached the controller is already configured.
   }
 
   @override

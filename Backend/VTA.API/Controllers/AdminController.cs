@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DTOs;
+using VTA.API.Utilities;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
 
@@ -81,14 +82,12 @@ public class AdminController : ControllerBase
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await UserCleanupHelper.DeleteUserWithAssets(_context, id);
+
         if (user == null)
         {
             return NotFound();
         }
-
-        _context.Users.Remove(user);
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }

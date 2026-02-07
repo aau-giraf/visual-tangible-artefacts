@@ -32,7 +32,7 @@ Radial context menu displayed on long-press of a board artefact. Provides action
 
 ### Sound Change Dialogs (`_showChangeSoundDialog`)
 Three options via `_SoundOption` enum:
-1. **Tekst til tale** — text input + voice selector (male/female) → POST to `Users/Artefacts/generate-speech-and-save` with artefactId → saves directly server-side
+1. **Tekst til tale** — text input + voice selector (male/female) → POST to `Artefacts/generate-speech-and-save` with artefactId → saves directly server-side
 2. **Optag lyd** — microphone recording (AAC-LC) with timer display → uploads via `ArtefactController.updateArtefact`
 3. **Upload lydfil** — `FilePicker` audio → uploads via `ArtefactController.updateArtefact`
 

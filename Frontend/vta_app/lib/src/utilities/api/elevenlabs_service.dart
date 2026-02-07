@@ -1,49 +1,40 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:vta_app/src/models/elevenlabs_model.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 
-/// Service class for interacting with ElevenLabs API
+/// Service class for text-to-speech via the VTA backend proxy.
+///
+/// All TTS requests go through the backend (ArtefactsController), which holds
+/// the ElevenLabs API key server-side. The client never sees or stores the key.
 class ElevenLabsService {
-  static const String _baseUrl = 'https://api.elevenlabs.io/v1';
-  static const String _defaultVoiceId = 'Bj9UqZbhQsanLzgalpEG'; // Custom selected voice
-  
-  final String apiKey;
   final ApiProvider _apiProvider;
+  final String _token;
 
   ElevenLabsService({
-    required this.apiKey,
-  }) : _apiProvider = ApiProvider(baseUrl: _baseUrl);
+    required ApiProvider apiProvider,
+    required String token,
+  })  : _apiProvider = apiProvider,
+        _token = token;
 
-  /// Generate speech from text using ElevenLabs TTS
+  Map<String, String> get _authHeaders => {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      };
+
+  /// Generate speech from text via the backend TTS proxy.
+  /// Returns raw audio bytes on success.
   Future<ElevenLabsResponse> generateSpeech({
     required String text,
     String? voiceId,
-    VoiceSettings? voiceSettings,
-    String? modelId,
-    int? seed,
   }) async {
     try {
-      final String effectiveVoiceId = voiceId ?? _defaultVoiceId;
-      final String endpoint = '/text-to-speech/$effectiveVoiceId';
-      
-      final ElevenLabsRequest request = ElevenLabsRequest(
-        text: text,
-        modelId: modelId ?? 'eleven_v3',
-        voiceSettings: voiceSettings ?? VoiceSettings(),
-        seed: seed,
-      );
-
-      final Map<String, String> headers = {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': apiKey,
-      };
-
       final response = await _apiProvider.postAsJson(
-        endpoint,
-        headers: headers,
-        body: request.toJson(),
+        'Artefacts/generate-speech-simple',
+        headers: _authHeaders,
+        body: {
+          'text': text,
+          if (voiceId != null) 'voiceId': voiceId,
+        },
       );
 
       if (response != null && response.ok) {
@@ -52,178 +43,44 @@ class ElevenLabsService {
       } else {
         final String errorMessage = response != null
             ? 'Failed to generate speech: ${response.statusCode} ${response.reasonPhrase}'
-            : 'Failed to connect to ElevenLabs API';
+            : 'Failed to connect to TTS backend';
         return ElevenLabsResponse.error(errorMessage, response?.statusCode);
       }
     } catch (e) {
-      return ElevenLabsResponse.error('Error generating speech: ${e.toString()}');
+      return ElevenLabsResponse.error(
+          'Error generating speech: ${e.toString()}');
     }
   }
 
-  /// Get available voices from ElevenLabs
-  Future<List<ElevenLabsVoice>?> getVoices() async {
-    try {
-      const String endpoint = '/voices';
-      
-      final Map<String, String> headers = {
-        'Accept': 'application/json',
-        'xi-api-key': apiKey,
-      };
-
-      final response = await _apiProvider.fetchAsJson(
-        endpoint,
-        headers: headers,
-      );
-
-      if (response != null && response.ok) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        final List<dynamic> voicesJson = jsonResponse['voices'] as List<dynamic>;
-        
-        return voicesJson
-            .map((voiceJson) => ElevenLabsVoice.fromJson(voiceJson as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw ElevenLabsException(
-          message: 'Failed to fetch voices: ${response?.statusCode} ${response?.reasonPhrase}',
-          statusCode: response?.statusCode,
-        );
-      }
-    } catch (e) {
-      throw ElevenLabsException(
-        message: 'Error fetching voices: ${e.toString()}',
-      );
-    }
-  }
-
-  /// Get user information and quota from ElevenLabs
-  Future<Map<String, dynamic>?> getUserInfo() async {
-    try {
-      const String endpoint = '/user';
-      
-      final Map<String, String> headers = {
-        'Accept': 'application/json',
-        'xi-api-key': apiKey,
-      };
-
-      final response = await _apiProvider.fetchAsJson(
-        endpoint,
-        headers: headers,
-      );
-
-      if (response != null && response.ok) {
-        return json.decode(response.body) as Map<String, dynamic>;
-      } else {
-        throw ElevenLabsException(
-          message: 'Failed to fetch user info: ${response?.statusCode} ${response?.reasonPhrase}',
-          statusCode: response?.statusCode,
-        );
-      }
-    } catch (e) {
-      throw ElevenLabsException(
-        message: 'Error fetching user info: ${e.toString()}',
-      );
-    }
-  }
-
-  /// Get a specific voice by ID
-  Future<ElevenLabsVoice?> getVoice(String voiceId) async {
-    try {
-      final String endpoint = '/voices/$voiceId';
-      
-      final Map<String, String> headers = {
-        'Accept': 'application/json',
-        'xi-api-key': apiKey,
-      };
-
-      final response = await _apiProvider.fetchAsJson(
-        endpoint,
-        headers: headers,
-      );
-
-      if (response != null && response.ok) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        return ElevenLabsVoice.fromJson(jsonResponse);
-      } else {
-        throw ElevenLabsException(
-          message: 'Failed to fetch voice: ${response?.statusCode} ${response?.reasonPhrase}',
-          statusCode: response?.statusCode,
-        );
-      }
-    } catch (e) {
-      throw ElevenLabsException(
-        message: 'Error fetching voice: ${e.toString()}',
-      );
-    }
-  }
-
-  /// Validate API key by making a simple request
-  Future<bool> validateApiKey() async {
-    try {
-      final userInfo = await getUserInfo();
-      return userInfo != null;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Generate speech and save to file system (for backend integration)
-  Future<ElevenLabsResponse> generateSpeechForArtefact({
+  /// Generate speech and save it to an existing artefact on the backend.
+  Future<ElevenLabsResponse> generateSpeechAndSave({
     required String text,
     required String artefactId,
     String? voiceId,
-    VoiceSettings? voiceSettings,
-    String? modelId,
   }) async {
     try {
-      final response = await generateSpeech(
-        text: text,
-        voiceId: voiceId,
-        voiceSettings: voiceSettings,
-        modelId: modelId,
+      final response = await _apiProvider.postAsJson(
+        'Artefacts/generate-speech-and-save',
+        headers: _authHeaders,
+        body: {
+          'text': text,
+          'artefactId': artefactId,
+          if (voiceId != null) 'voiceId': voiceId,
+        },
       );
 
-      if (response.success && response.audioData != null) {
-        // Here you would typically upload the audio data to your backend
-        // For now, we'll return the response with the audio data
-        return response;
+      if (response != null && response.ok) {
+        // Audio saved server-side; no bytes to return
+        return ElevenLabsResponse.success(Uint8List(0));
       } else {
-        return response;
+        final String errorMessage = response != null
+            ? 'Failed to generate and save speech: ${response.statusCode} ${response.reasonPhrase}'
+            : 'Failed to connect to TTS backend';
+        return ElevenLabsResponse.error(errorMessage, response?.statusCode);
       }
     } catch (e) {
-      return ElevenLabsResponse.error('Error generating speech for artefact: ${e.toString()}');
+      return ElevenLabsResponse.error(
+          'Error generating speech for artefact: ${e.toString()}');
     }
   }
-}
-
-/// Default voice configurations for different use cases
-class ElevenLabsVoicePresets {
-  static const Map<String, String> popularVoices = {
-    'Adam': 'pNInz6obpgDQGcFmaJgB',
-    'Antoni': 'ErXwobaYiN019PkySvjV',
-    'Arnold': 'VR6AewLTigWG4xSOukaG',
-    'Bella': 'EXAVITQu4vr4xnSDxMaL',
-    'Domi': 'AZnzlk1XvdvUeBnXmlld',
-    'Elli': 'MF3mGyEYCl7XYWbV9V6O',
-    'Josh': 'TxGEqnHWrfWFTfGW9XjX',
-    'Rachel': '21m00Tcm4TlvDq8ikWAM',
-    'Sam': 'yoZ06aMxZJJ28mfd3POQ',
-  };
-
-  static VoiceSettings get balanced => VoiceSettings(
-    stability: 0.5,
-    similarityBoost: 0.75,
-    useSpeakerBoost: true,
-  );
-
-  static VoiceSettings get stable => VoiceSettings(
-    stability: 0.8,
-    similarityBoost: 0.5,
-    useSpeakerBoost: true,
-  );
-
-  static VoiceSettings get expressive => VoiceSettings(
-    stability: 0.3,
-    similarityBoost: 0.9,
-    useSpeakerBoost: true,
-  );
 }

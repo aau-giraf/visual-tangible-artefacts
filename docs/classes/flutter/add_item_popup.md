@@ -25,10 +25,10 @@ Modal dialog for creating/editing artefacts and categories. Handles name input, 
 Opens a nested sound modal dialog with three options:
 1. **Microphone recording** — uses `record` package via `createRecorder()` factory; shows live amplitude level bar (`_LevelBar` widget) or sine-wave pulse fallback; saves as `.m4a` (AAC-LC)
 2. **File upload** — `FilePicker.platform.pickFiles(type: FileType.audio)`
-3. **AI Text-to-Speech** — text input (max 50 chars) → voice selector (male/female via ElevenLabs voice IDs) → calls backend `Users/Artefacts/generate-speech-simple` endpoint → receives audio bytes
+3. **AI Text-to-Speech** — text input (max 50 chars) → voice selector (male/female via ElevenLabs voice IDs) → calls backend `Artefacts/generate-speech-simple` endpoint → receives audio bytes
 
 ### TTS Generation (`_generateSpeechViaBackend`)
-- POST to `{baseUrl}Users/Artefacts/generate-speech-simple` with `{text, voiceId}`
+- POST to `{baseUrl}Artefacts/generate-speech-simple` with `{text, voiceId}`
 - Authenticated via JWT Bearer token
 - Voice ID resolved through `VoiceConfigValidator`
 - Persists selected voice to `ElevenLabsConfig` on success

@@ -166,7 +166,7 @@ class ArtifactModel {
   Future<void> fetchAndUpdateCategories({required String token}) async {
     try {
       var response =
-          await apiProvider.fetchAsJson("Users/Categories", headers: {
+          await apiProvider.fetchAsJson("Categories", headers: {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
@@ -202,7 +202,7 @@ class ArtifactModel {
   Future<void> postCategory(Category category, {required String token}) async {
     try {
       var response = await apiProvider.sendAsMultiPart(
-          'POST', "Users/Categories",
+          'POST', "Categories",
           body: category.toJson(), headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         var jsonResponse = jsonDecode(response.body);
@@ -232,7 +232,7 @@ class ArtifactModel {
       {required String token}) async {
     try {
       var response = await apiProvider.delete(
-          'Users/Categories/${category.categoryId}',
+          'Categories/${category.categoryId}',
           headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         categories
@@ -265,7 +265,7 @@ class ArtifactModel {
         body['Sound'] = artefact.sound;
       }
       var response = await apiProvider.sendAsMultiPart(
-          'POST', "Users/Artefacts",
+          'POST', "Artefacts",
           body: body, headers: {'Authorization': 'Bearer $token'});
 
       if (response != null && response.ok) {
@@ -318,7 +318,7 @@ class ArtifactModel {
       {required String token}) async {
     try {
       var response = await apiProvider.delete(
-          "Users/Artefacts/${artefact.artefactId}",
+          "Artefacts/${artefact.artefactId}",
           headers: {'Authorization': 'Bearer $token'});
       if (response != null && response.ok) {
         if (categories != null) {
@@ -375,7 +375,7 @@ class ArtifactModel {
       }
 
       var response = await apiProvider.sendAsMultiPart(
-          'PATCH', "Users/Artefacts",
+          'PATCH', "Artefacts",
           body: body, headers: {'Authorization': 'Bearer $token'});
 
       if (response != null && response.ok) {
@@ -390,7 +390,7 @@ class ArtifactModel {
           if (index != -1) {
             // Fetch the updated artefact to get the new soundUrl if sound was updated
             var getResponse = await apiProvider.fetchAsJson(
-                "Users/Artefacts/${artefact.artefactId}",
+                "Artefacts/${artefact.artefactId}",
                 headers: {'Authorization': 'Bearer $token'});
             if (getResponse != null && getResponse.ok) {
               var updatedArtefact =
@@ -421,7 +421,7 @@ class ArtifactModel {
       {required String token, int limit = 3}) async {
     try {
       var response = await apiProvider
-          .fetchAsJson("Users/Categories/most-used?limit=$limit", headers: {
+          .fetchAsJson("Categories/most-used?limit=$limit", headers: {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
@@ -453,7 +453,7 @@ class ArtifactModel {
       {required String token}) async {
     try {
       var response = await apiProvider.postAsJson(
-          "Users/Categories/$categoryId/usage",
+          "Categories/$categoryId/usage",
           headers: {'Authorization': 'Bearer $token'},
           body: {});
 

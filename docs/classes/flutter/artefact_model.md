@@ -22,14 +22,14 @@ Central orchestrator for artefact and category data. Manages CRUD operations aga
 
 | Method | Description |
 |--------|-------------|
-| `fetchAndUpdateCategories(token)` | GET `Users/Categories`, parses JSON, sorts by `categoryIndex`, updates `categories` cache |
-| `postCategory(category, token)` | POST `Users/Categories` as multipart, adds returned category to cache |
-| `deleteCategory(category, token)` | DELETE `Users/Categories/{id}`, removes from cache |
-| `postArtefact(artefact, token)` | POST `Users/Artefacts` as multipart (handles `Sound` as `Uint8List`), adds to correct category in cache. Special-cases `Session-Artefact` categoryId (not added to cache) |
-| `deleteArtefact(artefact, token)` | DELETE `Users/Artefacts/{id}`, removes from category in cache |
-| `updateArtefact(artefact, token)` | PATCH `Users/Artefacts` as multipart, then re-fetches the artefact via GET to get updated URLs |
-| `fetchAndUpdateMostUsedCategories(token, limit)` | GET `Users/Categories/most-used?limit=N` |
-| `trackCategoryUsage(categoryId, token)` | POST `Users/Categories/{id}/usage`, refreshes most-used list |
+| `fetchAndUpdateCategories(token)` | GET `Categories`, parses JSON, sorts by `categoryIndex`, updates `categories` cache |
+| `postCategory(category, token)` | POST `Categories` as multipart, adds returned category to cache |
+| `deleteCategory(category, token)` | DELETE `Categories/{id}`, removes from cache |
+| `postArtefact(artefact, token)` | POST `Artefacts` as multipart (handles `Sound` as `Uint8List`), adds to correct category in cache. Special-cases `Session-Artefact` categoryId (not added to cache) |
+| `deleteArtefact(artefact, token)` | DELETE `Artefacts/{id}`, removes from category in cache |
+| `updateArtefact(artefact, token)` | PATCH `Artefacts` as multipart, then re-fetches the artefact via GET to get updated URLs |
+| `fetchAndUpdateMostUsedCategories(token, limit)` | GET `Categories/most-used?limit=N` |
+| `trackCategoryUsage(categoryId, token)` | POST `Categories/{id}/usage`, refreshes most-used list |
 | `clearCache()` | Empties both category lists |
 
 ### Private Methods (Local DB — all commented out at call sites)

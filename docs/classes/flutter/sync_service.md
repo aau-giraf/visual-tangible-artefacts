@@ -22,11 +22,11 @@ Core bidirectional data synchronization between the local SQLite database and th
 
 | Method | Description |
 |--------|-------------|
-| `checkForChanges(since)` | GET `Users/Sync/changes?since=`, returns `SyncCheckResponse`, updates local DB |
+| `checkForChanges(since)` | GET `Sync/changes?since=`, returns `SyncCheckResponse`, updates local DB |
 | `checkLocalChanges(since)` | Queries local SQLite for changes since date (no API call) |
 | `syncFromServer(since?)` | **Full bidirectional sync**: downloads all artefacts/categories/boards from API, then uploads local-only items. Default lookback: 365 days |
 | `checkForChangesGrouped(since)` | Groups changes by file type (`artefact`/`board`) |
-| `getChangeSummary(since)` | GET `Users/Sync/summary?since=`, returns `{total, artefacts, boards}` counts |
+| `getChangeSummary(since)` | GET `Sync/summary?since=`, returns `{total, artefacts, boards}` counts |
 | `hasChanges(since)` | Returns `bool` — any changes since date? |
 | `getLastSyncDate()` | Reads last sync timestamp from `SyncMetadataRepository` |
 | `setLastSyncDate(date)` | Writes sync timestamp |

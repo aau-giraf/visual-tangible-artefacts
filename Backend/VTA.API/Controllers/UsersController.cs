@@ -307,63 +307,12 @@ public class UsersController(VTAContext context, IConfiguration config) : Contro
             return Forbid();
         }
 
-        // Load user with all related entities (Categories and their Artefacts)
-        var user = await context.Users
-            .Include(u => u.Categories)
-                .ThenInclude(c => c.Artefacts)
-            .Include(u => u.SavedBoards)
-                .ThenInclude(sb => sb.SavedArtefacts)
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var user = await UserCleanupHelper.DeleteUserWithAssets(context, id);
 
         if (user == null)
         {
             return NotFound();
         }
-
-        /*Categories and artefacts delete themselves upon calling .Remove (due to cascade talked about in a few lines
-        * Therefore we remove all the images and sounds from the filesystem before we loose the refs*/
-        foreach (var category in user.Categories)
-        {
-            foreach (var artefact in category.Artefacts)
-            {
-                ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", id);
-                // Also delete sound files if they exist
-                try
-                {
-                    SoundUtilities.DeleteSound(artefact.ArtefactId, id);
-                }
-                catch { }
-            }
-            ImageUtilities.DeleteImage(category.CategoryId, "Categories", id);
-        }
-
-        // Delete saved boards and their data
-        foreach (var savedBoard in user.SavedBoards.ToList())
-        {
-            // Delete snapshot file if it exists
-            if (!string.IsNullOrEmpty(savedBoard.SnapshotPath))
-            {
-                try
-                {
-                    var snapshotPath = Path.Combine("wwwroot", savedBoard.SnapshotPath.TrimStart('/'));
-                    if (System.IO.File.Exists(snapshotPath))
-                    {
-                        System.IO.File.Delete(snapshotPath);
-                    }
-                }
-                catch { }
-            }
-
-            foreach (var savedArtefact in savedBoard.SavedArtefacts.ToList())
-            {
-                context.SavedArtefacts.Remove(savedArtefact);
-            }
-
-            context.SavedBoards.Remove(savedBoard);
-        }
-
-        context.Users.Remove(user);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
-        await context.SaveChangesAsync();
 
         return NoContent();
     }

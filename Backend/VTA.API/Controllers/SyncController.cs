@@ -10,7 +10,7 @@ namespace VTA.API.Controllers;
 /// Controller for handling synchronization of changes
 /// </summary>
 [Authorize]
-[Route("api/Users/Sync")]
+[Route("api/Sync")]
 [ApiController]
 public class SyncController : ControllerBase
 {

@@ -39,7 +39,7 @@ Setup:
 
 ### Sequential Sound Playback (`playAllArtefactSounds`)
 - Collects artefacts with `soundUrl` from the active board
-- Fetches audio from `Users/Artefacts/{id}/play-audio` endpoint (authenticated)
+- Fetches audio from `Artefacts/{id}/play-audio` endpoint (authenticated)
 - Plays each sound sequentially via `just_audio` `AudioPlayer`
 - Toggle behavior: calling while playing stops playback
 - Errors on individual artefacts are caught and skipped

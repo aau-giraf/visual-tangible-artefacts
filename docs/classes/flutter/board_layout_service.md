@@ -4,7 +4,7 @@
 
 ## Purpose
 
-API client for board layout CRUD operations. Manages saved boards, artefact positioning, and board cleanup via the `Users/Boards` endpoints.
+API client for board layout CRUD operations. Manages saved boards, artefact positioning, and board cleanup via the `Boards` endpoints.
 
 ## Class: `BoardLayoutService`
 
@@ -15,14 +15,14 @@ API client for board layout CRUD operations. Manages saved boards, artefact posi
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `getBoards()` | GET `Users/Boards` | List all saved boards → `List<BoardLayoutResponse>?` |
-| `getBoard(boardId)` | GET `Users/Boards/{id}` | Get single board |
-| `saveBoard(request)` | POST `Users/Boards` | Create new board (expects 201) |
-| `updateBoard(boardId, request)` | PUT `Users/Boards/{id}` | Replace board layout |
-| `updateArtefactLayout(boardId, request)` | PATCH `Users/Boards/{id}/artefacts` | Update single artefact position/size |
-| `deleteBoard(boardId)` | DELETE `Users/Boards/{id}` | Delete board |
-| `deleteSavedArtefact(boardId, savedArtefactId)` | DELETE `Users/Boards/{id}/artefacts/{saId}` | Remove artefact from board |
-| `deleteAllSavedArtefacts(boardId)` | DELETE `Users/Boards/{id}/artefacts` | Clear all artefacts from board |
+| `getBoards()` | GET `Boards` | List all saved boards → `List<BoardLayoutResponse>?` |
+| `getBoard(boardId)` | GET `Boards/{id}` | Get single board |
+| `saveBoard(request)` | POST `Boards` | Create new board (expects 201) |
+| `updateBoard(boardId, request)` | PUT `Boards/{id}` | Replace board layout |
+| `updateArtefactLayout(boardId, request)` | PATCH `Boards/{id}/artefacts` | Update single artefact position/size |
+| `deleteBoard(boardId)` | DELETE `Boards/{id}` | Delete board |
+| `deleteSavedArtefact(boardId, savedArtefactId)` | DELETE `Boards/{id}/artefacts/{saId}` | Remove artefact from board |
+| `deleteAllSavedArtefacts(boardId)` | DELETE `Boards/{id}/artefacts` | Clear all artefacts from board |
 
 ### Design Notes
 - Straightforward CRUD wrapper — no caching, no local state

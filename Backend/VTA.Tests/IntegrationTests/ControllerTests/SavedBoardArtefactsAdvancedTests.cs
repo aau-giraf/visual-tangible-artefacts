@@ -416,7 +416,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         content.Add(new StringContent(index.ToString()), "ArtefactIndex");
         content.Add(new StringContent(name), "Name");
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Artefacts") { Content = content };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Artefacts") { Content = content };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _client.SendAsync(request);
@@ -430,7 +430,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
 
     private async Task<HttpResponseMessage> CreateBoardAsync(string token, SaveBoardRequestDTO request)
     {
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Boards")
         {
             Content = JsonContent.Create(request)
         };
@@ -440,21 +440,21 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
 
     private async Task<HttpResponseMessage> GetBoardAsync(string token, string boardId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{boardId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Boards/{boardId}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return await _client.SendAsync(request);
     }
 
     private async Task<HttpResponseMessage> GetAllBoardsAsync(string token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return await _client.SendAsync(request);
     }
 
     private async Task<HttpResponseMessage> UpdateArtefactPositionAsync(string token, string boardId, UpdateArtefactLayoutDTO update)
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/Users/Boards/{boardId}/artefacts")
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/Boards/{boardId}/artefacts")
         {
             Content = JsonContent.Create(update)
         };
@@ -464,7 +464,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
 
     private async Task<HttpResponseMessage> DeleteArtefactInstanceAsync(string token, string boardId, string savedArtefactId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Boards/{boardId}/artefacts/{savedArtefactId}");
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Boards/{boardId}/artefacts/{savedArtefactId}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return await _client.SendAsync(request);
     }

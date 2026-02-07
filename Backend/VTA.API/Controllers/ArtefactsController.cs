@@ -8,8 +8,8 @@ using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
 
-[Authorize]//Lock all endpoints behind JWT
-[Route("api/Users/Artefacts")]//We designed the route so that *Users* OWNS *Artefacts* and this route reflects it
+[Authorize]
+[Route("api/Artefacts")]
 [ApiController]
 public class ArtefactsController(VTAContext context) : ControllerBase
 {
