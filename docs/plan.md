@@ -21,15 +21,16 @@ Document COMPLEX files individually (class cards). Group SIMPLE files into per-f
 - [x] Phase B: VTA.API (27 cards)
 - [x] Phase C: SyncService (8 cards)
 
-### Phase D: Flutter Database Layer — DONE (cards), 1 summary remaining
+### Phase D: Flutter Database Layer — DONE
 - [x] database/models/ (7 cards)
 - [x] database/repositories/ (8 cards)
 - [x] database/ root (3 cards)
-- [ ] `summary_database_mappers.md` (1 file)
+- [x] `summary_database_mappers.md` (1 file)
 
-### Phase E: Flutter Models & DTOs
-- [ ] **Cards:** artefact_model, auth_model, board_layout, elevenlabs_model
-- [ ] `summary_modelsDTOs.md` (9 simple DTO files)
+### Phase E: Flutter Models & DTOs — DONE
+- [x] **Cards:** artefact_model, auth_model
+- [x] `summary_models_simple.md` (board_layout, board_model, elevenlabs_model — data classes)
+- [x] `summary_modelsDTOs.md` (9 simple DTO files)
 
 ### Phase F: Flutter Utilities & Singletons
 - [ ] **Cards:** api_provider, elevenlabs_service, elevenlabs_config, data_repository
