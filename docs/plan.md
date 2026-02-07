@@ -38,8 +38,9 @@ Document COMPLEX files individually (class cards). Group SIMPLE files into per-f
 - [x] `summary_utilities_audio.md` (7 files)
 - [x] `summary_utilities_misc.md` (~7 files incl. elevenlabs_config — SharedPreferences wrapper, not complex)
 
-### Phase G: Flutter Services
-- [ ] **Cards:** sync_service, signalr_service, webrtc_service, call_manager, board_layout_service
+### Phase G: Flutter Services — DONE
+- [x] **Cards:** sync_service, signalr_service, webrtc_service, call_manager, board_layout_service
+- [x] `summary_simple_services.md` (5 simple services)
 
 ### Phase H: Flutter Controllers
 - [ ] **Cards:** remote_artifact_board_controller, artifact_board_controller, artifact_controller, auth_controller, elevenlabs_controller, talkingmat_controller
