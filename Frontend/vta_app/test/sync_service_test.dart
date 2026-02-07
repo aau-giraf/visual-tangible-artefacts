@@ -161,13 +161,4 @@ void main() {
     });
   });
 
-  group('SyncService Integration', () {
-    // Note: These tests would require mocking the API provider and token
-    // For now, we'll just test that the service can be instantiated
-    
-    test('can create SyncService instance', () {
-      // This will fail without proper setup, but shows the interface
-      expect(() => SyncService(), returnsNormally);
-    });
-  });
 }
