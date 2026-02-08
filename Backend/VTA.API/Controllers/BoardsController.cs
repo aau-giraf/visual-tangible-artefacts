@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using VTA.API.DTOs;
+using VTA.API.Services;
 using System.Text.Json;
-using VTA.Data.DbContexts;
-using VTA.Data.Models;
 
 namespace VTA.API.Controllers;
 
@@ -17,15 +15,15 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class BoardsController : ControllerBase
 {
-  private readonly VTAContext _context;
+  private readonly IBoardService _boardService;
 
   /// <summary>
   /// Initializes a new instance of the <see cref="BoardsController"/> class.
   /// </summary>
-  /// <param name="context">The <see cref="VTAContext"/> used to access saved boards and artefacts.</param>
-  public BoardsController(VTAContext context)
+  /// <param name="boardService">The <see cref="IBoardService"/> used to manage boards and artefacts.</param>
+  public BoardsController(IBoardService boardService)
   {
-    _context = context;
+    _boardService = boardService;
   }
 
   // GET: api/Boards
@@ -37,18 +35,9 @@ public class BoardsController : ControllerBase
   public async Task<ActionResult<IEnumerable<BoardGetDTO>>> GetBoards()
   {
     var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
-
-    var boards = await _context.SavedBoards
-        .Where(b => b.UserId == userId)
-        .Include(b => b.SavedArtefacts)
-            .ThenInclude(sa => sa.Artefact)
-        .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate)
-        .ToListAsync();
+    var boards = await _boardService.GetBoardsForUserAsync(userId);
 
     var boardDTOs = boards.Select(board => new BoardGetDTO
     {
@@ -71,16 +60,9 @@ public class BoardsController : ControllerBase
   public async Task<ActionResult<IEnumerable<BoardListItemDTO>>> GetBoardsList()
   {
     var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
-
-    var boards = await _context.SavedBoards
-        .Where(b => b.UserId == userId)
-        .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate)
-        .ToListAsync();
+    var boards = await _boardService.GetBoardListAsync(userId);
 
     var boardListItems = boards.Select(board => new BoardListItemDTO
     {
@@ -102,22 +84,10 @@ public class BoardsController : ControllerBase
   public async Task<ActionResult<BoardGetDTO>> GetBoard(string boardId)
   {
     var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
-
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .Include(b => b.SavedArtefacts)
-            .ThenInclude(sa => sa.Artefact)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound();
-    }
+    var board = await _boardService.GetBoardAsync(boardId, userId);
+    if (board == null) return NotFound();
 
     var response = new BoardLayoutResponseDTO
     {
@@ -150,13 +120,9 @@ public class BoardsController : ControllerBase
   public async Task<IActionResult> PostBoard([FromBody] JsonElement body)
   {
     var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
-
-    // If the JSON contains an "Artefacts" property (case-insensitive), treat it as SaveBoardRequestDTO
+    // If the JSON contains an "Artefacts" property, treat as SaveBoardRequestDTO
     if (body.ValueKind == JsonValueKind.Object && body.EnumerateObject().Any(p => string.Equals(p.Name, "Artefacts", StringComparison.OrdinalIgnoreCase)))
     {
       var request = JsonSerializer.Deserialize<SaveBoardRequestDTO>(body.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -168,139 +134,46 @@ public class BoardsController : ControllerBase
 
       try
       {
-        var strategy = _context.Database.CreateExecutionStrategy();
-        var created = await strategy.ExecuteAsync<BoardLayoutResponseDTO>(async () =>
+        var created = await _boardService.CreateBoardAsync(userId, request.Name, request.Artefacts);
+
+        var response = new BoardLayoutResponseDTO
         {
-          using var transaction = await _context.Database.BeginTransactionAsync();
-          try
+          BoardId = created.Id,
+          Name = created.Name,
+          CreatedDate = created.CreatedDate,
+          ModifiedDate = created.ModifiedDate,
+          Artefacts = created.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
           {
-            var board = new SavedBoard
-            {
-              Id = Guid.NewGuid().ToString(),
-              Name = request.Name,
-              UserId = userId,
-              CreatedDate = DateTime.UtcNow
-            };
+            SavedArtefactId = sa.Id,
+            ArtefactId = sa.ArtefactId,
+            PosX = sa.PosX,
+            PosY = sa.PosY,
+            Width = sa.Width,
+            Height = sa.Height
+          }).ToList()
+        };
 
-            _context.SavedBoards.Add(board);
-            await _context.SaveChangesAsync();
-
-            var artefactIds = new List<string>();
-            var savedArtefactIds = new List<string>();
-
-            foreach (var artefactLayout in request.Artefacts)
-            {
-              var artefactExists = await _context.Artefacts
-                  .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
-
-              if (!artefactExists)
-              {
-                throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
-              }
-
-              // Preserve provided values, including zeros; clamp extremes to float bounds
-              float Clamp(float v)
-              {
-                if (float.IsNaN(v) || float.IsInfinity(v)) return 0f;
-                return v;
-              }
-
-              var savedArtefact = new SavedArtefact
-              {
-                Id = Guid.NewGuid().ToString(),
-                ArtefactId = artefactLayout.ArtefactId,
-                BoardId = board.Id,
-                PosX = Clamp(artefactLayout.PosX),
-                PosY = Clamp(artefactLayout.PosY),
-                Width = Clamp(artefactLayout.Width),
-                Height = Clamp(artefactLayout.Height),
-                CreatedDate = DateTime.UtcNow
-              };
-
-              _context.SavedArtefacts.Add(savedArtefact);
-
-              artefactIds.Add(artefactLayout.ArtefactId);
-              savedArtefactIds.Add(savedArtefact.Id);
-            }
-
-            board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
-            board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
-
-            _context.SavedBoards.Update(board);
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            var createdBoard = await _context.SavedBoards
-              .Where(b => b.Id == board.Id)
-              .Include(b => b.SavedArtefacts)
-                .ThenInclude(sa => sa.Artefact)
-              .FirstOrDefaultAsync();
-
-            // Return BoardLayoutResponseDTO to match frontend expectations (boardId + artefacts array)
-            return new BoardLayoutResponseDTO
-            {
-              BoardId = createdBoard!.Id,
-              Name = createdBoard.Name,
-              CreatedDate = createdBoard.CreatedDate,
-              ModifiedDate = createdBoard.ModifiedDate,
-              Artefacts = createdBoard.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
-              {
-                SavedArtefactId = sa.Id,
-                ArtefactId = sa.ArtefactId,
-                PosX = sa.PosX,
-                PosY = sa.PosY,
-                Width = sa.Width,
-                Height = sa.Height
-              }).ToList()
-            };
-          }
-          catch
-          {
-            await transaction.RollbackAsync();
-            throw;
-          }
-        });
-        return CreatedAtAction(nameof(GetBoard), new { boardId = created.BoardId }, created);
+        return CreatedAtAction(nameof(GetBoard), new { boardId = response.BoardId }, response);
       }
-      catch (InvalidOperationException ex)
+      catch (InvalidOperationException)
       {
-        Console.WriteLine($"Error saving board: {ex.Message}");
         return BadRequest("Artefact not found or doesn't belong to user");
       }
-      // Let other exceptions bubble up to ensure proper error surfacing
     }
 
-    // Fallback: treat as the original simple BoardPostDTO
+    // Fallback: simple BoardPostDTO
     var boardPost = JsonSerializer.Deserialize<BoardPostDTO>(body.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    if (boardPost == null) return BadRequest();
 
-    if (boardPost == null)
-    {
-      return BadRequest();
-    }
-
-    var boardIdSimple = Guid.NewGuid().ToString();
-    var boardSimple = new SavedBoard { Id = boardIdSimple, Name = boardPost.Name, UserId = userId };
-
-    _context.SavedBoards.Add(boardSimple);
-    await _context.SaveChangesAsync();
-
-    var createdBoardSimple = await _context.SavedBoards
-        .Include(b => b.SavedArtefacts)
-            .ThenInclude(sa => sa.Artefact)
-        .FirstOrDefaultAsync(b => b.Id == boardSimple.Id);
-
-    if (createdBoardSimple == null)
-    {
-      return NotFound();
-    }
+    var createdBoard = await _boardService.CreateBoardAsync(userId, boardPost.Name);
 
     var boardDTO = new
     {
-      createdBoardSimple.Id,
-      createdBoardSimple.Name,
-      createdBoardSimple.SnapshotPath,
-      createdBoardSimple.CreatedDate,
-      createdBoardSimple.ModifiedDate
+      createdBoard.Id,
+      createdBoard.Name,
+      createdBoard.SnapshotPath,
+      createdBoard.CreatedDate,
+      createdBoard.ModifiedDate
     };
 
     return Ok(boardDTO);
@@ -316,53 +189,12 @@ public class BoardsController : ControllerBase
   public async Task<IActionResult> PatchBoard([FromBody] BoardPatchDTO boardPatchDTO)
   {
     var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
+    var success = await _boardService.PatchBoardAsync(
+        boardPatchDTO.BoardId, userId, boardPatchDTO.Name, boardPatchDTO.SnapshotPath);
 
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardPatchDTO.BoardId && b.UserId == userId)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound();
-    }
-
-    // Update fields if provided
-    if (!string.IsNullOrEmpty(boardPatchDTO.Name))
-    {
-      board.Name = boardPatchDTO.Name;
-    }
-
-    if (boardPatchDTO.SnapshotPath != null)
-    {
-      board.SnapshotPath = boardPatchDTO.SnapshotPath;
-    }
-
-    board.ModifiedDate = DateTime.UtcNow;
-
-    _context.Entry(board).State = EntityState.Modified;
-
-    try
-    {
-      await _context.SaveChangesAsync();
-    }
-    catch (DbUpdateConcurrencyException)
-    {
-      if (!BoardExists(board.Id))
-      {
-        return NotFound();
-      }
-      else
-      {
-        throw;
-      }
-    }
-
-    return NoContent();
+    return success ? NoContent() : NotFound();
   }
 
   // PUT: api/Boards/{boardId}
@@ -373,129 +205,43 @@ public class BoardsController : ControllerBase
   public async Task<ActionResult<BoardLayoutResponseDTO>> UpdateBoard(string boardId, [FromBody] SaveBoardRequestDTO request)
   {
     var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized("Invalid token");
-    }
-
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .Include(b => b.SavedArtefacts)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound("Board not found");
-    }
+    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
 
     try
     {
-      var strategy = _context.Database.CreateExecutionStrategy();
-      var response = await strategy.ExecuteAsync(async () =>
+      var board = await _boardService.UpdateBoardAsync(boardId, userId, request.Name, request.Artefacts);
+
+      if (board == null) return NotFound("Board not found");
+
+      var response = new BoardLayoutResponseDTO
       {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        BoardId = board.Id,
+        Name = board.Name,
+        CreatedDate = board.CreatedDate,
+        ModifiedDate = board.ModifiedDate,
+        Artefacts = board.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
         {
-          board.Name = request.Name;
-          board.ModifiedDate = DateTime.UtcNow;
-
-          var existingSavedArtefacts = board.SavedArtefacts.ToList();
-          var newArtefactLayouts = request.Artefacts.ToList();
-
-          // Do not remove or deduplicate based on identical layout; duplicates are allowed
-          var artefactsToRemove = new List<SavedArtefact>();
-
-          if (artefactsToRemove.Any())
-          {
-            _context.SavedArtefacts.RemoveRange(artefactsToRemove);
-          }
-
-          var artefactIds = new List<string>();
-          var savedArtefactIds = new List<string>();
-
-          var keptSavedArtefacts = existingSavedArtefacts.Except(artefactsToRemove).ToList();
-          foreach (var keptArtefact in keptSavedArtefacts)
-          {
-            artefactIds.Add(keptArtefact.ArtefactId);
-            savedArtefactIds.Add(keptArtefact.Id);
-          }
-
-          foreach (var artefactLayout in newArtefactLayouts)
-          {
-
-            var artefactExists = await _context.Artefacts
-                .AnyAsync(a => a.ArtefactId == artefactLayout.ArtefactId && a.UserId == userId);
-
-            if (!artefactExists)
-            {
-              throw new InvalidOperationException($"Artefact {artefactLayout.ArtefactId} not found or doesn't belong to user");
-            }
-
-            var savedArtefact = new SavedArtefact
-            {
-              Id = Guid.NewGuid().ToString(),
-              ArtefactId = artefactLayout.ArtefactId,
-              BoardId = board.Id,
-              PosX = artefactLayout.PosX,
-              PosY = artefactLayout.PosY,
-              Width = artefactLayout.Width,
-              Height = artefactLayout.Height,
-              CreatedDate = DateTime.UtcNow
-            };
-
-            _context.SavedArtefacts.Add(savedArtefact);
-
-            artefactIds.Add(artefactLayout.ArtefactId);
-            savedArtefactIds.Add(savedArtefact.Id);
-          }
-
-          board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
-          board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
-          _context.SavedBoards.Update(board);
-
-          await _context.SaveChangesAsync();
-          await transaction.CommitAsync();
-
-          var updatedBoard = await _context.SavedBoards
-              .Where(b => b.Id == board.Id)
-              .Include(b => b.SavedArtefacts)
-              .FirstOrDefaultAsync();
-
-          return new BoardLayoutResponseDTO
-          {
-            BoardId = updatedBoard!.Id,
-            Name = updatedBoard.Name,
-            CreatedDate = updatedBoard.CreatedDate,
-            ModifiedDate = updatedBoard.ModifiedDate,
-            Artefacts = updatedBoard.SavedArtefacts.Select(sa => new BoardArtefactLayoutDTO
-            {
-              SavedArtefactId = sa.Id,
-              ArtefactId = sa.ArtefactId,
-              PosX = sa.PosX,
-              PosY = sa.PosY,
-              Width = sa.Width,
-              Height = sa.Height
-            }).ToList()
-          };
-        }
-        catch
-        {
-          await transaction.RollbackAsync();
-          throw;
-        }
-      });
+          SavedArtefactId = sa.Id,
+          ArtefactId = sa.ArtefactId,
+          PosX = sa.PosX,
+          PosY = sa.PosY,
+          Width = sa.Width,
+          Height = sa.Height
+        }).ToList()
+      };
 
       return Ok(response);
     }
+    catch (InvalidOperationException)
+    {
+      return BadRequest("Artefact not found or doesn't belong to user");
+    }
     catch (Exception ex)
     {
-      Console.WriteLine($"Error updating board: {ex.Message}");
-      Console.WriteLine($"Stack trace: {ex.StackTrace}");
       if (ex.Message.Contains("Unknown column") || ex.Message.Contains("width") || ex.Message.Contains("height"))
       {
         return StatusCode(500, "Database schema needs migration. Please run the migration endpoint first.");
       }
-
       return StatusCode(500, "Error updating board");
     }
   }
@@ -508,109 +254,17 @@ public class BoardsController : ControllerBase
   public async Task<IActionResult> UpdateArtefactLayout(string boardId, [FromBody] UpdateArtefactLayoutDTO request)
   {
     var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
+    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+
+    var (success, error) = await _boardService.UpdateArtefactLayoutAsync(boardId, userId, request);
+
+    return error switch
     {
-      return Unauthorized("Invalid token");
-    }
-
-    var boardExists = await _context.SavedBoards
-        .AnyAsync(b => b.Id == boardId && b.UserId == userId);
-
-    if (!boardExists)
-    {
-      return NotFound("Board not found");
-    }
-
-    SavedArtefact? savedArtefact = null;
-
-    if (!string.IsNullOrEmpty(request.SavedArtefactId))
-    {
-      savedArtefact = await _context.SavedArtefacts
-          .FirstOrDefaultAsync(sa => sa.Id == request.SavedArtefactId && sa.BoardId == boardId);
-    }
-
-    if (savedArtefact == null)
-    {
-      savedArtefact = await _context.SavedArtefacts
-          .FirstOrDefaultAsync(sa => sa.BoardId == boardId && sa.ArtefactId == request.ArtefactId);
-    }
-
-    if (savedArtefact == null)
-    {
-      var artefactExists = await _context.Artefacts
-          .AnyAsync(a => a.ArtefactId == request.ArtefactId && a.UserId == userId);
-
-      if (!artefactExists)
-      {
-        return BadRequest("Artefact not found or doesn't belong to user");
-      }
-
-      savedArtefact = new SavedArtefact
-      {
-        Id = Guid.NewGuid().ToString(),
-        ArtefactId = request.ArtefactId,
-        BoardId = boardId,
-        PosX = request.PosX,
-        PosY = request.PosY,
-        Width = request.Width,
-        Height = request.Height,
-        CreatedDate = DateTime.UtcNow
-      };
-
-      _context.SavedArtefacts.Add(savedArtefact);
-
-      var boardForArtefactUpdate = await _context.SavedBoards.FindAsync(boardId);
-      if (boardForArtefactUpdate != null)
-      {
-        var artefactIdsList = await _context.SavedArtefacts
-            .Where(sa => sa.BoardId == boardId)
-            .Select(sa => sa.ArtefactId)
-            .ToListAsync();
-
-        var savedInstanceIds = await _context.SavedArtefacts
-            .Where(sa => sa.BoardId == boardId)
-            .Select(sa => sa.Id)
-            .ToListAsync();
-
-        if (!artefactIdsList.Contains(savedArtefact.ArtefactId))
-        {
-          artefactIdsList.Add(savedArtefact.ArtefactId);
-        }
-
-        if (!savedInstanceIds.Contains(savedArtefact.Id))
-        {
-          savedInstanceIds.Add(savedArtefact.Id);
-        }
-
-        boardForArtefactUpdate.ArtefactIds = artefactIdsList.Count > 0 ? JsonSerializer.Serialize(artefactIdsList) : null;
-        boardForArtefactUpdate.SavedArtefactIds = savedInstanceIds.Count > 0 ? JsonSerializer.Serialize(savedInstanceIds) : null;
-        _context.SavedBoards.Update(boardForArtefactUpdate);
-      }
-    }
-    else
-    {
-      savedArtefact.PosX = request.PosX;
-      savedArtefact.PosY = request.PosY;
-      savedArtefact.Width = request.Width;
-      savedArtefact.Height = request.Height;
-    }
-
-    var board = await _context.SavedBoards.FindAsync(boardId);
-    if (board != null)
-    {
-      board.ModifiedDate = DateTime.UtcNow;
-    }
-
-    try
-    {
-      await _context.SaveChangesAsync();
-      return Ok(new { message = "Artefact layout updated successfully" });
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"Error updating artefact layout: {ex.Message}");
-      return StatusCode(500, "Error updating artefact layout");
-    }
+      "NotFound" => NotFound("Board not found"),
+      "BadRequest" => BadRequest("Artefact not found or doesn't belong to user"),
+      _ when success => Ok(new { message = "Artefact layout updated successfully" }),
+      _ => StatusCode(500, "Error updating artefact layout")
+    };
   }
 
   // DELETE: api/Boards/{boardId}/artefacts/{savedArtefactId}
@@ -621,54 +275,16 @@ public class BoardsController : ControllerBase
   public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
   {
     var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
+    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+
+    var (success, error) = await _boardService.RemoveArtefactFromBoardAsync(boardId, savedArtefactId, userId);
+
+    if (!success)
     {
-      return Unauthorized("Invalid token");
+      return error == "NotFound" ? NotFound("Board or saved artefact not found") : StatusCode(500);
     }
 
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .Include(b => b.SavedArtefacts)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound("Board not found");
-    }
-
-    var savedArtefactToRemove = board.SavedArtefacts
-        .FirstOrDefault(sa => sa.Id == savedArtefactId);
-
-    if (savedArtefactToRemove == null)
-    {
-      return NotFound("Saved artefact not found on this board");
-    }
-
-    try
-    {
-      _context.SavedArtefacts.Remove(savedArtefactToRemove);
-
-      var remainingSavedArtefacts = board.SavedArtefacts
-          .Where(sa => sa.Id != savedArtefactId)
-          .ToList();
-
-      var artefactIds = remainingSavedArtefacts.Select(sa => sa.ArtefactId).ToList();
-      var savedArtefactIds = remainingSavedArtefacts.Select(sa => sa.Id).ToList();
-
-      board.ArtefactIds = artefactIds.Count > 0 ? JsonSerializer.Serialize(artefactIds) : null;
-      board.SavedArtefactIds = savedArtefactIds.Count > 0 ? JsonSerializer.Serialize(savedArtefactIds) : null;
-      board.ModifiedDate = DateTime.UtcNow;
-
-      _context.SavedBoards.Update(board);
-      await _context.SaveChangesAsync();
-
-      return NoContent();
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"Error removing artefact from board: {ex.Message}");
-      return StatusCode(500, "Error removing artefact from board");
-    }
+    return NoContent();
   }
 
   // DELETE: api/Boards/{boardId}/artefacts
@@ -679,42 +295,13 @@ public class BoardsController : ControllerBase
   public async Task<IActionResult> ClearBoard(string boardId)
   {
     var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized("Invalid token");
-    }
+    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
 
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .Include(b => b.SavedArtefacts)
-        .FirstOrDefaultAsync();
+    var (success, error) = await _boardService.ClearBoardAsync(boardId, userId);
 
-    if (board == null)
-    {
-      return NotFound("Board not found");
-    }
+    if (!success) return NotFound("Board not found");
 
-    try
-    {
-      if (board.SavedArtefacts != null && board.SavedArtefacts.Any())
-      {
-        _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
-      }
-
-      board.ArtefactIds = null;
-      board.SavedArtefactIds = null;
-      board.ModifiedDate = DateTime.UtcNow;
-
-      _context.SavedBoards.Update(board);
-      await _context.SaveChangesAsync();
-
-      return Ok(new { message = "Board cleared successfully" });
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"Error clearing board: {ex.Message}");
-      return StatusCode(500, "Error clearing board");
-    }
+    return Ok(new { message = "Board cleared successfully" });
   }
 
   // DELETE: api/Boards/{boardId}
@@ -727,33 +314,10 @@ public class BoardsController : ControllerBase
   public async Task<IActionResult> DeleteBoard(string boardId)
   {
     var userId = User.FindFirst("id")?.Value;
+    if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    if (string.IsNullOrEmpty(userId))
-    {
-      return Unauthorized();
-    }
+    var (success, _) = await _boardService.DeleteBoardAsync(boardId, userId);
 
-    var board = await _context.SavedBoards
-        .Where(b => b.Id == boardId && b.UserId == userId)
-        .Include(b => b.SavedArtefacts)
-        .FirstOrDefaultAsync();
-
-    if (board == null)
-    {
-      return NotFound();
-    }
-
-    _context.SavedArtefacts.RemoveRange(board.SavedArtefacts);
-
-    _context.SavedBoards.Remove(board);
-
-    await _context.SaveChangesAsync();
-
-    return NoContent();
-  }
-
-  private bool BoardExists(string id)
-  {
-    return _context.SavedBoards.Any(e => e.Id == id);
+    return success ? NoContent() : NotFound();
   }
 }

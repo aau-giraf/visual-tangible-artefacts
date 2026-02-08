@@ -2,17 +2,18 @@
 
 ## Documentation
 
-Read the existing docs before making changes. Start with `docs/_index.md` for the full index.
+> **⚠️ The `docs/` folder is a historical snapshot** taken before the improvement roadmap began. The broad architecture is still correct, but specific details (controller structure, service layer, route paths, dependencies) may be outdated. When `docs/` conflicts with the actual source code or the per-component guides below, **trust the source code**.
 
 | What you need | Where to look |
 |---|---|
-| System diagram, layers, data flow | `docs/architecture/overview.md` |
-| Feature dependency graph, coupling hotspots | `docs/architecture/dependency_map.md` |
-| Docker, ports, secrets, schemas | `docs/architecture/infrastructure.md` |
-| Per-feature interaction diagrams & sequences | `docs/features/` (9 docs, see `docs/features/_overview.md`) |
-| Known tech debt & planned refactors | `docs/improvement_proposals.md` |
-| Class-level API surface for any file | `docs/classes/backend/`, `docs/classes/flutter/`, `docs/classes/admin/` |
-| Per-component agent guides | `Backend/CLAUDE-backend.md`, `Frontend/vta_app/CLAUDE-flutter.md`, `Frontend/admin-dashboard/CLAUDE-admin.md` |
+| **Authoritative** per-component guides | `Backend/CLAUDE-backend.md`, `Frontend/vta_app/CLAUDE-flutter.md`, `Frontend/admin-dashboard/CLAUDE-admin.md` |
+| Improvement roadmap & current progress | `improvementPlan.md` (root) |
+| System diagram, layers, data flow | `docs/architecture/overview.md` *(historical)* |
+| Feature dependency graph, coupling hotspots | `docs/architecture/dependency_map.md` *(historical)* |
+| Docker, ports, secrets, schemas | `docs/architecture/infrastructure.md` *(historical)* |
+| Per-feature interaction diagrams & sequences | `docs/features/` *(historical)* |
+| Known tech debt (original analysis) | `docs/improvement_proposals.md` *(historical)* |
+| Class-level API surface | `docs/classes/` *(historical — may not reflect new services)* |
 
 ## Build & Run
 
@@ -30,9 +31,9 @@ cd Frontend/admin-dashboard && npm install && npm run dev # :5173
 
 These are the things that will break your work if you get them wrong:
 
-- **JWT custom claim**: User identity is `User.FindFirst("userId")?.Value` — not `sub`, not `nameidentifier`.
+- **JWT custom claim**: User identity is `User.FindFirst("id")?.Value` — not `sub`, not `nameidentifier`.
 - **DB-first, no migrations**: `mysql_schema.sql` is the schema source of truth. Models are scaffolded via `dotnet ef dbcontext scaffold` (Pomelo). Never add EF migrations.
-- **No backend service layer**: All controllers and `BoardHub` inject `VTAContext` directly. No service/repository abstraction.
+- **Backend service layer**: Controllers delegate business logic to service classes in `VTA.API/Services/` (e.g. `ITtsService`, `IRelationService`, `IUserService`). Services inject `VTAContext` and are registered as `AddScoped` in `Program.cs`. Controllers handle HTTP concerns only (routing, model binding, auth, status codes).
 - **DTO mapping**: Static `DtoConverter` class, not AutoMapper.
 - **Flutter API returns**: `ApiProvider` returns `Response?` (null on failure). Callers must null-check AND verify `response.isOk`.
 - **SignalR method names**: Hub method names and Flutter client callback names must match exactly (string-based, e.g. `"ArtifactAdded"`).

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DTOs;
-using VTA.API.Utilities;
+using VTA.API.Services;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
 
@@ -14,10 +14,14 @@ namespace VTA.API.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly VTAContext _context;
+    private readonly IUserService _userService;
+    private readonly IRelationService _relationService;
 
-    public AdminController(VTAContext context)
+    public AdminController(VTAContext context, IUserService userService, IRelationService relationService)
     {
         _context = context;
+        _userService = userService;
+        _relationService = relationService;
     }
 
     [HttpGet("caregivers")]
@@ -59,35 +63,20 @@ public class AdminController : ControllerBase
     [HttpPost("admins")]
     public async Task<ActionResult<UserGetDTO>> CreateAdmin(UserSignupDTO adminDto)
     {
-        if (await _context.Users.AnyAsync(u => u.Username == adminDto.Username))
-        {
-            return Conflict("Username already exists");
-        }
+        var (user, error) = await _userService.CreateAdminAsync(adminDto);
 
-        var admin = new User
-        {
-            Id = Guid.NewGuid().ToString(),
-            Username = adminDto.Username,
-            Name = adminDto.Name,
-            Password = BCrypt.Net.BCrypt.HashPassword(adminDto.Password),
-            Role = UserRole.Admin
-        };
+        if (error != null)
+            return Conflict(error);
 
-        _context.Users.Add(admin);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetAdmins), DTOConverter.MapUserToUserGetDTO(admin));
+        return CreatedAtAction(nameof(GetAdmins), user);
     }
 
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
-        var user = await UserCleanupHelper.DeleteUserWithAssets(_context, id);
-
-        if (user == null)
-        {
+        var deleted = await _userService.DeleteUserAsync(id);
+        if (!deleted)
             return NotFound();
-        }
 
         return NoContent();
     }
@@ -108,81 +97,31 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("pairings")]
-    public async Task<ActionResult<IEnumerable<object>>> GetPairings()
+    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairings()
     {
-        var pairings = await _context.Relations
-            .Include(p => p.Caregiver)
-            .Include(p => p.Child)
-            .Where(p => p.IsActive)
-            .AsNoTracking()
-            .Select(p => new
-            {
-                id = p.Id,
-                caregiverId = p.CaregiverId,
-                childId = p.ChildId,
-                caregiver = new { id = p.Caregiver.Id, name = p.Caregiver.Name, username = p.Caregiver.Username },
-                child = new { id = p.Child.Id, name = p.Child.Name, username = p.Child.Username },
-                createdAt = p.CreatedAt
-            })
-            .ToListAsync();
-
+        var pairings = await _relationService.GetAllPairingsAsync(activeOnly: true);
         return Ok(pairings);
     }
 
     [HttpPost("pairings")]
     public async Task<ActionResult> CreatePairing([FromBody] CreatePairingRequest request)
     {
-        var caregiver = await _context.Users.FindAsync(request.CaregiverId);
-        var child = await _context.Users.FindAsync(request.ChildId);
+        var (pairing, error) = await _relationService.CreatePairingAsync(request.CaregiverId, request.ChildId);
 
-        if (caregiver == null || child == null)
-        {
-            return NotFound("One or both users not found");
-        }
-
-        if (caregiver.Role != UserRole.Caregiver)
-        {
-            return BadRequest("The specified caregiver is not a caregiver user");
-        }
-
-        if (child.Role != UserRole.Child)
-        {
-            return BadRequest("The specified child is not a child user");
-        }
-
-        var existingPairing = await _context.Relations
-            .AnyAsync(p => p.CaregiverId == request.CaregiverId && p.ChildId == request.ChildId && p.IsActive);
-
-        if (existingPairing)
-        {
+        if (error == "Pairing already exists")
             return Conflict("This pairing already exists");
-        }
+        if (error != null)
+            return BadRequest(error);
 
-        var pairing = new Relation
-        {
-            CaregiverId = request.CaregiverId,
-            ChildId = request.ChildId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Relations.Add(pairing);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Pairing created successfully", id = pairing.Id });
+        return Ok(new { message = "Pairing created successfully", id = pairing!.Id });
     }
 
     [HttpDelete("pairings/{id}")]
     public async Task<IActionResult> DeletePairing(string id)
     {
-        var pairing = await _context.Relations.FindAsync(id);
-        if (pairing == null)
-        {
+        var removed = await _relationService.RemovePairingAsync(id);
+        if (!removed)
             return NotFound();
-        }
-
-        pairing.IsActive = false;
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }

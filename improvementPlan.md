@@ -5,6 +5,18 @@
 > its KEY that you FIRST plan and then execute
 > ensure that each logically clustered improvement is its own feature branch
 
+## Status (7 Feb 2026)
+
+| Phase | Status | Branch | Tests |
+|-------|--------|--------|-------|
+| Phase 1 — Stop the Bleeding | ✅ Merged to `dev-main` | `feature/phase1-stabilise` | 98/98 ✅ |
+| Phase 2 — Backend Service Layer | ✅ PR pending | `feature/phase2-service-layer` | 98/98 ✅ |
+| Phase 3 — God Class Splits | 📋 Planned | — | — |
+| Phase 4 — Reliability & Observability | 📋 Planned | — | — |
+| Phase 5 — Backlog | 📋 Planned | — | — |
+
+**Phase 2 summary:** Created 14 service files (8 interfaces + 6 implementations). Refactored 7 controllers to delegate business logic to services. Backend controllers reduced: `ArtefactsController` 795→380 LOC, `BoardsController` 759→322 LOC, `UsersController` 458→252 LOC. All changes are pure refactors — zero functional changes, all 98 existing tests pass.
+
 ---
 
 ## Phase 1 — Stop the Bleeding (1–2 weeks) ✅ COMPLETED
@@ -120,19 +132,203 @@ The backend already has a working TTS proxy — `ElevenLabsService` in `Backend/
 
 ---
 
-## Phase 2 — Backend Service Layer (2–4 weeks)
+## Phase 2 — Backend Service Layer ✅
 
-Extract business logic from controllers into service classes with interfaces. Start with the duplicated-logic hotspots identified in `docs/improvement_proposals.md` §2–3:
+> **Architecture pattern:** Standard ASP.NET Core **Controller → Service → Data** layering.
+> Controllers handle HTTP concerns only (routing, model binding, auth attributes, status codes).
+> Services own business logic and `VTAContext`. Registered via `builder.Services.AddScoped<IService, Service>()`.
+> `DTOConverter` stays static per project convention.
 
-- `IUserService` — unified `DeleteUser()` with cascade cleanup (seeds planted in 1.4), auth logic
-- `IRelationService` — single source of truth for pairing CRUD (currently duplicated between `AdminController` and `RelationController`)
-- `ITtsService` — extract ElevenLabs integration from `ArtefactsController`
+### Current state
 
-Pattern: controllers handle HTTP concerns only (model binding, auth, status codes). Services own business logic and `VTAContext`. Register via `builder.Services.AddScoped<IService, Service>()`.
+All 8 services implemented and DI-registered in `Program.cs`. All controllers refactored to delegate to services.
+
+### 2.1 Wire existing services into controllers ✅
+
+Injected the three original services and deleted inline duplicates from 5 controllers.
+
+| Service | Injected into | Replaced |
+|---------|-------------|----------|
+| `ITtsService` | `ArtefactsController` | 4× manual `ElevenLabsService` instantiation via service locator |
+| `IRelationService` | `AdminController`, `RelationController`, `ContactsController` | 3-way duplicated pairing CRUD + 2× duplicated contact queries |
+| `IUserService` | `UsersController`, `AdminController` | Duplicated auth/registration/JWT/deletion logic |
+
+### 2.2 Create `IArtefactService` / `ArtefactService` ✅
+
+Extracted CRUD and asset management from `ArtefactsController` (592 LOC → ~330 LOC controller + service).
+
+**Methods extracted:**
+- `GetArtefactsForUserAsync(userId)` — query by user
+- `GetArtefactByIdAsync(artefactId, userId)` — single fetch scoped to user
+- `CreateOrUpdateArtefactAsync(...)` — upsert logic, image/sound saving, GUID generation
+- `PatchArtefactAsync(...)` — partial field updates + category image sync
+- `DeleteArtefactAsync(artefactId, userId)` — entity removal + filesystem cascade
+- `BulkUpdateNameShownAsync(userId, nameShown)` — batch update
+- `GetArtefactForAudioAsync(artefactId, userId)` — for play-audio endpoint
+
+**What stays in the controller:** `[FromForm]` model binding, `IFormFile` handling, `User.FindFirst("id")` extraction, `DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host)`, HTTP status code returns.
+
+**Files touched:**
+- `Services/IArtefactService.cs` — new interface (7 methods)
+- `Services/ArtefactService.cs` — new implementation
+- `Controllers/ArtefactsController.cs` — inject and delegate
+- `Program.cs` — register `AddScoped<IArtefactService, ArtefactService>()`
+
+### 2.3 Create `IBoardService` / `BoardService` ✅
+
+Extracted board and layout logic from `BoardsController` (759 LOC → ~280 LOC controller) and unified shared logic from `SavedArtefactsController` (222 LOC → ~95 LOC controller). Both controllers now delegate to the same service.
+
+**Methods extracted:**
+- `GetBoardsForUserAsync(userId)` — full boards with navigation
+- `GetBoardListAsync(userId)` — lightweight list
+- `GetBoardAsync(boardId, userId)` — single board with artefacts
+- `CreateBoardAsync(userId, name, artefacts?)` — simple or rich creation with transaction
+- `UpdateBoardAsync(boardId, userId, name, artefacts)` — PUT semantics with transaction
+- `PatchBoardAsync(boardId, userId, name?, snapshotPath?)` — partial updates
+- `UpdateArtefactLayoutAsync(boardId, userId, request)` — upsert for BoardsController
+- `UpdateSavedArtefactLayoutAsync(boardId, userId, request)` — strict PATCH for SavedArtefactsController
+- `RemoveArtefactFromBoardAsync(boardId, savedArtefactId, userId)` — with JSON list rebuild
+- `ClearBoardAsync(boardId, userId, deleteSessionArtefacts)` — unified clearing with optional Session-Artefact deletion
+- `DeleteBoardAsync(boardId, userId)` — cascade delete
+
+**Files touched:**
+- `Services/IBoardService.cs` — new interface (11 methods)
+- `Services/BoardService.cs` — new implementation
+- `Controllers/BoardsController.cs` — inject `IBoardService`, replace `VTAContext`
+- `Controllers/SavedArtefactsController.cs` — inject `IBoardService`, replace `VTAContext`
+- `Program.cs` — register `AddScoped<IBoardService, BoardService>()`
+
+### 2.4 Wrap static file-I/O utilities as injectable services ✅
+
+Created thin injectable wrappers around existing static classes, enabling mockability in tests.
+
+| Static class | New service | Status |
+|-------------|-------------|--------|
+| `ImageUtilities` | `IImageService` / `ImageService` | ✅ Registered in DI |
+| `SoundUtilities` | `ISoundService` / `SoundService` | ✅ Registered in DI |
+
+**Files touched:**
+- `Services/IImageService.cs` — 2 methods (`AddImageAsync`, `DeleteImage`)
+- `Services/ImageService.cs` — delegates to `ImageUtilities`
+- `Services/ISoundService.cs` — 3 methods (2× `AddSoundAsync` overloads, `DeleteSound`)
+- `Services/SoundService.cs` — delegates to `SoundUtilities`
+- `Program.cs` — register both as `AddScoped`
+
+**Keep static:** `DTOConverter` (pure functions, project convention) and `ElevenLabsService` (internal detail of `TtsService`, not directly consumed).
+
+**Consider removing (future):** `SecretsProvider` singleton — partially dead, `IConfiguration` already serves its purpose.
+
+### 2.5 Update documentation ✅
+
+- Fixed JWT claim name in `.github/copilot-instructions.md`: `"userId"` → `"id"` (matches all actual code)
+- Changed "No backend service layer" to describe the new `Services/` pattern
+- Updated `Backend/CLAUDE-backend.md` to document the Controller → Service → Data layering and list all 16 service files
+
+### Not in scope for Phase 2
+
+| Item | Reason |
+|------|--------|
+| `CategoriesController` (355 LOC) service extraction | Lower priority — no duplication, can be done in Phase 3 alongside god-class splits |
+| `SyncController` (253 LOC) — 35 `_context` calls | Phase 4 plans to rework SyncService entirely |
+| `AssetsController` (68 LOC), `SettingsController` (55 LOC) | Already thin (<70 LOC), negligible refactoring value |
+
+### Test strategy
+
+All existing tests are HTTP integration tests via `CustomApplicationFactory` + Testcontainers. Service extraction **does not break any existing test** — tests hit HTTP endpoints, and services are auto-resolved by DI. Run `dotnet test Backend/VTA.Tests/` after each controller refactor to confirm.
 
 ## Phase 3 — God Class Splits (2–4 weeks)
 
-Split the 7 files over 450 LOC identified in `docs/improvement_proposals.md` §1. Prioritise by coupling risk — don't split proactively, split when you're already touching the file for a feature or bugfix.
+Phase 2 already reduced the three backend controllers below 400 LOC. The remaining god classes are:
+
+| File | LOC | Project | Test coverage |
+|------|-----|---------|---------------|
+| `BoardHub.cs` | 583 | SyncService | ✅ BoardHubTests (unit/integration) |
+| `remote_artifact_board_controller.dart` | 1,209 | Flutter | ⚠️ Minimal (no direct tests) |
+| `sync_service.dart` | 1,008 | Flutter | ⚠️ 1 test file, limited |
+| `signalr_service.dart` | 531 | Flutter | ⚠️ None |
+
+**Strategy:** Start with `BoardHub.cs` (backend, tested). Flutter splits follow in 3.2–3.4 with manual verification.
+
+### 3.1 Split `BoardHub.cs` into focused services
+
+Extract responsibility groups into injectable services. Hub stays as a thin dispatcher (~100 LOC).
+
+| New service | Responsibility | Methods | ~Lines |
+|-------------|---------------|---------|--------|
+| `IPresenceService` / `PresenceService` | Connection↔user tracking, online status, contact notification | `RegisterUser`, `GetOnlineUsers`, `GetAllOnlineUserIds`, cleanup on disconnect | ~50 |
+| `ISessionService` / `SessionService` | Session request/accept/reject/end, timeout, DB logging | `RequestSession`, `AcceptSession`, `RejectSession`, `EndSession`, session cleanup on disconnect | ~230 |
+| `IBoardSyncRelay` / `BoardSyncRelay` | Relay board/artifact deltas to session peers | `ArtifactAdded`, `ArtifactRemoved`, `ArtifactMoved`, `ArtifactResized`, `LayoutChanged`, `FieldCountChanged`, `UpdateBoard` | ~155 |
+| *(WebRTC relay stays in hub — only 3 methods, ~30 LOC)* | | | |
+
+**State ownership:** `_connectedUsers`, `_userConnections`, `_connectionUserMap` → `PresenceService`. `_sessions`, `_pendingRequests` → `SessionService`.
+
+**Key detail:** Services need `IHubContext<BoardHub>` or accept `IHubCallerClients`/`IGroupManager` as parameters since they can't inherit from `Hub`.
+
+**Files to create:**
+- `SyncService/Services/IPresenceService.cs` + `PresenceService.cs`
+- `SyncService/Services/ISessionService.cs` + `SessionService.cs`
+- `SyncService/Services/IBoardSyncRelay.cs` + `BoardSyncRelay.cs`
+- `SyncService/Program.cs` — register 3 services
+
+**Files to modify:**
+- `SyncService/Hubs/BoardHub.cs` — inject services, delegate
+- `SyncService.Tests/` — update test setup if constructor changes
+
+### 3.2 Split `RemoteArtifactBoardController` (Flutter, 1,209 LOC)
+
+Extract outbound and inbound sync logic into separate classes. Controller remains as thin orchestrator (~300 LOC).
+
+| New class | Responsibility | ~Lines |
+|-----------|---------------|--------|
+| `RemoteBoardSyncSender` | Serialize & push deltas/snapshots to SignalR (`_push*` methods, `_buildBoardSnapshot`) | ~250 |
+| `RemoteBoardSyncReceiver` | Deserialize & apply incoming SignalR events (`_handle*` methods) | ~400 |
+
+**Files to create:**
+- `lib/src/services/remote_board_sync_sender.dart`
+- `lib/src/services/remote_board_sync_receiver.dart`
+
+**Files to modify:**
+- `lib/src/controllers/remote_artifact_board_controller.dart` — inject sender + receiver, delegate
+
+### 3.3 Split `SyncService` (Flutter, 1,008 LOC)
+
+Extract change detection, downloading, and uploading into focused classes. Orchestrator remains (~150 LOC).
+
+| New class | Responsibility | ~Lines |
+|-----------|---------------|--------|
+| `SyncChangeDetector` | Query API/local DB for change records | ~180 |
+| `SyncDownloader` | Download entities + assets from API to local SQLite | ~280 |
+| `SyncUploader` | Upload entities + assets from local DB to API | ~200 |
+| `sync_models.dart` | Extract inline `FileChangeRecord` + `SyncCheckResponse` model classes | ~116 |
+
+**Files to create:**
+- `lib/src/services/sync_change_detector.dart`
+- `lib/src/services/sync_downloader.dart`
+- `lib/src/services/sync_uploader.dart`
+- `lib/src/models/sync_models.dart`
+
+**Files to modify:**
+- `lib/src/services/sync_service.dart` — thin orchestrator
+
+### 3.4 Split `SignalRService` (Flutter, 531 LOC)
+
+Decompose the monolithic singleton into focused services. The 150-line `_registerEvents()` method is the primary extraction target.
+
+| New class | Responsibility | ~Lines |
+|-----------|---------------|--------|
+| `SignalRConnectionManager` | Hub connection lifecycle (connect/disconnect/reconnect, URL) | ~80 |
+| `SignalREventRouter` | The 150-line `_registerEvents()` — all `.on()` handler registrations | ~160 |
+| `OnlineStatusTracker` | Track/refresh/query online users | ~40 |
+
+Session API, board sync API, and WebRTC relay methods stay in `SignalRService` (they're thin invoke wrappers, ~30 LOC each).
+
+**Files to create:**
+- `lib/src/services/signalr_connection_manager.dart`
+- `lib/src/services/signalr_event_router.dart`
+- `lib/src/services/online_status_tracker.dart`
+
+**Files to modify:**
+- `lib/src/services/signalr_service.dart` — delegate to extracted classes
 
 ## Phase 4 — Reliability & Observability (ongoing)
 

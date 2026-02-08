@@ -34,6 +34,21 @@ Backend/
 │   │   ├── ContactsController.cs    # Contact list management
 │   │   ├── SyncController.cs        # Offline sync endpoints
 │   │   └── MigrationController.cs   # Data migration utilities
+│   ├── Services/                # Business logic layer (Controller → Service → Data)
+│   │   ├── ITtsService.cs          # TTS generation interface
+│   │   ├── TtsService.cs           # ElevenLabs-backed TTS implementation
+│   │   ├── IRelationService.cs     # Pairing CRUD + contact queries interface
+│   │   ├── RelationService.cs      # Pairing/contacts implementation
+│   │   ├── IUserService.cs         # Auth, registration, user deletion interface
+│   │   ├── UserService.cs          # User management implementation
+│   │   ├── IArtefactService.cs     # Artefact CRUD + asset management interface
+│   │   ├── ArtefactService.cs      # Artefact business logic implementation
+│   │   ├── IBoardService.cs        # Board CRUD + layout management interface
+│   │   ├── BoardService.cs         # Board business logic implementation
+│   │   ├── IImageService.cs        # Image file operations interface
+│   │   ├── ImageService.cs         # Wraps ImageUtilities as injectable service
+│   │   ├── ISoundService.cs        # Sound file operations interface
+│   │   └── SoundService.cs         # Wraps SoundUtilities as injectable service
 │   ├── DTOs/                    # Data transfer objects + converter
 │   ├── Utilities/
 │   │   ├── ElevenLabsService.cs    # TTS via ElevenLabs API
@@ -84,6 +99,7 @@ dotnet test Backend/SyncService.Tests/
 
 ## Key Patterns
 
+- **Controller → Service → Data**: Controllers handle HTTP concerns only. Business logic lives in `Services/` classes registered via `AddScoped<IService, Service>()`. Services inject `VTAContext` directly.
 - **DB-First**: Models scaffolded from MySQL via `dotnet ef dbcontext scaffold` using Pomelo.EntityFrameworkCore.MySql
 - **JWT Auth**: Both API and SyncService validate the same JWT tokens (shared issuer/audience/secret)
 - **SyncService auth**: JWT passed via `access_token` query parameter for SignalR WebSocket connections

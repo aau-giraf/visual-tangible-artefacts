@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
 using VTA.API.Extensions;
+using VTA.API.Services;
 using VTA.API.Utilities;
 using VTA.Data.Extensions;
 
@@ -26,6 +27,15 @@ builder.Services.AddResponseCompression(options =>
 
 // Add HttpClient services for ElevenLabs API integration
 builder.Services.AddHttpClient();
+
+// Register application services
+builder.Services.AddScoped<ITtsService, TtsService>();
+builder.Services.AddScoped<IRelationService, RelationService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IArtefactService, ArtefactService>();
+builder.Services.AddScoped<IBoardService, BoardService>();
+builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<ISoundService, SoundService>();
 
 // Register our DB context
 builder.Services.AddVTAContext(builder.Configuration);

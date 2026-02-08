@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using VTA.API.DTOs;
-using VTA.Data.DbContexts;
-using VTA.Data.Models;
+using VTA.API.Services;
 
 namespace VTA.API.Controllers;
 
@@ -15,14 +13,14 @@ namespace VTA.API.Controllers;
 [ApiController]
 public class RelationController : ControllerBase
 {
-    private readonly VTAContext _context;
+    private readonly IRelationService _relationService;
 
     /// <summary>
     /// Constructor for RelationController
     /// </summary>
-    public RelationController(VTAContext context)
+    public RelationController(IRelationService relationService)
     {
-        _context = context;
+        _relationService = relationService;
     }
 
     /// <summary>
@@ -31,24 +29,8 @@ public class RelationController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairings()
     {
-        var pairings = await _context.Relations
-            .Include(p => p.Caregiver)
-            .Include(p => p.Child)
-            .AsNoTracking()
-            .ToListAsync();
-
-        var pairingDtos = pairings.Select(p => new PairingDTO
-        {
-            Id = p.Id,
-            CaregiverId = p.CaregiverId,
-            ChildId = p.ChildId,
-            IsActive = p.IsActive,
-            CreatedAt = p.CreatedAt,
-            Caregiver = DTOConverter.MapUserToUserGetDTO(p.Caregiver),
-            Child = DTOConverter.MapUserToUserGetDTO(p.Child)
-        }).ToList();
-
-        return Ok(pairingDtos);
+        var pairings = await _relationService.GetAllPairingsAsync();
+        return Ok(pairings);
     }
 
     /// <summary>
@@ -57,25 +39,8 @@ public class RelationController : ControllerBase
     [HttpGet("caregiver/{caregiverId}")]
     public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairingsForCaregiver(string caregiverId)
     {
-        var pairings = await _context.Relations
-            .Include(p => p.Caregiver)
-            .Include(p => p.Child)
-            .Where(p => p.CaregiverId == caregiverId && p.IsActive)
-            .AsNoTracking()
-            .ToListAsync();
-
-        var pairingDtos = pairings.Select(p => new PairingDTO
-        {
-            Id = p.Id,
-            CaregiverId = p.CaregiverId,
-            ChildId = p.ChildId,
-            IsActive = p.IsActive,
-            CreatedAt = p.CreatedAt,
-            Caregiver = DTOConverter.MapUserToUserGetDTO(p.Caregiver),
-            Child = DTOConverter.MapUserToUserGetDTO(p.Child)
-        }).ToList();
-
-        return Ok(pairingDtos);
+        var pairings = await _relationService.GetPairingsForCaregiverAsync(caregiverId);
+        return Ok(pairings);
     }
 
     /// <summary>
@@ -84,49 +49,14 @@ public class RelationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PairingDTO>> CreatePairing(CreatePairingDTO createDto)
     {
-        var caregiver = await _context.Users.FindAsync(createDto.CaregiverId);
-        if (caregiver == null || caregiver.Role != UserRole.Caregiver)
-        {
-            return BadRequest("Invalid caregiver");
-        }
+        var (pairing, error) = await _relationService.CreatePairingAsync(createDto.CaregiverId, createDto.ChildId);
 
-        var child = await _context.Users.FindAsync(createDto.ChildId);
-        if (child == null || child.Role != UserRole.Child)
-        {
-            return BadRequest("Invalid child");
-        }
+        if (error == "Pairing already exists")
+            return Conflict(error);
+        if (error != null)
+            return BadRequest(error);
 
-        var existingPairing = await _context.Relations
-            .FirstOrDefaultAsync(p => p.CaregiverId == createDto.CaregiverId &&
-                                    p.ChildId == createDto.ChildId &&
-                                    p.IsActive);
-
-        if (existingPairing != null)
-        {
-            return Conflict("Pairing already exists");
-        }
-
-        var pairing = new Relation
-        {
-            CaregiverId = createDto.CaregiverId,
-            ChildId = createDto.ChildId
-        };
-
-        _context.Relations.Add(pairing);
-        await _context.SaveChangesAsync();
-
-        var pairingDto = new PairingDTO
-        {
-            Id = pairing.Id,
-            CaregiverId = pairing.CaregiverId,
-            ChildId = pairing.ChildId,
-            IsActive = pairing.IsActive,
-            CreatedAt = pairing.CreatedAt,
-            Caregiver = DTOConverter.MapUserToUserGetDTO(caregiver),
-            Child = DTOConverter.MapUserToUserGetDTO(child)
-        };
-
-        return CreatedAtAction(nameof(GetPairings), pairingDto);
+        return CreatedAtAction(nameof(GetPairings), pairing);
     }
 
     /// <summary>
@@ -135,14 +65,9 @@ public class RelationController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> RemovePairing(string id)
     {
-        var pairing = await _context.Relations.FindAsync(id);
-        if (pairing == null)
-        {
+        var removed = await _relationService.RemovePairingAsync(id);
+        if (!removed)
             return NotFound();
-        }
-
-        pairing.IsActive = false;
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -153,18 +78,9 @@ public class RelationController : ControllerBase
     [HttpDelete]
     public async Task<IActionResult> RemovePairingByIds([FromBody] CreatePairingDTO removeDto)
     {
-        var pairing = await _context.Relations
-            .FirstOrDefaultAsync(p => p.CaregiverId == removeDto.CaregiverId &&
-                                    p.ChildId == removeDto.ChildId &&
-                                    p.IsActive);
-
-        if (pairing == null)
-        {
+        var removed = await _relationService.RemovePairingByIdsAsync(removeDto.CaregiverId, removeDto.ChildId);
+        if (!removed)
             return NotFound();
-        }
-
-        pairing.IsActive = false;
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }
