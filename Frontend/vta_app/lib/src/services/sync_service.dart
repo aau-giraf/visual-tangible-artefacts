@@ -9,6 +9,9 @@ import 'package:logging/logging.dart';
 
 // Re-export models so existing `import 'sync_service.dart'` still works.
 export 'package:vta_app/src/services/sync_models.dart';
+// Re-export result types used by callers.
+export 'package:vta_app/src/services/sync_downloader.dart' show DownloadResult;
+export 'package:vta_app/src/services/sync_uploader.dart' show UploadResult;
 
 final _log = Logger('SyncService');
 
@@ -51,38 +54,82 @@ class SyncService {
 
   /// Download all entities from the server, then upload any that are
   /// missing on the backend. Updates the sync-metadata timestamp.
-  Future<bool> syncFromServer({DateTime? since}) async {
+  ///
+  /// Returns a [SyncResult] with per-entity-type stats and any errors.
+  Future<SyncResult> syncFromServer({DateTime? since}) async {
+    final startedAt = DateTime.now();
     try {
       final userId = _userInfo.userId;
-      if (userId == null) return false;
+      if (userId == null) return SyncResult.aborted('No user ID');
 
-      // 1. Download all entity types, collecting synced IDs
-      final syncedArtefactIds = await _downloader.downloadArtefacts();
-      await _uploader.uploadLocalArtefacts(syncedArtefactIds);
+      final Map<String, EntitySyncStats> downloadStats = {};
+      final Map<String, EntitySyncStats> uploadStats = {};
+      final List<SyncError> errors = [];
 
-      final syncedCategoryIds = await _downloader.downloadCategories();
-      await _uploader.uploadLocalCategories(syncedCategoryIds);
+      // 1. Download + upload artefacts
+      final dlArtefacts = await _downloader.downloadArtefacts();
+      downloadStats['artefact'] = dlArtefacts.stats;
+      errors.addAll(dlArtefacts.errors);
 
-      final syncedBoardIds = await _downloader.downloadBoards();
-      await _uploader.uploadLocalBoards(syncedBoardIds);
+      final ulArtefacts =
+          await _uploader.uploadLocalArtefacts(dlArtefacts.syncedIds);
+      uploadStats['artefact'] = ulArtefacts.stats;
+      errors.addAll(ulArtefacts.errors);
 
-      // 2. Mark sync timestamp
+      // 2. Download + upload categories
+      final dlCategories = await _downloader.downloadCategories();
+      downloadStats['category'] = dlCategories.stats;
+      errors.addAll(dlCategories.errors);
+
+      final ulCategories =
+          await _uploader.uploadLocalCategories(dlCategories.syncedIds);
+      uploadStats['category'] = ulCategories.stats;
+      errors.addAll(ulCategories.errors);
+
+      // 3. Download + upload boards
+      final dlBoards = await _downloader.downloadBoards();
+      downloadStats['board'] = dlBoards.stats;
+      errors.addAll(dlBoards.errors);
+
+      final ulBoards =
+          await _uploader.uploadLocalBoards(dlBoards.syncedIds);
+      uploadStats['board'] = ulBoards.stats;
+      errors.addAll(ulBoards.errors);
+
+      // 4. Mark sync timestamp
       await _syncMetaRepo.updateLastSyncDate(userId, 'all', DateTime.now());
 
-      return true;
+      final result = SyncResult(
+        downloadStats: downloadStats,
+        uploadStats: uploadStats,
+        errors: errors,
+        startedAt: startedAt,
+      );
+
+      _log.info('[SYNC] Completed: $result');
+      return result;
     } catch (e) {
-      _log.info('[SYNC] ERROR in syncFromServer: $e');
-      return false;
+      _log.warning('[SYNC] ERROR in syncFromServer: $e');
+      return SyncResult(
+        downloadStats: {},
+        uploadStats: {},
+        errors: [SyncError(entityType: 'sync', message: e.toString())],
+        startedAt: startedAt,
+      );
     }
   }
 
   /// Perform a full sync if needed (based on [threshold]).
-  Future<bool> autoSync(
+  Future<SyncResult> autoSync(
       {Duration threshold = const Duration(hours: 1)}) async {
     if (await needsSync(threshold: threshold)) {
       return await syncFromServer();
     }
-    return true;
+    return SyncResult(
+      downloadStats: {},
+      uploadStats: {},
+      startedAt: DateTime.now(),
+    );
   }
 
   // ── Change detection (delegated) ──────────────────────────────

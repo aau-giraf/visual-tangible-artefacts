@@ -359,7 +359,7 @@ Use Dart SDK built-in `package:logging`. Create a shared `AppLogger` utility wit
 
 Add `logger.warning()`/`logger.severe()` calls inside all 28 empty `catch` blocks across 8 files. Dispose/cleanup catches → `logger.fine()`. Silenced real errors → `logger.severe()`.
 
-### 4.4 Add sync retry logic and transaction safety ⬜
+### 4.4 Add sync retry logic and transaction safety ✅
 
 Create a `RetryHelper` utility with exponential backoff for HTTP calls. Apply in `sync_downloader.dart` and `sync_uploader.dart`. Wrap per-entity-type sync in SQLite batch transactions. Change `syncFromServer` return type from `bool` to a `SyncResult` with error details.
 
