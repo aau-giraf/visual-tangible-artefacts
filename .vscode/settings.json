@@ -1,5 +1,8 @@
 {
   "dotnet.defaultSolution": "VTA.sln",
   "cmake.ignoreCMakeListsMissing": true,
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "chat.tools.terminal.autoApprove": {
+    "dotnet build": true
+  }
 }
