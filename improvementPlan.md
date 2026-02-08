@@ -10,12 +10,16 @@
 | Phase | Status | Branch | Tests |
 |-------|--------|--------|-------|
 | Phase 1 — Stop the Bleeding | ✅ Merged to `dev-main` | `feature/phase1-stabilise` | 98/98 ✅ |
-| Phase 2 — Backend Service Layer | ✅ PR pending | `feature/phase2-service-layer` | 98/98 ✅ |
-| Phase 3 — God Class Splits | 📋 Planned | — | — |
+| Phase 2 — Backend Service Layer | ✅ Merged to `dev-main` | `feature/phase2-service-layer` | 98/98 ✅ |
+| Phase 3 — God Class Splits | 🔄 In progress | `feature/phase3-god-class-splits` | 25/25 + 98/98 ✅ |
 | Phase 4 — Reliability & Observability | 📋 Planned | — | — |
 | Phase 5 — Backlog | 📋 Planned | — | — |
 
-**Phase 2 summary:** Created 14 service files (8 interfaces + 6 implementations). Refactored 7 controllers to delegate business logic to services. Backend controllers reduced: `ArtefactsController` 795→380 LOC, `BoardsController` 759→322 LOC, `UsersController` 458→252 LOC. All changes are pure refactors — zero functional changes, all 98 existing tests pass.
+**Phase 3 progress:**
+- ✅ **3.1 BoardHub.cs split** — Extracted 3 services (`PresenceService`, `SessionService`, `BoardSyncRelay`). Hub reduced from 584→290 LOC. All 25 SyncService tests + 98 VTA tests pass.
+- ⬜ 3.2 RemoteArtifactBoardController split (Flutter)
+- ⬜ 3.3 SyncService split (Flutter)
+- ⬜ 3.4 SignalRService split (Flutter)
 
 ---
 
@@ -249,7 +253,7 @@ Phase 2 already reduced the three backend controllers below 400 LOC. The remaini
 
 **Strategy:** Start with `BoardHub.cs` (backend, tested). Flutter splits follow in 3.2–3.4 with manual verification.
 
-### 3.1 Split `BoardHub.cs` into focused services
+### 3.1 Split `BoardHub.cs` into focused services ✅ COMPLETED
 
 Extract responsibility groups into injectable services. Hub stays as a thin dispatcher (~100 LOC).
 
