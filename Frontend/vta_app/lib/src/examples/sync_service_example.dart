@@ -1,8 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'package:vta_app/src/services/sync_service.dart';
-import 'package:vta_app/src/utilities/api/api_provider.dart';
-import 'package:vta_app/src/singletons/token.dart';
 
 /// Example usage of the SyncService
 /// 
@@ -11,16 +9,14 @@ import 'package:vta_app/src/singletons/token.dart';
 /// 
 /// NOTE: All filtering is done on the backend - the frontend just sends
 /// a date parameter and receives already-filtered results.
+///
+/// Prerequisites: register [ApiProvider], [Token] and [UserInfo] in GetIt
+/// before constructing [SyncService].
 class SyncServiceExample {
   final SyncService _syncService;
 
-  SyncServiceExample({
-    required ApiProvider apiProvider,
-    required Token token,
-  }) : _syncService = SyncService(
-          apiProvider: apiProvider,
-          token: token,
-        );
+  SyncServiceExample()
+      : _syncService = SyncService();
 
   /// Example 1: Check for all changes since a specific date
   Future<void> checkAllChanges() async {
@@ -160,11 +156,9 @@ class SyncServiceExample {
 }
 
 /// Usage example in a widget or service
-void demonstrateUsage(ApiProvider apiProvider, Token token) async {
-  final example = SyncServiceExample(
-    apiProvider: apiProvider,
-    token: token,
-  );
+/// Assumes GetIt singletons (ApiProvider, Token, UserInfo) are registered.
+void demonstrateUsage() async {
+  final example = SyncServiceExample();
 
   // Run various examples
   await example.checkAllChanges();
