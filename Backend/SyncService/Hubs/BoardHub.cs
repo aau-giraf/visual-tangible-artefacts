@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SyncService.Models.ArtifactAdded;
 using SyncService.Services;
 using VTA.Data.DbContexts;
@@ -23,7 +24,8 @@ namespace SyncService.Hubs
         VTAContext context,
         IPresenceService presence,
         ISessionService sessions,
-        IBoardSyncRelay syncRelay) : Hub
+        IBoardSyncRelay syncRelay,
+        ILogger<BoardHub> logger) : Hub
     {
         // ── Presence ────────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ namespace SyncService.Hubs
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
-                Console.WriteLine("[Hub] Reject RegisterUser: EMPTY userId");
+                logger.LogWarning("Reject RegisterUser: empty userId");
                 return;
             }
 
@@ -40,7 +42,7 @@ namespace SyncService.Hubs
                            ?? "User";
 
             presence.TrackConnection(userId, Context.ConnectionId, contactIds, userName);
-            Console.WriteLine($"[Hub] RegisterUser => UserId={userId} Name={userName} Conn={Context.ConnectionId} with {contactIds?.Count ?? 0} contacts");
+            logger.LogInformation("RegisterUser => UserId={UserId} Name={UserName} Conn={ConnectionId} with {ContactCount} contacts", userId, userName, Context.ConnectionId, contactIds?.Count ?? 0);
 
             await NotifyContactsOfStatusChange(userId, true);
         }
@@ -48,14 +50,14 @@ namespace SyncService.Hubs
         public List<string> GetOnlineUsers()
         {
             var onlineList = presence.GetOnlineUsers();
-            Console.WriteLine($"[Hub] GetOnlineUsers => Returning {onlineList.Count} online users");
+            logger.LogDebug("GetOnlineUsers => Returning {Count} online users", onlineList.Count);
             return onlineList;
         }
 
         public bool IsUserOnline(string userId)
         {
             var isOnline = presence.IsUserOnline(userId);
-            Console.WriteLine($"[Hub] IsUserOnline => userId={userId} isOnline={isOnline}");
+            logger.LogDebug("IsUserOnline => userId={UserId} isOnline={IsOnline}", userId, isOnline);
             return isOnline;
         }
 
@@ -63,14 +65,14 @@ namespace SyncService.Hubs
 
         public async Task RequestSession(string fromUserId, string toUserId)
         {
-            Console.WriteLine($"[Hub] RequestSession => {fromUserId} → {toUserId}");
+            logger.LogInformation("RequestSession => {FromUserId} → {ToUserId}", fromUserId, toUserId);
 
             var requestKey = sessions.CreatePendingRequest(fromUserId, toUserId);
 
             if (presence.TryGetConnection(toUserId, out var toConn))
             {
                 await Clients.Client(toConn).SendAsync("SessionRequested", fromUserId);
-                Console.WriteLine($"[Hub] Sent SessionRequested to {toUserId}");
+                logger.LogDebug("Sent SessionRequested to {ToUserId}", toUserId);
 
                 var clients = Clients;
                 var connectionId = toConn;
@@ -91,18 +93,18 @@ namespace SyncService.Hubs
                                 try
                                 {
                                     await clients.Client(connectionId).SendAsync("MissedCall", fromUserId, callerName);
-                                    Console.WriteLine($"[Hub] Sent MissedCall notification to {toUserId} from {callerName}");
+                                    logger.LogInformation("Sent MissedCall notification to {ToUserId} from {CallerName}", toUserId, callerName);
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"[Hub] Failed to send MissedCall notification: {ex.Message}");
+                                    logger.LogWarning(ex, "Failed to send MissedCall notification");
                                 }
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Hub] Error in timeout: {ex.Message}");
+                        logger.LogError(ex, "Error in session request timeout handler");
                     }
                 });
             }
@@ -110,13 +112,13 @@ namespace SyncService.Hubs
             {
                 await Clients.Client(Context.ConnectionId).SendAsync("UserOffline", toUserId);
                 sessions.RemovePendingRequest(requestKey);
-                Console.WriteLine($"[Hub] User {toUserId} is offline");
+                logger.LogDebug("User {ToUserId} is offline", toUserId);
             }
         }
 
         public async Task AcceptSession(string sessionId, string fromUserId, string toUserId, string boardId)
         {
-            Console.WriteLine($"[Hub] AcceptSession => {sessionId} from {fromUserId} + {toUserId} with boardId={boardId}");
+            logger.LogInformation("AcceptSession => {SessionId} from {FromUserId} + {ToUserId} with boardId={BoardId}", sessionId, fromUserId, toUserId, boardId);
 
             sessions.CancelPendingRequests(fromUserId, toUserId);
 
@@ -155,7 +157,7 @@ namespace SyncService.Hubs
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Hub] Error logging session to database: {ex.Message}");
+                logger.LogError(ex, "Error logging session to database");
             }
 
             await Clients.Group(sessionId).SendAsync("SessionStarted", sessionId, boardId);
@@ -163,7 +165,7 @@ namespace SyncService.Hubs
 
         public async Task RejectSession(string fromUserId)
         {
-            Console.WriteLine($"[Hub] RejectSession => {fromUserId}");
+            logger.LogInformation("RejectSession => {FromUserId}", fromUserId);
 
             var currentUserId = Context.User?.FindFirst("sub")?.Value ?? Context.User?.Identity?.Name;
 
@@ -182,7 +184,7 @@ namespace SyncService.Hubs
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Hub] Error logging rejected session to database: {ex.Message}");
+                    logger.LogError(ex, "Error logging rejected session to database");
                 }
             }
 
@@ -194,7 +196,7 @@ namespace SyncService.Hubs
 
         public async Task EndSession(string sessionId)
         {
-            Console.WriteLine($"[Hub] EndSession => {sessionId}");
+            logger.LogInformation("EndSession => {SessionId}", sessionId);
 
             if (sessions.TryGetSession(sessionId, out var boardSession))
             {
@@ -221,7 +223,7 @@ namespace SyncService.Hubs
 
             if (string.IsNullOrEmpty(payload?.SessionId))
             {
-                Console.WriteLine($"[Hub] ArtifactAdded: Missing sessionId. Data: {data}");
+                logger.LogWarning("ArtifactAdded: Missing sessionId. Data: {Data}", data);
                 return;
             }
 
@@ -322,7 +324,7 @@ namespace SyncService.Hubs
 
             if (userId != null)
             {
-                Console.WriteLine($"[Hub] User disconnected => {userId}");
+                logger.LogInformation("User disconnected => {UserId}", userId);
 
                 foreach (var sessionKvp in sessions.GetSessionsForUser(userId))
                 {
@@ -353,7 +355,7 @@ namespace SyncService.Hubs
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Hub] Error notifying contacts: {ex.Message}");
+                logger.LogError(ex, "Error notifying contacts of status change");
             }
         }
 
@@ -381,7 +383,7 @@ namespace SyncService.Hubs
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Hub] Error updating session in database: {ex.Message}");
+                logger.LogError(ex, "Error updating session end in database");
             }
         }
     }

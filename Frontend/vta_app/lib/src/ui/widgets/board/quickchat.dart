@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('Quickchat');
 class QuickChatButton extends StatefulWidget {
   const QuickChatButton({super.key});
 
@@ -26,7 +29,7 @@ class _QuickChatButtonState extends State<QuickChatButton> {
       await _audioPlayer.setAsset(assetPath);
       await _audioPlayer.play();
     } catch (e) {
-      debugPrint('Error playing audio: $e');
+      _log.fine('Error playing audio: $e');
     }
   }
 

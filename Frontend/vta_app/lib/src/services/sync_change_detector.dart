@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 
 import 'dart:convert';
 import 'package:get_it/get_it.dart';
@@ -7,7 +6,10 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/database/database.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/services/sync_models.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SyncChangeDetector');
 /// Detects what has changed since a given date — locally or on the server.
 ///
 /// All methods are pure queries (no writes). The heavy lifting of actually
@@ -73,7 +75,7 @@ class SyncChangeDetector {
       }
       return null;
     } catch (e) {
-      print('[SYNC] ERROR in checkForChanges: $e');
+      _log.info('[SYNC] ERROR in checkForChanges: $e');
       return null;
     }
   }
@@ -119,7 +121,7 @@ class SyncChangeDetector {
       }
       return null;
     } catch (e) {
-      print('Error getting change summary: $e');
+      _log.info('Error getting change summary: $e');
       return null;
     }
   }
@@ -187,7 +189,7 @@ class SyncChangeDetector {
         totalChanges: changedFiles.length,
       );
     } catch (e) {
-      print('[SYNC-LOCAL] ERROR in checkLocalChanges: $e');
+      _log.info('[SYNC-LOCAL] ERROR in checkLocalChanges: $e');
       return null;
     }
   }
@@ -228,7 +230,7 @@ class SyncChangeDetector {
         }
       }
     } catch (e) {
-      print('[SYNC] ERROR in _updateLocalDatabase: $e');
+      _log.info('[SYNC] ERROR in _updateLocalDatabase: $e');
     }
   }
 }

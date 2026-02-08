@@ -8,7 +8,10 @@ import 'settings_controller.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SettingsView');
 /// Displays the various settings that can be customized by the user.
 ///
 /// When a user changes a setting, the SettingsController is updated and
@@ -133,7 +136,7 @@ class _ProfilePictureSettingsTileState
           }
           return;
         } catch (e) {
-          debugPrint('Error decoding base64 image: $e');
+          _log.fine('Error decoding base64 image: $e');
         }
       }
       // Fallback to file path if base64 not found
@@ -160,7 +163,7 @@ class _ProfilePictureSettingsTileState
         });
       }
     } catch (e) {
-      debugPrint('Error loading profile picture: $e');
+      _log.fine('Error loading profile picture: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -189,7 +192,7 @@ class _ProfilePictureSettingsTileState
         );
       }
     } catch (e) {
-      debugPrint('Error saving profile picture: $e');
+      _log.fine('Error saving profile picture: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Fejl ved gemning af billede: $e')),
@@ -210,7 +213,7 @@ class _ProfilePictureSettingsTileState
         await _saveProfilePicture(result.files.single.bytes!);
       }
     } catch (e) {
-      debugPrint('Error picking image: $e');
+      _log.fine('Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Fejl ved valg af billede: $e')),

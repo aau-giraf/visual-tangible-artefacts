@@ -1,5 +1,4 @@
 // lib/src/services/signalr_service.dart
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -7,7 +6,10 @@ import 'package:vta_app/src/utilities/data/data_repository.dart';
 import 'package:vta_app/src/services/signalr_connection_manager.dart';
 import 'package:vta_app/src/services/signalr_event_router.dart';
 import 'package:vta_app/src/services/online_status_tracker.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SignalrService');
 /// Singleton façade for the SignalR hub.
 ///
 /// Delegates to:
@@ -54,7 +56,7 @@ class SignalRService {
 
   void setOwnerBoardController(ArtifactBoardController controller) {
     _ownerBoardController = controller;
-    debugPrint('SignalR: Stored owner board controller');
+    _log.fine('SignalR: Stored owner board controller');
   }
 
   ArtifactBoardController? getOwnerBoardController() => _ownerBoardController;
@@ -84,11 +86,11 @@ class SignalRService {
               user.name?.isNotEmpty == true ? user.name! : user.username;
           _eventRouter.contactCache[user.id] = name;
         }
-        debugPrint(
+        _log.fine(
             'SignalR: Loaded ${_eventRouter.contactCache.length} contacts into cache');
       }
     } catch (e) {
-      debugPrint('SignalR: Failed to load contacts => $e');
+      _log.fine('SignalR: Failed to load contacts => $e');
     }
   }
 
@@ -185,7 +187,7 @@ class SignalRService {
     if (isConnected) return;
 
     _currentUserId = userId;
-    debugPrint('SignalR: Connecting as user=$userId');
+    _log.fine('SignalR: Connecting as user=$userId');
 
     try {
       final hub = await _connectionManager.connect();
@@ -198,7 +200,7 @@ class SignalRService {
       await _registerUser();
       await refreshOnlineUsers();
     } catch (e) {
-      debugPrint('SignalR: Connection failed → $e');
+      _log.fine('SignalR: Connection failed → $e');
       rethrow;
     }
   }
@@ -213,7 +215,7 @@ class SignalRService {
       'RequestSession',
       args: <Object>[_currentUserId!, toUserId],
     );
-    debugPrint('SignalR: requestSession => $_currentUserId → $toUserId');
+    _log.fine('SignalR: requestSession => $_currentUserId → $toUserId');
   }
 
   Future<void> acceptSession(String sessionId, String fromUserId,
@@ -226,7 +228,7 @@ class SignalRService {
       'AcceptSession',
       args: <Object>[sessionId, fromUserId, toUserId, actualBoardId],
     );
-    debugPrint(
+    _log.fine(
         'SignalR: acceptSession => $sessionId from $fromUserId to $toUserId with boardId=$actualBoardId');
   }
 
@@ -301,7 +303,7 @@ class SignalRService {
     _statusTracker.clear();
     _eventRouter.clear();
 
-    debugPrint('SignalR: All state and callbacks cleared');
+    _log.fine('SignalR: All state and callbacks cleared');
   }
 
   // ── Private helpers ───────────────────────────────────────────
@@ -312,10 +314,10 @@ class SignalRService {
       final contactIds = _eventRouter.contactCache.keys.toList();
       await _connectionManager.hubConnection!
           .invoke('RegisterUser', args: <Object>[_currentUserId!, contactIds]);
-      debugPrint(
+      _log.fine(
           'SignalR: Registered user $_currentUserId with ${contactIds.length} contacts');
     } catch (e) {
-      debugPrint('SignalR: RegisterUser ERROR → $e');
+      _log.fine('SignalR: RegisterUser ERROR → $e');
     }
   }
 }

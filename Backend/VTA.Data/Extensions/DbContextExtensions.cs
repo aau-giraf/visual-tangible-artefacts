@@ -31,7 +31,8 @@ public static class DbContextExtensions
             }
             catch (Exception e)
             {
-                Console.WriteLine($"An error occurred while configuring MySQL: {e.Message}\n\n Falling Back to a volatile DB");
+                // ILogger is not available during DI configuration; use stderr as a last resort.
+                Console.Error.WriteLine($"[ERROR] An error occurred while configuring MySQL: {e.Message} — falling back to a volatile DB");
             }
         });
         return services;

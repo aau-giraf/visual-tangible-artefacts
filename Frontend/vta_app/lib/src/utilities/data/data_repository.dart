@@ -10,14 +10,17 @@ import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'dart:convert';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('DataRepository');
 abstract class ApiDataRepository {
   var apiSettings = GlobalConfiguration().appConfig['ApiSettings'];
   late ApiProvider apiProvider;
 
   ApiDataRepository() {
     apiProvider = ApiProvider(baseUrl: PlatformUtils.getApiUrl());
-    debugPrint('[DataRepository] Using API URL: ${PlatformUtils.getApiUrl()}');
+    _log.fine('[DataRepository] Using API URL: ${PlatformUtils.getApiUrl()}');
   }
 
   bool responseOk(http.Response? response) {
@@ -62,7 +65,7 @@ class AuthRepository extends ApiDataRepository {
       }
     } catch (e) {
       // Re-throw the exception so it bubbles up to the UI
-      debugPrint('Login error in AuthRepository: $e');
+      _log.fine('Login error in AuthRepository: $e');
       rethrow;
     }
   }
@@ -93,7 +96,7 @@ class ArtifactRepository extends ApiDataRepository {
         return null;
       }
     } catch (e) {
-      debugPrint("An error occured while fetching categories: $e");
+      _log.fine("An error occured while fetching categories: $e");
       return null;
     }
   }
@@ -111,7 +114,7 @@ class ArtifactRepository extends ApiDataRepository {
       }
       return null;
     } catch (e) {
-      debugPrint("An error occured while posting category: $e");
+      _log.fine("An error occured while posting category: $e");
       return null;
     }
   }
@@ -142,7 +145,7 @@ class ArtifactRepository extends ApiDataRepository {
         return false;
       }
     } catch (e) {
-      debugPrint("An error occured while deleting category: $e");
+      _log.fine("An error occured while deleting category: $e");
       return false;
     }
   }
@@ -161,7 +164,7 @@ class ArtifactRepository extends ApiDataRepository {
       }
       return null;
     } catch (e) {
-      debugPrint("An error occurred while fetching artefact: $e");
+      _log.fine("An error occurred while fetching artefact: $e");
       return null;
     }
   }
@@ -179,7 +182,7 @@ class ArtifactRepository extends ApiDataRepository {
       }
       return null;
     } catch (e) {
-      debugPrint("An error occured while posting category: $e");
+      _log.fine("An error occured while posting category: $e");
       return null;
     }
   }
@@ -198,7 +201,7 @@ class ArtifactRepository extends ApiDataRepository {
 
       return responseOk(response);
     } catch (e) {
-      debugPrint("An error occurred while deleting artifact: $e");
+      _log.fine("An error occurred while deleting artifact: $e");
       return false;
     }
   }
@@ -263,7 +266,7 @@ class UserRepository extends ApiDataRepository {
         return null;
       }
     } catch (e) {
-      debugPrint("An error occured while fetching user data: $e");
+      _log.fine("An error occured while fetching user data: $e");
       return null;
     }
   }
@@ -284,7 +287,7 @@ class UserRepository extends ApiDataRepository {
         return null;
       }
     } catch (e) {
-      debugPrint("An error occured while fetching users: $e");
+      _log.fine("An error occured while fetching users: $e");
       return null;
     }
   }
@@ -300,10 +303,10 @@ class UserRepository extends ApiDataRepository {
       var response = await apiProvider.fetchAsJson('Contacts',
           headers: headers);
 
-      debugPrint('Related contacts response: ${response?.body}');
-      debugPrint('Related contacts status code: ${response?.statusCode}');
-      debugPrint('Related contacts headers: ${response?.headers}');
-      debugPrint('Related contacts request: ${response?.request}');
+      _log.fine('Related contacts response: ${response?.body}');
+      _log.fine('Related contacts status code: ${response?.statusCode}');
+      _log.fine('Related contacts headers: ${response?.headers}');
+      _log.fine('Related contacts request: ${response?.request}');
 
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body) as List;
@@ -315,7 +318,7 @@ class UserRepository extends ApiDataRepository {
         return null;
       }
     } catch (e) {
-      debugPrint("An error occured while fetching related contacts: $e");
+      _log.fine("An error occured while fetching related contacts: $e");
       return null;
     }
   }

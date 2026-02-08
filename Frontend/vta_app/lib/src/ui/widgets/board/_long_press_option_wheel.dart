@@ -5,7 +5,10 @@ import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('LongPressOptionWheel');
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
@@ -191,7 +194,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
                       widget.artifact.baseArtefact!,
                     );
                   } catch (e) {
-                    debugPrint('Error updating nameShown: $e');
+                    _log.fine('Error updating nameShown: $e');
                   }
               },
               playSound: () async {

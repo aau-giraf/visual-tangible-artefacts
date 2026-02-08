@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/database/database.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
@@ -7,9 +5,12 @@ import 'package:vta_app/src/services/sync_downloader.dart';
 import 'package:vta_app/src/services/sync_uploader.dart';
 import 'package:vta_app/src/services/sync_change_detector.dart';
 import 'package:vta_app/src/services/sync_models.dart';
+import 'package:logging/logging.dart';
 
 // Re-export models so existing `import 'sync_service.dart'` still works.
 export 'package:vta_app/src/services/sync_models.dart';
+
+final _log = Logger('SyncService');
 
 /// High-level orchestrator for bidirectional data sync.
 ///
@@ -70,7 +71,7 @@ class SyncService {
 
       return true;
     } catch (e) {
-      print('[SYNC] ERROR in syncFromServer: $e');
+      _log.info('[SYNC] ERROR in syncFromServer: $e');
       return false;
     }
   }
@@ -115,7 +116,7 @@ class SyncService {
       if (userId == null) return null;
       return await _syncMetaRepo.getLastSyncDate(userId, 'all');
     } catch (e) {
-      print('Error getting last sync date: $e');
+      _log.info('Error getting last sync date: $e');
       return null;
     }
   }
@@ -127,7 +128,7 @@ class SyncService {
       if (userId == null) return;
       await _syncMetaRepo.updateLastSyncDate(userId, 'all', date);
     } catch (e) {
-      print('Error setting last sync date: $e');
+      _log.info('Error setting last sync date: $e');
     }
   }
 
@@ -153,7 +154,7 @@ class SyncService {
         'boards': boards.length,
       };
     } catch (e) {
-      print('[SYNC] ERROR getting local item counts: $e');
+      _log.info('[SYNC] ERROR getting local item counts: $e');
       return {'artefacts': 0, 'boards': 0};
     }
   }

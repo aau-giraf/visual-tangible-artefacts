@@ -15,10 +15,12 @@ namespace VTA.API.Controllers;
 public class MigrationController : ControllerBase
 {
     private readonly VTAContext _context;
+    private readonly ILogger<MigrationService> _migrationLogger;
 
-    public MigrationController(VTAContext context)
+    public MigrationController(VTAContext context, ILogger<MigrationService> migrationLogger)
     {
         _context = context;
+        _migrationLogger = migrationLogger;
     }
 
     /// <summary>
@@ -31,7 +33,7 @@ public class MigrationController : ControllerBase
     {
         try
         {
-            var migration = new MigrationService(_context);
+            var migration = new MigrationService(_context, _migrationLogger);
             var result = await migration.MigrateAsync(dryRun);
 
             if (result.Success)

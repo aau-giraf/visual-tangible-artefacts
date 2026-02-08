@@ -1,7 +1,8 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_settings_screens/flutter_settings_screens.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
@@ -14,6 +15,7 @@ import 'package:vta_app/src/services/notification_service.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/app_logger.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:vta_app/src/services/sync_timer.dart';
@@ -25,6 +27,8 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/database/database_helper.dart';
 import 'package:vta_app/src/database/database_debug_helper.dart';
 
+final _log = Logger('Main');
+
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.clear();
@@ -32,6 +36,8 @@ Future<void> clearSharedPreferences() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  AppLogger.init();
+
   // Clear SharedPreferences, for testing
   // await clearSharedPreferences();
 
@@ -39,7 +45,7 @@ void main() async {
     // Load global configuration from assets/cfg/app_settings.json
     await GlobalConfiguration().loadFromAsset("app_settings");
   } catch (e) {
-    debugPrint('Error loading configuration: $e');
+    _log.warning('Error loading configuration: $e');
     // Continue anyway - will use fallback URL
   }
 
@@ -47,10 +53,10 @@ void main() async {
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     try {
       await DatabaseHelper.instance.database;
-      print('SQLite database initialized successfully');
+      _log.info('SQLite database initialized successfully');
       await DatabaseDebugHelper.printDatabasePath();
     } catch (e) {
-      print('Failed to initialize SQLite database: $e');
+      _log.severe('Failed to initialize SQLite database: $e');
     }
   }
 

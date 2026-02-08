@@ -15,14 +15,17 @@ namespace VTA.API.Controllers;
 public class SyncController : ControllerBase
 {
     private readonly VTAContext _context;
+    private readonly ILogger<SyncController> _logger;
 
     /// <summary>
     /// Constructor for SyncController
     /// </summary>
     /// <param name="context">Database context</param>
-    public SyncController(VTAContext context)
+    /// <param name="logger">Logger instance</param>
+    public SyncController(VTAContext context, ILogger<SyncController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -33,26 +36,26 @@ public class SyncController : ControllerBase
     [HttpGet("changes")]
     public async Task<ActionResult<SyncResponseDTO>> GetChanges([FromQuery] DateTime since)
     {
-        Console.WriteLine($"[SYNC-API] GetChanges called with since: {since:O}");
+        _logger.LogDebug("GetChanges called with since: {Since}", since);
         
         var userId = User.FindFirst("id")?.Value;
-        Console.WriteLine($"[SYNC-API] User ID from token: {userId}");
+        _logger.LogDebug("User ID from token: {UserId}", userId);
         
         if (string.IsNullOrEmpty(userId))
         {
-            Console.WriteLine("[SYNC-API] ERROR: No user ID in token, returning Unauthorized");
+            _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
 
         var changedFiles = new List<FileChangeDTO>();
 
         // Get changed artefacts
-        Console.WriteLine($"[SYNC-API] Querying artefacts modified after {since:O} for user {userId}");
+        _logger.LogDebug("Querying artefacts modified after {Since} for user {UserId}", since, userId);
         var artefacts = await _context.Artefacts
             .AsNoTracking()
             .Where(a => a.UserId == userId && a.ModifiedDate != null && a.ModifiedDate > since)
             .ToListAsync();
-        Console.WriteLine($"[SYNC-API] Found {artefacts.Count} changed artefacts");
+        _logger.LogDebug("Found {Count} changed artefacts", artefacts.Count);
 
         foreach (var artefact in artefacts)
         {
@@ -70,16 +73,16 @@ public class SyncController : ControllerBase
                     : null
             };
             changedFiles.Add(dto);
-            Console.WriteLine($"[SYNC-API]   - Artefact: {dto.FileName} ({dto.FileId}), modified: {dto.ModifiedDate:O}");
+            _logger.LogDebug("  Artefact: {Name} ({Id}), modified: {Modified}", dto.FileName, dto.FileId, dto.ModifiedDate);
         }
 
         // Get changed boards
-        Console.WriteLine($"[SYNC-API] Querying boards modified after {since:O} for user {userId}");
+        _logger.LogDebug("Querying boards modified after {Since} for user {UserId}", since, userId);
         var boards = await _context.SavedBoards
             .AsNoTracking()
             .Where(b => b.UserId == userId && b.ModifiedDate != null && b.ModifiedDate > since)
             .ToListAsync();
-        Console.WriteLine($"[SYNC-API] Found {boards.Count} changed boards");
+        _logger.LogDebug("Found {Count} changed boards", boards.Count);
 
         foreach (var board in boards)
         {
@@ -91,11 +94,11 @@ public class SyncController : ControllerBase
                 ModifiedDate = board.ModifiedDate
             };
             changedFiles.Add(dto);
-            Console.WriteLine($"[SYNC-API]   - Board: {dto.FileName} ({dto.FileId}), modified: {dto.ModifiedDate:O}");
+            _logger.LogDebug("  Board: {Name} ({Id}), modified: {Modified}", dto.FileName, dto.FileId, dto.ModifiedDate);
         }
 
         // Sort by modified date (most recent first)
-        Console.WriteLine($"[SYNC-API] Sorting {changedFiles.Count} total changes by modified date");
+        _logger.LogDebug("Sorting {Count} total changes by modified date", changedFiles.Count);
         changedFiles = changedFiles
             .OrderByDescending(f => f.ModifiedDate)
             .ToList();
@@ -107,7 +110,7 @@ public class SyncController : ControllerBase
             TotalChanges = changedFiles.Count
         };
         
-        Console.WriteLine($"[SYNC-API] Returning response: {response.TotalChanges} total changes, check date: {response.CheckDate:O}");
+        _logger.LogInformation("GetChanges returning {TotalChanges} changes (check date: {CheckDate})", response.TotalChanges, response.CheckDate);
         return Ok(response);
     }
 
@@ -119,24 +122,24 @@ public class SyncController : ControllerBase
     [HttpGet("artefacts")]
     public async Task<ActionResult<IEnumerable<FileChangeDTO>>> GetChangedArtefacts([FromQuery] DateTime since)
     {
-        Console.WriteLine($"[SYNC-API] GetChangedArtefacts called with since: {since:O}");
+        _logger.LogDebug("GetChangedArtefacts called with since: {Since}", since);
         
         var userId = User.FindFirst("id")?.Value;
-        Console.WriteLine($"[SYNC-API] User ID: {userId}");
+        _logger.LogDebug("User ID: {UserId}", userId);
         
         if (string.IsNullOrEmpty(userId))
         {
-            Console.WriteLine("[SYNC-API] ERROR: No user ID, returning Unauthorized");
+            _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
 
-        Console.WriteLine($"[SYNC-API] Querying artefacts for user {userId} modified after {since:O}");
+        _logger.LogDebug("Querying artefacts for user {UserId} modified after {Since}", userId, since);
         var artefacts = await _context.Artefacts
             .AsNoTracking()
             .Where(a => a.UserId == userId && a.ModifiedDate != null && a.ModifiedDate > since)
             .OrderByDescending(a => a.ModifiedDate)
             .ToListAsync();
-        Console.WriteLine($"[SYNC-API] Found {artefacts.Count} changed artefacts");
+        _logger.LogDebug("Found {Count} changed artefacts", artefacts.Count);
 
         var changes = artefacts.Select(a => new FileChangeDTO
         {
@@ -154,10 +157,10 @@ public class SyncController : ControllerBase
 
         foreach (var change in changes)
         {
-            Console.WriteLine($"[SYNC-API]   - {change.FileName} ({change.FileId}), modified: {change.ModifiedDate:O}");
+            _logger.LogDebug("  {Name} ({Id}), modified: {Modified}", change.FileName, change.FileId, change.ModifiedDate);
         }
 
-        Console.WriteLine($"[SYNC-API] Returning {changes.Count} changed artefacts");
+        _logger.LogInformation("GetChangedArtefacts returning {Count} changes", changes.Count);
         return Ok(changes);
     }
 
@@ -169,24 +172,24 @@ public class SyncController : ControllerBase
     [HttpGet("boards")]
     public async Task<ActionResult<IEnumerable<FileChangeDTO>>> GetChangedBoards([FromQuery] DateTime since)
     {
-        Console.WriteLine($"[SYNC-API] GetChangedBoards called with since: {since:O}");
+        _logger.LogDebug("GetChangedBoards called with since: {Since}", since);
         
         var userId = User.FindFirst("id")?.Value;
-        Console.WriteLine($"[SYNC-API] User ID: {userId}");
+        _logger.LogDebug("User ID: {UserId}", userId);
         
         if (string.IsNullOrEmpty(userId))
         {
-            Console.WriteLine("[SYNC-API] ERROR: No user ID, returning Unauthorized");
+            _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
 
-        Console.WriteLine($"[SYNC-API] Querying boards for user {userId} modified after {since:O}");
+        _logger.LogDebug("Querying boards for user {UserId} modified after {Since}", userId, since);
         var boards = await _context.SavedBoards
             .AsNoTracking()
             .Where(b => b.UserId == userId && b.ModifiedDate != null && b.ModifiedDate > since)
             .OrderByDescending(b => b.ModifiedDate)
             .ToListAsync();
-        Console.WriteLine($"[SYNC-API] Found {boards.Count} changed boards");
+        _logger.LogDebug("Found {Count} changed boards", boards.Count);
 
         var changes = boards.Select(b => new FileChangeDTO
         {
@@ -198,10 +201,10 @@ public class SyncController : ControllerBase
 
         foreach (var change in changes)
         {
-            Console.WriteLine($"[SYNC-API]   - {change.FileName} ({change.FileId}), modified: {change.ModifiedDate:O}");
+            _logger.LogDebug("  {Name} ({Id}), modified: {Modified}", change.FileName, change.FileId, change.ModifiedDate);
         }
 
-        Console.WriteLine($"[SYNC-API] Returning {changes.Count} changed boards");
+        _logger.LogInformation("GetChangedBoards returning {Count} changes", changes.Count);
         return Ok(changes);
     }
 
@@ -213,30 +216,30 @@ public class SyncController : ControllerBase
     [HttpGet("summary")]
     public async Task<ActionResult<SyncSummaryDTO>> GetChangeSummary([FromQuery] DateTime since)
     {
-        Console.WriteLine($"[SYNC-API] GetChangeSummary called with since: {since:O}");
+        _logger.LogDebug("GetChangeSummary called with since: {Since}", since);
         
         var userId = User.FindFirst("id")?.Value;
-        Console.WriteLine($"[SYNC-API] User ID: {userId}");
+        _logger.LogDebug("User ID: {UserId}", userId);
         
         if (string.IsNullOrEmpty(userId))
         {
-            Console.WriteLine("[SYNC-API] ERROR: No user ID, returning Unauthorized");
+            _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
 
-        Console.WriteLine($"[SYNC-API] Counting artefacts for user {userId} modified after {since:O}");
+        _logger.LogDebug("Counting artefacts for user {UserId} modified after {Since}", userId, since);
         var artefactCount = await _context.Artefacts
             .AsNoTracking()
             .Where(a => a.UserId == userId && a.ModifiedDate != null && a.ModifiedDate > since)
             .CountAsync();
-        Console.WriteLine($"[SYNC-API] Artefact count: {artefactCount}");
+        _logger.LogDebug("Artefact count: {Count}", artefactCount);
 
-        Console.WriteLine($"[SYNC-API] Counting boards for user {userId} modified after {since:O}");
+        _logger.LogDebug("Counting boards for user {UserId} modified after {Since}", userId, since);
         var boardCount = await _context.SavedBoards
             .AsNoTracking()
             .Where(b => b.UserId == userId && b.ModifiedDate != null && b.ModifiedDate > since)
             .CountAsync();
-        Console.WriteLine($"[SYNC-API] Board count: {boardCount}");
+        _logger.LogDebug("Board count: {Count}", boardCount);
 
         var summary = new SyncSummaryDTO
         {
@@ -246,7 +249,7 @@ public class SyncController : ControllerBase
             CheckDate = DateTime.UtcNow
         };
         
-        Console.WriteLine($"[SYNC-API] Returning summary - Total: {summary.TotalChanges}, Artefacts: {summary.ArtefactChanges}, Boards: {summary.BoardChanges}, Check date: {summary.CheckDate:O}");
+        _logger.LogInformation("GetChangeSummary returning Total: {Total}, Artefacts: {Artefacts}, Boards: {Boards}", summary.TotalChanges, summary.ArtefactChanges, summary.BoardChanges);
         return Ok(summary);
     }
 }

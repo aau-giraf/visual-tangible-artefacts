@@ -33,7 +33,7 @@ public class TtsService : ITtsService
         }
 
         var httpClient = httpClientFactory.CreateClient();
-        _elevenLabs = new ElevenLabsService(httpClient, apiKey);
+        _elevenLabs = new ElevenLabsService(httpClient, apiKey, logger);
     }
 
     /// <inheritdoc />

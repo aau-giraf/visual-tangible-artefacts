@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('ResizeOverlay');
 
 class ResizeOverlay {
   OverlayEntry? _resizeCaptureEntry;
@@ -31,7 +34,7 @@ class ResizeOverlay {
       if (event is PointerUpEvent) {
         try {
           artifact.showResizeHandle.value = false;
-        } catch (_) {}
+        } catch (e) { _log.fine('Error hiding resize handle: $e'); }
         hide(artifact);
       }
     };
@@ -42,7 +45,7 @@ class ResizeOverlay {
     };
     try {
       artifact.sizeNotifier.addListener(_resizeListener!);
-    } catch (_) {}
+    } catch (e) { _log.fine('Error adding size listener: $e'); }
   }
 
   void hide(BoardArtefact artifact) {
@@ -52,20 +55,20 @@ class ResizeOverlay {
     if (_globalPointerRoute != null) {
       try {
         GestureBinding.instance.pointerRouter.removeGlobalRoute(_globalPointerRoute!);
-      } catch (_) {}
+      } catch (e) { _log.fine('Error removing pointer route: $e'); }
       _globalPointerRoute = null;
     }
     
     if (_resizeListener != null) {
       try {
         artifact.sizeNotifier.removeListener(_resizeListener!);
-      } catch (_) {}
+      } catch (e) { _log.fine('Error removing size listener: $e'); }
       _resizeListener = null;
     }
     
     try {
       artifact.showResizeHandle.value = false;
-    } catch (_) {}
+    } catch (e) { _log.fine('Error hiding resize handle: $e'); }
   }
 
   void dispose(BoardArtefact artifact) {

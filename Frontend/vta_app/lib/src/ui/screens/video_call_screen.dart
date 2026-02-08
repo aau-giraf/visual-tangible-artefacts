@@ -5,7 +5,10 @@ import '../../services/webrtc_service.dart';
 import '../../services/video_call_manager.dart';
 import '../../services/signalr_service.dart';
 import 'remote_board_screen.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('VideoCallScreen');
 enum ConnectionStatus {
   initializing,
   calling,
@@ -60,7 +63,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     super.initState();    
     // Listen for remote hang-up
     SignalRService().onSessionEnded = () {
-      debugPrint('[VideoCall] Remote user ended the session');
+      _log.fine('[VideoCall] Remote user ended the session');
       if (mounted) {
         VideoCallManager().endCall();
         
@@ -101,7 +104,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         _hasLocalAudio = _webrtcService!.hasLocalAudio;
         _hasRemoteVideo = _webrtcService!.hasRemoteVideo;
         _hasRemoteAudio = _webrtcService!.hasRemoteAudio;
-        debugPrint('[VideoCall] Restored media state: local(v:$_hasLocalVideo,a:$_hasLocalAudio) remote(v:$_hasRemoteVideo,a:$_hasRemoteAudio)');
+        _log.fine('[VideoCall] Restored media state: local(v:$_hasLocalVideo,a:$_hasLocalAudio) remote(v:$_hasRemoteVideo,a:$_hasRemoteAudio)');
       }
     });
     
@@ -117,7 +120,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Future<void> _initializeCall() async {
     try {
-      debugPrint('[VideoCall] Initializing call - isCaller: ${widget.isCaller}');
+      _log.fine('[VideoCall] Initializing call - isCaller: ${widget.isCaller}');
       
       // Initialize renderers
       await _localRenderer.initialize();
@@ -140,7 +143,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           // Update local media from actual stream
           _hasLocalVideo = stream.getVideoTracks().isNotEmpty;
           _hasLocalAudio = stream.getAudioTracks().isNotEmpty;
-          debugPrint('[VideoCall] Local stream set: video=$_hasLocalVideo, audio=$_hasLocalAudio');
+          _log.fine('[VideoCall] Local stream set: video=$_hasLocalVideo, audio=$_hasLocalAudio');
         });
       };
 
@@ -152,7 +155,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           // Update remote media from actual stream
           _hasRemoteVideo = stream.getVideoTracks().isNotEmpty;
           _hasRemoteAudio = stream.getAudioTracks().isNotEmpty;
-          debugPrint('[VideoCall] Remote stream set: video=$_hasRemoteVideo, audio=$_hasRemoteAudio');
+          _log.fine('[VideoCall] Remote stream set: video=$_hasRemoteVideo, audio=$_hasRemoteAudio');
         });
         
         // Auto-transition to board screen after connection stabilizes
@@ -161,7 +164,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       
       _webrtcService!.onConnectionEstablished = () {
         if (!mounted) return;
-        debugPrint('[VideoCall] Connection established notification');
+        _log.fine('[VideoCall] Connection established notification');
         setState(() {
           _connectionStatus = ConnectionStatus.connected;
         });
@@ -175,7 +178,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           setState(() {
             _hasLocalVideo = hasVideo;
             _hasLocalAudio = hasAudio;
-            debugPrint('[VideoCall] Local media availability (no stream yet): video=$hasVideo, audio=$hasAudio');
+            _log.fine('[VideoCall] Local media availability (no stream yet): video=$hasVideo, audio=$hasAudio');
           });
         }
       };
@@ -187,7 +190,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           setState(() {
             _hasRemoteVideo = hasVideo;
             _hasRemoteAudio = hasAudio;
-            debugPrint('[VideoCall] Remote media availability (no stream yet): video=$hasVideo, audio=$hasAudio');
+            _log.fine('[VideoCall] Remote media availability (no stream yet): video=$hasVideo, audio=$hasAudio');
           });
         }
       };
@@ -209,13 +212,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       // Start the call
       if (widget.isCaller) {
-        debugPrint('[VideoCall] Starting call as caller');
+        _log.fine('[VideoCall] Starting call as caller');
         await _webrtcService!.startCall();
       } else {
-        debugPrint('[VideoCall] Waiting for offer as callee');
+        _log.fine('[VideoCall] Waiting for offer as callee');
       }
     } catch (e) {
-      debugPrint('[VideoCall] Initialization error: $e');
+      _log.fine('[VideoCall] Initialization error: $e');
       if (!mounted) return;
       setState(() {
         _connectionStatus = ConnectionStatus.error;
@@ -310,16 +313,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   @override
   void dispose() {
-    debugPrint('[VideoCall] Disposing - hasTransitioned: $_hasTransitioned, mounted: $mounted');
+    _log.fine('[VideoCall] Disposing - hasTransitioned: $_hasTransitioned, mounted: $mounted');
         
     if (!_hasTransitioned) {
-      debugPrint('[VideoCall] Disposing WebRTC resources');
+      _log.fine('[VideoCall] Disposing WebRTC resources');
       _webrtcService?.dispose();
       _localRenderer.dispose();
       _remoteRenderer.dispose();
       VideoCallManager().endCall();
     } else {
-      debugPrint('[VideoCall] NOT disposing - transitioning to board');
+      _log.fine('[VideoCall] NOT disposing - transitioning to board');
     }
     
     super.dispose();
@@ -509,7 +512,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   _buildControlButton(
                     icon: Icons.call_end,
                     onPressed: () async {
-                      debugPrint('[VideoCall] Hang-up button pressed');
+                      _log.fine('[VideoCall] Hang-up button pressed');
                       await SignalRService().endSession();
                       await VideoCallManager().endCall();
                       if (mounted) {

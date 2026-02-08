@@ -13,7 +13,10 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/services/call_manager.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('AuthController');
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
   final AuthModel _model;
@@ -42,10 +45,10 @@ class AuthController extends ChangeNotifier {
           }
           CallManager().setupCallbacks();
 
-          debugPrint(
+          _log.fine(
               "SignalR: connected & registered user $userId (from checkAuth)");
         } catch (e) {
-          debugPrint("SignalR: connect failed in checkAuth => $e");
+          _log.fine("SignalR: connect failed in checkAuth => $e");
         }
       }
     }
@@ -77,12 +80,12 @@ class AuthController extends ChangeNotifier {
             }
             CallManager().setupCallbacks();
 
-            debugPrint("SignalR: connected & registered user $userId");
+            _log.fine("SignalR: connected & registered user $userId");
           } catch (e) {
-            debugPrint("SignalR: connect failed => $e");
+            _log.fine("SignalR: connect failed => $e");
           }
         } else {
-          debugPrint("WARNING: No userId available for SignalR connection");
+          _log.fine("WARNING: No userId available for SignalR connection");
         }
         if (!context.mounted) return;
 
@@ -98,7 +101,7 @@ class AuthController extends ChangeNotifier {
         Navigator.of(context).pushReplacementNamed(WelcomeScreen.routeName);
       }
     } catch (e) {
-      debugPrint('[AUTH] Error: ${e.toString()}');
+      _log.fine('[AUTH] Error: ${e.toString()}');
       // Re-throw the exception so LoginView can catch and display it
       // LoginView displays errors inline to prevent keyboard issues
       rethrow;
@@ -126,9 +129,9 @@ class AuthController extends ChangeNotifier {
         await artifactController.clearUserData();
         await _model.logout();
 
-        debugPrint('[AuthController.logout] Logout complete');
+        _log.fine('[AuthController.logout] Logout complete');
       } catch (e) {
-        debugPrint('[AuthController.logout] clearUserData failed: $e');
+        _log.fine('[AuthController.logout] clearUserData failed: $e');
       }
     }
     notifyListeners();
@@ -157,7 +160,7 @@ class AuthController extends ChangeNotifier {
       //       .pushReplacementNamed(ArtifactBoardScreen.routeName);
       //   }
     } catch (e) {
-      debugPrint('[AUTH] Signup Error: ${e.toString()}');
+      _log.fine('[AUTH] Signup Error: ${e.toString()}');
       // Re-throw the exception so LoginView can catch and display it
       // LoginView displays errors inline to prevent keyboard issues
       rethrow;
@@ -196,9 +199,9 @@ class AuthController extends ChangeNotifier {
                   await artifactController.clearUserData();
                   await _model.logout();
 
-                  debugPrint('[AuthController.logout] Logout complete');
+                  _log.fine('[AuthController.logout] Logout complete');
                 } catch (e) {
-                  debugPrint(
+                  _log.fine(
                       '[AuthController.logout] clearUserData failed: $e');
                 }
                 if (!context.mounted) return;

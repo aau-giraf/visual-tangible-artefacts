@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
@@ -6,7 +6,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('AddPicture');
 class AIPage extends StatefulWidget {
   final void Function(String imageBytes)? onImageProcessed;
 
@@ -102,20 +105,20 @@ class _AIPageState extends State<AIPage> {
             isLoading = false;
             showError = true;
           });
-          print('Unexpected response format: $jsonResponse');
+          _log.info('Unexpected response format: $jsonResponse');
         }
       } catch (e) {
         setState(() {
           isLoading = false;
           showError = true;
         });
-        print('Error generating image: $e');
+        _log.info('Error generating image: $e');
       }
     } else {
       setState(() {
         showError = true;
       });
-      print('Prompt is empty or format not chosen');
+      _log.info('Prompt is empty or format not chosen');
     }
   }
 
@@ -371,7 +374,7 @@ class AddPicturePage extends StatelessWidget {
                             if (result != null) {
                               File file = File(result.files.single.path!);
                             } else {
-                              print("Ingen fil valgt");
+                              _log.info("Ingen fil valgt");
                             }
                           },
                           tooltip: 'Upload fra galleri',

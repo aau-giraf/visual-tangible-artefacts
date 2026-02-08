@@ -91,7 +91,8 @@ public static class ImageUtilities
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            // Static utility — ILogger unavailable; use stderr for file-search errors.
+            Console.Error.WriteLine($"[ERROR] ImageUtilities.FindImage failed: {ex.Message}");
         }
 
         // Return the file if found, or null if no match

@@ -3,10 +3,12 @@ import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/utilities/audio/network_audio.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:get_it/get_it.dart';
-import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ArtefactSoundPlayer');
 mixin ArtefactSoundPlayer {
   final Map<String, NetworkAudio> _audioCache = {};
   late final ApiProvider _apiProvider = GetIt.instance.get<ApiProvider>();
@@ -83,11 +85,11 @@ mixin ArtefactSoundPlayer {
   }
 
   Future<void> cleanupArtefactSounds() async {
-    debugPrint('Cleaning up artefact sounds...');
+    _log.fine('Cleaning up artefact sounds...');
     for (final audio in _audioCache.values) {
       await audio.dispose();
     }
     _audioCache.clear();
-    debugPrint('Artefact sounds cleaned up');
+    _log.fine('Artefact sounds cleaned up');
   }
 }

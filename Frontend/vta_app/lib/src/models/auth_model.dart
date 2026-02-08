@@ -7,7 +7,10 @@ import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('AuthModel');
 /// Model for handling authentication and storing authentication data
 class AuthModel {
   Token token;
@@ -47,7 +50,7 @@ class AuthModel {
       if (e is AuthException) {
         rethrow;
       }
-      debugPrint('$e');
+      _log.fine('$e');
       // Handle network errors and other exceptions
       if (e.toString().contains('SocketException') || 
           e.toString().contains('Failed host lookup') ||
@@ -74,7 +77,7 @@ class AuthModel {
       await prefs.remove('jwtToken');
       await prefs.remove('userId');
     } catch (e) {
-      debugPrint('[AuthModel.clearCacheData] failed: $e');
+      _log.fine('[AuthModel.clearCacheData] failed: $e');
     } finally {
       token.value = null;
       userInfo.userId = null;
@@ -117,7 +120,7 @@ class AuthModel {
         return User.fromJson(jsonDecode(response.body));
       }
     } catch (e) {
-      debugPrint('Error fetching user: $e');
+      _log.fine('Error fetching user: $e');
     }
     return null;
   }
@@ -140,7 +143,7 @@ class AuthModel {
       if (e is AuthException) {
         rethrow;
       }
-      debugPrint('$e');
+      _log.fine('$e');
       // Handle network errors and other exceptions
       if (e.toString().contains('SocketException') || 
           e.toString().contains('Failed host lookup') ||

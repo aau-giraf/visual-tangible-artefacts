@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('BoardArtifact');
 class BoardArtefact {
   final Widget baseContent;
   Offset? position;
@@ -72,7 +75,7 @@ class BoardArtefact {
             await player.setUrl(artefact.soundUrl!);
             await player.play();
           } catch (e) {
-            debugPrint('Error playing sound: $e');
+            _log.fine('Error playing sound: $e');
           }
         },
         child: Container(
@@ -209,11 +212,11 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
         try {
           widget.sizeNotifier.value = Size(targetWidth, targetHeight);
           _autoSizedDone = true;
-        } catch (_) {}
+        } catch (e) { _log.fine('Error setting artifact size: $e'); }
       }
-      try { stream.removeListener(listener!); } catch (_) {}
+      try { stream.removeListener(listener!); } catch (e) { _log.fine('Error removing stream listener: $e'); }
     }, onError: (dynamic _, __) {
-      try { stream.removeListener(listener!); } catch (_) {}
+      try { stream.removeListener(listener!); } catch (e) { _log.fine('Error removing stream listener: $e'); }
     });
     stream.addListener(listener);
   }

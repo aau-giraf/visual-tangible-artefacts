@@ -8,7 +8,10 @@ import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ArtifactController');
 class ArtefactController extends ChangeNotifier {
   final ArtifactModel _model;
   List<Category>? get categories => _model.categories;
@@ -44,7 +47,7 @@ class ArtefactController extends ChangeNotifier {
     try {
       _model.clearCache();
     } catch (e) {
-      debugPrint('[ArtefactController.clearUserData] failed: $e');
+      _log.fine('[ArtefactController.clearUserData] failed: $e');
     }
     notifyListeners();
   }
@@ -127,7 +130,7 @@ Future<void> newArtifact(BuildContext context, String categoryId, {Function(Arte
             if (onCreated != null) {
               try {
                 onCreated(created);
-              } catch (_) {}
+              } catch (e) { _log.fine('onCreated callback failed: $e'); }
             }
           } catch (e) {
             if (context.mounted) {
@@ -207,7 +210,7 @@ Future<void> newArtifact(BuildContext context, String categoryId, {Function(Arte
       if (success) {
         notifyListeners();
       }
-    } catch (e) {}
+    } catch (e) { _log.warning('Failed to track category usage: $e'); }
   }
 
   Future<void> updateArtifact(Artefact artefact, BuildContext context) async {

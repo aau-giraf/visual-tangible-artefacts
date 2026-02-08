@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ApiProvider');
 class ApiProvider {
   final String baseUrl;
 
@@ -14,7 +17,7 @@ class ApiProvider {
     try {
       return await http.get(uri, headers: headers);
     } on Exception catch (e) {
-      print(e.toString());
+      _log.info(e.toString());
       return null;
     }
   }
@@ -28,7 +31,7 @@ class ApiProvider {
         headers: headers,
       );
     } on Exception catch (e) {
-      print(e.toString());
+      _log.info(e.toString());
       return null;
     }
   }
@@ -46,7 +49,7 @@ class ApiProvider {
         body: body != null ? json.encode(body) : null,
       );
     } on Exception catch (e) {
-      print(e.toString());
+      _log.info(e.toString());
       return null;
     }
   }
@@ -61,7 +64,7 @@ class ApiProvider {
       var streamedResponse = await request.send();
       return await http.Response.fromStream(streamedResponse);
     } on Exception catch (e) {
-      print(e.toString());
+      _log.info(e.toString());
       return null;
     }
   }
@@ -79,7 +82,7 @@ class ApiProvider {
         body: body != null ? json.encode(body) : null,
       );
     } on Exception catch (e) {
-      print(e.toString());
+      _log.info(e.toString());
       return null;
     }
   }
@@ -97,7 +100,7 @@ class ApiProvider {
         body: body != null ? json.encode(body) : null,
       );
     } on Exception catch (e) {
-      print(e.toString());
+      _log.info(e.toString());
       return null;
     }
   }

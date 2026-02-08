@@ -7,7 +7,10 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
 import '../../../controllers/linear_board_controller.dart';
 import '../../../utilities/audio/artefact_sound_player.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('LinearBoard');
 typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
 typedef OnArtifactMoved = void Function(BoardArtefact artifact, int fromIndex, int toIndex);
 
@@ -157,7 +160,7 @@ class LinearBoardState extends State<LinearBoard>
                         await playArtefactSoundAndWait(artefact);
                       }
                     } catch (e) {
-                      debugPrint('Error occurred while playing artefact sounds: $e');
+                      _log.fine('Error occurred while playing artefact sounds: $e');
                     } finally {
                       if (mounted) {
                         setState(() {
@@ -351,7 +354,7 @@ class LinearBoardState extends State<LinearBoard>
                           // User cancelled deletion: leave artifact in place
                         }
                       } catch (e) {
-                        debugPrint('Failed to delete session artefact from server: $e');
+                        _log.fine('Failed to delete session artefact from server: $e');
                       }
                     } else {
                       // Non-session artefacts: remove locally

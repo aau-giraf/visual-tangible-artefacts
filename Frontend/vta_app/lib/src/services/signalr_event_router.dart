@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/services/notification_service.dart';
 import 'package:vta_app/src/services/online_status_tracker.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SignalrEventRouter');
 /// Registers all SignalR `.on()` event handlers on the [HubConnection].
 ///
 /// Callbacks are stored here so that [SignalRService] simply sets them
@@ -69,10 +71,10 @@ class SignalREventRouter {
 
   /// Register all `.on()` handlers on [hub].
   void registerEvents(HubConnection hub) {
-    debugPrint('SignalR: Registering event handlers...');
+    _log.fine('SignalR: Registering event handlers...');
 
     hub.on('SessionRequested', (args) {
-      debugPrint('SignalR => Received SessionRequested event');
+      _log.fine('SignalR => Received SessionRequested event');
       if (args == null || args.isEmpty) return;
       final fromUserId = args[0] as String;
       remoteUserId = fromUserId;
@@ -80,12 +82,12 @@ class SignalREventRouter {
     });
 
     hub.on('SessionRejected', (_) {
-      debugPrint('SignalR => Received SessionRejected event');
+      _log.fine('SignalR => Received SessionRejected event');
       onSessionRejected?.call();
     });
 
     hub.on('SessionStarted', (args) {
-      debugPrint('SignalR => Received SessionStarted event');
+      _log.fine('SignalR => Received SessionStarted event');
       if (args == null || args.length < 2) return;
       currentSessionId = args[0] as String;
       final boardId = args[1] as String;
@@ -93,13 +95,13 @@ class SignalREventRouter {
     });
 
     hub.on('BoardUpdated', (args) {
-      debugPrint('SignalR => Received BoardUpdated event');
+      _log.fine('SignalR => Received BoardUpdated event');
       if (args == null || args.isEmpty) return;
       onBoardUpdated?.call(args[0]);
     });
 
     hub.on('SessionEnded', (_) {
-      debugPrint('SignalR => Received SessionEnded event');
+      _log.fine('SignalR => Received SessionEnded event');
       currentSessionId = null;
       sessionInitiatorId = null;
       remoteUserId = null;
@@ -112,7 +114,7 @@ class SignalREventRouter {
       if (args == null || args.length < 2) return;
       final userId = args[0] as String;
       final isOnline = args[1] as bool;
-      debugPrint(
+      _log.fine(
           '[SignalR] UserOnlineStatusChanged: userId=$userId, isOnline=$isOnline');
       _statusTracker.setUserOnline(userId, isOnline);
       onUserOnlineStatusChanged?.call(userId, isOnline);
@@ -122,11 +124,11 @@ class SignalREventRouter {
     hub.on('ReceiveOffer', (arguments) {
       final sessionId = arguments![0] as String;
       final offer = arguments[1] as Map<String, dynamic>;
-      debugPrint('[SignalR] ReceiveOffer: sessionId=$sessionId');
+      _log.fine('[SignalR] ReceiveOffer: sessionId=$sessionId');
       if (onReceiveOffer != null) {
         onReceiveOffer!(sessionId, offer);
       } else {
-        debugPrint('[SignalR] Queuing offer (WebRTC service not ready yet)');
+        _log.fine('[SignalR] Queuing offer (WebRTC service not ready yet)');
         _pendingOffers.add({'sessionId': sessionId, 'data': offer});
       }
     });
@@ -134,11 +136,11 @@ class SignalREventRouter {
     hub.on('ReceiveAnswer', (arguments) {
       final sessionId = arguments![0] as String;
       final answer = arguments[1] as Map<String, dynamic>;
-      debugPrint('[SignalR] ReceiveAnswer: sessionId=$sessionId');
+      _log.fine('[SignalR] ReceiveAnswer: sessionId=$sessionId');
       if (onReceiveAnswer != null) {
         onReceiveAnswer!(sessionId, answer);
       } else {
-        debugPrint('[SignalR] Queuing answer (WebRTC service not ready yet)');
+        _log.fine('[SignalR] Queuing answer (WebRTC service not ready yet)');
         _pendingAnswers.add({'sessionId': sessionId, 'data': answer});
       }
     });
@@ -146,11 +148,11 @@ class SignalREventRouter {
     hub.on('ReceiveIceCandidate', (arguments) {
       final sessionId = arguments![0] as String;
       final candidate = arguments[1] as Map<String, dynamic>;
-      debugPrint('[SignalR] ReceiveIceCandidate: sessionId=$sessionId');
+      _log.fine('[SignalR] ReceiveIceCandidate: sessionId=$sessionId');
       if (onReceiveIceCandidate != null) {
         onReceiveIceCandidate!(sessionId, candidate);
       } else {
-        debugPrint(
+        _log.fine(
             '[SignalR] Queuing ICE candidate (WebRTC service not ready yet)');
         _pendingIceCandidates
             .add({'sessionId': sessionId, 'data': candidate});
@@ -159,80 +161,80 @@ class SignalREventRouter {
 
     // Delta update events
     hub.on('ArtifactAdded', (args) {
-      debugPrint('SignalR => Received ArtifactAdded event');
+      _log.fine('SignalR => Received ArtifactAdded event');
       if (args == null || args.isEmpty) return;
-      debugPrint('SignalR => Calling onArtifactAdded callback');
+      _log.fine('SignalR => Calling onArtifactAdded callback');
       onArtifactAdded?.call(args[0]);
     });
 
     hub.on('ArtifactRejected', (args) {
-      debugPrint('SignalR => Received ArtifactRejected event');
+      _log.fine('SignalR => Received ArtifactRejected event');
       // TODO: Handle artifact rejection if needed
     });
 
     hub.on('ArtifactRemoved', (args) {
-      debugPrint('SignalR => Received ArtifactRemoved event');
+      _log.fine('SignalR => Received ArtifactRemoved event');
       if (args == null || args.isEmpty) return;
-      debugPrint('SignalR => Calling onArtifactRemoved callback');
+      _log.fine('SignalR => Calling onArtifactRemoved callback');
       onArtifactRemoved?.call(args[0]);
     });
 
     hub.on('ArtifactMoved', (args) {
-      debugPrint('SignalR => Received ArtifactMoved event');
+      _log.fine('SignalR => Received ArtifactMoved event');
       if (args == null || args.isEmpty) return;
-      debugPrint('SignalR => Calling onArtifactMoved callback');
+      _log.fine('SignalR => Calling onArtifactMoved callback');
       onArtifactMoved?.call(args[0]);
     });
 
     hub.on('ArtifactResized', (args) {
-      debugPrint('SignalR => Received ArtifactResized event');
+      _log.fine('SignalR => Received ArtifactResized event');
       if (args == null || args.isEmpty) return;
-      debugPrint('SignalR => Calling onArtifactResized callback');
+      _log.fine('SignalR => Calling onArtifactResized callback');
       onArtifactResized?.call(args[0]);
     });
 
     hub.on('LayoutChanged', (args) {
-      debugPrint('SignalR => Received LayoutChanged event');
+      _log.fine('SignalR => Received LayoutChanged event');
       if (args == null || args.isEmpty) return;
-      debugPrint('SignalR => Calling onLayoutChanged callback');
+      _log.fine('SignalR => Calling onLayoutChanged callback');
       onLayoutChanged?.call(args[0]);
     });
 
     hub.on('FieldCountChanged', (args) {
-      debugPrint('SignalR => Received FieldCountChanged event');
+      _log.fine('SignalR => Received FieldCountChanged event');
       if (args == null || args.isEmpty) return;
-      debugPrint('SignalR => Calling onFieldCountChanged callback');
+      _log.fine('SignalR => Calling onFieldCountChanged callback');
       onFieldCountChanged?.call(args[0]);
     });
 
     hub.on('MissedCall', (args) {
-      debugPrint('SignalR => MissedCall EVENT');
+      _log.fine('SignalR => MissedCall EVENT');
       if (args == null || args.length < 2) {
-        debugPrint('ERROR: Invalid MissedCall args!');
+        _log.fine('ERROR: Invalid MissedCall args!');
         return;
       }
 
       final fromUserId = args[0] as String;
       final fromUserNameFromBackend = args[1] as String;
 
-      debugPrint('[SignalR] MissedCall from userId: $fromUserId');
-      debugPrint('[SignalR] Name from backend: $fromUserNameFromBackend');
+      _log.fine('[SignalR] MissedCall from userId: $fromUserId');
+      _log.fine('[SignalR] Name from backend: $fromUserNameFromBackend');
 
       final fromUserName =
           contactCache[fromUserId] ?? fromUserNameFromBackend;
 
-      debugPrint('[SignalR] Final name to use: $fromUserName');
+      _log.fine('[SignalR] Final name to use: $fromUserName');
 
       NotificationService().showMissedCallNotification(fromUserName);
       onMissedCall?.call(fromUserId, fromUserName);
     });
 
-    debugPrint('SignalR: All event handlers registered successfully');
+    _log.fine('SignalR: All event handlers registered successfully');
   }
 
   /// Flush any buffered WebRTC messages to their callbacks.
   void flushWebRTCQueue() {
-    debugPrint(
+    _log.fine(
         '[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, '
         '${_pendingAnswers.length} answers, '
         '${_pendingIceCandidates.length} ICE candidates');

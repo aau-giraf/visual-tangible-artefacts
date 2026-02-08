@@ -11,23 +11,24 @@ namespace VTA.API.Utilities;
 public class MigrationService
 {
     private readonly VTAContext _context;
+    private readonly ILogger<MigrationService> _logger;
     private readonly string _assetsPath;
     private int _movedFiles = 0;
     private int _skippedFiles = 0;
     private int _errorFiles = 0;
 
-    public MigrationService(VTAContext context)
+    public MigrationService(VTAContext context, ILogger<MigrationService> logger)
     {
         _context = context;
+        _logger = logger;
         _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets");
     }
 
     public async Task<MigrationResult> MigrateAsync(bool dryRun = false)
     {
-        Console.WriteLine($"=== File Storage Migration ===");
-        Console.WriteLine($"Mode: {(dryRun ? "DRY RUN (no changes will be made)" : "LIVE MIGRATION")}");
-        Console.WriteLine($"Assets Path: {_assetsPath}");
-        Console.WriteLine();
+        _logger.LogInformation("=== File Storage Migration ===");
+        _logger.LogInformation("Mode: {Mode}", dryRun ? "DRY RUN (no changes will be made)" : "LIVE MIGRATION");
+        _logger.LogInformation("Assets Path: {AssetsPath}", _assetsPath);
 
         // Reset counters
         _movedFiles = 0;
@@ -42,11 +43,8 @@ public class MigrationService
             // Migrate category images
             await MigrateCategoriesAsync(dryRun);
 
-            Console.WriteLine();
-            Console.WriteLine("=== Migration Summary ===");
-            Console.WriteLine($"Files moved: {_movedFiles}");
-            Console.WriteLine($"Files skipped: {_skippedFiles}");
-            Console.WriteLine($"Errors: {_errorFiles}");
+            _logger.LogInformation("=== Migration Summary === Files moved: {Moved}, Files skipped: {Skipped}, Errors: {Errors}",
+                _movedFiles, _skippedFiles, _errorFiles);
 
             return new MigrationResult
             {
@@ -58,8 +56,7 @@ public class MigrationService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"FATAL ERROR: {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
+            _logger.LogCritical(ex, "Fatal error during file storage migration");
             return new MigrationResult
             {
                 Success = false,
@@ -73,10 +70,10 @@ public class MigrationService
 
     private async Task MigrateArtefactsAsync(bool dryRun)
     {
-        Console.WriteLine("--- Migrating Artefacts ---");
+        _logger.LogInformation("--- Migrating Artefacts ---");
 
         var artefacts = await _context.Artefacts.ToListAsync();
-        Console.WriteLine($"Found {artefacts.Count} artefacts to process");
+        _logger.LogInformation("Found {Count} artefacts to process", artefacts.Count);
 
         foreach (var artefact in artefacts)
         {
@@ -118,17 +115,16 @@ public class MigrationService
         if (!dryRun && _movedFiles > 0)
         {
             await _context.SaveChangesAsync();
-            Console.WriteLine("Database updated with new paths");
+            _logger.LogInformation("Database updated with new artefact paths");
         }
     }
 
     private async Task MigrateCategoriesAsync(bool dryRun)
     {
-        Console.WriteLine();
-        Console.WriteLine("--- Migrating Categories ---");
+        _logger.LogInformation("--- Migrating Categories ---");
 
         var categories = await _context.Categories.ToListAsync();
-        Console.WriteLine($"Found {categories.Count} categories to process");
+        _logger.LogInformation("Found {Count} categories to process", categories.Count);
 
         foreach (var category in categories)
         {
@@ -152,7 +148,7 @@ public class MigrationService
         if (!dryRun && _movedFiles > 0)
         {
             await _context.SaveChangesAsync();
-            Console.WriteLine("Database updated with new paths");
+            _logger.LogInformation("Database updated with new category paths");
         }
     }
 
@@ -176,12 +172,12 @@ public class MigrationService
                 // Check if already migrated
                 if (File.Exists(newPath))
                 {
-                    Console.WriteLine($"[SKIP] {type}/{filename} - Already migrated");
+                    _logger.LogDebug("[SKIP] {Type}/{Filename} - Already migrated", type, filename);
                     _skippedFiles++;
                     return $"/api/Assets/{type}/{userId}/{filename}";
                 }
 
-                Console.WriteLine($"[WARN] {type}/{filename} - File not found at old location");
+                _logger.LogWarning("{Type}/{Filename} - File not found at old location", type, filename);
                 _skippedFiles++;
                 return null;
             }
@@ -189,14 +185,14 @@ public class MigrationService
             // Check if target already exists
             if (File.Exists(newPath))
             {
-                Console.WriteLine($"[SKIP] {type}/{filename} - Already exists at new location");
+                _logger.LogDebug("[SKIP] {Type}/{Filename} - Already exists at new location", type, filename);
                 _skippedFiles++;
                 return $"/api/Assets/{type}/{userId}/{filename}";
             }
 
             if (dryRun)
             {
-                Console.WriteLine($"[DRY RUN] Would move: {type}/{filename} -> {type}/{userId}/{filename}");
+                _logger.LogDebug("[DRY RUN] Would move: {Type}/{Filename} -> {Type}/{UserId}/{Filename2}", type, filename, type, userId, filename);
                 _movedFiles++;
                 return $"/api/Assets/{type}/{userId}/{filename}";
             }
@@ -205,12 +201,12 @@ public class MigrationService
             if (!Directory.Exists(newDirectory))
             {
                 Directory.CreateDirectory(newDirectory);
-                Console.WriteLine($"[INFO] Created directory: {type}/{userId}/");
+                _logger.LogDebug("Created directory: {Type}/{UserId}/", type, userId);
             }
 
             // Move the file
             File.Move(oldPath, newPath);
-            Console.WriteLine($"[OK] Moved: {type}/{filename} -> {type}/{userId}/{filename}");
+            _logger.LogDebug("Moved: {Type}/{Filename} -> {Type}/{UserId}/{Filename2}", type, filename, type, userId, filename);
             _movedFiles++;
 
             // Return new API path
@@ -218,7 +214,7 @@ public class MigrationService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ERROR] Failed to migrate {apiPath}: {ex.Message}");
+            _logger.LogError(ex, "Failed to migrate {ApiPath}", apiPath);
             _errorFiles++;
             return null;
         }

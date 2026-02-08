@@ -5,7 +5,10 @@ import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SettingsService');
 /// A service that stores and retrieves user settings.
 ///
 /// By default, this class does not persist user settings. If you'd like to
@@ -82,8 +85,7 @@ class SettingsService {
         }
       }
       
-    } catch (e) {
-    }
+    } catch (e) { _log.warning('Failed to update user settings: $e'); }
   }
 
   Future<void> updateLocalization(Localization newLocalization) async {
@@ -104,7 +106,7 @@ class SettingsService {
       final userRepository = UserRepository();
       return await userRepository.fetchUser(token);
     } catch (e) {
-      print('Error fetching user settings: $e');
+      _log.info('Error fetching user settings: $e');
       return null;
     }
   }

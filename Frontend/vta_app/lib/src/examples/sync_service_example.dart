@@ -1,7 +1,9 @@
-// ignore_for_file: avoid_print
 
 import 'package:vta_app/src/services/sync_service.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SyncServiceExample');
 /// Example usage of the SyncService
 /// 
 /// This demonstrates how to use the sync checker to get a list of files
@@ -26,20 +28,20 @@ class SyncServiceExample {
     final response = await _syncService.checkForChanges(yesterday);
     
     if (response != null) {
-      print('Found ${response.totalChanges} changes since $yesterday');
+      _log.info('Found ${response.totalChanges} changes since $yesterday');
       
       for (final change in response.changedFiles) {
-        print('${change.fileType}: ${change.fileName} (${change.fileId})');
-        print('  Modified: ${change.modifiedDate}');
+        _log.info('${change.fileType}: ${change.fileName} (${change.fileId})');
+        _log.info('  Modified: ${change.modifiedDate}');
         if (change.imageUrl != null) {
-          print('  Image: ${change.imageUrl}');
+          _log.info('  Image: ${change.imageUrl}');
         }
         if (change.soundUrl != null) {
-          print('  Sound: ${change.soundUrl}');
+          _log.info('  Sound: ${change.soundUrl}');
         }
       }
     } else {
-      print('Failed to check for changes');
+      _log.info('Failed to check for changes');
     }
   }
 
@@ -50,14 +52,14 @@ class SyncServiceExample {
     final grouped = await _syncService.checkForChangesGrouped(lastWeek);
     
     if (grouped != null) {
-      print('Artefact changes: ${grouped['artefact']?.length ?? 0}');
+      _log.info('Artefact changes: ${grouped['artefact']?.length ?? 0}');
       for (final artefact in grouped['artefact'] ?? []) {
-        print('  - ${artefact.fileName} (modified: ${artefact.modifiedDate})');
+        _log.info('  - ${artefact.fileName} (modified: ${artefact.modifiedDate})');
       }
       
-      print('Board changes: ${grouped['board']?.length ?? 0}');
+      _log.info('Board changes: ${grouped['board']?.length ?? 0}');
       for (final board in grouped['board'] ?? []) {
-        print('  - ${board.fileName} (modified: ${board.modifiedDate})');
+        _log.info('  - ${board.fileName} (modified: ${board.modifiedDate})');
       }
     }
   }
@@ -69,10 +71,10 @@ class SyncServiceExample {
     final summary = await _syncService.getChangeSummary(lastMonth);
     
     if (summary != null) {
-      print('Changes in the last 30 days:');
-      print('  Total: ${summary['total']}');
-      print('  Artefacts: ${summary['artefacts']}');
-      print('  Boards: ${summary['boards']}');
+      _log.info('Changes in the last 30 days:');
+      _log.info('  Total: ${summary['total']}');
+      _log.info('  Artefacts: ${summary['artefacts']}');
+      _log.info('  Boards: ${summary['boards']}');
     }
   }
 
@@ -83,10 +85,10 @@ class SyncServiceExample {
     final hasChanges = await _syncService.hasChanges(lastSync);
     
     if (hasChanges) {
-      print('There are new changes to sync!');
+      _log.info('There are new changes to sync!');
       // Trigger sync process...
     } else {
-      print('No changes detected, everything is up to date.');
+      _log.info('No changes detected, everything is up to date.');
     }
   }
 
@@ -95,21 +97,21 @@ class SyncServiceExample {
     required DateTime lastSyncDate,
     required Function(List<FileChangeRecord>) onChangesDetected,
   }) async {
-    print('Checking for changes since: $lastSyncDate');
+    _log.info('Checking for changes since: $lastSyncDate');
     
     final response = await _syncService.checkForChanges(lastSyncDate);
     
     if (response != null && response.totalChanges > 0) {
-      print('Found ${response.totalChanges} file(s) to sync');
+      _log.info('Found ${response.totalChanges} file(s) to sync');
       
       // Notify the caller about changes
       onChangesDetected(response.changedFiles);
       
       // Return the latest modification date for next sync
       final latestChange = response.changedFiles.first.modifiedDate;
-      print('Latest change: $latestChange');
+      _log.info('Latest change: $latestChange');
     } else {
-      print('No changes detected');
+      _log.info('No changes detected');
     }
   }
 
@@ -123,10 +125,10 @@ class SyncServiceExample {
       final artefactChanges = grouped['artefact'] ?? [];
       
       if (artefactChanges.isNotEmpty) {
-        print('Syncing ${artefactChanges.length} artefact(s)...');
+        _log.info('Syncing ${artefactChanges.length} artefact(s)...');
         
         for (final artefact in artefactChanges) {
-          print('Downloading artefact: ${artefact.fileName}');
+          _log.info('Downloading artefact: ${artefact.fileName}');
           // Download image from artefact.imageUrl
           // Download sound from artefact.soundUrl
         }
@@ -146,10 +148,10 @@ class SyncServiceExample {
           .where((change) => change.imageUrl != null)
           .toList();
       
-      print('Found ${withImages.length} files with image changes');
+      _log.info('Found ${withImages.length} files with image changes');
       
       for (final file in withImages) {
-        print('${file.fileName}: ${file.imageUrl}');
+        _log.info('${file.fileName}: ${file.imageUrl}');
       }
     }
   }
@@ -170,7 +172,7 @@ void demonstrateUsage() async {
   await example.performPeriodicSync(
     lastSyncDate: DateTime.now().subtract(const Duration(days: 1)),
     onChangesDetected: (changes) {
-      print('Processing ${changes.length} changes...');
+      _log.info('Processing ${changes.length} changes...');
       // Implement your sync logic here
     },
   );
