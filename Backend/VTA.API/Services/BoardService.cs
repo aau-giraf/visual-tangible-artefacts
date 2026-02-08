@@ -24,23 +24,39 @@ public class BoardService : IBoardService
     }
 
     /// <inheritdoc />
-    public async Task<List<SavedBoard>> GetBoardsForUserAsync(string userId)
+    public async Task<List<SavedBoard>> GetBoardsForUserAsync(string userId, int? skip = null, int? take = null)
     {
-        return await _context.SavedBoards
+        var query = _context.SavedBoards
             .Where(b => b.UserId == userId)
             .Include(b => b.SavedArtefacts)
                 .ThenInclude(sa => sa.Artefact)
-            .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate)
-            .ToListAsync();
+            .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate);
+
+        if (skip.HasValue || take.HasValue)
+        {
+            var resolvedSkip = Math.Max(skip ?? 0, 0);
+            var resolvedTake = Math.Clamp(take ?? 50, 1, 200);
+            return await query.Skip(resolvedSkip).Take(resolvedTake).ToListAsync();
+        }
+
+        return await query.ToListAsync();
     }
 
     /// <inheritdoc />
-    public async Task<List<SavedBoard>> GetBoardListAsync(string userId)
+    public async Task<List<SavedBoard>> GetBoardListAsync(string userId, int? skip = null, int? take = null)
     {
-        return await _context.SavedBoards
+        var query = _context.SavedBoards
             .Where(b => b.UserId == userId)
-            .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate)
-            .ToListAsync();
+            .OrderByDescending(b => b.ModifiedDate ?? b.CreatedDate);
+
+        if (skip.HasValue || take.HasValue)
+        {
+            var resolvedSkip = Math.Max(skip ?? 0, 0);
+            var resolvedTake = Math.Clamp(take ?? 50, 1, 200);
+            return await query.Skip(resolvedSkip).Take(resolvedTake).ToListAsync();
+        }
+
+        return await query.ToListAsync();
     }
 
     /// <inheritdoc />

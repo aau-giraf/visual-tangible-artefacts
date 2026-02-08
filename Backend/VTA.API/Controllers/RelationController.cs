@@ -27,9 +27,9 @@ public class RelationController : ControllerBase
     /// Get all pairings
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairings()
+    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairings([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var pairings = await _relationService.GetAllPairingsAsync();
+        var pairings = await _relationService.GetAllPairingsAsync(skip: skip, take: take);
         return Ok(pairings);
     }
 
@@ -37,9 +37,9 @@ public class RelationController : ControllerBase
     /// Get pairings for a specific caregiver
     /// </summary>
     [HttpGet("caregiver/{caregiverId}")]
-    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairingsForCaregiver(string caregiverId)
+    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairingsForCaregiver(string caregiverId, [FromQuery] int? skip, [FromQuery] int? take)
     {
-        var pairings = await _relationService.GetPairingsForCaregiverAsync(caregiverId);
+        var pairings = await _relationService.GetPairingsForCaregiverAsync(caregiverId, skip, take);
         return Ok(pairings);
     }
 

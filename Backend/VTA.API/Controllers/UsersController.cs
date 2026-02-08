@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DTOs;
+using VTA.API.Extensions;
 using VTA.API.Services;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
@@ -69,24 +70,24 @@ public class UsersController(VTAContext context, IUserService userService, IRela
 
     // GET: api/Users
     /// <summary>
-    /// Get all users in the DB (I thought i had removed this?)
+    /// Get all users in the DB
     /// </summary>
-    /// <remarks>
-    /// This could be alted to get all users tied to a parent/pedagogue/teacher
-    /// </remarks>
-    /// <returns>A list of users</returns>
+    /// <returns>A paginated list of users</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
+    public async Task<ActionResult> GetUsers([FromQuery] int? skip, [FromQuery] int? take)
     {
-        List<User> users = await context.Users
+        var query = context.Users
             .AsNoTracking()
-            .ToListAsync();
+            .OrderBy(u => u.Username);
 
-        var userGetDTOs = users
-            .Select(user => DTOConverter.MapUserToUserGetDTO(user))
-            .ToList();
-
-        return userGetDTOs;
+        var page = await query.ToPaginatedAsync(skip, take);
+        return Ok(new PaginatedResponse<UserGetDTO>
+        {
+            Items = page.Items.Select(DTOConverter.MapUserToUserGetDTO).ToList(),
+            TotalCount = page.TotalCount,
+            Skip = page.Skip,
+            Take = page.Take
+        });
     }
 
     // GET: api/Users/related-contacts

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VTA.API.DTOs;
+using VTA.API.Extensions;
 using VTA.API.Services;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
@@ -25,39 +26,57 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("caregivers")]
-    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetCaregivers()
+    public async Task<ActionResult> GetCaregivers([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var caregivers = await _context.Users
+        var query = _context.Users
             .Where(u => u.Role == UserRole.Caregiver)
             .AsNoTracking()
-            .ToListAsync();
+            .OrderBy(u => u.Username);
 
-        var caregiversDto = caregivers.Select(DTOConverter.MapUserToUserGetDTO).ToList();
-        return Ok(caregiversDto);
+        var page = await query.ToPaginatedAsync(skip, take);
+        return Ok(new PaginatedResponse<UserGetDTO>
+        {
+            Items = page.Items.Select(DTOConverter.MapUserToUserGetDTO).ToList(),
+            TotalCount = page.TotalCount,
+            Skip = page.Skip,
+            Take = page.Take
+        });
     }
 
     [HttpGet("children")]
-    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetChildren()
+    public async Task<ActionResult> GetChildren([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var children = await _context.Users
+        var query = _context.Users
             .Where(u => u.Role == UserRole.Child)
             .AsNoTracking()
-            .ToListAsync();
+            .OrderBy(u => u.Username);
 
-        var childrenDto = children.Select(DTOConverter.MapUserToUserGetDTO).ToList();
-        return Ok(childrenDto);
+        var page = await query.ToPaginatedAsync(skip, take);
+        return Ok(new PaginatedResponse<UserGetDTO>
+        {
+            Items = page.Items.Select(DTOConverter.MapUserToUserGetDTO).ToList(),
+            TotalCount = page.TotalCount,
+            Skip = page.Skip,
+            Take = page.Take
+        });
     }
 
     [HttpGet("admins")]
-    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetAdmins()
+    public async Task<ActionResult> GetAdmins([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var admins = await _context.Users
+        var query = _context.Users
             .Where(u => u.Role == UserRole.Admin)
             .AsNoTracking()
-            .ToListAsync();
+            .OrderBy(u => u.Username);
 
-        var adminsDto = admins.Select(DTOConverter.MapUserToUserGetDTO).ToList();
-        return Ok(adminsDto);
+        var page = await query.ToPaginatedAsync(skip, take);
+        return Ok(new PaginatedResponse<UserGetDTO>
+        {
+            Items = page.Items.Select(DTOConverter.MapUserToUserGetDTO).ToList(),
+            TotalCount = page.TotalCount,
+            Skip = page.Skip,
+            Take = page.Take
+        });
     }
 
     [HttpPost("admins")]
@@ -97,9 +116,9 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("pairings")]
-    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairings()
+    public async Task<ActionResult<IEnumerable<PairingDTO>>> GetPairings([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var pairings = await _relationService.GetAllPairingsAsync(activeOnly: true);
+        var pairings = await _relationService.GetAllPairingsAsync(activeOnly: true, skip: skip, take: take);
         return Ok(pairings);
     }
 

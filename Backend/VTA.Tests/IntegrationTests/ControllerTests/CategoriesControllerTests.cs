@@ -33,8 +33,9 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var categories = await response.Content.ReadFromJsonAsync<List<CategoryGetDTO>>();
-        Assert.NotNull(categories);
+        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<CategoryGetDTO>>();
+        Assert.NotNull(page);
+        Assert.NotNull(page.Items);
 
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }

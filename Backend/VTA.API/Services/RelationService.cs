@@ -20,7 +20,7 @@ public class RelationService : IRelationService
     }
 
     /// <inheritdoc />
-    public async Task<List<PairingDTO>> GetAllPairingsAsync(bool? activeOnly = null)
+    public async Task<List<PairingDTO>> GetAllPairingsAsync(bool? activeOnly = null, int? skip = null, int? take = null)
     {
         var query = _context.Relations
             .Include(p => p.Caregiver)
@@ -32,21 +32,37 @@ public class RelationService : IRelationService
             query = query.Where(p => p.IsActive);
         }
 
-        var pairings = await query.ToListAsync();
-        return pairings.Select(MapToPairingDTO).ToList();
+        if (skip.HasValue || take.HasValue)
+        {
+            var resolvedSkip = Math.Max(skip ?? 0, 0);
+            var resolvedTake = Math.Clamp(take ?? 50, 1, 200);
+            var pairings = await query.Skip(resolvedSkip).Take(resolvedTake).ToListAsync();
+            return pairings.Select(MapToPairingDTO).ToList();
+        }
+
+        var allPairings = await query.ToListAsync();
+        return allPairings.Select(MapToPairingDTO).ToList();
     }
 
     /// <inheritdoc />
-    public async Task<List<PairingDTO>> GetPairingsForCaregiverAsync(string caregiverId)
+    public async Task<List<PairingDTO>> GetPairingsForCaregiverAsync(string caregiverId, int? skip = null, int? take = null)
     {
-        var pairings = await _context.Relations
+        var query = _context.Relations
             .Include(p => p.Caregiver)
             .Include(p => p.Child)
             .Where(p => p.CaregiverId == caregiverId && p.IsActive)
-            .AsNoTracking()
-            .ToListAsync();
+            .AsNoTracking();
 
-        return pairings.Select(MapToPairingDTO).ToList();
+        if (skip.HasValue || take.HasValue)
+        {
+            var resolvedSkip = Math.Max(skip ?? 0, 0);
+            var resolvedTake = Math.Clamp(take ?? 50, 1, 200);
+            var pairings = await query.Skip(resolvedSkip).Take(resolvedTake).ToListAsync();
+            return pairings.Select(MapToPairingDTO).ToList();
+        }
+
+        var allPairings = await query.ToListAsync();
+        return allPairings.Select(MapToPairingDTO).ToList();
     }
 
     /// <inheritdoc />

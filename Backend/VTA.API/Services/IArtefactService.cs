@@ -12,8 +12,10 @@ public interface IArtefactService
 {
     /// <summary>
     /// Get all artefacts owned by the specified user.
+    /// When <paramref name="skip"/> and <paramref name="take"/> are provided,
+    /// returns a paginated subset.
     /// </summary>
-    Task<List<Artefact>> GetArtefactsForUserAsync(string userId);
+    Task<List<Artefact>> GetArtefactsForUserAsync(string userId, int? skip = null, int? take = null);
 
     /// <summary>
     /// Get a single artefact by ID, scoped to the specified user.

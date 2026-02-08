@@ -30,14 +30,16 @@ public class BoardsController : ControllerBase
   /// <summary>
   /// Gets all boards that the authenticated user owns
   /// </summary>
+  /// <param name="skip">Number of items to skip (pagination)</param>
+  /// <param name="take">Number of items to return (pagination, default 50)</param>
   /// <returns>A collection of boards with their saved artefacts</returns>
   [HttpGet]
-  public async Task<ActionResult<IEnumerable<BoardGetDTO>>> GetBoards()
+  public async Task<ActionResult<IEnumerable<BoardGetDTO>>> GetBoards([FromQuery] int? skip, [FromQuery] int? take)
   {
     var userId = User.FindFirst("id")?.Value;
     if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    var boards = await _boardService.GetBoardsForUserAsync(userId);
+    var boards = await _boardService.GetBoardsForUserAsync(userId, skip, take);
 
     var boardDTOs = boards.Select(board => new BoardGetDTO
     {
@@ -55,14 +57,16 @@ public class BoardsController : ControllerBase
   /// <summary>
   /// Gets a lightweight list of board IDs, names, and thumbnails for the authenticated user
   /// </summary>
+  /// <param name="skip">Number of items to skip (pagination)</param>
+  /// <param name="take">Number of items to return (pagination, default 50)</param>
   /// <returns>A collection of minimal board information</returns>
   [HttpGet("list")]
-  public async Task<ActionResult<IEnumerable<BoardListItemDTO>>> GetBoardsList()
+  public async Task<ActionResult<IEnumerable<BoardListItemDTO>>> GetBoardsList([FromQuery] int? skip, [FromQuery] int? take)
   {
     var userId = User.FindFirst("id")?.Value;
     if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-    var boards = await _boardService.GetBoardListAsync(userId);
+    var boards = await _boardService.GetBoardListAsync(userId, skip, take);
 
     var boardListItems = boards.Select(board => new BoardListItemDTO
     {
