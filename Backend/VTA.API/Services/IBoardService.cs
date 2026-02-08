@@ -12,13 +12,17 @@ public interface IBoardService
     /// <summary>
     /// Get all boards owned by the specified user, ordered by most-recently-modified.
     /// Includes SavedArtefact navigation data.
+    /// When <paramref name="skip"/> and <paramref name="take"/> are provided,
+    /// returns a paginated subset.
     /// </summary>
-    Task<List<SavedBoard>> GetBoardsForUserAsync(string userId);
+    Task<List<SavedBoard>> GetBoardsForUserAsync(string userId, int? skip = null, int? take = null);
 
     /// <summary>
     /// Get a lightweight list of boards (no artefact navigation) for listing UI.
+    /// When <paramref name="skip"/> and <paramref name="take"/> are provided,
+    /// returns a paginated subset.
     /// </summary>
-    Task<List<SavedBoard>> GetBoardListAsync(string userId);
+    Task<List<SavedBoard>> GetBoardListAsync(string userId, int? skip = null, int? take = null);
 
     /// <summary>
     /// Get a single board with all its saved artefacts (including nested Artefact entities).

@@ -17,14 +17,16 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     /// <summary>
     /// Gets all artefacts that a user owns
     /// </summary>
+    /// <param name="skip">Number of items to skip (pagination)</param>
+    /// <param name="take">Number of items to return (pagination, default 50)</param>
     /// <returns>An IEnumerable of artefacts</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts()
+    public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts([FromQuery] int? skip, [FromQuery] int? take)
     {
         var userId = User.FindFirst("id")?.Value;
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-        var artefacts = await artefactService.GetArtefactsForUserAsync(userId);
+        var artefacts = await artefactService.GetArtefactsForUserAsync(userId, skip, take);
 
         var artefactGetDTOs = artefacts
             .Select(artefact => DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString()))

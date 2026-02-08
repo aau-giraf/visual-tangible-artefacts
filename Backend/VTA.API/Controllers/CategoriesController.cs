@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VTA.API.DTOs;
+using VTA.API.Extensions;
 using VTA.API.Utilities;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
@@ -20,27 +21,31 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     /// <summary>
     /// Gets all categories (and artefacts within them) that a user owns
     /// </summary>
-    /// <returns>An IEnumerable of Categories</returns>
+    /// <param name="skip">Number of items to skip (pagination)</param>
+    /// <param name="take">Number of items to return (pagination, default 50)</param>
+    /// <returns>A paginated list of Categories</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetCategories()
+    public async Task<ActionResult> GetCategories([FromQuery] int? skip, [FromQuery] int? take)
     {
         var userId = User.FindFirst("id")?.Value;
 
-        List<Category>? categories = await context.Categories
+        var query = context.Categories
             .AsNoTracking()
             .Where(c => c.UserId == userId)
             .Include(c => c.Artefacts)
-            .ToListAsync();
-        if (categories == null)
+            .OrderBy(c => c.CategoryIndex);
+
+        var page = await query.ToPaginatedAsync(skip, take);
+
+        return Ok(new PaginatedResponse<CategoryGetDTO>
         {
-            return NotFound();
-        }
-
-        var categoryGetDTOs = categories
-            .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
-            .ToList();
-
-        return categoryGetDTOs;
+            Items = page.Items
+                .Select(category => DTOConverter.MapCategoryToCategoryGetDTO(category, Request.Scheme, Request.Host.ToString()))
+                .ToList(),
+            TotalCount = page.TotalCount,
+            Skip = page.Skip,
+            Take = page.Take
+        });
     }
 
     // GET: api/Categories/5

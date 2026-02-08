@@ -10,10 +10,10 @@ namespace VTA.API.Services;
 public interface IRelationService
 {
     /// <summary>Get all pairings, optionally filtering by active status.</summary>
-    Task<List<PairingDTO>> GetAllPairingsAsync(bool? activeOnly = null);
+    Task<List<PairingDTO>> GetAllPairingsAsync(bool? activeOnly = null, int? skip = null, int? take = null);
 
     /// <summary>Get pairings for a specific caregiver.</summary>
-    Task<List<PairingDTO>> GetPairingsForCaregiverAsync(string caregiverId);
+    Task<List<PairingDTO>> GetPairingsForCaregiverAsync(string caregiverId, int? skip = null, int? take = null);
 
     /// <summary>
     /// Get the related contacts for a user (children if caregiver, caregivers if child).

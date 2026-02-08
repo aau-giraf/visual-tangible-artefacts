@@ -23,12 +23,21 @@ public class ArtefactService : IArtefactService
     }
 
     /// <inheritdoc />
-    public async Task<List<Artefact>> GetArtefactsForUserAsync(string userId)
+    public async Task<List<Artefact>> GetArtefactsForUserAsync(string userId, int? skip = null, int? take = null)
     {
-        return await _context.Artefacts
+        var query = _context.Artefacts
             .AsNoTracking()
             .Where(a => a.UserId == userId)
-            .ToListAsync();
+            .OrderBy(a => a.ArtefactIndex);
+
+        if (skip.HasValue || take.HasValue)
+        {
+            var resolvedSkip = Math.Max(skip ?? 0, 0);
+            var resolvedTake = Math.Clamp(take ?? 50, 1, 200);
+            return await query.Skip(resolvedSkip).Take(resolvedTake).ToListAsync();
+        }
+
+        return await query.ToListAsync();
     }
 
     /// <inheritdoc />

@@ -5,14 +5,16 @@
 > its KEY that you FIRST plan and then execute
 > ensure that each logically clustered improvement is its own feature branch
 
-## Status (7 Feb 2026)
+## Status (8 Feb 2026)
 
-| Phase | Status | Branch | Tests |
-|-------|--------|--------|-------|
-| Phase 1 — Stop the Bleeding | ✅ Merged to `dev-main` | `feature/phase1-stabilise` | 98/98 ✅ |
-| Phase 2 — Backend Service Layer | ✅ Merged to `dev-main` | `feature/phase2-service-layer` | 98/98 ✅ |
-| Phase 3 — God Class Splits | ✅ Completed | `feature/phase3-god-class-splits` | 25/25 + 98/98 + 13/13 ✅ |
-| Phase 4 — Reliability & Observability | � In progress | `feature/phase4-logging` | — |
+| Phase | Status | PR(s) | Tests |
+|-------|--------|-------|-------|
+| Phase 1 — Stop the Bleeding | ✅ Merged | PR #282 | 98/98 ✅ |
+| Phase 2 — Backend Service Layer | ✅ Merged | PR #284 | 98/98 ✅ |
+| Phase 3 — God Class Splits | ✅ Merged | PR #284 | 25/25 + 98/98 + 13/13 ✅ |
+| Phase 4.1–4.3 Logging | ✅ Merged | PR #285 | — |
+| Phase 4.4 Sync Retry | ✅ Merged | PR #286 | 13/13 ✅ |
+| Phase 4.5 Backend Pagination | ✅ Merged | PR #288 | 98/98 + 25/25 ✅ |
 | Phase 5 — Backlog | 📋 Planned | — | — |
 
 **Phase 3 progress:**
@@ -363,9 +365,9 @@ Add `logger.warning()`/`logger.severe()` calls inside all 28 empty `catch` block
 
 Create a `RetryHelper` utility with exponential backoff for HTTP calls. Apply in `sync_downloader.dart` and `sync_uploader.dart`. Wrap per-entity-type sync in SQLite batch transactions. Change `syncFromServer` return type from `bool` to a `SyncResult` with error details.
 
-### 4.5 Add backend pagination to list endpoints ⬜
+### 4.5 Add backend pagination to list endpoints ✅
 
-Add `skip`/`take` query params with sensible defaults (e.g., `take=50`) to admin user listings, artefact listing, board listing, and sync endpoints. Add `PaginatedResponse<T>` DTO with `items`, `totalCount`, `skip`, `take`. Backward-compatible — callers that don't pass params get the default page size.
+Added `PaginatedResponse<T>` DTO and `PaginationExtensions.ToPaginatedAsync()` extension method. Updated 11 list endpoints across 6 controllers (Admin, Users, Artefacts, Boards, Categories, Relation) with optional `skip`/`take` query params. Updated 3 service interfaces + implementations. Backward-compatible — existing callers without pagination params get default page size (50, max 200).
 
 ## Phase 5 — Backlog
 
