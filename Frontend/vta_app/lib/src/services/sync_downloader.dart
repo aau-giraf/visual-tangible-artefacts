@@ -5,17 +5,35 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
+import 'package:vta_app/src/utilities/retry_helper.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/database/database.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
+import 'package:vta_app/src/services/sync_models.dart';
 import 'package:logging/logging.dart';
+import 'package:sqflite/sqflite.dart';
 
 
 final _log = Logger('SyncDownloader');
+/// Result of a download pass for a single entity type.
+class DownloadResult {
+  final List<String> syncedIds;
+  final EntitySyncStats stats;
+  final List<SyncError> errors;
+
+  DownloadResult({
+    required this.syncedIds,
+    required this.stats,
+    List<SyncError>? errors,
+  }) : errors = errors ?? [];
+}
+
 /// Downloads entities from the backend and persists them in the local SQLite DB.
 ///
-/// Each `sync*` method handles one entity type. Assets (images, sounds) are
-/// downloaded to the app-support directory.
+/// Each `download*` method handles one entity type. Assets (images, sounds) are
+/// downloaded to the app-support directory. HTTP calls are wrapped in
+/// [RetryHelper] for transient-failure resilience, and DB writes are batched
+/// inside SQLite transactions.
 class SyncDownloader {
   final ApiProvider _apiProvider;
   final Token _token;
@@ -24,6 +42,7 @@ class SyncDownloader {
   final SavedBoardRepository _boardRepo;
   final CategoryRepository _categoryRepo;
   final SavedArtefactRepository _savedArtefactRepo;
+  final DatabaseHelper _dbHelper;
 
   SyncDownloader({
     ApiProvider? apiProvider,
@@ -33,273 +52,452 @@ class SyncDownloader {
     SavedBoardRepository? boardRepo,
     CategoryRepository? categoryRepo,
     SavedArtefactRepository? savedArtefactRepo,
+    DatabaseHelper? dbHelper,
   })  : _apiProvider = apiProvider ?? GetIt.instance.get<ApiProvider>(),
         _token = token ?? GetIt.instance.get<Token>(),
         _userInfo = userInfo ?? GetIt.instance.get<UserInfo>(),
         _artefactRepo = artefactRepo ?? ArtefactRepository(),
         _boardRepo = boardRepo ?? SavedBoardRepository(),
         _categoryRepo = categoryRepo ?? CategoryRepository(),
-        _savedArtefactRepo = savedArtefactRepo ?? SavedArtefactRepository();
+        _savedArtefactRepo = savedArtefactRepo ?? SavedArtefactRepository(),
+        _dbHelper = dbHelper ?? DatabaseHelper.instance;
 
   // ── Public download orchestrators ─────────────────────────────
 
   /// Download all artefacts from the backend.
   ///
-  /// Returns the list of artefact IDs that were synced so that the caller
-  /// can pass them to [SyncUploader] for the upload-missing step.
-  Future<List<String>> downloadArtefacts() async {
+  /// Returns a [DownloadResult] containing the list of synced IDs (for the
+  /// upload-missing step) plus per-entity stats and any errors.
+  Future<DownloadResult> downloadArtefacts() async {
+    final stats = EntitySyncStats(entityType: 'artefact');
+    final List<SyncError> errors = [];
     final List<String> syncedIds = [];
+
     try {
-      final response = await _apiProvider.fetchAsJson(
-        'Artefacts',
-        headers: {'Authorization': 'Bearer ${_token.value}'},
+      final result = await RetryHelper.runHttp(
+        () => _apiProvider.fetchAsJson(
+          'Artefacts',
+          headers: {'Authorization': 'Bearer ${_token.value}'},
+        ),
+        label: 'GET Artefacts',
       );
 
+      final response = result.value;
       if (response != null && response.statusCode == 200) {
         final List<dynamic> artefactsData = json.decode(response.body);
+
+        // Download assets before the transaction (network I/O)
+        final assetPaths = <String, _AssetPaths>{};
         for (final data in artefactsData) {
-          await _syncArtefact(data);
-          syncedIds.add(data['artefactId'] as String);
+          final artefactId = data['artefactId'] as String?;
+          if (artefactId == null) continue;
+          assetPaths[artefactId] = await _downloadArtefactAssets(data);
         }
+
+        // Batch DB writes inside a transaction
+        final db = await _dbHelper.database;
+        await db.transaction((txn) async {
+          for (final data in artefactsData) {
+            try {
+              final artefactId = data['artefactId'] as String?;
+              if (artefactId == null) {
+                stats.skipped++;
+                continue;
+              }
+              final wrote = await _syncArtefact(
+                  data, txn, assetPaths[artefactId] ?? _AssetPaths());
+              if (wrote) {
+                stats.succeeded++;
+              } else {
+                stats.skipped++;
+              }
+              syncedIds.add(artefactId);
+            } catch (e) {
+              stats.failed++;
+              errors.add(SyncError(
+                entityType: 'artefact',
+                entityId: data['artefactId'] as String?,
+                message: e.toString(),
+              ));
+              _log.warning('[SYNC] ERROR syncing artefact: $e');
+            }
+          }
+        });
+      } else {
+        errors.add(SyncError(
+          entityType: 'artefact',
+          message: 'HTTP ${response?.statusCode ?? "null"} fetching artefacts',
+        ));
       }
     } catch (e) {
-      _log.info('[SYNC] ERROR downloading artefacts: $e');
+      _log.warning('[SYNC] ERROR downloading artefacts: $e');
+      errors.add(SyncError(entityType: 'artefact', message: e.toString()));
     }
-    return syncedIds;
+    return DownloadResult(syncedIds: syncedIds, stats: stats, errors: errors);
   }
 
   /// Download all categories from the backend.
-  Future<List<String>> downloadCategories() async {
+  Future<DownloadResult> downloadCategories() async {
+    final stats = EntitySyncStats(entityType: 'category');
+    final List<SyncError> errors = [];
     final List<String> syncedIds = [];
+
     try {
-      final response = await _apiProvider.fetchAsJson(
-        'Categories',
-        headers: {'Authorization': 'Bearer ${_token.value}'},
+      final result = await RetryHelper.runHttp(
+        () => _apiProvider.fetchAsJson(
+          'Categories',
+          headers: {'Authorization': 'Bearer ${_token.value}'},
+        ),
+        label: 'GET Categories',
       );
 
+      final response = result.value;
       if (response != null && response.statusCode == 200) {
         final List<dynamic> categoriesData = json.decode(response.body);
+
+        // Download assets before the transaction (network I/O)
+        final assetPaths = <String, String?>{};
         for (final data in categoriesData) {
-          await _syncCategory(data);
-          syncedIds.add(data['categoryId'] as String);
+          final categoryId = data['categoryId'] as String?;
+          if (categoryId == null) continue;
+          final imageUrl = data['imageUrl'] as String?;
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            assetPaths[categoryId] = await _downloadAsset(
+              imageUrl,
+              'Categories',
+              'image_$categoryId',
+              _userInfo.userId ?? '',
+            );
+          }
         }
+
+        // Batch DB writes inside a transaction
+        final db = await _dbHelper.database;
+        await db.transaction((txn) async {
+          for (final data in categoriesData) {
+            try {
+              final categoryId = data['categoryId'] as String?;
+              if (categoryId == null) {
+                stats.skipped++;
+                continue;
+              }
+              final wrote = await _syncCategory(
+                  data, txn, assetPaths[categoryId]);
+              if (wrote) {
+                stats.succeeded++;
+              } else {
+                stats.skipped++;
+              }
+              syncedIds.add(categoryId);
+            } catch (e) {
+              stats.failed++;
+              errors.add(SyncError(
+                entityType: 'category',
+                entityId: data['categoryId'] as String?,
+                message: e.toString(),
+              ));
+              _log.warning('[SYNC] ERROR syncing category: $e');
+            }
+          }
+        });
+      } else {
+        errors.add(SyncError(
+          entityType: 'category',
+          message:
+              'HTTP ${response?.statusCode ?? "null"} fetching categories',
+        ));
       }
     } catch (e) {
-      _log.info('[SYNC] ERROR downloading categories: $e');
+      _log.warning('[SYNC] ERROR downloading categories: $e');
+      errors.add(SyncError(entityType: 'category', message: e.toString()));
     }
-    return syncedIds;
+    return DownloadResult(syncedIds: syncedIds, stats: stats, errors: errors);
   }
 
   /// Download all boards (with their saved artefacts) from the backend.
-  Future<List<String>> downloadBoards() async {
+  Future<DownloadResult> downloadBoards() async {
+    final stats = EntitySyncStats(entityType: 'board');
+    final List<SyncError> errors = [];
     final List<String> syncedIds = [];
+
     try {
-      final response = await _apiProvider.fetchAsJson(
-        'Boards',
-        headers: {'Authorization': 'Bearer ${_token.value}'},
+      final result = await RetryHelper.runHttp(
+        () => _apiProvider.fetchAsJson(
+          'Boards',
+          headers: {'Authorization': 'Bearer ${_token.value}'},
+        ),
+        label: 'GET Boards',
       );
 
+      final response = result.value;
       if (response != null && response.statusCode == 200) {
         final List<dynamic> boardsData = json.decode(response.body);
-        for (final data in boardsData) {
-          await _syncBoard(data);
-          syncedIds.add(data['boardId'] as String? ?? data['id'] as String);
-        }
+
+        // Batch DB writes inside a transaction
+        final db = await _dbHelper.database;
+        await db.transaction((txn) async {
+          for (final data in boardsData) {
+            try {
+              final boardId =
+                  data['boardId'] as String? ?? data['id'] as String?;
+              if (boardId == null) {
+                stats.skipped++;
+                continue;
+              }
+              final wrote = await _syncBoard(data, txn);
+              if (wrote) {
+                stats.succeeded++;
+              } else {
+                stats.skipped++;
+              }
+              syncedIds.add(boardId);
+            } catch (e) {
+              stats.failed++;
+              final boardId =
+                  data['boardId'] as String? ?? data['id'] as String?;
+              errors.add(SyncError(
+                entityType: 'board',
+                entityId: boardId,
+                message: e.toString(),
+              ));
+              _log.warning('[SYNC] ERROR syncing board: $e');
+            }
+          }
+        });
+      } else {
+        errors.add(SyncError(
+          entityType: 'board',
+          message: 'HTTP ${response?.statusCode ?? "null"} fetching boards',
+        ));
       }
     } catch (e) {
-      _log.info('[SYNC] ERROR downloading boards: $e');
+      _log.warning('[SYNC] ERROR downloading boards: $e');
+      errors.add(SyncError(entityType: 'board', message: e.toString()));
     }
-    return syncedIds;
+    return DownloadResult(syncedIds: syncedIds, stats: stats, errors: errors);
   }
 
   // ── Private per-entity sync ───────────────────────────────────
 
-  Future<void> _syncArtefact(Map<String, dynamic> data) async {
-    try {
-      final artefactId = data['artefactId'] as String?;
-      if (artefactId == null) return;
+  /// Pre-downloaded asset paths for an artefact.
+  Future<_AssetPaths> _downloadArtefactAssets(
+      Map<String, dynamic> data) async {
+    String? localImagePath;
+    String? localSoundPath;
 
-      final existing = await _artefactRepo.getById(artefactId);
-
-      final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
-      final syncDirection =
-          _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
-
-      if (syncDirection != 'download') return;
-
-      // Download image and sound files if they have URLs
-      String? localImagePath;
-      String? localSoundPath;
-
-      final imageUrl = data['imageUrl'] as String?;
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        localImagePath = await _downloadAsset(
-          imageUrl,
-          'Artefacts',
-          'image_$artefactId',
-          _userInfo.userId ?? '',
-        );
-      }
-
-      final soundUrl = data['soundUrl'] as String?;
-      if (soundUrl != null && soundUrl.isNotEmpty) {
-        localSoundPath = await _downloadAsset(
-          soundUrl,
-          'Sounds',
-          'sound_$artefactId',
-          _userInfo.userId ?? '',
-        );
-      }
-
-      final artefact = ArtefactDB(
-        artefactId: artefactId,
-        artefactIndex: data['artefactIndex'] as int? ?? 0,
-        userId: data['userId'] as String? ?? _userInfo.userId ?? '',
-        categoryId: data['categoryId'] as String?,
-        imagePath: localImagePath ?? _extractFilename(imageUrl),
-        soundPath: localSoundPath ?? _extractFilename(soundUrl),
-        modifiedDate: _parseDate(data['modifiedDate'] as String?),
-        name: data['name'] as String?,
-        nameShown: (data['nameShown'] as bool?) == true ? 1 : 0,
-        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    final imageUrl = data['imageUrl'] as String?;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      localImagePath = await _downloadAsset(
+        imageUrl,
+        'Artefacts',
+        'image_${data['artefactId']}',
+        _userInfo.userId ?? '',
       );
-
-      if (existing != null) {
-        await _artefactRepo.update(artefact);
-      } else {
-        await _artefactRepo.insert(artefact);
-      }
-    } catch (e) {
-      _log.info('[SYNC] ERROR syncing artefact: $e');
     }
+
+    final soundUrl = data['soundUrl'] as String?;
+    if (soundUrl != null && soundUrl.isNotEmpty) {
+      localSoundPath = await _downloadAsset(
+        soundUrl,
+        'Sounds',
+        'sound_${data['artefactId']}',
+        _userInfo.userId ?? '',
+      );
+    }
+
+    return _AssetPaths(imagePath: localImagePath, soundPath: localSoundPath);
   }
 
-  Future<void> _syncCategory(Map<String, dynamic> data) async {
-    try {
-      final categoryId = data['categoryId'] as String?;
-      if (categoryId == null) return;
+  /// Returns `true` if the entity was written, `false` if skipped.
+  Future<bool> _syncArtefact(
+    Map<String, dynamic> data,
+    Transaction txn,
+    _AssetPaths assets,
+  ) async {
+    final artefactId = data['artefactId'] as String?;
+    if (artefactId == null) return false;
 
-      final existing = await _categoryRepo.getById(categoryId);
+    final existing = await _artefactRepo.getById(artefactId);
 
-      final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
-      final syncDirection =
-          _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
+    final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
+    final syncDirection =
+        _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
 
-      if (syncDirection != 'download') return;
+    if (syncDirection != 'download') return false;
 
-      String? localImagePath;
-      final imageUrl = data['imageUrl'] as String?;
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        localImagePath = await _downloadAsset(
-          imageUrl,
-          'Categories',
-          'image_$categoryId',
-          _userInfo.userId ?? '',
-        );
-      }
+    final imageUrl = data['imageUrl'] as String?;
+    final soundUrl = data['soundUrl'] as String?;
 
-      final category = CategoryDB(
-        categoryId: categoryId,
-        categoryIndex: data['categoryIndex'] as int?,
-        userId: data['userId'] as String? ?? _userInfo.userId ?? '',
-        name: data['name'] as String?,
-        imagePath: localImagePath ?? _extractFilename(imageUrl),
-        modifiedDate: _parseDate(data['modifiedDate'] as String?),
-        usageCount: data['usageCount'] as int? ?? 0,
-        lastUsedDate: _parseDate(data['lastUsedDate'] as String?),
-        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    final artefact = ArtefactDB(
+      artefactId: artefactId,
+      artefactIndex: data['artefactIndex'] as int? ?? 0,
+      userId: data['userId'] as String? ?? _userInfo.userId ?? '',
+      categoryId: data['categoryId'] as String?,
+      imagePath: assets.imagePath ?? _extractFilename(imageUrl),
+      soundPath: assets.soundPath ?? _extractFilename(soundUrl),
+      modifiedDate: _parseDate(data['modifiedDate'] as String?),
+      name: data['name'] as String?,
+      nameShown: (data['nameShown'] as bool?) == true ? 1 : 0,
+      isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    );
+
+    if (existing != null) {
+      await txn.update(
+        'artefact',
+        artefact.toMap(),
+        where: 'artefact_id = ?',
+        whereArgs: [artefact.artefactId],
       );
-
-      if (existing != null) {
-        await _categoryRepo.update(category);
-      } else {
-        await _categoryRepo.insert(category);
-      }
-    } catch (e) {
-      _log.info('[SYNC] ERROR syncing category: $e');
+    } else {
+      await txn.insert(
+        'artefact',
+        artefact.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
+    return true;
   }
 
-  Future<void> _syncBoard(Map<String, dynamic> data) async {
-    try {
-      final boardId = data['boardId'] as String? ?? data['id'] as String?;
-      if (boardId == null) return;
+  /// Returns `true` if the entity was written, `false` if skipped.
+  Future<bool> _syncCategory(
+    Map<String, dynamic> data,
+    Transaction txn,
+    String? localImagePath,
+  ) async {
+    final categoryId = data['categoryId'] as String?;
+    if (categoryId == null) return false;
 
-      final existing = await _boardRepo.getById(boardId);
+    final existing = await _categoryRepo.getById(categoryId);
 
-      final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
-      final syncDirection =
-          _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
+    final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
+    final syncDirection =
+        _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
 
-      if (syncDirection != 'download') return;
+    if (syncDirection != 'download') return false;
 
-      final artefactIds = (data['artefactIds'] as List<dynamic>?)
-          ?.map((id) => id.toString())
-          .join(',');
-      final savedArtefactIds = (data['savedArtefactIds'] as List<dynamic>?)
-          ?.map((id) => id.toString())
-          .join(',');
+    final imageUrl = data['imageUrl'] as String?;
 
-      final board = SavedBoardDB(
-        id: boardId,
-        name: data['name'] as String? ?? 'Unnamed Board',
-        userId: data['userId'] as String? ?? _userInfo.userId ?? '',
-        savedArtefactIds: savedArtefactIds,
-        artefactIds: artefactIds,
-        snapshotPath: _extractFilename(data['snapshotUrl'] as String?),
-        createdDate: _parseDate(data['createdDate'] as String?) ??
-            (DateTime.now().millisecondsSinceEpoch ~/ 1000),
-        modifiedDate: _parseDate(data['modifiedDate'] as String?),
-        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    final category = CategoryDB(
+      categoryId: categoryId,
+      categoryIndex: data['categoryIndex'] as int?,
+      userId: data['userId'] as String? ?? _userInfo.userId ?? '',
+      name: data['name'] as String?,
+      imagePath: localImagePath ?? _extractFilename(imageUrl),
+      modifiedDate: _parseDate(data['modifiedDate'] as String?),
+      usageCount: data['usageCount'] as int? ?? 0,
+      lastUsedDate: _parseDate(data['lastUsedDate'] as String?),
+      isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    );
+
+    if (existing != null) {
+      await txn.update(
+        'category',
+        category.toMap(),
+        where: 'category_id = ?',
+        whereArgs: [category.categoryId],
       );
-
-      if (existing != null) {
-        await _boardRepo.update(board);
-      } else {
-        await _boardRepo.insert(board);
-      }
-
-      // Sync saved artefacts for this board
-      final savedArtefacts = data['savedArtefacts'] as List<dynamic>?;
-      if (savedArtefacts != null) {
-        for (final savedArtefactData in savedArtefacts) {
-          await _syncSavedArtefact(savedArtefactData, boardId);
-        }
-      }
-    } catch (e) {
-      _log.info('[SYNC] ERROR syncing board: $e');
+    } else {
+      await txn.insert(
+        'category',
+        category.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
+    return true;
+  }
+
+  /// Returns `true` if the entity was written, `false` if skipped.
+  Future<bool> _syncBoard(Map<String, dynamic> data, Transaction txn) async {
+    final boardId = data['boardId'] as String? ?? data['id'] as String?;
+    if (boardId == null) return false;
+
+    final existing = await _boardRepo.getById(boardId);
+
+    final backendModifiedDate = _parseDate(data['modifiedDate'] as String?);
+    final syncDirection =
+        _decideSyncDirection(existing?.modifiedDate, backendModifiedDate);
+
+    if (syncDirection != 'download') return false;
+
+    final artefactIds = (data['artefactIds'] as List<dynamic>?)
+        ?.map((id) => id.toString())
+        .join(',');
+    final savedArtefactIds = (data['savedArtefactIds'] as List<dynamic>?)
+        ?.map((id) => id.toString())
+        .join(',');
+
+    final board = SavedBoardDB(
+      id: boardId,
+      name: data['name'] as String? ?? 'Unnamed Board',
+      userId: data['userId'] as String? ?? _userInfo.userId ?? '',
+      savedArtefactIds: savedArtefactIds,
+      artefactIds: artefactIds,
+      snapshotPath: _extractFilename(data['snapshotUrl'] as String?),
+      createdDate: _parseDate(data['createdDate'] as String?) ??
+          (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      modifiedDate: _parseDate(data['modifiedDate'] as String?),
+      isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    );
+
+    if (existing != null) {
+      await txn.update(
+        'saved_board',
+        board.toMap(),
+        where: 'id = ?',
+        whereArgs: [board.id],
+      );
+    } else {
+      await txn.insert(
+        'saved_board',
+        board.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    // Sync saved artefacts for this board
+    final savedArtefacts = data['savedArtefacts'] as List<dynamic>?;
+    if (savedArtefacts != null) {
+      for (final savedArtefactData in savedArtefacts) {
+        await _syncSavedArtefact(savedArtefactData, boardId, txn);
+      }
+    }
+    return true;
   }
 
   Future<void> _syncSavedArtefact(
-      Map<String, dynamic> data, String boardId) async {
-    try {
-      final id = data['id'] as String?;
-      if (id == null) return;
+      Map<String, dynamic> data, String boardId, Transaction txn) async {
+    final id = data['id'] as String?;
+    if (id == null) return;
 
-      final savedArtefact = SavedArtefactDB(
-        id: id,
-        artefactId: data['artefactId'] as String? ?? '',
-        boardId: boardId,
-        posX: (data['posX'] as num?)?.toDouble() ?? 0.0,
-        posY: (data['posY'] as num?)?.toDouble() ?? 0.0,
-        width: (data['width'] as num?)?.toDouble() ?? 200.0,
-        height: (data['height'] as num?)?.toDouble() ?? 200.0,
-        createdDate: _parseDate(data['createdDate'] as String?) ??
-            (DateTime.now().millisecondsSinceEpoch ~/ 1000),
-        modifiedDate: _parseDate(data['modifiedDate'] as String?),
-        nameVisible: (data['nameVisible'] as bool?) == true ? 1 : null,
-        isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    final savedArtefact = SavedArtefactDB(
+      id: id,
+      artefactId: data['artefactId'] as String? ?? '',
+      boardId: boardId,
+      posX: (data['posX'] as num?)?.toDouble() ?? 0.0,
+      posY: (data['posY'] as num?)?.toDouble() ?? 0.0,
+      width: (data['width'] as num?)?.toDouble() ?? 200.0,
+      height: (data['height'] as num?)?.toDouble() ?? 200.0,
+      createdDate: _parseDate(data['createdDate'] as String?) ??
+          (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      modifiedDate: _parseDate(data['modifiedDate'] as String?),
+      nameVisible: (data['nameVisible'] as bool?) == true ? 1 : null,
+      isDeleted: (data['isDeleted'] as bool?) == true ? 1 : 0,
+    );
+
+    final existing = await _savedArtefactRepo.getById(id);
+    if (existing != null) {
+      await txn.update(
+        'saved_artefact',
+        savedArtefact.toMap(),
+        where: 'id = ?',
+        whereArgs: [savedArtefact.id],
       );
-
-      final existing = await _savedArtefactRepo.getById(id);
-      if (existing != null) {
-        await _savedArtefactRepo.update(savedArtefact);
-      } else {
-        await _savedArtefactRepo.insert(savedArtefact);
-      }
-    } catch (e) {
-      _log.info('[SYNC] ERROR syncing saved artefact: $e');
+    } else {
+      await txn.insert(
+        'saved_artefact',
+        savedArtefact.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
   }
 
@@ -316,6 +514,8 @@ class SyncDownloader {
   }
 
   /// Download an asset (image / sound) and write it to local storage.
+  ///
+  /// Uses [RetryHelper] for transient network failures.
   Future<String?> _downloadAsset(
     String url,
     String assetType,
@@ -326,11 +526,20 @@ class SyncDownloader {
       final fullUrl =
           url.startsWith('http') ? url : _apiProvider.baseUrl + url;
 
-      final response = await http.get(
-        Uri.parse(fullUrl),
-        headers: {'Authorization': 'Bearer ${_token.value}'},
+      final result = await RetryHelper.run(
+        () => http.get(
+          Uri.parse(fullUrl),
+          headers: {'Authorization': 'Bearer ${_token.value}'},
+        ),
+        label: 'GET asset $filename',
       );
 
+      if (!result.succeeded) {
+        _log.info('[SYNC] Failed to download asset after retries: $fullUrl');
+        return null;
+      }
+
+      final response = result.value!;
       if (response.statusCode != 200) {
         _log.info(
             '[SYNC] Failed to download asset: ${response.statusCode} - $fullUrl');
@@ -373,4 +582,11 @@ class SyncDownloader {
       return null;
     }
   }
+}
+
+/// Pre-downloaded asset paths for an artefact.
+class _AssetPaths {
+  final String? imagePath;
+  final String? soundPath;
+  _AssetPaths({this.imagePath, this.soundPath});
 }
