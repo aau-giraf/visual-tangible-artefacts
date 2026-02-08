@@ -336,7 +336,7 @@ Session API, board sync API, and WebRTC relay methods stay in `SignalRService` (
 
 ## Phase 4 — Reliability & Observability
 
-### 4.1 Replace `Console.WriteLine` with `ILogger` in backend (91 occurrences) ⬜
+### 4.1 Replace `Console.WriteLine` with `ILogger` in backend (91 occurrences) ✅
 
 Inject `ILogger<T>` into the 7 files that use `Console.Write*`. Map each call to the appropriate log level (`LogInformation`, `LogWarning`, `LogError`). Wire up the 3 services that already have `ILogger` injected but don't use it.
 
@@ -351,11 +351,11 @@ Inject `ILogger<T>` into the 7 files that use `Console.Write*`. Map each call to
 | `DbContextExtensions.cs` | 1 | |
 | Unused `ILogger` fields | 3 services | `PresenceService`, `SessionService`, `BoardSyncRelay` — injected but never called |
 
-### 4.2 Replace `print()`/`debugPrint()` with `package:logging` in Flutter (334+ calls) ⬜
+### 4.2 Replace `print()`/`debugPrint()` with `package:logging` in Flutter (334+ calls) ✅
 
 Use Dart SDK built-in `package:logging`. Create a shared `AppLogger` utility with named loggers per file. Replace all `print()`/`debugPrint()` calls. Remove `// ignore_for_file: avoid_print` directives.
 
-### 4.3 Fix 28 empty catch blocks in Flutter ⬜
+### 4.3 Fix 28 empty catch blocks in Flutter ✅
 
 Add `logger.warning()`/`logger.severe()` calls inside all 28 empty `catch` blocks across 8 files. Dispose/cleanup catches → `logger.fine()`. Silenced real errors → `logger.severe()`.
 

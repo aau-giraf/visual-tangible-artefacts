@@ -35,7 +35,9 @@ These are the things that will break your work if you get them wrong:
 - **DB-first, no migrations**: `mysql_schema.sql` is the schema source of truth. Models are scaffolded via `dotnet ef dbcontext scaffold` (Pomelo). Never add EF migrations.
 - **Backend service layer**: Controllers delegate business logic to service classes in `VTA.API/Services/` (e.g. `ITtsService`, `IRelationService`, `IUserService`). Services inject `VTAContext` and are registered as `AddScoped` in `Program.cs`. Controllers handle HTTP concerns only (routing, model binding, auth, status codes).
 - **DTO mapping**: Static `DtoConverter` class, not AutoMapper.
-- **Flutter API returns**: `ApiProvider` returns `Response?` (null on failure). Callers must null-check AND verify `response.isOk`.
+- **Flutter API returns**: `ApiProvider` returns `Response?` (null on failure). Callers must null-check AND verify `response.isOk`. Sync callers wrap API calls in `RetryHelper` for transient-failure resilience.
+- **Flutter logging**: Never use `print()` or `debugPrint()`. Use `package:logging` with a file-scoped logger: `final _log = Logger('ClassName');`. `AppLogger.init()` is called once in `main.dart`.
+- **Sync return types**: Sync methods return `SyncResult` (not `bool`). Use its `success`, `partial`, `totalFailed` getters to decide next action.
 - **SignalR method names**: Hub method names and Flutter client callback names must match exactly (string-based, e.g. `"ArtifactAdded"`).
 - **SignalR package**: Flutter uses `signalr_netcore`, not the official Microsoft package.
 - **Localization**: New user-facing strings must use ARB keys (`l10n.yaml`), not hardcoded strings.
