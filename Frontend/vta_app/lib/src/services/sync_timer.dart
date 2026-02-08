@@ -2,7 +2,10 @@ import 'dart:async';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/services/sync_service.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SyncTimer');
 /// Service that manages periodic syncing with the backend
 /// Runs sync operations on a timer and provides lifecycle management
 class SyncTimer {
@@ -26,9 +29,9 @@ class SyncTimer {
     try {
       // Get the singleton UserInfo from GetIt
       _userInfo = GetIt.I.get<UserInfo>();
-      print('[SYNC-TIMER] Starting periodic sync (${interval.inSeconds}s interval)');
+      _log.info('[SYNC-TIMER] Starting periodic sync (${interval.inSeconds}s interval)');
     } catch (e) {
-      print('[SYNC-TIMER] ERROR: Failed to get UserInfo: $e');
+      _log.info('[SYNC-TIMER] ERROR: Failed to get UserInfo: $e');
       return;
     }
     
@@ -44,7 +47,7 @@ class SyncTimer {
         _performSync();
       });
     } catch (e) {
-      print('[SYNC-TIMER] ERROR creating timer: $e');
+      _log.info('[SYNC-TIMER] ERROR creating timer: $e');
       _isRunning = false;
     }
   }
@@ -71,10 +74,10 @@ class SyncTimer {
       );
       
       if (!success) {
-        print('[SYNC-TIMER] Sync failed');
+        _log.info('[SYNC-TIMER] Sync failed');
       }
     } catch (e) {
-      print('[SYNC-TIMER] ERROR during sync: $e');
+      _log.info('[SYNC-TIMER] ERROR during sync: $e');
     }
   }
 
@@ -103,6 +106,6 @@ class SyncTimer {
   
   /// Print current status
   void printStatus() {
-    print(getStatus());
+    _log.info(getStatus());
   }
 }

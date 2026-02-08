@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
 
@@ -30,7 +31,9 @@ public static class WebApplicationExtensions
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating database schema: {ex.Message}");
+            var logger = application.Services.GetRequiredService<ILoggerFactory>()
+                .CreateLogger(nameof(WebApplicationExtensions));
+            logger.LogError(ex, "Error creating database schema");
             throw;
         }
 

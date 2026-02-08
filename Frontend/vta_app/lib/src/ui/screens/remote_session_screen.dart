@@ -5,7 +5,10 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('RemoteSessionScreen');
 class RemoteSessionScreen extends StatefulWidget {
   static const String routeName = "/remote";
 
@@ -33,28 +36,28 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
 
   /// Listen for online status changes from SignalR and refresh UI
   void _listenForOnlineStatusChanges() {
-    debugPrint('[RemoteSessionScreen] Setting up online status listener');
+    _log.fine('[RemoteSessionScreen] Setting up online status listener');
 
     _signalRService.onUserOnlineStatusChanged = (userId, isOnline) {
-      debugPrint('RemoteSessionScreen Status Change');
-      debugPrint('User: $userId');
-      debugPrint('IsOnline: $isOnline');
-      debugPrint('Mounted: $mounted');
+      _log.fine('RemoteSessionScreen Status Change');
+      _log.fine('User: $userId');
+      _log.fine('IsOnline: $isOnline');
+      _log.fine('Mounted: $mounted');
 
       if (mounted) {
         setState(() {
-          debugPrint('[RemoteSessionScreen] UI rebuild triggered');
+          _log.fine('[RemoteSessionScreen] UI rebuild triggered');
         });
       } else {
-        debugPrint('[RemoteSessionScreen] Not mounted, skipping setState');
+        _log.fine('[RemoteSessionScreen] Not mounted, skipping setState');
       }
     };
 
-    debugPrint('[RemoteSessionScreen] Online status listener registered');
+    _log.fine('[RemoteSessionScreen] Online status listener registered');
   }
 
   Future<void> _loadContacts() async {
-    debugPrint('[RemoteSessionScreen] Loading contacts...');
+    _log.fine('[RemoteSessionScreen] Loading contacts...');
 
     setState(() {
       isLoading = true;
@@ -91,7 +94,7 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
         newContacts[displayName] = user.id;
       }
 
-      debugPrint('[RemoteSessionScreen] Loaded ${newContacts.length} contacts');
+      _log.fine('[RemoteSessionScreen] Loaded ${newContacts.length} contacts');
 
       setState(() {
         users = fetchedUsers;
@@ -100,10 +103,10 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
       });
 
       // Print initial online status
-      debugPrint('[RemoteSessionScreen] Initial online users:');
+      _log.fine('[RemoteSessionScreen] Initial online users:');
       for (var entry in contacts.entries) {
         final isOnline = _isUserOnline(entry.value);
-        debugPrint(
+        _log.fine(
             '  - ${entry.key} (${entry.value}): ${isOnline ? "ONLINE" : "OFFLINE"}');
       }
     } catch (e) {
@@ -117,7 +120,7 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
   /// Check if a user is online by their userId
   bool _isUserOnline(String userId) {
     final isOnline = _signalRService.isUserOnline(userId);
-    // debugPrint('[RemoteSessionScreen] isUserOnline($userId) = $isOnline');
+    // _log.fine('[RemoteSessionScreen] isUserOnline($userId) = $isOnline');
     return isOnline;
   }
 
@@ -135,7 +138,7 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
-              debugPrint('[RemoteSessionScreen] Manual refresh triggered');
+              _log.fine('[RemoteSessionScreen] Manual refresh triggered');
               await _signalRService.refreshOnlineUsers();
               setState(() {});
             },
@@ -209,7 +212,7 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
                                     label: const Text("Start"),
                                     onPressed: isOnline
                                         ? () async {
-                                            debugPrint(
+                                            _log.fine(
                                                 '[RemoteSessionScreen] Starting call to $name ($userId)');
                                             // Navigate to calling screen
                                             Navigator.pushNamed(
@@ -234,7 +237,7 @@ class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
 
   @override
   void dispose() {
-    debugPrint('[RemoteSessionScreen] dispose');
+    _log.fine('[RemoteSessionScreen] dispose');
     super.dispose();
   }
 }

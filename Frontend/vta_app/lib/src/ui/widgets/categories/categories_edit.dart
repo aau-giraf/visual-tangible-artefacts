@@ -1,11 +1,13 @@
-// ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('CategoriesEdit');
 class CategoriesEdit extends StatelessWidget {
   final String categoryName;
   final String? imageUrl;
@@ -24,7 +26,7 @@ class CategoriesEdit extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: () {
-        print("Long press detected on $categoryName");
+        _log.info("Long press detected on $categoryName");
       },
       child: Container(
         padding: const EdgeInsets.all(8.0),

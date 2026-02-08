@@ -4,7 +4,10 @@ import 'package:vta_app/src/functions/auth.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/services/sync_timer.dart';
 import 'signup_screen.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('LoginScreen');
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -29,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
         var authState = Provider.of<AuthState>(context, listen: false);
         Provider.of<ArtifactState>(context, listen: false);
         
-        debugPrint('Attempting login for username: $username');
+        _log.fine('Attempting login for username: $username');
         await authState.login(username, password);
         
         // If we reach here without exception, login was successful
@@ -37,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Start the sync timer after successful login
           SyncTimer().start(interval: const Duration(seconds: 30));
           
-          debugPrint('Login successful, navigating to AuthPage');
+          _log.fine('Login successful, navigating to AuthPage');
           // Navigate to user page
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => AuthPage()));
@@ -48,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       } catch (e) {
-        debugPrint('Login exception caught: $e');
+        _log.fine('Login exception caught: $e');
         setState(() {
           // Display the actual error message from the backend
           String errorMsg = e.toString();
@@ -56,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
             errorMsg = errorMsg.substring(11); // Remove 'Exception: ' prefix
           }
           _errorMessage = errorMsg;
-          debugPrint('Setting error message to: $_errorMessage');
+          _log.fine('Setting error message to: $_errorMessage');
         });
       }
     }

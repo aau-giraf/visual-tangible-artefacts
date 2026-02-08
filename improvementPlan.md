@@ -12,7 +12,7 @@
 | Phase 1 — Stop the Bleeding | ✅ Merged to `dev-main` | `feature/phase1-stabilise` | 98/98 ✅ |
 | Phase 2 — Backend Service Layer | ✅ Merged to `dev-main` | `feature/phase2-service-layer` | 98/98 ✅ |
 | Phase 3 — God Class Splits | ✅ Completed | `feature/phase3-god-class-splits` | 25/25 + 98/98 + 13/13 ✅ |
-| Phase 4 — Reliability & Observability | 📋 Planned | — | — |
+| Phase 4 — Reliability & Observability | � In progress | `feature/phase4-logging` | — |
 | Phase 5 — Backlog | 📋 Planned | — | — |
 
 **Phase 3 progress:**
@@ -334,13 +334,38 @@ Session API, board sync API, and WebRTC relay methods stay in `SignalRService` (
 **Files to modify:**
 - `lib/src/services/signalr_service.dart` — delegate to extracted classes
 
-## Phase 4 — Reliability & Observability (ongoing)
+## Phase 4 — Reliability & Observability
 
-- Replace `Console.WriteLine` (100+) with `ILogger` in backend
-- Replace `print()`/`debugPrint()` (100+) with a logging package in Flutter
-- Fix 23 empty catch blocks in Flutter
-- Add sync transaction safety and retry logic
-- Add pagination to list endpoints
+### 4.1 Replace `Console.WriteLine` with `ILogger` in backend (91 occurrences) ⬜
+
+Inject `ILogger<T>` into the 7 files that use `Console.Write*`. Map each call to the appropriate log level (`LogInformation`, `LogWarning`, `LogError`). Wire up the 3 services that already have `ILogger` injected but don't use it.
+
+| File | Count | Notes |
+|------|-------|-------|
+| `SyncController.cs` | 35 | Sync endpoint debug logging |
+| `MigrationService.cs` | 21 | Schema migration progress |
+| `BoardHub.cs` | 20 | Already uses `[Hub]` prefix convention |
+| `ElevenLabsService.cs` | 9 | TTS API call logging |
+| `CategoriesController.cs` | 1 | |
+| `WebApplicationExtensions.cs` | 1 | |
+| `DbContextExtensions.cs` | 1 | |
+| Unused `ILogger` fields | 3 services | `PresenceService`, `SessionService`, `BoardSyncRelay` — injected but never called |
+
+### 4.2 Replace `print()`/`debugPrint()` with `package:logging` in Flutter (334+ calls) ⬜
+
+Use Dart SDK built-in `package:logging`. Create a shared `AppLogger` utility with named loggers per file. Replace all `print()`/`debugPrint()` calls. Remove `// ignore_for_file: avoid_print` directives.
+
+### 4.3 Fix 28 empty catch blocks in Flutter ⬜
+
+Add `logger.warning()`/`logger.severe()` calls inside all 28 empty `catch` blocks across 8 files. Dispose/cleanup catches → `logger.fine()`. Silenced real errors → `logger.severe()`.
+
+### 4.4 Add sync retry logic and transaction safety ⬜
+
+Create a `RetryHelper` utility with exponential backoff for HTTP calls. Apply in `sync_downloader.dart` and `sync_uploader.dart`. Wrap per-entity-type sync in SQLite batch transactions. Change `syncFromServer` return type from `bool` to a `SyncResult` with error details.
+
+### 4.5 Add backend pagination to list endpoints ⬜
+
+Add `skip`/`take` query params with sensible defaults (e.g., `take=50`) to admin user listings, artefact listing, board listing, and sync endpoints. Add `PaginatedResponse<T>` DTO with `items`, `totalCount`, `skip`, `take`. Backward-compatible — callers that don't pass params get the default page size.
 
 ## Phase 5 — Backlog
 
@@ -349,3 +374,11 @@ Session API, board sync API, and WebRTC relay methods stay in `SignalRService` (
 - State management consolidation
 - Profile picture sync to backend
 - Redis backplane for SyncService (only when horizontal scaling is needed)
+
+## Deferred
+
+Items that are planned but not yet scheduled into a phase:
+
+- **Flutter pagination support** — Update `ApiProvider` and sync callers to pass `skip`/`take` params, add infinite scroll to list views
+- **Admin dashboard pagination** — Update admin API modules to use paginated endpoints, add pagination UI components
+- **Sync endpoint batching (client)** — Batch large sync payloads into pages to avoid timeouts on large datasets

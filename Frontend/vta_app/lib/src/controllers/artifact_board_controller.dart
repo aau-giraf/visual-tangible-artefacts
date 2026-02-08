@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 
 import 'package:flutter/cupertino.dart';
 import 'package:just_audio/just_audio.dart';
@@ -15,7 +14,10 @@ import 'package:vta_app/src/models/board_model.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ArtifactBoardController');
 typedef VoidCallback = void Function();
 typedef MessageCallback = void Function(String message);
 
@@ -62,7 +64,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
       try {
         await playArtefactSound(artifact.baseArtefact!);
       } catch (e) {
-        debugPrint('Error playing artefact audio: $e');
+        _log.fine('Error playing artefact audio: $e');
       }
     }
   }
@@ -77,7 +79,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
     // Initialize controllers
     talkingmatController =
         TalkingmatController(onArtefactAdded: _playArtefactAudio);
-    debugPrint(
+    _log.fine(
         '[ArtifactBoardController] Created talkingmatController with ID: ${talkingmatController.hashCode}');
 
     // Initialize linearBoardController with default field count
@@ -91,7 +93,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
 
     // Don't create widgets here - they should be created fresh in the build method
     // to avoid duplicate GlobalKey issues. The keys are stored for use in build.
-    debugPrint(
+    _log.fine(
         '[ArtifactBoardController] Initialized keys for talkingMat and linearBoard');
 
     // Initialize configuration (async - will update field count if different)
@@ -134,7 +136,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
     for (var boardArtefact in linearArtefacts) {
       if (boardArtefact?.baseArtefact != null) {
         boardArtefact!.baseArtefact!.nameShown = newNameVisible;
-        print(
+        _log.info(
             'Debug: _onSettingsChanged - Updated LinearBoard artefact: ${boardArtefact.baseArtefact!.name} to $newNameVisible');
       }
     }
@@ -306,13 +308,13 @@ class ArtifactBoardController with ArtefactSoundPlayer {
       // Get artefacts from the current board
       if (showDirectional) {
         // Linear board
-        debugPrint(
+        _log.fine(
             'Debug: ArtifactBoardController - Total artefacts on linear board: ${linearBoardController.artifacts.length}');
 
         // Debug each artefact
         for (var artifact in linearBoardController.artifacts) {
           if (artifact != null) {
-            debugPrint(
+            _log.fine(
                 'Debug: ArtifactBoardController - Linear Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
           }
         }
@@ -324,12 +326,12 @@ class ArtifactBoardController with ArtefactSoundPlayer {
             .toList();
       } else {
         // Talking mat
-        debugPrint(
+        _log.fine(
             'Debug: ArtifactBoardController - Total artefacts on talking mat: ${talkingmatController.value.length}');
 
         // Debug each artefact
         for (var artifact in talkingmatController.value) {
-          debugPrint(
+          _log.fine(
               'Debug: ArtifactBoardController - TalkingMat Artefact ID: ${artifact.baseArtefact?.artefactId}, soundUrl: ${artifact.baseArtefact?.soundUrl}');
         }
 
@@ -340,14 +342,14 @@ class ArtifactBoardController with ArtefactSoundPlayer {
       }
 
       if (artefacts.isEmpty) {
-        debugPrint(
+        _log.fine(
             'Debug: ArtifactBoardController - No artefacts with sound found on the board');
         _isPlayingAllSounds = false;
         notifyView();
         return;
       }
 
-      debugPrint(
+      _log.fine(
           'Debug: ArtifactBoardController - Playing ${artefacts.length} artefact sounds sequentially');
 
       for (var boardArtefact in artefacts) {
@@ -359,7 +361,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
             if (token != null) {
               final audioUrl =
                   '${apiProvider.baseUrl}Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
-              debugPrint(
+              _log.fine(
                   'Debug: ArtifactBoardController - Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
 
               // Fetch the audio data
@@ -383,12 +385,12 @@ class ArtifactBoardController with ArtefactSoundPlayer {
                 await _audioPlayer.playerStateStream.firstWhere((state) =>
                     state.processingState == ProcessingState.completed);
 
-                debugPrint(
+                _log.fine(
                     'Debug: ArtifactBoardController - Finished playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
               }
             }
           } catch (e) {
-            debugPrint(
+            _log.fine(
                 'Debug: ArtifactBoardController - Error playing sound for artefact ${boardArtefact.baseArtefact?.artefactId}: $e');
             // Continue to next artefact even if this one fails
           }
@@ -406,7 +408,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
   void dispose() {
     try {
       settingsController.removeListener(_onSettingsChanged);
-    } catch (_) {}
+    } catch (e) { _log.fine('Error removing settings listener: $e'); }
     _audioPlayer.dispose();
   }
 }

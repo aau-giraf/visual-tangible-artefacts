@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'dart:async';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('CallingScreen');
 class CallingScreen extends StatefulWidget {
   static const String routeName = "/calling";
 
@@ -48,23 +51,23 @@ class _CallingScreenState extends State<CallingScreen>
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    debugPrint('[CallingScreen] ═══════════════════════════════');
-    debugPrint('[CallingScreen] Initializing call');
-    debugPrint('[CallingScreen] Arguments: $args');
+    _log.fine('[CallingScreen] ═══════════════════════════════');
+    _log.fine('[CallingScreen] Initializing call');
+    _log.fine('[CallingScreen] Arguments: $args');
 
     if (args != null && !_callInitiated) {
       childId = args['childId'] as String;
       childName = args['childName'] as String;
 
-      debugPrint('[CallingScreen] ✓ childId: $childId');
-      debugPrint('[CallingScreen] ✓ childName: $childName');
+      _log.fine('[CallingScreen] ✓ childId: $childId');
+      _log.fine('[CallingScreen] ✓ childName: $childName');
 
       _callInitiated = true;
       _initiateCall();
     } else if (args == null) {
-      debugPrint('[CallingScreen] ❌ ERROR: No arguments received!');
+      _log.fine('[CallingScreen] ❌ ERROR: No arguments received!');
     }
-    debugPrint('[CallingScreen] ═══════════════════════════════');
+    _log.fine('[CallingScreen] ═══════════════════════════════');
   }
 
   void _setupSignalRListeners() {
@@ -76,7 +79,7 @@ class _CallingScreenState extends State<CallingScreen>
 
     // When session is rejected
     signalR.onSessionRejected = () {
-      debugPrint('[CallingScreen] Call rejected');
+      _log.fine('[CallingScreen] Call rejected');
       if (!_isDisposed && mounted && _isCallActive) {
         _timeoutTimer?.cancel();
         _showRejectionDialog();
@@ -86,7 +89,7 @@ class _CallingScreenState extends State<CallingScreen>
 
     // When session is accepted
     signalR.onSessionStarted = (sessionId, boardId) {
-      debugPrint('[CallingScreen] Call accepted! SessionId: $sessionId');
+      _log.fine('[CallingScreen] Call accepted! SessionId: $sessionId');
       if (!_isDisposed && mounted && _isCallActive) {
         _timeoutTimer?.cancel();
         // CallManager handles navigation
@@ -98,39 +101,39 @@ class _CallingScreenState extends State<CallingScreen>
 
   Future<void> _initiateCall() async {
     if (_callInitiated && childId == null) {
-      debugPrint('[CallingScreen] ERROR: childId is null!');
+      _log.fine('[CallingScreen] ERROR: childId is null!');
       return;
     }
 
-    debugPrint('[CallingScreen]_initiateCall START');
-    debugPrint('[CallingScreen] childId: $childId');
-    debugPrint(
+    _log.fine('[CallingScreen]_initiateCall START');
+    _log.fine('[CallingScreen] childId: $childId');
+    _log.fine(
         '[CallingScreen] SignalR.isConnected: ${SignalRService().isConnected}');
 
     try {
-      debugPrint('[CallingScreen] Calling requestSession...');
+      _log.fine('[CallingScreen] Calling requestSession...');
       await SignalRService().requestSession(childId!);
-      debugPrint('[CallingScreen] ✓ requestSession completed');
+      _log.fine('[CallingScreen] ✓ requestSession completed');
 
       // Set timeout (30 seconds)
-      debugPrint('[CallingScreen] Starting 30-second timeout');
+      _log.fine('[CallingScreen] Starting 30-second timeout');
       _timeoutTimer = Timer(const Duration(seconds: 30), () {
-        debugPrint('[CallingScreen] Timeout reached!');
+        _log.fine('[CallingScreen] Timeout reached!');
         if (mounted && _isCallActive && !_isDisposed) {
           _showTimeoutDialog();
         }
       });
     } catch (e) {
-      debugPrint('[CallingScreen] ERROR: $e');
+      _log.fine('[CallingScreen] ERROR: $e');
       if (!_isDisposed && mounted) {
         _showErrorDialog(e.toString());
       }
     }
-    debugPrint('[CallingScreen] _initiateCall END');
+    _log.fine('[CallingScreen] _initiateCall END');
   }
 
   void _cancelCall() {
-    debugPrint('[CallingScreen] User cancelled call');
+    _log.fine('[CallingScreen] User cancelled call');
     setState(() {
       _isCallActive = false;
     });

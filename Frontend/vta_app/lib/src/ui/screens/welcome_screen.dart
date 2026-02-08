@@ -12,7 +12,10 @@ import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('WelcomeScreen');
 class WelcomeScreen extends StatefulWidget {
   static const String routeName = "/welcome";
   
@@ -124,7 +127,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         }
       }
     } catch (e) {
-      debugPrint('Error loading user data: $e');
+      _log.fine('Error loading user data: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -148,7 +151,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           }
           return;
         } catch (e) {
-          debugPrint('Error decoding base64 image: $e');
+          _log.fine('Error decoding base64 image: $e');
         }
       }
       // Fallback to file path if base64 not found
@@ -168,7 +171,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         }
       }
     } catch (e) {
-      debugPrint('Error loading profile picture: $e');
+      _log.fine('Error loading profile picture: $e');
     }
   }
 

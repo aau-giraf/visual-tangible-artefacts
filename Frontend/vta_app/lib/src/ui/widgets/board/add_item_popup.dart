@@ -19,7 +19,10 @@ import 'package:vta_app/src/utilities/config/voice_config_validator.dart';
 import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import '../../../utilities/audio/recorder.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('AddItemPopup');
 class AddItemPopup extends StatefulWidget {
   final Category? category;
   final bool isCategory;
@@ -128,22 +131,22 @@ class _AddItemPopupState extends State<AddItemPopup> {
     _textToSpeechController.dispose();
     try {
       _player.dispose();
-    } catch (_) {}
+    } catch (e) { _log.fine('Error disposing player: $e'); }
     try {
       // Best-effort stop recorder on dispose, but only if we are currently recording
       if (_isRecording && _recorder != null) {
         try {
           (_recorder as dynamic).stop();
-        } catch (_) {}
+        } catch (e) { _log.fine('Error stopping recorder: $e'); }
       }
-    } catch (_) {}
+    } catch (e) { _log.fine('Error during recorder cleanup: $e'); }
     // cancel timers
     try {
       _recordTimer?.cancel();
-    } catch (_) {}
+    } catch (e) { _log.fine('Error canceling record timer: $e'); }
     try {
       _amplitudeTimer?.cancel();
-    } catch (_) {}
+    } catch (e) { _log.fine('Error canceling amplitude timer: $e'); }
     nameController.removeListener(_onFormChanged);
     super.dispose();
   }
@@ -814,7 +817,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                     try {
                                       await _player.stop();
                                       await _player.dispose();
-                                    } catch (_) {}
+                                    } catch (e) { _log.fine('Error stopping player before replay: $e'); }
 
                                     // Create a fresh player instance
                                     final tempPlayer = AudioPlayer();
@@ -836,7 +839,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                         }
                                       });
                                     } catch (e) {
-                                      debugPrint('Playback error: $e');
+                                      _log.fine('Playback error: $e');
                                       tempPlayer.dispose();
                                       scaffoldMessenger.showSnackBar(
                                         SnackBar(
@@ -845,7 +848,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                       );
                                     }
                                   } catch (e) {
-                                    debugPrint('Player initialization error: $e');
+                                    _log.fine('Player initialization error: $e');
                                     scaffoldMessenger.showSnackBar(
                                       SnackBar(
                                         content: Text('Kunne ikke initialisere afspiller: $e'),
@@ -860,7 +863,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                                 onPressed: () {
                                   try {
                                     _player.stop();
-                                  } catch (_) {}
+                                  } catch (e) { _log.fine('Error stopping player: $e'); }
                                   setDialogState(() {
                                     soundBytes = null;
                                     _recordingDuration = Duration.zero;
@@ -921,7 +924,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                   _amplitudeTimer?.cancel();
                   try {
                     (_recorder as dynamic).stop();
-                  } catch (_) {}
+                  } catch (e) { _log.fine('Error stopping recorder on cancel: $e'); }
                 }
                 
                 setDialogState(() {
@@ -1097,11 +1100,11 @@ class _AddItemPopupState extends State<AddItemPopup> {
         // authentication failed - token might be expired or invalid
         throw Exception('Authentication failed. Please log in again.');
       } else {
-        debugPrint('Backend API error: ${response.statusCode} ${response.body}');
+        _log.fine('Backend API error: ${response.statusCode} ${response.body}');
         throw Exception('Backend API error: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error calling backend API: $e');
+      _log.fine('Error calling backend API: $e');
       rethrow;
     }
   }

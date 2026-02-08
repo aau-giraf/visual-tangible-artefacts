@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'dart:collection';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('TalkingmatController');
 // Internal class to watch for direct list mutations
 class _WatchedList extends ListBase<BoardArtefact>
     implements List<BoardArtefact> {
@@ -17,15 +20,15 @@ class _WatchedList extends ListBase<BoardArtefact>
   set length(int newLength) {
     final int oldLength = _list.length;
     if (newLength != oldLength) {
-      debugPrint(
+      _log.fine(
           '[TalkingmatController] _WatchedList - length changed from $oldLength to $newLength');
       if (newLength == 0 && oldLength > 0) {
-        debugPrint(
+        _log.fine(
             '[TalkingmatController] WARNING: List cleared via length setter!');
         try {
           throw Exception('Stack trace for debugging');
         } catch (e, stackTrace) {
-          debugPrint('[TalkingmatController] Stack trace: $stackTrace');
+          _log.fine('[TalkingmatController] Stack trace: $stackTrace');
         }
       }
     }
@@ -45,15 +48,15 @@ class _WatchedList extends ListBase<BoardArtefact>
   @override
   void clear() {
     final int oldLength = _list.length;
-    debugPrint(
+    _log.fine(
         '[${_controller._instanceId}] _WatchedList - clear() called! List had $oldLength items');
     if (oldLength > 0) {
-      debugPrint(
+      _log.fine(
           '[${_controller._instanceId}] WARNING: List cleared via clear()! Stack trace:');
       try {
         throw Exception('Stack trace for debugging');
       } catch (e, stackTrace) {
-        debugPrint('[${_controller._instanceId}] Stack trace: $stackTrace');
+        _log.fine('[${_controller._instanceId}] Stack trace: $stackTrace');
       }
     }
     _list.clear();
@@ -64,7 +67,7 @@ class _WatchedList extends ListBase<BoardArtefact>
   bool remove(Object? value) {
     final bool result = _list.remove(value);
     if (result) {
-      debugPrint(
+      _log.fine(
           '[TalkingmatController] _WatchedList - remove() called, item removed');
       _controller._notifyListeners();
     }
@@ -74,7 +77,7 @@ class _WatchedList extends ListBase<BoardArtefact>
   @override
   BoardArtefact removeAt(int index) {
     final BoardArtefact result = _list.removeAt(index);
-    debugPrint('[TalkingmatController] _WatchedList - removeAt($index) called');
+    _log.fine('[TalkingmatController] _WatchedList - removeAt($index) called');
     _controller._notifyListeners();
     return result;
   }
@@ -85,7 +88,7 @@ class _WatchedList extends ListBase<BoardArtefact>
     _list.removeWhere(test);
     final int removed = oldLength - _list.length;
     if (removed > 0) {
-      debugPrint(
+      _log.fine(
           '[TalkingmatController] _WatchedList - removeWhere() removed $removed item(s)');
       _controller._notifyListeners();
     }
@@ -118,12 +121,12 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
       {List<BoardArtefact>? initialArtifacts, this.onArtefactAdded})
       : _instanceId = 'TalkingmatController_${_instanceCounter++}',
         super(initialArtifacts ?? []) {
-    debugPrint(
+    _log.fine(
         '[$_instanceId] CREATED with ${initialArtifacts?.length ?? 0} initial artifacts');
     // Wrap the list in a way that detects direct mutations
     // Create a proxy list that tracks changes
     super.value = _WatchedList(value, this);
-    debugPrint('[$_instanceId] Initialized with ${value.length} artifacts');
+    _log.fine('[$_instanceId] Initialized with ${value.length} artifacts');
   }
 
   @override
@@ -132,36 +135,36 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
     final int newLength = newValue.length;
 
     // Always log setter calls for debugging
-    debugPrint(
+    _log.fine(
         '[$_instanceId] value SETTER CALLED - oldLength: $oldLength, newLength: $newLength');
 
     if (oldLength != newLength) {
-      debugPrint(
+      _log.fine(
           '[$_instanceId] value SETTER - Count changed from $oldLength to $newLength');
 
       if (oldLength > newLength && newLength == 0) {
-        debugPrint(
+        _log.fine(
             '[$_instanceId] WARNING: Controller value cleared from $oldLength to 0!');
         // Print stack trace for debugging
         try {
           throw Exception('Stack trace for debugging');
         } catch (e, stackTrace) {
-          debugPrint('[$_instanceId] Stack trace: $stackTrace');
+          _log.fine('[$_instanceId] Stack trace: $stackTrace');
         }
       } else if (oldLength > newLength) {
-        debugPrint(
+        _log.fine(
             '[$_instanceId] value SETTER - Artifacts removed (${oldLength - newLength} removed)');
       } else {
-        debugPrint(
+        _log.fine(
             '[$_instanceId] value SETTER - Artifacts added (${newLength - oldLength} added)');
       }
     } else if (oldLength == 0 && newLength == 0) {
-      debugPrint(
+      _log.fine(
           '[$_instanceId] WARNING: Setting empty list to empty list - stack trace:');
       try {
         throw Exception('Stack trace for debugging');
       } catch (e, stackTrace) {
-        debugPrint('[$_instanceId] Stack trace: $stackTrace');
+        _log.fine('[$_instanceId] Stack trace: $stackTrace');
       }
     }
 
@@ -175,18 +178,18 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
 
   void addArtifact(BoardArtefact artefact) {
     final String artifactId = artefact.baseArtefact?.artefactId ?? 'unknown';
-    debugPrint(
+    _log.fine(
         '[$_instanceId] Adding artifact ID:$artifactId, position: ${artefact.position}, total count: ${value.length + 1}');
     value.add(artefact);
     onArtefactAdded?.call(artefact);
-    debugPrint('[$_instanceId] Artifact added, new count: ${value.length}');
+    _log.fine('[$_instanceId] Artifact added, new count: ${value.length}');
     notifyListeners();
   }
 
   void removeArtifact(BoardArtefact artefact) {
     final String artifactId = artefact.baseArtefact?.artefactId ?? 'unknown';
     final int countBefore = value.length;
-    debugPrint(
+    _log.fine(
         '[$_instanceId] Removing artifact ID:$artifactId, current count: $countBefore');
     // Prefer removing by savedArtefactId (instance id) to avoid removing all duplicates
     if (artefact.savedArtefactId != null) {
@@ -201,7 +204,7 @@ class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
       }
     }
     final int removedCount = countBefore - value.length;
-    debugPrint(
+    _log.fine(
         '[$_instanceId] Removed $removedCount artifact(s), new count: ${value.length}');
     notifyListeners();
   }

@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 
 import 'dart:convert';
 import 'dart:io';
@@ -9,7 +8,10 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/database/database.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SyncUploader');
 /// Uploads locally-created or locally-modified entities to the backend.
 ///
 /// Each `uploadLocal*` method accepts a list of already-synced IDs (from
@@ -51,7 +53,7 @@ class SyncUploader {
         if (backendId != null) syncedIds.add(backendId);
       }
     } catch (e) {
-      print('[SYNC] ERROR uploading local artefacts: $e');
+      _log.info('[SYNC] ERROR uploading local artefacts: $e');
     }
   }
 
@@ -67,7 +69,7 @@ class SyncUploader {
         await _uploadCategory(category);
       }
     } catch (e) {
-      print('[SYNC] ERROR uploading local categories: $e');
+      _log.info('[SYNC] ERROR uploading local categories: $e');
     }
   }
 
@@ -83,7 +85,7 @@ class SyncUploader {
         await _uploadBoard(board);
       }
     } catch (e) {
-      print('[SYNC] ERROR uploading local boards: $e');
+      _log.info('[SYNC] ERROR uploading local boards: $e');
     }
   }
 
@@ -129,18 +131,18 @@ class SyncUploader {
           final responseData = json.decode(responseBody);
           return responseData['artefactId'] as String?;
         } catch (e) {
-          print(
+          _log.info(
               '[SYNC] ERROR: Could not parse artefact ID from response: $e');
         }
       } else {
-        print(
+        _log.info(
             '[SYNC] ERROR: Failed to upload artefact ${artefact.artefactId}: ${response.statusCode}');
-        print('[SYNC] Response: $responseBody');
+        _log.info('[SYNC] Response: $responseBody');
       }
       return null;
     } catch (e, stackTrace) {
-      print('[SYNC] ERROR uploading artefact: $e');
-      print('[SYNC] Stack trace: $stackTrace');
+      _log.info('[SYNC] ERROR uploading artefact: $e');
+      _log.info('[SYNC] Stack trace: $stackTrace');
       return null;
     }
   }
@@ -167,12 +169,12 @@ class SyncUploader {
       final response = await request.send();
       if (response.statusCode != 200 && response.statusCode != 201) {
         final responseBody = await response.stream.bytesToString();
-        print(
+        _log.info(
             '[SYNC] ERROR: Failed to upload category ${category.categoryId}: ${response.statusCode}');
-        print('[SYNC] Response: $responseBody');
+        _log.info('[SYNC] Response: $responseBody');
       }
     } catch (e) {
-      print('[SYNC] ERROR uploading category: $e');
+      _log.info('[SYNC] ERROR uploading category: $e');
     }
   }
 
@@ -195,11 +197,11 @@ class SyncUploader {
 
       if (response == null ||
           (response.statusCode != 200 && response.statusCode != 201)) {
-        print(
+        _log.info(
             '[SYNC] ERROR: Failed to upload board ${board.id}: ${response?.statusCode}');
       }
     } catch (e) {
-      print('[SYNC] ERROR uploading board: $e');
+      _log.info('[SYNC] ERROR uploading board: $e');
     }
   }
 

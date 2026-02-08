@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('RemoteBoardSyncSender');
 typedef VoidCallback = void Function();
 
 /// Handles all outbound sync — serialising board state and pushing deltas
@@ -43,7 +45,7 @@ class RemoteBoardSyncSender {
     if (id == null || _sizeListeners.containsKey(id)) return;
 
     void listener() {
-      debugPrint("RemoteSync => Size listener triggered for $id");
+      _log.fine("RemoteSync => Size listener triggered for $id");
       _debouncedSizeUpdate(artifact);
     }
 
@@ -67,7 +69,7 @@ class RemoteBoardSyncSender {
         ? base.linearBoardController.artifacts
         : base.talkingmatController.value;
 
-    debugPrint(
+    _log.fine(
         "RemoteSync => Attaching size listeners to ${artifacts.length} existing artifacts");
 
     for (final artifact in artifacts) {
@@ -84,7 +86,7 @@ class RemoteBoardSyncSender {
     _artifactUpdateTimers['size_${artifact.savedArtefactId}']?.cancel();
     _artifactUpdateTimers['size_${artifact.savedArtefactId}'] =
         Timer(const Duration(milliseconds: 100), () {
-      debugPrint(
+      _log.fine(
           "RemoteSync => Artifact resized: ${artifact.savedArtefactId} to ${artifact.sizeNotifier.value}");
       pushArtifactResized(artifact);
     });
@@ -172,10 +174,10 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendArtifactAdded(payload);
-      debugPrint(
+      _log.fine(
           "RemoteSync => Pushed artifact added: ${artifact.savedArtefactId}");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push artifact added: $e");
+      _log.fine("RemoteSync => Failed to push artifact added: $e");
     }
   }
 
@@ -189,9 +191,9 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendArtifactRemoved(payload);
-      debugPrint("RemoteSync => Pushed artifact removed: $savedArtefactId");
+      _log.fine("RemoteSync => Pushed artifact removed: $savedArtefactId");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push artifact removed: $e");
+      _log.fine("RemoteSync => Failed to push artifact removed: $e");
     }
   }
 
@@ -207,10 +209,10 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendArtifactMoved(payload);
-      debugPrint(
+      _log.fine(
           "RemoteSync => Pushed artifact moved: ${artifact.savedArtefactId}");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push artifact moved: $e");
+      _log.fine("RemoteSync => Failed to push artifact moved: $e");
     }
   }
 
@@ -229,10 +231,10 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendArtifactMoved(payload);
-      debugPrint(
+      _log.fine(
           "RemoteSync => Pushed linear artifact moved: ${artifact.savedArtefactId} from $fromIndex to $toIndex");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push linear artifact moved: $e");
+      _log.fine("RemoteSync => Failed to push linear artifact moved: $e");
     }
   }
 
@@ -249,10 +251,10 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendArtifactResized(payload);
-      debugPrint(
+      _log.fine(
           "RemoteSync => Pushed artifact resized: ${artifact.savedArtefactId}");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push artifact resized: $e");
+      _log.fine("RemoteSync => Failed to push artifact resized: $e");
     }
   }
 
@@ -266,9 +268,9 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendLayoutChanged(payload);
-      debugPrint("RemoteSync => Pushed layout changed: ${payload['layout']}");
+      _log.fine("RemoteSync => Pushed layout changed: ${payload['layout']}");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push layout changed: $e");
+      _log.fine("RemoteSync => Failed to push layout changed: $e");
     }
   }
 
@@ -282,29 +284,29 @@ class RemoteBoardSyncSender {
 
     try {
       await SignalRService().sendFieldCountChanged(payload);
-      debugPrint("RemoteSync => Pushed field count changed: $count");
+      _log.fine("RemoteSync => Pushed field count changed: $count");
     } catch (e) {
-      debugPrint("RemoteSync => Failed to push field count changed: $e");
+      _log.fine("RemoteSync => Failed to push field count changed: $e");
     }
   }
 
   Future<void> pushFullBoard() async {
-    debugPrint("RemoteSync => _pushFullBoard called");
+    _log.fine("RemoteSync => _pushFullBoard called");
     if (!SignalRService().isConnected) {
-      debugPrint("RemoteSync => ERROR: Not connected, skipping push");
+      _log.fine("RemoteSync => ERROR: Not connected, skipping push");
       return;
     }
 
     final payload = buildBoardSnapshot();
-    debugPrint(
+    _log.fine(
         "RemoteSync => Built snapshot: ${payload['items'].length} items");
 
     try {
       await SignalRService().updateBoard(payload);
-      debugPrint(
+      _log.fine(
           "RemoteSync => SUCCESS: Pushed board (${payload['items'].length} items, layout=${payload['layout']})");
     } catch (e) {
-      debugPrint("RemoteSync => EXCEPTION: Push failed: $e");
+      _log.fine("RemoteSync => EXCEPTION: Push failed: $e");
       rethrow;
     }
   }

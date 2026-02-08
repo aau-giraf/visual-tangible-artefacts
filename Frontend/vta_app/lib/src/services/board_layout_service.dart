@@ -1,11 +1,13 @@
-// ignore_for_file: avoid_print
 
 import 'dart:convert';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/models/board_layout.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('BoardLayoutService');
 class BoardLayoutService {
   final ApiProvider _apiProvider;
   final Token _token;
@@ -33,7 +35,7 @@ class BoardLayoutService {
       }
       return null;
     } catch (e) {
-      print('Error getting boards: $e');
+      _log.info('Error getting boards: $e');
       return null;
     }
   }
@@ -54,7 +56,7 @@ class BoardLayoutService {
       }
       return null;
     } catch (e) {
-      print('Error getting board: $e');
+      _log.info('Error getting board: $e');
       return null;
     }
   }
@@ -80,7 +82,7 @@ class BoardLayoutService {
       }
       return null;
     } catch (e) {
-      print('Error saving board: $e');
+      _log.info('Error saving board: $e');
       return null;
     }
   }
@@ -103,7 +105,7 @@ class BoardLayoutService {
       }
       return null;
     } catch (e) {
-      print('Error updating board: $e');
+      _log.info('Error updating board: $e');
       return null;
     }
   }
@@ -122,7 +124,7 @@ class BoardLayoutService {
 
       return response != null && response.statusCode == 200;
     } catch (e) {
-      print('Error updating artefact layout: $e');
+      _log.info('Error updating artefact layout: $e');
       return false;
     }
   }
@@ -139,7 +141,7 @@ class BoardLayoutService {
 
       return response != null && response.statusCode == 200;
     } catch (e) {
-      print('Error deleting board: $e');
+      _log.info('Error deleting board: $e');
       return false;
     }
   }
@@ -157,7 +159,7 @@ class BoardLayoutService {
 
       return response != null && response.statusCode == 200;
     } catch (e) {
-      print('Error deleting saved artefact: $e');
+      _log.info('Error deleting saved artefact: $e');
       return false;
     }
   }
@@ -174,7 +176,7 @@ class BoardLayoutService {
 
       return response != null && response.statusCode == 200;
     } catch (e) {
-      print('Error deleting all saved artefacts: $e');
+      _log.info('Error deleting all saved artefacts: $e');
       return false;
     }
   }

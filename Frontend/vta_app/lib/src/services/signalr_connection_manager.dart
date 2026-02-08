@@ -1,9 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SignalrConnectionManager');
 /// Owns the [HubConnection] lifecycle: build, connect, disconnect.
 ///
 /// This class is an implementation detail of [SignalRService] and should
@@ -19,7 +21,7 @@ class SignalRConnectionManager {
   /// Build and start the hub connection, returning the live [HubConnection].
   Future<HubConnection> connect() async {
     final hubUrl = _getHubUrl();
-    debugPrint('SignalR: Connecting to $hubUrl');
+    _log.fine('SignalR: Connecting to $hubUrl');
 
     final jwtToken = GetIt.instance.get<Token>();
 
@@ -33,7 +35,7 @@ class SignalRConnectionManager {
         .build();
 
     await _hubConnection!.start();
-    debugPrint('SignalR: Connected');
+    _log.fine('SignalR: Connected');
     return _hubConnection!;
   }
 
@@ -41,9 +43,9 @@ class SignalRConnectionManager {
   Future<void> disconnect() async {
     try {
       await _hubConnection?.stop();
-    } catch (_) {}
+    } catch (e) { _log.fine('Error during SignalR disconnect: $e'); }
     _hubConnection = null;
-    debugPrint('SignalR: Disconnected');
+    _log.fine('SignalR: Disconnected');
   }
 
   // ── Private helpers ───────────────────────────────────────────

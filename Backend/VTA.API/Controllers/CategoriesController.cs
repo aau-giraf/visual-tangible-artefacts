@@ -14,7 +14,7 @@ namespace VTA.API.Controllers;
 [Authorize]
 [Route("api/Categories")]
 [ApiController]
-public class CategoriesController(VTAContext context) : ControllerBase
+public class CategoriesController(VTAContext context, ILogger<CategoriesController> logger) : ControllerBase
 {
     // GET: api/Categories
     /// <summary>
@@ -202,7 +202,7 @@ public class CategoriesController(VTAContext context) : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.ToString());
+            logger.LogError(ex, "Error saving category to database");
             if (CategoryExists(category.CategoryId))
             {
                 //Chance of this happening is infinitely small ! But never zero !

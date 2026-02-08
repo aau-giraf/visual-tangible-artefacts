@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -7,7 +6,10 @@ import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('VtaNotifiers');
 class AuthState with ChangeNotifier {
   String? _token;
   String? _userId;
@@ -126,7 +128,7 @@ class ArtifactState with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Fejl ved sletning af kategori: $e');
+      _log.info('Fejl ved sletning af kategori: $e');
       return false;
     }
   }
@@ -165,7 +167,7 @@ class ArtifactState with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('Fejl ved sletning af artefact: $e');
+      _log.info('Fejl ved sletning af artefact: $e');
       return false;
     }
   }

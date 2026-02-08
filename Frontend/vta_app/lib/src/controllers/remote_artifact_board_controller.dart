@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/services/remote_board_sync_receiver.dart';
 import 'package:vta_app/src/services/remote_board_sync_sender.dart';
@@ -9,7 +8,10 @@ import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('RemoteArtifactBoardController');
 typedef VoidCallback = void Function();
 
 // Generate a UUID v4 for savedArtefactId
@@ -69,9 +71,9 @@ class RemoteArtifactBoardController {
     // Register inbound SignalR callbacks
     _receiver.registerCallbacks();
 
-    debugPrint(
+    _log.fine(
         "RemoteSync => Initializing (isOwner=$isOwner, sessionId=$sessionId)");
-    debugPrint(
+    _log.fine(
         "RemoteSync => SignalR connected: ${SignalRService().isConnected}");
 
     _setupRemoteSession();
@@ -85,7 +87,7 @@ class RemoteArtifactBoardController {
       base.linearBoardController.addListener(_onLinearBoardChanged);
       _lastFieldCount = base.linearBoardController.fieldCount;
     } else {
-      debugPrint(
+      _log.fine(
           "RemoteSync => Non-owner clearing artifacts and waiting for board state from owner");
       _clearBoard();
     }
@@ -209,7 +211,7 @@ class RemoteArtifactBoardController {
         removeArtifact(artifact);
       },
       onBoardLoaded: () {
-        debugPrint("RemoteSync => Board load complete, setting up remote sync");
+        _log.fine("RemoteSync => Board load complete, setting up remote sync");
         _onOwnerBoardLoaded();
       },
     );
@@ -227,7 +229,7 @@ class RemoteArtifactBoardController {
   }
 
   void _onOwnerBoardLoaded() {
-    debugPrint("RemoteSync => Owner board loaded, initializing remote sync");
+    _log.fine("RemoteSync => Owner board loaded, initializing remote sync");
     _sender.attachSizeListenersToExistingArtifacts();
     _sender.pushFullBoard();
   }

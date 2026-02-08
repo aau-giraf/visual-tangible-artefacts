@@ -13,6 +13,9 @@ import 'package:vta_app/src/utilities/config/elevenlabs_config.dart';
 import 'package:vta_app/src/utilities/config/voice_config_validator.dart';
 import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import 'package:vta_app/src/utilities/audio/recorder.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('OptionWheel');
 
 enum _SoundOption { textToSpeech, record, upload }
 
@@ -734,7 +737,7 @@ class _OptionWheelState extends State<OptionWheel>
             bytes = await file.readAsBytes();
             try {
               await file.delete();
-            } catch (_) {}
+            } catch (e) { _log.fine('Failed to delete temp file: $e'); }
           }
         }
 
@@ -901,7 +904,7 @@ class _OptionWheelState extends State<OptionWheel>
     if (isRecording) {
       try {
         await (recorder as dynamic).stop();
-      } catch (_) {}
+      } catch (e) { _log.fine('Error stopping recorder: $e'); }
     }
     if (recordingPath != null) {
       try {
@@ -909,7 +912,7 @@ class _OptionWheelState extends State<OptionWheel>
         if (await file.exists()) {
           await file.delete();
         }
-      } catch (_) {}
+      } catch (e) { _log.fine('Error cleaning up recording file: $e'); }
     }
   }
 

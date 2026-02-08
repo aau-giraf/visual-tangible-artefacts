@@ -3,7 +3,10 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/modelsDTOs/pairing.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('RelationService');
 class RelationService {
   final ApiProvider _apiProvider;
   final Token _token;
@@ -31,7 +34,7 @@ class RelationService {
       }
       return null;
     } catch (e) {
-      print('Error getting pairings: $e');
+      _log.info('Error getting pairings: $e');
       return null;
     }
   }

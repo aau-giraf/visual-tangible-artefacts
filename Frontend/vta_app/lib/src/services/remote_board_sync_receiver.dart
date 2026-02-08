@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
@@ -8,7 +7,10 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('RemoteBoardSyncReceiver');
 typedef VoidCallback = void Function();
 
 /// Fix localhost URLs to use the correct API URL for the current platform
@@ -100,7 +102,7 @@ class RemoteBoardSyncReceiver {
 
   void _handleRemoteUpdate(dynamic data) {
     if (data is! Map) {
-      debugPrint("RemoteSync => Invalid data type: ${data.runtimeType}");
+      _log.fine("RemoteSync => Invalid data type: ${data.runtimeType}");
       return;
     }
     if (isOwner) return;
@@ -113,7 +115,7 @@ class RemoteBoardSyncReceiver {
     final items = (map['items'] as List?) ?? [];
     final fieldCount = map['fieldCount'] as int?;
 
-    debugPrint(
+    _log.fine(
         "RemoteSync => Received update: layout=$layout, items=${items.length}, fieldCount=$fieldCount");
 
     // Force layout to match sender
@@ -192,7 +194,7 @@ class RemoteBoardSyncReceiver {
     }
 
     notifyView();
-    debugPrint("RemoteSync => Board updated with ${items.length} items");
+    _log.fine("RemoteSync => Board updated with ${items.length} items");
   }
 
   // ── Delta handlers ────────────────────────────────────────────
@@ -210,7 +212,7 @@ class RemoteBoardSyncReceiver {
     final id = artifactData['id'] as String?;
     if (id == null) return;
 
-    debugPrint(
+    _log.fine(
         "RemoteSync => Received artifact added: $savedArtefactId (type: $id)");
 
     final boardItem = _createBoardArtifactFromData(
@@ -229,7 +231,7 @@ class RemoteBoardSyncReceiver {
     final savedArtefactId = map['savedArtefactId'] as String?;
     if (savedArtefactId == null) return;
 
-    debugPrint("RemoteSync => Received artifact removed: $savedArtefactId");
+    _log.fine("RemoteSync => Received artifact removed: $savedArtefactId");
 
     if (base.showDirectional) {
       final artifacts = base.linearBoardController.artifacts;
@@ -252,7 +254,7 @@ class RemoteBoardSyncReceiver {
         return;
       }
     }
-    debugPrint(
+    _log.fine(
         "RemoteSync => Artifact $savedArtefactId not found for removal");
   }
 

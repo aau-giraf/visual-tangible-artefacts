@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ChildAcceptSessionScreen');
 /// Component 2: CHILD - Accept/Decline Session Popup
 /// Pure popup notification card - no background, no scaffold
 class ChildAcceptSessionScreen extends StatefulWidget {
@@ -55,7 +58,7 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
     try {
       await _signalR.connect(widget.childId);
     } catch (e) {
-      debugPrint('Failed to connect to SignalR: $e');
+      _log.fine('Failed to connect to SignalR: $e');
     }
   }
 
@@ -65,7 +68,7 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
     // TODO: Before calling this, child should select which board to share
     // For now, using a placeholder - you need to implement board selection UI
     if (_selectedBoardId == null) {
-      debugPrint('ERROR: No board selected to share');
+      _log.fine('ERROR: No board selected to share');
       // You should show a board selection dialog here
       return;
     }
@@ -81,7 +84,7 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
         _selectedBoardId!,
       );
     } catch (e) {
-      debugPrint('Failed to accept session: $e');
+      _log.fine('Failed to accept session: $e');
     }
   }
 
@@ -94,7 +97,7 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
         _pendingCaregiverRequest = null;
       });
     } catch (e) {
-      debugPrint('Failed to reject session: $e');
+      _log.fine('Failed to reject session: $e');
     }
   }
 

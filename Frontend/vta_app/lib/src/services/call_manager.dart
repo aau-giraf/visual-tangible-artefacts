@@ -4,7 +4,10 @@ import 'package:vta_app/src/ui/screens/video_call_screen.dart';
 import 'package:vta_app/src/app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('CallManager');
 // Manages incoming/outgoing call UI and navigation
 class CallManager {
   static final CallManager _instance = CallManager._internal();
@@ -16,7 +19,7 @@ class CallManager {
 
   void setupCallbacks({bool force = false}) {
     if (_callbacksSetup && !force) {
-      debugPrint('[CallManager] Callbacks already setup, skipping');
+      _log.fine('[CallManager] Callbacks already setup, skipping');
       return;
     }
     _callbacksSetup = true;
@@ -32,15 +35,15 @@ class CallManager {
     };
 
     signalR.onUserOnlineStatusChanged = (userId, isOnline) {
-      debugPrint(
+      _log.fine(
           '[CallManager] User $userId is ${isOnline ? "online" : "offline"}');
     };
 
     signalR.onMissedCall = (userId, userName) {
-      debugPrint('[CallManager] Missed call from $userName');
+      _log.fine('[CallManager] Missed call from $userName');
     };
 
-    debugPrint('[CallManager] Callbacks registered');
+    _log.fine('[CallManager] Callbacks registered');
   }
 
   void clearCallbacks() {
@@ -50,18 +53,18 @@ class CallManager {
     signalR.onUserOnlineStatusChanged = null;
     signalR.onMissedCall = null;
     _callbacksSetup = false;
-    debugPrint('[CallManager] Callbacks cleared');
+    _log.fine('[CallManager] Callbacks cleared');
   }
 
   void _showIncomingCallDialog(String fromUserId) async {
-    debugPrint('_showIncomingCallDialog()');
-    debugPrint('From User: $fromUserId');
+    _log.fine('_showIncomingCallDialog()');
+    _log.fine('From User: $fromUserId');
 
     final context = MyApp.navigatorKey.currentContext;
-    debugPrint('Context: ${context != null ? "Available" : "NULL"}');
+    _log.fine('Context: ${context != null ? "Available" : "NULL"}');
 
     if (context == null) {
-      debugPrint('ERROR: Cannot show dialog - context is NULL!');
+      _log.fine('ERROR: Cannot show dialog - context is NULL!');
       return;
     }
 
@@ -70,7 +73,7 @@ class CallManager {
     // Check if caller is in cache, if not refresh contacts
     String? callerName = signalR.getContactName(fromUserId);
     if (callerName == null) {
-      debugPrint(
+      _log.fine(
           '[CallManager] Caller $fromUserId not in cache, refreshing contacts');
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -80,7 +83,7 @@ class CallManager {
           callerName = signalR.getContactName(fromUserId);
         }
       } catch (e) {
-        debugPrint('[CallManager] Failed to refresh contacts: $e');
+        _log.fine('[CallManager] Failed to refresh contacts: $e');
       }
     }
 
@@ -91,11 +94,11 @@ class CallManager {
 
     // Create a timer to auto-close after 30 seconds
     final autoCloseTimer = Timer(const Duration(seconds: 30), () {
-      debugPrint('[CallManager] Auto-closing dialog after 30 seconds');
+      _log.fine('[CallManager] Auto-closing dialog after 30 seconds');
       if (!dialogDismissed && context.mounted) {
         dialogDismissed = true;
         Navigator.of(context, rootNavigator: true).pop();
-        debugPrint('[CallManager] Dialog auto-closed');
+        _log.fine('[CallManager] Dialog auto-closed');
       }
     });
 
@@ -104,13 +107,13 @@ class CallManager {
         signalR.onMissedCall;
 
     signalR.onMissedCall = (userId, userName) {
-      debugPrint(
+      _log.fine(
           '[CallManager] MissedCall received - closing dialog immediately');
       if (!dialogDismissed && context.mounted && userId == fromUserId) {
         dialogDismissed = true;
         autoCloseTimer.cancel();
         Navigator.of(context, rootNavigator: true).pop();
-        debugPrint('[CallManager] Dialog closed due to MissedCall event');
+        _log.fine('[CallManager] Dialog closed due to MissedCall event');
       }
       // Call original handler (which shows notification)
       originalMissedCallHandler?.call(userId, userName);
@@ -132,7 +135,7 @@ class CallManager {
                   signalR.onMissedCall = originalMissedCallHandler;
                   signalR.rejectSession(fromUserId);
                   Navigator.of(dialogCtx).pop();
-                  debugPrint('[CallManager] User rejected call');
+                  _log.fine('[CallManager] User rejected call');
                 }
               },
               child: const Text("Afvis"),
@@ -153,7 +156,7 @@ class CallManager {
                     signalR.currentUserId!,
                     SignalRService.defaultBoardId,
                   );
-                  debugPrint('[CallManager] User accepted call');
+                  _log.fine('[CallManager] User accepted call');
                 }
               },
               child: const Text("Accepter"),
@@ -163,7 +166,7 @@ class CallManager {
       },
     ).then((_) {
       // Cleanup when dialog closes for any reason
-      debugPrint('[CallManager] Dialog closed - cleaning up');
+      _log.fine('[CallManager] Dialog closed - cleaning up');
       autoCloseTimer.cancel();
       signalR.onMissedCall = originalMissedCallHandler;
     });
@@ -172,7 +175,7 @@ class CallManager {
   // Navigate to video call screen on session start
   void _navigateToVideoCall(String sessionId, String boardId) {
     if (_isNavigatingToCall) {
-      debugPrint(
+      _log.fine(
           '[CallManager] Already navigating to call, skipping duplicate');
       return;
     }
@@ -182,7 +185,7 @@ class CallManager {
     Future.delayed(const Duration(milliseconds: 500), () {
       final context = MyApp.navigatorKey.currentContext;
       if (context == null) {
-        debugPrint('[CallManager] ERROR: No context available for navigation');
+        _log.fine('[CallManager] ERROR: No context available for navigation');
         _isNavigatingToCall = false;
         return;
       }
@@ -193,7 +196,7 @@ class CallManager {
       final remoteUserId = signalR.remoteUserId ?? 'unknown';
       bool isCaller = currentUserId == initiatorId;
 
-      debugPrint(
+      _log.fine(
           '[CallManager] Navigating to video call: sessionId=$sessionId, isCaller=$isCaller');
 
       Navigator.of(context)

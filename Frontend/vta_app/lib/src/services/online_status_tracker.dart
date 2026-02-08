@@ -1,6 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('OnlineStatusTracker');
 /// Tracks which users are currently online via the SignalR hub.
 ///
 /// This class is an implementation detail of [SignalRService] and should
@@ -34,11 +36,11 @@ class OnlineStatusTracker {
         for (var userId in result) {
           if (userId is String) _onlineUsers.add(userId);
         }
-        debugPrint(
+        _log.fine(
             '[SignalR] Refreshed online users: ${_onlineUsers.length} users online');
       }
     } catch (e) {
-      debugPrint('[SignalR] Failed to refresh online users: $e');
+      _log.fine('[SignalR] Failed to refresh online users: $e');
     }
   }
 

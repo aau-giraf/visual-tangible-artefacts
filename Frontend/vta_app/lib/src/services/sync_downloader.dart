@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 
 import 'dart:convert';
 import 'dart:io';
@@ -9,7 +8,10 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/database/database.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('SyncDownloader');
 /// Downloads entities from the backend and persists them in the local SQLite DB.
 ///
 /// Each `sync*` method handles one entity type. Assets (images, sounds) are
@@ -61,7 +63,7 @@ class SyncDownloader {
         }
       }
     } catch (e) {
-      print('[SYNC] ERROR downloading artefacts: $e');
+      _log.info('[SYNC] ERROR downloading artefacts: $e');
     }
     return syncedIds;
   }
@@ -83,7 +85,7 @@ class SyncDownloader {
         }
       }
     } catch (e) {
-      print('[SYNC] ERROR downloading categories: $e');
+      _log.info('[SYNC] ERROR downloading categories: $e');
     }
     return syncedIds;
   }
@@ -105,7 +107,7 @@ class SyncDownloader {
         }
       }
     } catch (e) {
-      print('[SYNC] ERROR downloading boards: $e');
+      _log.info('[SYNC] ERROR downloading boards: $e');
     }
     return syncedIds;
   }
@@ -168,7 +170,7 @@ class SyncDownloader {
         await _artefactRepo.insert(artefact);
       }
     } catch (e) {
-      print('[SYNC] ERROR syncing artefact: $e');
+      _log.info('[SYNC] ERROR syncing artefact: $e');
     }
   }
 
@@ -214,7 +216,7 @@ class SyncDownloader {
         await _categoryRepo.insert(category);
       }
     } catch (e) {
-      print('[SYNC] ERROR syncing category: $e');
+      _log.info('[SYNC] ERROR syncing category: $e');
     }
   }
 
@@ -265,7 +267,7 @@ class SyncDownloader {
         }
       }
     } catch (e) {
-      print('[SYNC] ERROR syncing board: $e');
+      _log.info('[SYNC] ERROR syncing board: $e');
     }
   }
 
@@ -297,7 +299,7 @@ class SyncDownloader {
         await _savedArtefactRepo.insert(savedArtefact);
       }
     } catch (e) {
-      print('[SYNC] ERROR syncing saved artefact: $e');
+      _log.info('[SYNC] ERROR syncing saved artefact: $e');
     }
   }
 
@@ -330,7 +332,7 @@ class SyncDownloader {
       );
 
       if (response.statusCode != 200) {
-        print(
+        _log.info(
             '[SYNC] Failed to download asset: ${response.statusCode} - $fullUrl');
         return null;
       }
@@ -346,7 +348,7 @@ class SyncDownloader {
 
       return filename;
     } catch (e) {
-      print('[SYNC] ERROR downloading asset from $url: $e');
+      _log.info('[SYNC] ERROR downloading asset from $url: $e');
       return null;
     }
   }
@@ -367,7 +369,7 @@ class SyncDownloader {
       final dateTime = DateTime.parse(dateStr);
       return dateTime.millisecondsSinceEpoch ~/ 1000;
     } catch (e) {
-      print('[SYNC] Error parsing date: $dateStr - $e');
+      _log.info('[SYNC] Error parsing date: $dateStr - $e');
       return null;
     }
   }

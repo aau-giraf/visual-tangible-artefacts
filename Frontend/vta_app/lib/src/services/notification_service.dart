@@ -2,7 +2,10 @@
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('NotificationService');
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 
@@ -16,7 +19,7 @@ class NotificationService {
 
   /// Initialize notifications
   Future<void> initialize() async {
-    debugPrint('NotificationService.initialize()');
+    _log.fine('NotificationService.initialize()');
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -35,12 +38,12 @@ class NotificationService {
     final initialized = await _notificationsPlugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        debugPrint(
+        _log.fine(
             '[NotificationService] Notification tapped: ${response.payload}');
       },
     );
 
-    debugPrint('[NotificationService] Initialization result: $initialized');
+    _log.fine('[NotificationService] Initialization result: $initialized');
 
     // Request permission for Android 13+
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -50,23 +53,23 @@ class NotificationService {
 
       if (androidImpl != null) {
         final granted = await androidImpl.requestNotificationsPermission();
-        debugPrint(
+        _log.fine(
             '[NotificationService] Android permission granted: $granted');
       }
     }
 
     _isInitialized = true;
-    debugPrint('[NotificationService] Initialized successfully');
+    _log.fine('[NotificationService] Initialized successfully');
   }
 
   /// Show a missed call notification
   Future<void> showMissedCallNotification(String fromUserName) async {
-    debugPrint('showMissedCallNotification()');
-    debugPrint('From: $fromUserName');
-    debugPrint('Initialized: $_isInitialized');
+    _log.fine('showMissedCallNotification()');
+    _log.fine('From: $fromUserName');
+    _log.fine('Initialized: $_isInitialized');
 
     if (!_isInitialized) {
-      debugPrint('ERROR: NotificationService not initialized!');
+      _log.fine('ERROR: NotificationService not initialized!');
       return;
     }
 
@@ -94,7 +97,7 @@ class NotificationService {
       );
 
       final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      debugPrint(
+      _log.fine(
           '[NotificationService] Showing notification with ID: $notificationId');
 
       await _notificationsPlugin.show(
@@ -105,17 +108,17 @@ class NotificationService {
         payload: 'missed_call:$fromUserName',
       );
 
-      debugPrint('[NotificationService] Notification shown successfully');
+      _log.fine('[NotificationService] Notification shown successfully');
     } catch (e, stackTrace) {
-      debugPrint('[NotificationService] ERROR showing notification:');
-      debugPrint('Error: $e');
-      debugPrint('Stack trace: $stackTrace');
+      _log.fine('[NotificationService] ERROR showing notification:');
+      _log.fine('Error: $e');
+      _log.fine('Stack trace: $stackTrace');
     }
   }
 
   /// Test notification - useful for debugging
   Future<void> showTestNotification() async {
-    debugPrint('[NotificationService] Showing test notification...');
+    _log.fine('[NotificationService] Showing test notification...');
     await showMissedCallNotification('Test User');
   }
 }

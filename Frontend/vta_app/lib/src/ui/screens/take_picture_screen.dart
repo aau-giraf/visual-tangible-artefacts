@@ -1,7 +1,10 @@
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('TakePictureScreen');
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
     super.key,
@@ -47,7 +50,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
       return await picture.readAsBytes();
     } catch (e) {
       // Handle errors (e.g., show an error message)
-      print('Error capturing picture: $e');
+      _log.info('Error capturing picture: $e');
     }
     return null;
   }

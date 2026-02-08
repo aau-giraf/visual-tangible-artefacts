@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace VTA.API.Utilities;
 
@@ -14,16 +15,19 @@ public class ElevenLabsService
 
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Initialize the ElevenLabs service
     /// </summary>
     /// <param name="httpClient">HTTP client for making requests</param>
     /// <param name="apiKey">ElevenLabs API key</param>
-    public ElevenLabsService(HttpClient httpClient, string apiKey)
+    /// <param name="logger">Logger instance</param>
+    public ElevenLabsService(HttpClient httpClient, string apiKey, ILogger logger)
     {
         _httpClient = httpClient;
         _apiKey = apiKey;
+        _logger = logger;
         
         // Don't set BaseAddress, use absolute URLs instead
         _httpClient.DefaultRequestHeaders.Add("xi-api-key", _apiKey);
@@ -81,27 +85,24 @@ public class ElevenLabsService
             var json = JsonSerializer.Serialize(requestBodyDict);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            Console.WriteLine($"Debug: ElevenLabs request to voice {effectiveVoiceId}");
-            Console.WriteLine($"Debug: Model ID: {effectiveModelId}");
-            Console.WriteLine($"Debug: Language Code: {languageCode ?? "null"}");
-            Console.WriteLine($"Debug: Request body: {json}");
+            _logger.LogDebug("ElevenLabs request to voice {VoiceId}, model {ModelId}, language {LanguageCode}", effectiveVoiceId, effectiveModelId, languageCode ?? "null");
+            _logger.LogDebug("Request body: {RequestBody}", json);
 
             var response = await _httpClient.PostAsync($"{BaseUrl}/text-to-speech/{effectiveVoiceId}", content);
 
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Debug: ElevenLabs API success");
+                _logger.LogDebug("ElevenLabs API success");
                 return await response.Content.ReadAsByteArrayAsync();
             }
 
             var errorContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Debug: ElevenLabs API error - Status: {response.StatusCode}, Body: {errorContent}");
+            _logger.LogWarning("ElevenLabs API error - Status: {StatusCode}, Body: {ErrorContent}", response.StatusCode, errorContent);
             return null;
         }
         catch (Exception ex)
         {
-            // Log error (in a real application, use proper logging)
-            Console.WriteLine($"ElevenLabs API error: {ex.Message}");
+            _logger.LogError(ex, "ElevenLabs GenerateSpeechAsync error");
             return null;
         }
     }
@@ -125,7 +126,7 @@ public class ElevenLabsService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ElevenLabs API error: {ex.Message}");
+            _logger.LogError(ex, "ElevenLabs GetVoicesAsync error");
             return null;
         }
     }
@@ -149,7 +150,7 @@ public class ElevenLabsService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ElevenLabs API error: {ex.Message}");
+            _logger.LogError(ex, "ElevenLabs GetUserInfoAsync error");
             return null;
         }
     }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('IncommingCallScreen');
 /// Incoming call screen shown to CHILD when caregiver calls
 /// Shows "Opkald fra <Caregiver Name>" with accept/decline buttons
 class IncomingCallScreen extends StatefulWidget {
@@ -32,7 +35,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
     // Listen for session start
     SignalRService().onSessionStarted = (sessionId, boardId) {
-      debugPrint("IncomingCallScreen: onSessionStarted triggered with sessionId=$sessionId, boardId=$boardId");
+      _log.fine("IncomingCallScreen: onSessionStarted triggered with sessionId=$sessionId, boardId=$boardId");
       if (!mounted || _isResponding) return;
       
       // Navigate to active call
@@ -62,7 +65,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   Future<void> _acceptCall() async {
     if (_isResponding) return;
     
-    debugPrint("IncomingCallScreen: _acceptCall started, caregiverId=$caregiverId, childId=$childId");
+    _log.fine("IncomingCallScreen: _acceptCall started, caregiverId=$caregiverId, childId=$childId");
     
     setState(() {
       _isResponding = true;
@@ -74,7 +77,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       
       final sessionId = '${DateTime.now().millisecondsSinceEpoch}_${caregiverId}_$childId';
       
-      debugPrint("IncomingCallScreen: Calling acceptSession with sessionId=$sessionId, boardId=$boardId");
+      _log.fine("IncomingCallScreen: Calling acceptSession with sessionId=$sessionId, boardId=$boardId");
       
       await SignalRService().acceptSession(
         sessionId,
@@ -83,7 +86,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         boardId,
       );
       
-      debugPrint("IncomingCallScreen: acceptSession completed, waiting for onSessionStarted callback");
+      _log.fine("IncomingCallScreen: acceptSession completed, waiting for onSessionStarted callback");
       
       // onSessionStarted callback will handle navigation
     } catch (e) {

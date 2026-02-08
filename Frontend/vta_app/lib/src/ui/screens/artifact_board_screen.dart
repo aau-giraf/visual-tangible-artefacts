@@ -17,7 +17,10 @@ import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 
 import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ArtifactBoardScreen');
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({
     super.key,
@@ -41,7 +44,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   void _notifyView() {
     if (mounted) {
-      debugPrint(
+      _log.fine(
           '[ArtifactBoardScreen] notifyView callback - calling setState');
       setState(() {});
     }
@@ -90,7 +93,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
       final existingController = GetIt.instance.get<ArtifactBoardController>(
         instanceName: _controllerKey,
       );
-      debugPrint(
+      _log.fine(
           '[ArtifactBoardScreen] get controller - Reusing existing controller from GetIt: ${existingController.hashCode}');
       // Update the notifyView callback to point to current widget state
       existingController.updateNotifyView(_notifyView);
@@ -99,7 +102,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
       return existingController;
     } catch (e) {
       // Controller doesn't exist yet, create and register it
-      debugPrint(
+      _log.fine(
           '[ArtifactBoardScreen] get controller - Creating NEW ArtifactBoardController and registering in GetIt');
       final newController = ArtifactBoardController(
         notifyView: _notifyView,
@@ -121,7 +124,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('[ArtifactBoardScreen] initState - Initializing state');
+    _log.fine('[ArtifactBoardScreen] initState - Initializing state');
     // Controller will be lazily initialized on first access via GetIt
     // This ensures it persists across widget recreations
     // Load user data as a future that will be awaited
@@ -130,7 +133,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   @override
   void dispose() {
-    debugPrint(
+    _log.fine(
         '[ArtifactBoardScreen] dispose - Disposing state (controller persists in GetIt)');
     // DON'T remove controller from GetIt - it should persist across widget recreations
     // Only remove it when truly leaving the screen (e.g., in a route guard)
@@ -139,7 +142,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   Future<user_model.User?> _loadCurrentUser() async {
     final user = await widget.authController.getCurrentUser();
-    debugPrint('Loaded user: ${user?.username}, role: ${user?.role}');
+    _log.fine('Loaded user: ${user?.username}, role: ${user?.role}');
     if (mounted) {
       setState(() {
         currentUser = user;
@@ -242,9 +245,9 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             itemBuilder: (context) {
                               List<PopupMenuItem> items = [];
 
-                              debugPrint(
+                              _log.fine(
                                   'Building menu - currentUser: ${currentUser?.username}, role: ${currentUser?.role}');
-                              debugPrint(
+                              _log.fine(
                                   'Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
 
                               items.add(

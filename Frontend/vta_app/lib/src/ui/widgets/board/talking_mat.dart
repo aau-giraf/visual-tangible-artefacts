@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -14,7 +14,10 @@ import 'package:vta_app/src/services/board_layout_service.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
 import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('TalkingMat');
 typedef OnArtifactPositionChanged = void Function(BoardArtefact artifact);
 typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
 typedef OnBoardLoaded = void Function();
@@ -116,7 +119,7 @@ class TalkingMatState extends State<TalkingMat>
       _saveTimer?.cancel();
       _periodicSaveTimer?.cancel();
       _initialLoadComplete = true;
-      debugPrint(
+      _log.fine(
           "TalkingMat => Remote session mode enabled, auto-save disabled");
     } else {
       // Re-enable periodic saves
@@ -128,7 +131,7 @@ class TalkingMatState extends State<TalkingMat>
           _autoSaveBoardLayout();
         }
       });
-      debugPrint(
+      _log.fine(
           "TalkingMat => Remote session mode disabled, auto-save re-enabled");
     }
   }
@@ -195,7 +198,7 @@ class TalkingMatState extends State<TalkingMat>
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
 
     if (renderBox == null) {
-      debugPrint(
+      _log.fine(
           '[TalkingMat] _updateArtifactPosition - renderBox is null, cannot update position');
       return;
     }
@@ -203,7 +206,7 @@ class TalkingMatState extends State<TalkingMat>
     // Convert the global touch/click position to local coordinates
     // This ensures the position is relative to the board's coordinate space
     final localPosition = renderBox.globalToLocal(offset);
-    debugPrint(
+    _log.fine(
         '[TalkingMat] _updateArtifactPosition - Local position: $localPosition');
 
     // Clamp the position to keep the artifact within bounds
@@ -214,7 +217,7 @@ class TalkingMatState extends State<TalkingMat>
     final clampedY = localPosition.dy.clamp(0.0, maxY);
 
     if (localPosition.dx != clampedX || localPosition.dy != clampedY) {
-      debugPrint(
+      _log.fine(
           '[TalkingMat] _updateArtifactPosition - Position clamped: (${localPosition.dx}, ${localPosition.dy}) -> ($clampedX, $clampedY)');
     }
 
@@ -252,7 +255,7 @@ class TalkingMatState extends State<TalkingMat>
 
   /// Public method to trigger auto-save (called by external controllers)
   void triggerAutoSave() {
-    debugPrint("TalkingMat => triggerAutoSave called");
+    _log.fine("TalkingMat => triggerAutoSave called");
     _immediateAutoSave();
   }
 
@@ -315,7 +318,7 @@ class TalkingMatState extends State<TalkingMat>
       }
     }
 
-    debugPrint("TalkingMat => Saving to board: $_currentBoardId");
+    _log.fine("TalkingMat => Saving to board: $_currentBoardId");
 
     try {
       final toPatch = layoutData
@@ -361,10 +364,10 @@ class TalkingMatState extends State<TalkingMat>
                 _backendSavedArtefactIds.add(layout.savedArtefactId!);
               }
             }
-            debugPrint(
+            _log.fine(
                 "TalkingMat => Now tracking ${_backendSavedArtefactIds.length} backend savedArtefactIds");
           } catch (e) {
-            debugPrint(
+            _log.fine(
                 'TalkingMat => Error mapping returned saved ids after update: $e');
           }
         }
@@ -399,10 +402,10 @@ class TalkingMatState extends State<TalkingMat>
   Future<void> _restoreArtefactsFromBoard(
       BoardLayoutResponse boardLayout) async {
     try {
-      debugPrint(
+      _log.fine(
           "TalkingMat => Restoring ${boardLayout.artefacts.length} artifacts from board");
       final current = widget.controller.value;
-      debugPrint(
+      _log.fine(
           "TalkingMat => Current controller has ${current.length} artifacts");
 
       // Track all savedArtefactIds from backend
@@ -412,14 +415,14 @@ class TalkingMatState extends State<TalkingMat>
           _backendSavedArtefactIds.add(layout.savedArtefactId!);
         }
       }
-      debugPrint(
+      _log.fine(
           "TalkingMat => Tracked ${_backendSavedArtefactIds.length} backend savedArtefactIds");
 
       final unmatchedLocal = <BoardArtefact>[];
       unmatchedLocal.addAll(current);
 
       for (final artefactLayout in boardLayout.artefacts) {
-        debugPrint(
+        _log.fine(
             "TalkingMat => Processing artifact: ${artefactLayout.artefactId} (savedId: ${artefactLayout.savedArtefactId})");
         try {
           BoardArtefact? best;
@@ -449,7 +452,7 @@ class TalkingMatState extends State<TalkingMat>
               }
             });
             unmatchedLocal.remove(best);
-            debugPrint(
+            _log.fine(
                 'TalkingMat => Matched existing local artifact ${artefactLayout.artefactId} to saved instance ${artefactLayout.savedArtefactId}');
           } else {
             await _addArtefactToBoard(
@@ -464,7 +467,7 @@ class TalkingMatState extends State<TalkingMat>
     } finally {
       // Mark initial load as complete, allowing auto-save
       _initialLoadComplete = true;
-      debugPrint(
+      _log.fine(
           "TalkingMat => Initial board load complete, auto-save now enabled");
 
       // Notify listeners that board has finished loading
@@ -477,7 +480,7 @@ class TalkingMatState extends State<TalkingMat>
     try {
       final token = GetIt.instance.get<Token>();
       if (token.value == null) {
-        debugPrint(
+        _log.fine(
             'TalkingMat => No auth token available for fetching artifact');
         return;
       }
@@ -487,7 +490,7 @@ class TalkingMatState extends State<TalkingMat>
           token: token.value!);
 
       if (artefact == null) {
-        debugPrint(
+        _log.fine(
             'TalkingMat => Could not fetch artifact $artefactId from API');
         return;
       }
@@ -555,7 +558,7 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print(
+        _log.info(
             'Debug: Created default board "$defaultBoardName" with ID: ${response.boardId}');
         // Map returned saved artefact instance ids back onto the local artifacts by best-match
 
@@ -611,7 +614,7 @@ class TalkingMatState extends State<TalkingMat>
       final response = await _boardLayoutService.saveBoard(request);
       if (response != null) {
         _currentBoardId = response.boardId;
-        print('Debug: Saved board "$boardName" with ID: ${response.boardId}');
+        _log.info('Debug: Saved board "$boardName" with ID: ${response.boardId}');
         // Map returned saved artefact instance ids back onto local artifacts by best-match
         try {
           _assignReturnedSavedIdsToLocal(response.artefacts);
@@ -651,7 +654,7 @@ class TalkingMatState extends State<TalkingMat>
 
         // loaded board
         await _restoreArtefactsFromBoard(boardLayout);
-        print(
+        _log.info(
             'Debug: Loaded board "${boardLayout.name}" with ${boardLayout.artefacts.length} artefacts');
       }
     } catch (e) {
@@ -686,14 +689,14 @@ class TalkingMatState extends State<TalkingMat>
         // This prevents constant updates during drag operations that cause other artifacts to resize
         if (artifact.renderedSize == null) {
           artifact.renderedSize = size;
-          debugPrint(
+          _log.fine(
               '[TalkingMat] Artifact ID:$artifactId - Initial rendered size set: $size');
         } else {
           // Only update if the size difference is significant (> 50px) to avoid micro-adjustments
           // This prevents artifacts from constantly resizing when other artifacts are dragged
           final sizeDiff = (artifact.renderedSize!.width - size.width).abs();
           if (sizeDiff > 50.0) {
-            debugPrint(
+            _log.fine(
                 '[TalkingMat] Artifact ID:$artifactId - Rendered size updated: ${artifact.renderedSize} -> $size');
             artifact.renderedSize = size;
           }
@@ -761,7 +764,7 @@ class TalkingMatState extends State<TalkingMat>
         matHeight = matHeight.clamp(100.0, double.infinity);
 
         // Debug mat dimensions
-        debugPrint(
+        _log.fine(
             '[TalkingMat] LayoutBuilder - Constraints: ${constraints.maxWidth.toInt()}x${constraints.maxHeight.toInt()}, Mat: ${matWidth.toInt()}x${matHeight.toInt()}');
 
         return SizedBox(
@@ -946,12 +949,12 @@ class TalkingMatState extends State<TalkingMat>
                                     .deleteAllSavedArtefacts(_currentBoardId!);
                                 if (!ok) {
                                   // server failed to clear board
-                                  print(
+                                  _log.info(
                                       'Debug: Server failed to clear board $_currentBoardId');
                                 }
                               } catch (e) {
                                 // error clearing board on server
-                                print(
+                                _log.info(
                                     'Debug: Error clearing board on server: $e');
                               } finally {
                                 _inhibitAutoSave = false;
@@ -986,7 +989,7 @@ class TalkingMatState extends State<TalkingMat>
                                   artefact.savedArtefactId!,
                                 );
                               } catch (e) {
-                                debugPrint(
+                                _log.fine(
                                     'TalkingMat => Error deleting saved artefact on server: $e');
                               } finally {
                                 _inhibitAutoSave = false;
@@ -1008,7 +1011,7 @@ class TalkingMatState extends State<TalkingMat>
                                   widget.onArtifactRemoved?.call(artefact);
                                 }
                               } catch (e) {
-                                debugPrint(
+                                _log.fine(
                                     'TalkingMat => Failed to delete session artefact from server: $e');
                               }
                             } else {

@@ -12,7 +12,10 @@ import '../widgets/board/quick_add_artefact.dart';
 import '../widgets/categories/categories_widget.dart' as categories_widget;
 import '../widgets/video/pip_video_widget.dart';
 import 'video_call_screen.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('RemoteBoardScreen');
 class RemoteBoardScreen extends StatefulWidget {
   static const String routeName = "/remote-board";
 
@@ -61,7 +64,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       final initiatorId = SignalRService().sessionInitiatorId;
       isOwner = currentUserId != initiatorId;
 
-      debugPrint(
+      _log.fine(
           "RemoteBoard => sessionId=$sessionId, boardId=$boardId, isOwner=$isOwner, currentUser=$currentUserId, initiator=$initiatorId");
 
       // For owner: use their existing board controller if available
@@ -80,7 +83,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       
       // Listen for remote hang-up
       SignalRService().onSessionEnded = () async {
-        debugPrint('[RemoteBoard] Remote user ended the session');
+        _log.fine('[RemoteBoard] Remote user ended the session');
         if (mounted) {
           VideoCallManager().endCall();
           
@@ -197,7 +200,7 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
             icon: const Icon(Icons.call_end),
             color: Colors.red,
             onPressed: () async {
-              debugPrint('[RemoteBoard] Hang-up button pressed');
+              _log.fine('[RemoteBoard] Hang-up button pressed');
               await SignalRService().endSession();
               await VideoCallManager().endCall();
               if (mounted) {

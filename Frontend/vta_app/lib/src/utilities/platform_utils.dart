@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:global_configuration/global_configuration.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('PlatformUtils');
 class PlatformUtils {
   static String getApiUrl() {
     String? url;
@@ -24,7 +27,7 @@ class PlatformUtils {
         url = baseUrl?['Local'] as String? ?? baseUrl?['Remote'] as String?;
       }
     } catch (e) {
-      debugPrint('[PlatformUtils] Error reading config: $e');
+      _log.fine('[PlatformUtils] Error reading config: $e');
     }
 
     // Apply fallbacks if url is still null
@@ -40,7 +43,7 @@ class PlatformUtils {
       }
     }
 
-    print(
+    _log.info(
         '[PlatformUtils] Using ${kIsWeb ? 'Web' : Platform.isAndroid ? 'Android' : Platform.isIOS ? 'iOS' : 'Desktop'} API URL: $url');
     return url;
   }
@@ -68,7 +71,7 @@ class PlatformUtils {
             baseUrl?['SyncServiceRemote'] as String?;
       }
     } catch (e) {
-      debugPrint('[PlatformUtils] Error reading config: $e');
+      _log.fine('[PlatformUtils] Error reading config: $e');
     }
 
     // Apply fallbacks if url is still null
@@ -84,7 +87,7 @@ class PlatformUtils {
       }
     }
 
-    print(
+    _log.info(
         '[PlatformUtils] Using ${kIsWeb ? 'Web' : Platform.isAndroid ? 'Android' : Platform.isIOS ? 'iOS' : 'Desktop'} SyncService URL: $url');
     return url;
   }

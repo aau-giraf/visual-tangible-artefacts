@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, unused_element
+// ignore_for_file: unused_element
 
 import 'dart:convert';
 
@@ -10,7 +10,10 @@ import '../database/repositories/artefact_repository.dart';
 import '../database/repositories/category_repository.dart';
 import '../database/mappers/artefact_mapper.dart';
 import '../database/models/category_db.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('ArtefactModel');
 class ArtifactModel {
   List<Category>? categories;
   List<Category>? mostUsedCategories;
@@ -42,7 +45,7 @@ class ArtifactModel {
       final jsonString =
           jsonEncode(dbCategories.map((e) => e.toMap()).toList());
 
-      print(
+      _log.info(
           "Local ------------------------------------------------------- $jsonString");
 
       // Decode back to List<dynamic> to match online response structure
@@ -56,7 +59,7 @@ class ArtifactModel {
           .sort((a, b) => a.categoryIndex!.compareTo(b.categoryIndex!));
       categories = newCategories;
     } catch (e) {
-      debugPrint("$e");
+      _log.fine("$e");
       rethrow;
     }
   }
@@ -68,7 +71,7 @@ class ArtifactModel {
       final dbModel = artefactToDb(artefact);
       await repo.insert(dbModel);
     } catch (e) {
-      debugPrint('Local DB artefact insert failed: $e');
+      _log.fine('Local DB artefact insert failed: $e');
       rethrow;
     }
   }
@@ -80,7 +83,7 @@ class ArtifactModel {
       final dbModel = _categoryToDb(category);
       await repo.insert(dbModel);
     } catch (e) {
-      debugPrint('Local DB category insert failed: $e');
+      _log.fine('Local DB category insert failed: $e');
       rethrow;
     }
   }
@@ -91,7 +94,7 @@ class ArtifactModel {
       final repo = CategoryRepository();
       await repo.delete(categoryId);
     } catch (e) {
-      debugPrint('Local DB category delete failed: $e');
+      _log.fine('Local DB category delete failed: $e');
       rethrow;
     }
   }
@@ -102,7 +105,7 @@ class ArtifactModel {
       final repo = ArtefactRepository();
       await repo.delete(artefactId);
     } catch (e) {
-      debugPrint('Local DB artefact delete failed: $e');
+      _log.fine('Local DB artefact delete failed: $e');
       rethrow;
     }
   }
@@ -114,7 +117,7 @@ class ArtifactModel {
       final dbModel = artefactToDb(artefact);
       await repo.update(dbModel);
     } catch (e) {
-      debugPrint('Local DB artefact update failed: $e');
+      _log.fine('Local DB artefact update failed: $e');
       rethrow;
     }
   }
@@ -125,7 +128,7 @@ class ArtifactModel {
       final repo = CategoryRepository();
       await repo.incrementUsageCount(categoryId);
     } catch (e) {
-      debugPrint('Local DB category usage tracking failed: $e');
+      _log.fine('Local DB category usage tracking failed: $e');
       rethrow;
     }
   }
@@ -154,7 +157,7 @@ class ArtifactModel {
           .toList();
       mostUsedCategories = newMostUsedCategories;
     } catch (e) {
-      debugPrint('Local DB fetch most used categories failed: $e');
+      _log.fine('Local DB fetch most used categories failed: $e');
       rethrow;
     }
   }
@@ -172,7 +175,7 @@ class ArtifactModel {
       if (response != null && response.ok) {
         var jsonResponse = json.decode(response.body) as List;
 
-        print(
+        _log.info(
             "Online ------------------------------------------------------- $jsonResponse");
 
         var newCategories = jsonResponse
@@ -188,14 +191,14 @@ class ArtifactModel {
                 'Mislykkedes at hente kategorier, status kode: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint("$e");
+      _log.fine("$e");
       rethrow;
     }
     try {
       /// For future local use only
       // await _fetchAndUpdateCategoriesLocal();
     } catch (e) {
-      debugPrint('Local DB fetch failed: $e');
+      _log.fine('Local DB fetch failed: $e');
     }
   }
 
@@ -215,7 +218,7 @@ class ArtifactModel {
         try {
           // await _postCategoryLocal(newCategory);
         } catch (e) {
-          debugPrint('Local DB save failed: $e');
+          _log.fine('Local DB save failed: $e');
         }
       } else {
         throw ArtifactException(
@@ -223,7 +226,7 @@ class ArtifactModel {
                 'Mislykkedes at poste kategori, status kode: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      _log.fine('$e');
       rethrow;
     }
   }
@@ -242,7 +245,7 @@ class ArtifactModel {
         try {
           // await _deleteCategoryLocal(category.categoryId!);
         } catch (e) {
-          debugPrint('Local DB delete failed: $e');
+          _log.fine('Local DB delete failed: $e');
         }
       } else {
         throw ArtifactException(
@@ -250,7 +253,7 @@ class ArtifactModel {
                 'Kunne ikke slette artefact, status kode: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint(e.toString());
+      _log.fine(e.toString());
       rethrow;
     }
   }
@@ -276,7 +279,7 @@ class ArtifactModel {
         try {
           // await _postArtefactLocal(newArtefact);
         } catch (e) {
-          debugPrint('Local DB save failed: $e');
+          _log.fine('Local DB save failed: $e');
         }
         final catId = newArtefact.categoryId;
 
@@ -309,7 +312,7 @@ class ArtifactModel {
                 'Failed to post artefact, status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      _log.fine('$e');
       rethrow;
     }
   }
@@ -335,7 +338,7 @@ class ArtifactModel {
         try {
           // await _deleteArtefactLocal(artefact.artefactId!);
         } catch (e) {
-          debugPrint('Local DB delete failed: $e');
+          _log.fine('Local DB delete failed: $e');
         }
       } else {
         throw ArtifactException(
@@ -343,7 +346,7 @@ class ArtifactModel {
                 'Failed to delete artefact, status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      _log.fine('$e');
       rethrow;
     }
   }
@@ -401,7 +404,7 @@ class ArtifactModel {
               try {
                 // await _updateArtefactLocal(updatedArtefact);
               } catch (e) {
-                debugPrint('Local DB update failed: $e');
+                _log.fine('Local DB update failed: $e');
               }
             }
           }
@@ -412,7 +415,7 @@ class ArtifactModel {
                 'Failed to update artefact, status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint('$e');
+      _log.fine('$e');
       rethrow;
     }
   }
@@ -437,7 +440,7 @@ class ArtifactModel {
                 'Failed to fetch most used categories with status code: ${response?.statusCode}');
       }
     } catch (e) {
-      debugPrint("$e");
+      _log.fine("$e");
       rethrow;
     }
 
@@ -445,7 +448,7 @@ class ArtifactModel {
     try {
       // await _fetchAndUpdateMostUsedCategoriesLocal(limit: limit);
     } catch (e) {
-      debugPrint('Local DB fetch most used failed: $e');
+      _log.fine('Local DB fetch most used failed: $e');
     }
   }
 
@@ -464,7 +467,7 @@ class ArtifactModel {
         try {
           // await _trackCategoryUsageLocal(categoryId);
         } catch (e) {
-          debugPrint('Local DB usage tracking failed: $e');
+          _log.fine('Local DB usage tracking failed: $e');
         }
 
         return true;

@@ -1,85 +1,87 @@
-// ignore_for_file: avoid_print
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'database.dart';
+import 'package:logging/logging.dart';
 
+
+final _log = Logger('DatabaseDebugHelper');
 /// Debug helper class for viewing and managing SQLite database during development.
 class DatabaseDebugHelper {
   /// Prints all data from all tables in the database.
   static Future<void> printAllData() async {
-    print('\n=== 📊 DATABASE CONTENTS ===\n');
+    _log.info('\n=== 📊 DATABASE CONTENTS ===\n');
     
     try {
       // Users
       final users = await UserRepository().getAll();
-      print('👥 Users (${users.length}):');
+      _log.info('👥 Users (${users.length}):');
       if (users.isEmpty) {
-        print('  (No users found)');
+        _log.info('  (No users found)');
       } else {
         for (final user in users) {
-          print('  - ${user.toString()}');
+          _log.info('  - ${user.toString()}');
         }
       }
       
       // Categories
       final categories = await CategoryRepository().getAll();
-      print('\n📁 Categories (${categories.length}):');
+      _log.info('\n📁 Categories (${categories.length}):');
       if (categories.isEmpty) {
-        print('  (No categories found)');
+        _log.info('  (No categories found)');
       } else {
         for (final category in categories) {
-          print('  - ${category.toString()}');
+          _log.info('  - ${category.toString()}');
         }
       }
       
       // Artefacts
       final artefacts = await ArtefactRepository().getAll();
-      print('\n🎨 Artefacts (${artefacts.length}):');
+      _log.info('\n🎨 Artefacts (${artefacts.length}):');
       if (artefacts.isEmpty) {
-        print('  (No artefacts found)');
+        _log.info('  (No artefacts found)');
       } else {
         for (final artefact in artefacts) {
-          print('  - ${artefact.toString()}');
+          _log.info('  - ${artefact.toString()}');
         }
       }
       
       // Boards
       final boards = await SavedBoardRepository().getAll();
-      print('\n📋 Boards (${boards.length}):');
+      _log.info('\n📋 Boards (${boards.length}):');
       if (boards.isEmpty) {
-        print('  (No boards found)');
+        _log.info('  (No boards found)');
       } else {
         for (final board in boards) {
-          print('  - ${board.toString()}');
+          _log.info('  - ${board.toString()}');
         }
       }
       
       // Saved Artefacts
       final savedArtefacts = await SavedArtefactRepository().getAll();
-      print('\n💾 Saved Artefacts (${savedArtefacts.length}):');
+      _log.info('\n💾 Saved Artefacts (${savedArtefacts.length}):');
       if (savedArtefacts.isEmpty) {
-        print('  (No saved artefacts found)');
+        _log.info('  (No saved artefacts found)');
       } else {
         for (final saved in savedArtefacts) {
-          print('  - ${saved.toString()}');
+          _log.info('  - ${saved.toString()}');
         }
       }
       
       // Sessions
       final sessions = await SessionMetaRepository().getAll();
-      print('\n🔄 Sessions (${sessions.length}):');
+      _log.info('\n🔄 Sessions (${sessions.length}):');
       if (sessions.isEmpty) {
-        print('  (No sessions found)');
+        _log.info('  (No sessions found)');
       } else {
         for (final session in sessions) {
-          print('  - ${session.toString()}');
+          _log.info('  - ${session.toString()}');
         }
       }
       
-      print('\n=== END ===\n');
+      _log.info('\n=== END ===\n');
     } catch (e) {
-      print('❌ Error reading database: $e');
+      _log.info('❌ Error reading database: $e');
     }
   }
   
@@ -93,9 +95,9 @@ class DatabaseDebugHelper {
   static Future<void> printDatabasePath() async {
     try {
       final path = await getDatabasePath();
-      print(' Database location: $path');
+      _log.info(' Database location: $path');
     } catch (e) {
-      print('Error getting database path: $e');
+      _log.info('Error getting database path: $e');
     }
   }
   
@@ -113,21 +115,21 @@ class DatabaseDebugHelper {
   
   /// Prints database statistics.
   static Future<void> printDatabaseStats() async {
-    print('\n=== DATABASE STATISTICS ===\n');
+    _log.info('\n=== DATABASE STATISTICS ===\n');
     try {
       final stats = await getDatabaseStats();
       stats.forEach((table, count) {
-        print('  $table: $count records');
+        _log.info('  $table: $count records');
       });
-      print('\n=== END ===\n');
+      _log.info('\n=== END ===\n');
     } catch (e) {
-      print('Error getting stats: $e');
+      _log.info('Error getting stats: $e');
     }
   }
   
   /// Deletes all data from all tables (use with caution!).
   static Future<void> clearAllData() async {
-    print('Clearing all database data...');
+    _log.info('Clearing all database data...');
     try {
       await UserRepository().deleteAll();
       await CategoryRepository().deleteAll();
@@ -135,26 +137,26 @@ class DatabaseDebugHelper {
       await SavedBoardRepository().deleteAll();
       await SavedArtefactRepository().deleteAll();
       await SessionMetaRepository().deleteAll();
-      print('All data cleared successfully');
+      _log.info('All data cleared successfully');
     } catch (e) {
-      print('Error clearing data: $e');
+      _log.info('Error clearing data: $e');
     }
   }
   
   /// Deletes the entire database file (use with caution!).
   static Future<void> deleteDatabase() async {
-    print('Deleting database file...');
+    _log.info('Deleting database file...');
     try {
       await DatabaseHelper.instance.deleteDatabase();
-      print('Database deleted successfully');
+      _log.info('Database deleted successfully');
     } catch (e) {
-      print('Error deleting database: $e');
+      _log.info('Error deleting database: $e');
     }
   }
   
   /// Creates sample test data for development.
   static Future<void> createSampleData() async {
-    print('Creating sample data...');
+    _log.info('Creating sample data...');
     
     try {
       // Create sample user
@@ -191,10 +193,10 @@ class DatabaseDebugHelper {
       );
       await ArtefactRepository().insert(artefact);
       
-      print('Sample data created successfully');
+      _log.info('Sample data created successfully');
       await printDatabaseStats();
     } catch (e) {
-      print('Error creating sample data: $e');
+      _log.info('Error creating sample data: $e');
     }
   }
 }
