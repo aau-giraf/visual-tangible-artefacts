@@ -27,7 +27,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _client.SendAsync(request);
@@ -58,7 +58,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
         content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Content = content;
 
@@ -91,7 +91,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
         content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
-        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         postRequest.Content = content;
 
@@ -100,13 +100,13 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
-        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Categories/{category.CategoryId}");
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
         deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var deleteResponse = await _client.SendAsync(deleteRequest);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var getResponse = await _client.SendAsync(getRequest);
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
@@ -122,7 +122,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/nonexistent");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/nonexistent");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await _client.SendAsync(request);
@@ -155,7 +155,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
         };
 
-        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         postRequest.Content = content;
 
@@ -176,14 +176,14 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name) }
         };
 
-        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Categories");
+        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Categories");
         patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         patchRequest.Content = patchContent;
 
         var patchResponse = await _client.SendAsync(patchRequest);
         Assert.Equal(HttpStatusCode.NoContent, patchResponse.StatusCode);
 
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var getResponse = await _client.SendAsync(getRequest);
         var updatedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
@@ -210,7 +210,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         patchContent.Add(new StringContent(patchDTO.CategoryId), nameof(CategoryPatchDTO.CategoryId));
         patchContent.Add(new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name));
 
-        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Categories");
+        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Categories");
         patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         patchRequest.Content = patchContent;
 
@@ -244,7 +244,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
         content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
-        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token1);
         postRequest.Content = content;
 
@@ -253,7 +253,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
-        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Categories/{category.CategoryId}");
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
         deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token2);
 
         var deleteResponse = await _client.SendAsync(deleteRequest);
@@ -275,14 +275,14 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await CreateTestCategory(loginData, "Test Category");
 
         // Track usage
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Categories/{category.CategoryId}/usage");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{category.CategoryId}/usage");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         // Verify the usage was tracked by getting the category
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse = await _client.SendAsync(getRequest);
         var updatedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
@@ -307,14 +307,14 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         // Track usage multiple times
         for (int i = 0; i < 3; i++)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Categories/{category.CategoryId}/usage");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{category.CategoryId}/usage");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             var response = await _client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
 
         // Verify usage count
-        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse = await _client.SendAsync(getRequest);
         var updatedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
@@ -336,12 +336,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await CreateTestCategory(loginData, "Test Category");
 
         // Track usage first time
-        var request1 = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Categories/{category.CategoryId}/usage");
+        var request1 = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{category.CategoryId}/usage");
         request1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         await _client.SendAsync(request1);
 
         // Get first last used date
-        var getRequest1 = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        var getRequest1 = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
         getRequest1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse1 = await _client.SendAsync(getRequest1);
         var category1 = await getResponse1.Content.ReadFromJsonAsync<CategoryGetDTO>();
@@ -351,12 +351,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         await Task.Delay(1000);
 
         // Track usage second time
-        var request2 = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Categories/{category.CategoryId}/usage");
+        var request2 = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{category.CategoryId}/usage");
         request2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         await _client.SendAsync(request2);
 
         // Get second last used date
-        var getRequest2 = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category.CategoryId}");
+        var getRequest2 = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
         getRequest2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse2 = await _client.SendAsync(getRequest2);
         var category2 = await getResponse2.Content.ReadFromJsonAsync<CategoryGetDTO>();
@@ -376,7 +376,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         Assert.NotNull(loginData);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories/non-existent-id/usage");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories/non-existent-id/usage");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -399,7 +399,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await CreateTestCategory(loginData1!, "User 1 Category");
 
         // Try to track usage of user 1's category with user 2's token
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Categories/{category.CategoryId}/usage");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{category.CategoryId}/usage");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2!.Token);
 
         var response = await _client.SendAsync(request);
@@ -412,7 +412,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TrackCategoryUsage_WithoutAuthorization_ReturnsUnauthorized()
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories/some-category-id/usage");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories/some-category-id/usage");
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -435,7 +435,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         await TrackUsage(loginData, category2.CategoryId, 3);
         await TrackUsage(loginData, category3.CategoryId, 8);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -467,7 +467,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         await TrackUsage(loginData, categoryMedium.CategoryId, 5);
         await TrackUsage(loginData, categoryHigh.CategoryId, 10);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -504,7 +504,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         }
 
         // Request only top 2
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used?limit=2");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used?limit=2");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -529,7 +529,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         Assert.NotNull(loginData);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -559,7 +559,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         await Task.Delay(1000); // Ensure timestamp difference
         await TrackUsage(loginData, categoryNewer.CategoryId, 3);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -599,7 +599,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         await TrackUsage(loginData2!, user2Category.CategoryId, 20);
 
         // User 1 gets most used categories
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData1!.Token);
 
         var response = await _client.SendAsync(request);
@@ -618,7 +618,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task GetMostUsedCategories_WithoutAuthorization_ReturnsUnauthorized()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -634,7 +634,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await CreateTestCategory(loginData, "Category With Artefacts");
         await TrackUsage(loginData, category.CategoryId, 1);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Categories/most-used");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
@@ -664,7 +664,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
             { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
         };
 
-        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         postRequest.Content = content;
         var postResponse = await _client.SendAsync(postRequest);
@@ -680,7 +680,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     {
         for (int i = 0; i < times; i++)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Users/Categories/{categoryId}/usage");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{categoryId}/usage");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             var response = await _client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);

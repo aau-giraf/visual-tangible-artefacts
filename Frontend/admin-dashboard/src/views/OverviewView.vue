@@ -125,7 +125,7 @@ const series = ref([
     }
 ]);
 
-const chartOptions = ref({
+const chartOptions = ref<ApexCharts.ApexOptions>({
     chart: {
         type: 'area',
         fontFamily: 'Inter, sans-serif',

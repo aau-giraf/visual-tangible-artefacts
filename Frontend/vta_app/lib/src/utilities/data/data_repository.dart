@@ -80,7 +80,7 @@ class ArtifactRepository extends ApiDataRepository {
         "Authorization": 'Bearer $token',
       };
       var response =
-          await apiProvider.fetchAsJson('Users/Categories', headers: headers);
+          await apiProvider.fetchAsJson('Categories', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body) as List;
         var categories = jsonResponse
@@ -103,7 +103,7 @@ class ArtifactRepository extends ApiDataRepository {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
       var response = await apiProvider.sendAsMultiPart(
-          'POST', 'Users/Categories',
+          'POST', 'Categories',
           headers: headers, body: category.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
@@ -120,7 +120,7 @@ class ArtifactRepository extends ApiDataRepository {
       {required String token}) async {
     var headers = <String, String>{'Authorization': 'Bearer $token'};
     var response = await apiProvider.sendAsMultiPart(
-        'PATCH', 'Users/Categories/',
+        'PATCH', 'Categories/',
         headers: headers, body: category.toJson());
     if (responseOk(response)) {
       return true;
@@ -133,7 +133,7 @@ class ArtifactRepository extends ApiDataRepository {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
       var response = await apiProvider.delete(
-        'Users/Categories/$categoryId',
+        'Categories/$categoryId',
         headers: headers,
       );
       if (responseOk(response)) {
@@ -154,7 +154,7 @@ class ArtifactRepository extends ApiDataRepository {
         "Authorization": 'Bearer $token',
       };
       var response = await apiProvider
-          .fetchAsJson('Users/Artefacts/$artefactId', headers: headers);
+          .fetchAsJson('Artefacts/$artefactId', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
         return Artefact.fromJson(jsonResponse);
@@ -171,7 +171,7 @@ class ArtifactRepository extends ApiDataRepository {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
       var response = await apiProvider.sendAsMultiPart(
-          'POST', 'Users/Artefacts',
+          'POST', 'Artefacts',
           headers: headers, body: artefact.toJson());
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
@@ -192,7 +192,7 @@ class ArtifactRepository extends ApiDataRepository {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
 
       var response = await apiProvider.delete(
-        'Users/Artefacts/$artifactId',
+        'Artefacts/$artifactId',
         headers: headers,
       );
 
@@ -210,7 +210,7 @@ class ArtifactRepository extends ApiDataRepository {
         "Authorization": 'Bearer $token',
       };
       var response = await apiProvider.fetchAsJson(
-          'Users/Categories/most-used?limit=$limit',
+          'Categories/most-used?limit=$limit',
           headers: headers);
 
       if (responseOk(response)) {
@@ -233,7 +233,7 @@ class ArtifactRepository extends ApiDataRepository {
     try {
       var headers = <String, String>{'Authorization': 'Bearer $token'};
       var response = await apiProvider.postAsJson(
-          'Users/Categories/$categoryId/usage',
+          'Categories/$categoryId/usage',
           headers: headers,
           body: {});
 
@@ -362,7 +362,7 @@ class UserRepository extends ApiDataRepository {
       Map<String, dynamic> body = {'nameShown': nameShown};
             
       var response = await apiProvider.patchAsJson(
-        'Users/Artefacts/bulk-update-name-shown', 
+        'Artefacts/bulk-update-name-shown', 
         headers: headers, 
         body: body
       );

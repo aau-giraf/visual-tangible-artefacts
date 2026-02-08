@@ -26,7 +26,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(HttpStatusCode.OK, signUpStatus);
     Assert.NotNull(loginData);
 
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
@@ -52,7 +52,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     var board2 = await CreateTestBoard(loginData, "Board 2");
     var board3 = await CreateTestBoard(loginData, "Board 3");
 
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
@@ -69,7 +69,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task GetBoards_WithoutAuthorization_ReturnsUnauthorized()
   {
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards");
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
   }
@@ -84,7 +84,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     var board = await CreateTestBoard(loginData, "Test Board");
 
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/list");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards/list");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
@@ -102,7 +102,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task GetBoardsList_WithoutAuthorization_ReturnsUnauthorized()
   {
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/list");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards/list");
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
   }
@@ -117,7 +117,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     var createdBoard = await CreateTestBoard(loginData, "Test Board");
 
-    var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{createdBoard.Id}");
+    var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Boards/{createdBoard.Id}");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
@@ -140,7 +140,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(HttpStatusCode.OK, signUpStatus);
     Assert.NotNull(loginData);
 
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/non-existent-id");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards/non-existent-id");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
@@ -163,7 +163,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     var board = await CreateTestBoard(loginData1!, "User 1 Board");
 
     // Try to access user 1's board with user 2's token
-    var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{board.Id}");
+    var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Boards/{board.Id}");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2!.Token);
 
     var response = await _client.SendAsync(request);
@@ -176,7 +176,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task GetBoard_WithoutAuthorization_ReturnsUnauthorized()
   {
-    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Users/Boards/some-board-id");
+    var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards/some-board-id");
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
   }
@@ -195,7 +195,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
       SnapshotPath = "/snapshots/test.jpg"
     };
 
-    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards")
+    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Boards")
     {
       Content = JsonContent.Create(boardPostDTO)
     };
@@ -221,7 +221,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
       Name = "New Board"
     };
 
-    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards")
+    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Boards")
     {
       Content = JsonContent.Create(boardPostDTO)
     };
@@ -247,7 +247,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
       SnapshotPath = "/snapshots/updated.jpg"
     };
 
-    var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Boards")
+    var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Boards")
     {
       Content = JsonContent.Create(boardPatchDTO)
     };
@@ -257,7 +257,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
     // Verify the update
-    var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{board.Id}");
+    var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Boards/{board.Id}");
     getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
     var getResponse = await _client.SendAsync(getRequest);
     var updatedBoard = await getResponse.Content.ReadFromJsonAsync<BoardGetDTO>();
@@ -282,7 +282,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
       Name = "Updated Name"
     };
 
-    var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Boards")
+    var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Boards")
     {
       Content = JsonContent.Create(boardPatchDTO)
     };
@@ -303,7 +303,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
       Name = "Updated Name"
     };
 
-    var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Users/Boards")
+    var request = new HttpRequestMessage(HttpMethod.Patch, "/api/Boards")
     {
       Content = JsonContent.Create(boardPatchDTO)
     };
@@ -322,14 +322,14 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     var board = await CreateTestBoard(loginData, "Board to Delete");
 
-    var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Boards/{board.Id}");
+    var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Boards/{board.Id}");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
     // Verify deletion
-    var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Boards/{board.Id}");
+    var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Boards/{board.Id}");
     getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
     var getResponse = await _client.SendAsync(getRequest);
     Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
@@ -345,7 +345,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(HttpStatusCode.OK, signUpStatus);
     Assert.NotNull(loginData);
 
-    var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Users/Boards/non-existent-id");
+    var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Boards/non-existent-id");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
@@ -357,7 +357,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task DeleteBoard_WithoutAuthorization_ReturnsUnauthorized()
   {
-    var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Users/Boards/some-board-id");
+    var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Boards/some-board-id");
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
   }
@@ -369,7 +369,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
       Name = boardName
     };
 
-    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Boards")
+    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Boards")
     {
       Content = JsonContent.Create(boardPostDTO)
     };

@@ -37,7 +37,7 @@ namespace VTA.Tests.UnitTests
             content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
             content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
             request.Content = content;
 
@@ -48,7 +48,7 @@ namespace VTA.Tests.UnitTests
             Assert.NotNull(category);
             Assert.Equal(categoryPostDTO.Name, category!.Name);
 
-            var deleteCategoryRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Categories/{category.CategoryId}");
+            var deleteCategoryRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
             deleteCategoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
             var deleteCategoryResponse = await _client.SendAsync(deleteCategoryRequest);
             Assert.Equal(HttpStatusCode.NoContent, deleteCategoryResponse.StatusCode);
@@ -76,14 +76,14 @@ namespace VTA.Tests.UnitTests
             content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
             content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
-            var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+            var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
             postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
             postRequest.Content = content;
 
             var postResponse = await _client.SendAsync(postRequest);
             var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
-            var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Users/Categories/{category!.CategoryId}");
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category!.CategoryId}");
             getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
 
             var getResponse = await _client.SendAsync(getRequest);
@@ -93,7 +93,7 @@ namespace VTA.Tests.UnitTests
             Assert.NotNull(fetchedCategory);
             Assert.Equal(category.CategoryId, fetchedCategory!.CategoryId);
 
-            var deleteCategoryRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Categories/{category.CategoryId}");
+            var deleteCategoryRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
             deleteCategoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
             var deleteCategoryResponse = await _client.SendAsync(deleteCategoryRequest);
             Assert.Equal(HttpStatusCode.NoContent, deleteCategoryResponse.StatusCode);
@@ -121,14 +121,14 @@ namespace VTA.Tests.UnitTests
             content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
             content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
 
-            var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Users/Categories");
+            var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
             postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
             postRequest.Content = content;
 
             var postResponse = await _client.SendAsync(postRequest);
             var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
-            var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/Categories/{category!.CategoryId}");
+            var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category!.CategoryId}");
             deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
 
             var deleteResponse = await _client.SendAsync(deleteRequest);

@@ -107,10 +107,10 @@ Auto-save functionality:
    - Once a board ID is established, all position and size changes are auto-saved
 
 API Endpoints available:
-- GET /api/Users/Boards - Get all saved boards
-- GET /api/Users/Boards/{boardId} - Get specific board
-- POST /api/Users/Boards - Save new board
-- PUT /api/Users/Boards/{boardId} - Update entire board
-- PATCH /api/Users/Boards/{boardId}/artefacts - Update single artefact position/size
-- DELETE /api/Users/Boards/{boardId} - Delete board
+- GET /api/Boards - Get all saved boards
+- GET /api/Boards/{boardId} - Get specific board
+- POST /api/Boards - Save new board
+- PUT /api/Boards/{boardId} - Update entire board
+- PATCH /api/Boards/{boardId}/artefacts - Update single artefact position/size
+- DELETE /api/Boards/{boardId} - Delete board
 */

@@ -10,6 +10,9 @@ This repository is a monorepo containing both frontend and backend code for the 
 - [Naming Conventions](#naming-conventions)
   - [Dart (Frontend) Naming Conventions](#dart-frontend-naming-conventions)
   - [C# (API) Naming Conventions](#c-api-naming-conventions)
+- [Standards & Architecture](#standards--architecture)
+  - [REST API Design — Microsoft REST API Guidelines](#rest-api-design--microsoft-rest-api-guidelines)
+  - [Flutter App Architecture — Official Flutter Architecture Guide](#flutter-app-architecture--official-flutter-architecture-guide)
  
 ## Questions and appsettings handover
 For any questions or request for appsettings handover, contact rkrage22@student.aau.dk
@@ -174,5 +177,47 @@ We follow a **DB-first approach**, meaning the database schema is the source of 
 - **Acronyms:** Treat acronyms as words (`HttpRequest`, `IOHandler`)
 - **Formatting:** Follow [C# Coding Conventions](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions).
 - **Documentation:** Use XML comments (`///`) and follow [Microsoft documentation guidelines](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/xmldoc/).
+
+---
+
+## Standards & Architecture
+
+This project follows established industry standards for API design and client-side architecture. All contributors should be familiar with these references.
+
+### REST API Design — Microsoft REST API Guidelines
+
+**Reference:** [Microsoft Azure Architecture – API Design](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+
+Key conventions applied in this project:
+
+- **Flat resource-noun routes.** Endpoints use plural nouns representing the resource (`/api/Boards`, `/api/Artefacts`, `/api/Categories`, `/api/Sync`), not verb-based or namespace-nested paths. User identity comes from the JWT token, not the URL.
+- **One-level nesting only for true parent-child relationships.** Example: `/api/Boards/{boardId}/SavedArtefacts` — a saved artefact only exists in the context of a board.
+- **Standard HTTP verbs** map to CRUD:
+  | Verb | Meaning |
+  |------|---------|
+  | `GET` | Retrieve resource(s) |
+  | `POST` | Create a new resource |
+  | `PUT` | Replace an entire resource |
+  | `PATCH` | Partially update a resource |
+  | `DELETE` | Remove a resource |
+- **Consistent status codes:** 200 (OK), 201 (Created), 204 (No Content), 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found), 405 (Method Not Allowed), 500 (Server Error).
+
+### Flutter App Architecture — Official Flutter Architecture Guide
+
+**Reference:** [Flutter App Architecture](https://docs.flutter.dev/app-architecture)
+
+The recommended pattern is **MVVM (Model-View-ViewModel)** with a **Repository/Service data layer**:
+
+```
+View (Widget) → ViewModel (ChangeNotifier) → Repository → Service/API
+```
+
+Current state of the Flutter app:
+- **Views:** Widgets in `lib/src/ui/` render UI and listen to state.
+- **ViewModels/Controllers:** Classes like `ArtifactBoardController`, `ArtefactController` act as ViewModels (extend `ChangeNotifier`, injected via `Provider`/`get_it`).
+- **Services:** `BoardLayoutService`, `SyncService`, `SignalRService` handle specific API/protocol interactions.
+- **Models:** `ArtefactModel`, `BoardModel` currently mix API calls with in-memory caching — these should ideally be split into pure data classes + repository layer per the Flutter guide.
+
+> **Note:** The app does not yet have a formal Repository layer separating local DB from remote API. This is tracked as a planned improvement. See `docs/improvement_proposals.md` for details.
 
 ---

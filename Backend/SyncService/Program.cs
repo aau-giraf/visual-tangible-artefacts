@@ -2,11 +2,17 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SyncService.Hubs;
+using SyncService.Services;
 using VTA.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddVTAContext(builder.Configuration);
+
+// BoardHub services (singletons — they own shared in-memory state)
+builder.Services.AddSingleton<IPresenceService, PresenceService>();
+builder.Services.AddSingleton<ISessionService, SessionService>();
+builder.Services.AddSingleton<IBoardSyncRelay, BoardSyncRelay>();
 
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SyncService.Hubs;
 using SyncService.Models.ArtifactAdded;
+using SyncService.Services;
 using SyncService.Tests.Helpers;
 using VTA.Data.Models;
 using Xunit.Abstractions;
@@ -13,6 +14,9 @@ namespace SyncService.Tests.IntegrationTests
         private readonly HubFixture _fixture;
         private readonly DatabaseFixture _dbFixture;
         private readonly ITestOutputHelper _output;
+        private readonly IPresenceService _presence;
+        private readonly ISessionService _sessions;
+        private readonly IBoardSyncRelay _syncRelay;
         
         private const string SessionId = "test-session-id";
         
@@ -31,11 +35,14 @@ namespace SyncService.Tests.IntegrationTests
             _fixture = new HubFixture();
             _dbFixture = dbFixture;
             _output = output;
+            _presence = new PresenceService();
+            _sessions = new SessionService();
+            _syncRelay = new BoardSyncRelay();
         }
 
         private BoardHub CreateHub()
         {
-            var hub = new BoardHub(_dbFixture.DbContext);
+            var hub = new BoardHub(_dbFixture.DbContext, _presence, _sessions, _syncRelay);
             hub.Clients = _fixture.MockClients.Object;
             hub.Context = _fixture.MockHubCallerContext.Object;
             hub.Groups = _fixture.MockGroupManager.Object;

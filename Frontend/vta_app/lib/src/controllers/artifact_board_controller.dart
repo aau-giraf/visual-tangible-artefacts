@@ -358,7 +358,7 @@ class ArtifactBoardController with ArtefactSoundPlayer {
 
             if (token != null) {
               final audioUrl =
-                  '${apiProvider.baseUrl}Users/Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
+                  '${apiProvider.baseUrl}Artefacts/${boardArtefact.baseArtefact!.artefactId}/play-audio';
               debugPrint(
                   'Debug: ArtifactBoardController - Playing sound for artefact ${boardArtefact.baseArtefact!.artefactId}');
 

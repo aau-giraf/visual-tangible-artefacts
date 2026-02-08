@@ -1,531 +1,321 @@
 // lib/src/services/signalr_service.dart
-import 'package:vta_app/src/services/notification_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
-import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:vta_app/src/utilities/data/data_repository.dart';
+import 'package:vta_app/src/services/signalr_connection_manager.dart';
+import 'package:vta_app/src/services/signalr_event_router.dart';
+import 'package:vta_app/src/services/online_status_tracker.dart';
 
+/// Singleton façade for the SignalR hub.
+///
+/// Delegates to:
+/// * [SignalRConnectionManager] — connection lifecycle
+/// * [SignalREventRouter]       — `.on()` handler registrations & callbacks
+/// * [OnlineStatusTracker]      — online-user tracking
+///
+/// The public API is identical to the pre-split version so that all 16+
+/// consumers require no import or call-site changes.
 class SignalRService {
   static final SignalRService _instance = SignalRService._internal();
   factory SignalRService() => _instance;
-  SignalRService._internal();
+
+  SignalRService._internal()
+      : _connectionManager = SignalRConnectionManager(),
+        _statusTracker = OnlineStatusTracker() {
+    _eventRouter = SignalREventRouter(_statusTracker);
+    _eventRouter.onClearOwnerBoardController = () {
+      _ownerBoardController = null;
+    };
+  }
 
   // WORKAROUND: Default board ID until multi-board support is implemented
-  static const String defaultBoardId = "default-shared-board";
+  static const String defaultBoardId = 'default-shared-board';
 
-  HubConnection? _hubConnection;
+  final SignalRConnectionManager _connectionManager;
+  final OnlineStatusTracker _statusTracker;
+  late final SignalREventRouter _eventRouter;
+
   String? _currentUserId;
-  String? _currentSessionId;
-  String? _sessionInitiatorId; // Track who started the session
-  String? _remoteUserId;
-  ArtifactBoardController? _ownerBoardController; // Store owner's board
+  ArtifactBoardController? _ownerBoardController;
 
-  // Online status tracking
-  final Set<String> _onlineUsers = {};
+  // ── Getters (unchanged public surface) ────────────────────────
 
-  // Missed call callback
-  void Function(String userId, String userName)? onMissedCall;
-
-  // Contact cache for name resolution (userId -> name)
-  final Map<String, String> _contactCache = {};
-
-  // WebRTC signaling message queues
-  final List<Map<String, dynamic>> _pendingOffers = [];
-  final List<Map<String, dynamic>> _pendingAnswers = [];
-  final List<Map<String, dynamic>> _pendingIceCandidates = [];
-
-  // WebRTC signaling callbacks
-  void Function(String sessionId, Map<String, dynamic> offer)? onReceiveOffer;
-  void Function(String sessionId, Map<String, dynamic> answer)? onReceiveAnswer;
-  void Function(String sessionId, Map<String, dynamic> candidate)?
-      onReceiveIceCandidate;
-
-  bool get isConnected => _hubConnection?.state == HubConnectionState.Connected;
+  bool get isConnected => _connectionManager.isConnected;
   String? get currentUserId => _currentUserId;
-  String? get currentSessionId => _currentSessionId;
-  String? get sessionInitiatorId => _sessionInitiatorId;
-  String? get remoteUserId => _remoteUserId;
-  HubConnection? get hubConnection => _hubConnection;
-  Set<String> get onlineUsers => Set.unmodifiable(_onlineUsers);
+  String? get currentSessionId => _eventRouter.currentSessionId;
+  String? get sessionInitiatorId => _eventRouter.sessionInitiatorId;
+  String? get remoteUserId => _eventRouter.remoteUserId;
+  get hubConnection => _connectionManager.hubConnection;
+  Set<String> get onlineUsers => _statusTracker.onlineUsers;
 
-  // Board controller storage for remote sessions
+  // ── Board controller storage ──────────────────────────────────
+
   void setOwnerBoardController(ArtifactBoardController controller) {
     _ownerBoardController = controller;
-    debugPrint("SignalR: Stored owner board controller");
+    debugPrint('SignalR: Stored owner board controller');
   }
 
-  ArtifactBoardController? getOwnerBoardController() {
-    return _ownerBoardController;
-  }
+  ArtifactBoardController? getOwnerBoardController() => _ownerBoardController;
 
   void clearOwnerBoardController() {
     _ownerBoardController = null;
   }
 
-  // Online status methods
-  /// Check if a specific user is online
-  bool isUserOnline(String userId) {
-    return _onlineUsers.contains(userId);
-  }
+  // ── Online status (delegated) ─────────────────────────────────
 
-  /// Get list of online users
-  List<String> getOnlineUsers() {
-    return _onlineUsers.toList();
-  }
-
-  /// Fetch online users from server
+  bool isUserOnline(String userId) => _statusTracker.isUserOnline(userId);
+  List<String> getOnlineUsers() => _statusTracker.getOnlineUsers();
   Future<void> refreshOnlineUsers() async {
     if (!isConnected) return;
-
-    try {
-      final result = await _hubConnection!.invoke("GetOnlineUsers");
-      if (result != null && result is List) {
-        _onlineUsers.clear();
-        for (var userId in result) {
-          if (userId is String) {
-            _onlineUsers.add(userId);
-          }
-        }
-        debugPrint(
-            '[SignalR] Refreshed online users: ${_onlineUsers.length} users online');
-      }
-    } catch (e) {
-      debugPrint('[SignalR] Failed to refresh online users: $e');
-    }
+    await _statusTracker.refreshOnlineUsers(_connectionManager.hubConnection!);
   }
 
-  // Contact cache management
-  /// Load contacts from API and cache them for name resolution
+  // ── Contact cache (delegated) ─────────────────────────────────
+
   Future<void> loadContacts(String token) async {
     try {
       final contacts = await UserRepository().fetchRelatedContacts(token);
-
       if (contacts != null) {
-        _contactCache.clear();
+        _eventRouter.contactCache.clear();
         for (var user in contacts) {
           final name =
               user.name?.isNotEmpty == true ? user.name! : user.username;
-          _contactCache[user.id] = name;
+          _eventRouter.contactCache[user.id] = name;
         }
         debugPrint(
-            'SignalR: Loaded ${_contactCache.length} contacts into cache');
+            'SignalR: Loaded ${_eventRouter.contactCache.length} contacts into cache');
       }
     } catch (e) {
       debugPrint('SignalR: Failed to load contacts => $e');
     }
   }
 
-  /// Get contact name from cache, returns null if not found
-  String? getContactName(String userId) {
-    return _contactCache[userId];
-  }
+  String? getContactName(String userId) => _eventRouter.contactCache[userId];
 
-  void flushWebRTCQueue() {
-    debugPrint(
-        '[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
+  // ── WebRTC queue flush ────────────────────────────────────────
 
-    debugPrint(
-        '[SignalR] Flushing WebRTC queue: ${_pendingOffers.length} offers, ${_pendingAnswers.length} answers, ${_pendingIceCandidates.length} ICE candidates');
+  void flushWebRTCQueue() => _eventRouter.flushWebRTCQueue();
 
-    for (var msg in _pendingOffers) {
-      onReceiveOffer?.call(msg['sessionId'], msg['data']);
-    }
-    _pendingOffers.clear();
+  // ── Callback setters/getters (proxy to event router) ──────────
 
-    for (var msg in _pendingAnswers) {
-      onReceiveAnswer?.call(msg['sessionId'], msg['data']);
-    }
-    _pendingAnswers.clear();
+  // Session callbacks
+  void Function(String)? get onSessionRequested =>
+      _eventRouter.onSessionRequested;
+  set onSessionRequested(void Function(String)? v) =>
+      _eventRouter.onSessionRequested = v;
 
-    for (var msg in _pendingIceCandidates) {
-      onReceiveIceCandidate?.call(msg['sessionId'], msg['data']);
-    }
-    _pendingIceCandidates.clear();
-  }
+  void Function()? get onSessionRejected => _eventRouter.onSessionRejected;
+  set onSessionRejected(void Function()? v) =>
+      _eventRouter.onSessionRejected = v;
 
-  // Callbacks
-  void Function(String fromUserId)? onSessionRequested;
-  void Function()? onSessionRejected;
-  void Function(String sessionId, String boardId)? onSessionStarted;
-  void Function(dynamic boardData)? onBoardUpdated;
-  void Function()? onSessionEnded;
+  void Function(String, String)? get onSessionStarted =>
+      _eventRouter.onSessionStarted;
+  set onSessionStarted(void Function(String, String)? v) =>
+      _eventRouter.onSessionStarted = v;
+
+  void Function(dynamic)? get onBoardUpdated => _eventRouter.onBoardUpdated;
+  set onBoardUpdated(void Function(dynamic)? v) =>
+      _eventRouter.onBoardUpdated = v;
+
+  void Function()? get onSessionEnded => _eventRouter.onSessionEnded;
+  set onSessionEnded(void Function()? v) => _eventRouter.onSessionEnded = v;
 
   // Online status callback
-  void Function(String userId, bool isOnline)? onUserOnlineStatusChanged;
+  void Function(String, bool)? get onUserOnlineStatusChanged =>
+      _eventRouter.onUserOnlineStatusChanged;
+  set onUserOnlineStatusChanged(void Function(String, bool)? v) =>
+      _eventRouter.onUserOnlineStatusChanged = v;
 
   // Delta update callbacks
-  void Function(dynamic data)? onArtifactAdded;
-  void Function(dynamic data)? onArtifactRemoved;
-  void Function(dynamic data)? onArtifactMoved;
-  void Function(dynamic data)? onArtifactResized;
-  void Function(dynamic data)? onLayoutChanged;
-  void Function(dynamic data)? onFieldCountChanged;
+  void Function(dynamic)? get onArtifactAdded => _eventRouter.onArtifactAdded;
+  set onArtifactAdded(void Function(dynamic)? v) =>
+      _eventRouter.onArtifactAdded = v;
 
-  // ---------------- CONNECT ----------------
+  void Function(dynamic)? get onArtifactRemoved =>
+      _eventRouter.onArtifactRemoved;
+  set onArtifactRemoved(void Function(dynamic)? v) =>
+      _eventRouter.onArtifactRemoved = v;
+
+  void Function(dynamic)? get onArtifactMoved => _eventRouter.onArtifactMoved;
+  set onArtifactMoved(void Function(dynamic)? v) =>
+      _eventRouter.onArtifactMoved = v;
+
+  void Function(dynamic)? get onArtifactResized =>
+      _eventRouter.onArtifactResized;
+  set onArtifactResized(void Function(dynamic)? v) =>
+      _eventRouter.onArtifactResized = v;
+
+  void Function(dynamic)? get onLayoutChanged => _eventRouter.onLayoutChanged;
+  set onLayoutChanged(void Function(dynamic)? v) =>
+      _eventRouter.onLayoutChanged = v;
+
+  void Function(dynamic)? get onFieldCountChanged =>
+      _eventRouter.onFieldCountChanged;
+  set onFieldCountChanged(void Function(dynamic)? v) =>
+      _eventRouter.onFieldCountChanged = v;
+
+  // WebRTC signaling callbacks
+  void Function(String, Map<String, dynamic>)? get onReceiveOffer =>
+      _eventRouter.onReceiveOffer;
+  set onReceiveOffer(void Function(String, Map<String, dynamic>)? v) =>
+      _eventRouter.onReceiveOffer = v;
+
+  void Function(String, Map<String, dynamic>)? get onReceiveAnswer =>
+      _eventRouter.onReceiveAnswer;
+  set onReceiveAnswer(void Function(String, Map<String, dynamic>)? v) =>
+      _eventRouter.onReceiveAnswer = v;
+
+  void Function(String, Map<String, dynamic>)? get onReceiveIceCandidate =>
+      _eventRouter.onReceiveIceCandidate;
+  set onReceiveIceCandidate(
+          void Function(String, Map<String, dynamic>)? v) =>
+      _eventRouter.onReceiveIceCandidate = v;
+
+  // Missed call callback
+  void Function(String, String)? get onMissedCall =>
+      _eventRouter.onMissedCall;
+  set onMissedCall(void Function(String, String)? v) =>
+      _eventRouter.onMissedCall = v;
+
+  // ── CONNECT ───────────────────────────────────────────────────
+
   Future<void> connect(String userId) async {
     if (isConnected) return;
 
     _currentUserId = userId;
-    final hubUrl = _getHubUrl();
-    debugPrint("SignalR: Connecting to $hubUrl as user=$userId");
-    var jwtToken = GetIt.instance.get<Token>();
-    _hubConnection = HubConnectionBuilder()
-        .withUrl(
-          hubUrl,
-          options: HttpConnectionOptions(
-              accessTokenFactory: () async => jwtToken.value!),
-        )
-        .withAutomaticReconnect()
-        .build();
+    debugPrint('SignalR: Connecting as user=$userId');
 
     try {
-      await _hubConnection!.start();
-      debugPrint("SignalR: Connected");
+      final hub = await _connectionManager.connect();
 
       // Load contacts from API before registering
-      final token = jwtToken.value!;
+      final token = GetIt.instance.get<Token>().value!;
       await loadContacts(token);
 
-      _registerEvents();
+      _eventRouter.registerEvents(hub);
       await _registerUser();
       await refreshOnlineUsers();
     } catch (e) {
-      debugPrint("SignalR: Connection failed → $e");
+      debugPrint('SignalR: Connection failed → $e');
       rethrow;
     }
   }
 
-  // Determine URL based on platform
-  String _getHubUrl() {
-    final baseUrl = PlatformUtils.getSyncServiceUrl();
-    // Remove trailing slash if present, then add /boardHub
-    final normalizedUrl = baseUrl.endsWith('/')
-        ? baseUrl.substring(0, baseUrl.length - 1)
-        : baseUrl;
-    return "$normalizedUrl/boardHub";
-  }
+  // ── Session API wrappers ──────────────────────────────────────
 
-  Future<void> _registerUser() async {
-    if (_currentUserId == null) return;
-    try {
-      // Get the list of contact IDs to send to the backend
-      final contactIds = _contactCache.keys.toList();
-
-      await _hubConnection!
-          .invoke("RegisterUser", args: <Object>[_currentUserId!, contactIds]);
-      debugPrint(
-          "SignalR: Registered user $_currentUserId with ${contactIds.length} contacts");
-    } catch (e) {
-      debugPrint("SignalR: RegisterUser ERROR → $e");
-    }
-  }
-
-  // ---------------- EVENT HANDLERS ----------------
-  void _registerEvents() {
-    debugPrint("SignalR: Registering event handlers...");
-
-    _hubConnection!.on("SessionRequested", (args) {
-      debugPrint("SignalR => Received SessionRequested event");
-      if (args == null || args.isEmpty) return;
-      final fromUserId = args[0] as String;
-      _remoteUserId = fromUserId;
-      onSessionRequested?.call(fromUserId);
-    });
-
-    _hubConnection!.on("SessionRejected", (_) {
-      debugPrint("SignalR => Received SessionRejected event");
-      onSessionRejected?.call();
-    });
-
-    _hubConnection!.on("SessionStarted", (args) {
-      debugPrint("SignalR => Received SessionStarted event");
-      if (args == null || args.length < 2) return;
-      _currentSessionId = args[0] as String;
-      final boardId = args[1] as String;
-      onSessionStarted?.call(_currentSessionId!, boardId);
-    });
-
-    _hubConnection!.on("BoardUpdated", (args) {
-      debugPrint("SignalR => Received BoardUpdated event");
-      if (args == null || args.isEmpty) return;
-      onBoardUpdated?.call(args[0]);
-    });
-
-    _hubConnection!.on("SessionEnded", (_) {
-      debugPrint("SignalR => Received SessionEnded event");
-      _currentSessionId = null;
-      _sessionInitiatorId = null;
-      _remoteUserId = null;
-      _ownerBoardController = null;
-      onSessionEnded?.call();
-    });
-
-    // Online status listener
-    _hubConnection!.on("UserOnlineStatusChanged", (args) {
-      if (args == null || args.length < 2) return;
-      final userId = args[0] as String;
-      final isOnline = args[1] as bool;
-
-      debugPrint(
-          '[SignalR] UserOnlineStatusChanged: userId=$userId, isOnline=$isOnline');
-
-      if (isOnline) {
-        _onlineUsers.add(userId);
-      } else {
-        _onlineUsers.remove(userId);
-      }
-
-      onUserOnlineStatusChanged?.call(userId, isOnline);
-    });
-
-    // WebRTC signaling listeners
-    _hubConnection!.on('ReceiveOffer', (arguments) {
-      final sessionId = arguments![0] as String;
-      final offer = arguments[1] as Map<String, dynamic>;
-      debugPrint('[SignalR] ReceiveOffer: sessionId=$sessionId');
-
-      if (onReceiveOffer != null) {
-        onReceiveOffer!(sessionId, offer);
-      } else {
-        debugPrint('[SignalR] Queuing offer (WebRTC service not ready yet)');
-        _pendingOffers.add({'sessionId': sessionId, 'data': offer});
-      }
-    });
-
-    _hubConnection!.on('ReceiveAnswer', (arguments) {
-      final sessionId = arguments![0] as String;
-      final answer = arguments[1] as Map<String, dynamic>;
-      debugPrint('[SignalR] ReceiveAnswer: sessionId=$sessionId');
-
-      if (onReceiveAnswer != null) {
-        onReceiveAnswer!(sessionId, answer);
-      } else {
-        debugPrint('[SignalR] Queuing answer (WebRTC service not ready yet)');
-        _pendingAnswers.add({'sessionId': sessionId, 'data': answer});
-      }
-    });
-
-    _hubConnection!.on('ReceiveIceCandidate', (arguments) {
-      final sessionId = arguments![0] as String;
-      final candidate = arguments[1] as Map<String, dynamic>;
-      debugPrint('[SignalR] ReceiveIceCandidate: sessionId=$sessionId');
-
-      if (onReceiveIceCandidate != null) {
-        onReceiveIceCandidate!(sessionId, candidate);
-      } else {
-        debugPrint(
-            '[SignalR] Queuing ICE candidate (WebRTC service not ready yet)');
-        _pendingIceCandidates.add({'sessionId': sessionId, 'data': candidate});
-      }
-    });
-
-    // Delta update events
-    _hubConnection!.on("ArtifactAdded", (args) {
-      debugPrint("SignalR => Received ArtifactAdded event");
-      if (args == null || args.isEmpty) return;
-      debugPrint("SignalR => Calling onArtifactAdded callback");
-      onArtifactAdded?.call(args[0]);
-    });
-
-    _hubConnection!.on("ArtifactRejected", (args) {
-      debugPrint("SignalR => Received ArtifactRejected event");
-
-      // TODO: Handle artifact rejection if needed
-    });
-
-    _hubConnection!.on("ArtifactRemoved", (args) {
-      debugPrint("SignalR => Received ArtifactRemoved event");
-      if (args == null || args.isEmpty) return;
-      debugPrint("SignalR => Calling onArtifactRemoved callback");
-      onArtifactRemoved?.call(args[0]);
-    });
-
-    _hubConnection!.on("ArtifactMoved", (args) {
-      debugPrint("SignalR => Received ArtifactMoved event");
-      if (args == null || args.isEmpty) return;
-      debugPrint("SignalR => Calling onArtifactMoved callback");
-      onArtifactMoved?.call(args[0]);
-    });
-
-    _hubConnection!.on("ArtifactResized", (args) {
-      debugPrint("SignalR => Received ArtifactResized event");
-      if (args == null || args.isEmpty) return;
-      debugPrint("SignalR => Calling onArtifactResized callback");
-      onArtifactResized?.call(args[0]);
-    });
-
-    _hubConnection!.on("LayoutChanged", (args) {
-      debugPrint("SignalR => Received LayoutChanged event");
-      if (args == null || args.isEmpty) return;
-      debugPrint("SignalR => Calling onLayoutChanged callback");
-      onLayoutChanged?.call(args[0]);
-    });
-
-    _hubConnection!.on("FieldCountChanged", (args) {
-      debugPrint("SignalR => Received FieldCountChanged event");
-      if (args == null || args.isEmpty) return;
-      debugPrint("SignalR => Calling onFieldCountChanged callback");
-      onFieldCountChanged?.call(args[0]);
-    });
-
-    _hubConnection!.on("MissedCall", (args) {
-      debugPrint("SignalR => MissedCall EVENT");
-
-      if (args == null || args.length < 2) {
-        debugPrint("ERROR: Invalid MissedCall args!");
-        return;
-      }
-
-      final fromUserId = args[0] as String;
-      final fromUserNameFromBackend = args[1] as String;
-
-      debugPrint('[SignalR] MissedCall from userId: $fromUserId');
-      debugPrint('[SignalR] Name from backend: $fromUserNameFromBackend');
-
-      //Look up the name in our own contact cache (the receiver's contacts)
-      final fromUserName =
-          getContactName(fromUserId) ?? fromUserNameFromBackend;
-
-      debugPrint('[SignalR] Final name to use: $fromUserName');
-
-      // Show local notification with the correct name
-      NotificationService().showMissedCallNotification(fromUserName);
-
-      // Call callback if set
-      onMissedCall?.call(fromUserId, fromUserName);
-    });
-    debugPrint("SignalR: All event handlers registered successfully");
-  }
-
-  // ---------------- API WRAPPERS ----------------
   Future<void> requestSession(String toUserId) async {
     if (!isConnected || _currentUserId == null) return;
-
-    // Mark current user as the initiator
-    _sessionInitiatorId = _currentUserId;
-    _remoteUserId = toUserId;
-
-    await _hubConnection!.invoke(
-      "RequestSession",
+    _eventRouter.sessionInitiatorId = _currentUserId;
+    _eventRouter.remoteUserId = toUserId;
+    await _connectionManager.hubConnection!.invoke(
+      'RequestSession',
       args: <Object>[_currentUserId!, toUserId],
     );
-    debugPrint("SignalR: requestSession => $_currentUserId → $toUserId");
+    debugPrint('SignalR: requestSession => $_currentUserId → $toUserId');
   }
 
   Future<void> acceptSession(String sessionId, String fromUserId,
       String toUserId, String boardId) async {
     if (!isConnected || _currentUserId == null) return;
-
-    // WORKAROUND: Use default board ID until multi-board support is implemented
     final actualBoardId =
-        boardId == "placeholder-board-id" ? defaultBoardId : boardId;
-
-    // Mark the one who initiated as the initiator
-    _sessionInitiatorId = fromUserId;
-
-    await _hubConnection!.invoke(
-      "AcceptSession",
+        boardId == 'placeholder-board-id' ? defaultBoardId : boardId;
+    _eventRouter.sessionInitiatorId = fromUserId;
+    await _connectionManager.hubConnection!.invoke(
+      'AcceptSession',
       args: <Object>[sessionId, fromUserId, toUserId, actualBoardId],
     );
     debugPrint(
-        "SignalR: acceptSession => $sessionId from $fromUserId to $toUserId with boardId=$actualBoardId");
+        'SignalR: acceptSession => $sessionId from $fromUserId to $toUserId with boardId=$actualBoardId');
   }
 
   Future<void> rejectSession(String fromUserId) async {
     if (!isConnected) return;
-    await _hubConnection!.invoke("RejectSession", args: <Object>[fromUserId]);
+    await _connectionManager.hubConnection!
+        .invoke('RejectSession', args: <Object>[fromUserId]);
   }
 
   Future<void> updateBoard(dynamic boardData) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke(
-      "UpdateBoard",
-      args: <Object>[_currentSessionId!, boardData],
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!.invoke(
+      'UpdateBoard',
+      args: <Object>[_eventRouter.currentSessionId!, boardData],
     );
   }
 
-  // ---------------- DELTA UPDATE API WRAPPERS ----------------
+  // ── Delta update API wrappers ─────────────────────────────────
 
   Future<void> sendArtifactAdded(dynamic data) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke("ArtifactAdded", args: <Object>[data]);
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('ArtifactAdded', args: <Object>[data]);
   }
 
   Future<void> sendArtifactRemoved(dynamic data) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke("ArtifactRemoved", args: <Object>[data]);
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('ArtifactRemoved', args: <Object>[data]);
   }
 
   Future<void> sendArtifactMoved(dynamic data) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke("ArtifactMoved", args: <Object>[data]);
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('ArtifactMoved', args: <Object>[data]);
   }
 
   Future<void> sendArtifactResized(dynamic data) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke("ArtifactResized", args: <Object>[data]);
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('ArtifactResized', args: <Object>[data]);
   }
 
   Future<void> sendLayoutChanged(dynamic data) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke("LayoutChanged", args: <Object>[data]);
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('LayoutChanged', args: <Object>[data]);
   }
 
   Future<void> sendFieldCountChanged(dynamic data) async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!.invoke("FieldCountChanged", args: <Object>[data]);
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('FieldCountChanged', args: <Object>[data]);
   }
 
   Future<void> endSession() async {
-    if (!isConnected || _currentSessionId == null) return;
-    await _hubConnection!
-        .invoke("EndSession", args: <Object>[_currentSessionId!]);
-    _currentSessionId = null;
-    _sessionInitiatorId = null;
+    if (!isConnected || _eventRouter.currentSessionId == null) return;
+    await _connectionManager.hubConnection!
+        .invoke('EndSession', args: <Object>[_eventRouter.currentSessionId!]);
+    _eventRouter.currentSessionId = null;
+    _eventRouter.sessionInitiatorId = null;
   }
 
-  // ---------------- DISCONNECT ----------------
-  Future<void> disconnect() async {
-    try {
-      await _hubConnection?.stop();
-    } catch (_) {}
-    debugPrint("SignalR: Disconnected");
+  // ── DISCONNECT ────────────────────────────────────────────────
 
-    // Clear all state
-    _hubConnection = null;
+  Future<void> disconnect() async {
+    await _connectionManager.disconnect();
+
     _currentUserId = null;
-    _currentSessionId = null;
-    _sessionInitiatorId = null;
-    _remoteUserId = null;
     _ownerBoardController = null;
 
-    _onlineUsers.clear();
+    _statusTracker.clear();
+    _eventRouter.clear();
 
-    // Clear all callbacks
-    onSessionRequested = null;
-    onSessionRejected = null;
-    onSessionStarted = null;
-    onBoardUpdated = null;
-    onSessionEnded = null;
+    debugPrint('SignalR: All state and callbacks cleared');
+  }
 
-    onUserOnlineStatusChanged = null;
+  // ── Private helpers ───────────────────────────────────────────
 
-    // Clear WebRTC callbacks
-    onReceiveOffer = null;
-    onReceiveAnswer = null;
-    onReceiveIceCandidate = null;
-
-    // Clear message queues
-    _pendingOffers.clear();
-    _pendingAnswers.clear();
-    _pendingIceCandidates.clear();
-
-    // Clear contact cache
-    _contactCache.clear();
-
-    debugPrint("SignalR: All state and callbacks cleared");
+  Future<void> _registerUser() async {
+    if (_currentUserId == null) return;
+    try {
+      final contactIds = _eventRouter.contactCache.keys.toList();
+      await _connectionManager.hubConnection!
+          .invoke('RegisterUser', args: <Object>[_currentUserId!, contactIds]);
+      debugPrint(
+          'SignalR: Registered user $_currentUserId with ${contactIds.length} contacts');
+    } catch (e) {
+      debugPrint('SignalR: RegisterUser ERROR → $e');
+    }
   }
 }

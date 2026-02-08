@@ -11,7 +11,7 @@ on:
       - main
 
 jobs:
-  ci:
+  backend-ci:
     runs-on: ubuntu-latest
 
     env:
@@ -32,9 +32,54 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --framework net8.0 --verbosity normal
 
+  flutter-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend/vta_app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
+  admin-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend/admin-dashboard
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (type-check + bundle)
+        run: npm run build
+
   cd:
     runs-on: self-hosted
-    needs: ci
+    needs: [backend-ci, flutter-ci, admin-ci]
     if: github.ref == 'refs/heads/main'
 
     steps:
