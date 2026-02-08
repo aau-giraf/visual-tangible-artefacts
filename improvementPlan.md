@@ -11,15 +11,15 @@
 |-------|--------|--------|-------|
 | Phase 1 — Stop the Bleeding | ✅ Merged to `dev-main` | `feature/phase1-stabilise` | 98/98 ✅ |
 | Phase 2 — Backend Service Layer | ✅ Merged to `dev-main` | `feature/phase2-service-layer` | 98/98 ✅ |
-| Phase 3 — God Class Splits | 🔄 In progress | `feature/phase3-god-class-splits` | 25/25 + 98/98 ✅ |
+| Phase 3 — God Class Splits | ✅ Completed | `feature/phase3-god-class-splits` | 25/25 + 98/98 + 13/13 ✅ |
 | Phase 4 — Reliability & Observability | 📋 Planned | — | — |
 | Phase 5 — Backlog | 📋 Planned | — | — |
 
 **Phase 3 progress:**
 - ✅ **3.1 BoardHub.cs split** — Extracted 3 services (`PresenceService`, `SessionService`, `BoardSyncRelay`). Hub reduced from 584→290 LOC. All 25 SyncService tests + 98 VTA tests pass.
-- ⬜ 3.2 RemoteArtifactBoardController split (Flutter)
-- ⬜ 3.3 SyncService split (Flutter)
-- ⬜ 3.4 SignalRService split (Flutter)
+- ✅ **3.2 RemoteArtifactBoardController split** — Extracted `RemoteBoardSyncSender` (~310 LOC) and `RemoteBoardSyncReceiver` (~340 LOC). Controller reduced from 1,209→~290 LOC. All 13 Flutter tests pass.
+- ✅ **3.3 SyncService split** — Extracted `SyncChangeDetector` (~234 LOC), `SyncDownloader` (~374 LOC), `SyncUploader` (~217 LOC), and `sync_models.dart` (~103 LOC). Orchestrator reduced from 1,009→~160 LOC. All 13 Flutter tests pass.
+- ✅ **3.4 SignalRService split** — Extracted `SignalRConnectionManager` (~58 LOC), `SignalREventRouter` (~286 LOC), and `OnlineStatusTracker` (~47 LOC). Facade reduced from 532→~320 LOC. All 16 consumers unchanged. All 13 Flutter tests pass.
 
 ---
 
@@ -278,9 +278,9 @@ Extract responsibility groups into injectable services. Hub stays as a thin disp
 - `SyncService/Hubs/BoardHub.cs` — inject services, delegate
 - `SyncService.Tests/` — update test setup if constructor changes
 
-### 3.2 Split `RemoteArtifactBoardController` (Flutter, 1,209 LOC)
+### 3.2 Split `RemoteArtifactBoardController` (Flutter, 1,209 LOC) ✅ COMPLETED
 
-Extract outbound and inbound sync logic into separate classes. Controller remains as thin orchestrator (~300 LOC).
+Extracted outbound and inbound sync logic into separate classes. Controller reduced to ~290 LOC orchestrator.
 
 | New class | Responsibility | ~Lines |
 |-----------|---------------|--------|
@@ -294,9 +294,9 @@ Extract outbound and inbound sync logic into separate classes. Controller remain
 **Files to modify:**
 - `lib/src/controllers/remote_artifact_board_controller.dart` — inject sender + receiver, delegate
 
-### 3.3 Split `SyncService` (Flutter, 1,008 LOC)
+### 3.3 Split `SyncService` (Flutter, 1,008 LOC) ✅ COMPLETED
 
-Extract change detection, downloading, and uploading into focused classes. Orchestrator remains (~150 LOC).
+Extracted change detection, downloading, and uploading into focused classes. Orchestrator reduced to ~160 LOC.
 
 | New class | Responsibility | ~Lines |
 |-----------|---------------|--------|
@@ -314,9 +314,9 @@ Extract change detection, downloading, and uploading into focused classes. Orche
 **Files to modify:**
 - `lib/src/services/sync_service.dart` — thin orchestrator
 
-### 3.4 Split `SignalRService` (Flutter, 531 LOC)
+### 3.4 Split `SignalRService` (Flutter, 531 LOC) ✅ COMPLETED
 
-Decompose the monolithic singleton into focused services. The 150-line `_registerEvents()` method is the primary extraction target.
+Decomposed the monolithic singleton into focused services. Facade preserved identical public API for all 16 consumers.
 
 | New class | Responsibility | ~Lines |
 |-----------|---------------|--------|
