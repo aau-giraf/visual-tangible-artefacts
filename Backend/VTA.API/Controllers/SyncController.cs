@@ -38,14 +38,12 @@ public class SyncController : ControllerBase
     {
         _logger.LogDebug("GetChanges called with since: {Since}", since);
         
-        var userId = User.FindFirst("id")?.Value;
-        _logger.LogDebug("User ID from token: {UserId}", userId);
-        
-        if (string.IsNullOrEmpty(userId))
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId))
         {
             _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
+        _logger.LogDebug("User ID from token: {UserId}", userId);
 
         var changedFiles = new List<FileChangeDTO>();
 
@@ -124,14 +122,12 @@ public class SyncController : ControllerBase
     {
         _logger.LogDebug("GetChangedArtefacts called with since: {Since}", since);
         
-        var userId = User.FindFirst("id")?.Value;
-        _logger.LogDebug("User ID: {UserId}", userId);
-        
-        if (string.IsNullOrEmpty(userId))
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId))
         {
             _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
+        _logger.LogDebug("User ID: {UserId}", userId);
 
         _logger.LogDebug("Querying artefacts for user {UserId} modified after {Since}", userId, since);
         var artefacts = await _context.Artefacts
@@ -174,14 +170,12 @@ public class SyncController : ControllerBase
     {
         _logger.LogDebug("GetChangedBoards called with since: {Since}", since);
         
-        var userId = User.FindFirst("id")?.Value;
-        _logger.LogDebug("User ID: {UserId}", userId);
-        
-        if (string.IsNullOrEmpty(userId))
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId))
         {
             _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
+        _logger.LogDebug("User ID: {UserId}", userId);
 
         _logger.LogDebug("Querying boards for user {UserId} modified after {Since}", userId, since);
         var boards = await _context.SavedBoards
@@ -218,14 +212,12 @@ public class SyncController : ControllerBase
     {
         _logger.LogDebug("GetChangeSummary called with since: {Since}", since);
         
-        var userId = User.FindFirst("id")?.Value;
-        _logger.LogDebug("User ID: {UserId}", userId);
-        
-        if (string.IsNullOrEmpty(userId))
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId))
         {
             _logger.LogWarning("No user ID in token, returning Unauthorized");
             return Unauthorized("Invalid token");
         }
+        _logger.LogDebug("User ID: {UserId}", userId);
 
         _logger.LogDebug("Counting artefacts for user {UserId} modified after {Since}", userId, since);
         var artefactCount = await _context.Artefacts

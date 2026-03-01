@@ -36,8 +36,7 @@ public class SavedArtefactsController : ControllerBase
   [HttpPatch]
   public async Task<IActionResult> UpdateArtefactLayout(string boardId, [FromBody] UpdateArtefactLayoutDTO request)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized("Invalid token");
 
     var (success, error) = await _boardService.UpdateSavedArtefactLayoutAsync(boardId, userId, request);
 
@@ -60,8 +59,7 @@ public class SavedArtefactsController : ControllerBase
   [HttpDelete("{savedArtefactId}")]
   public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized("Invalid token");
 
     var (success, error) = await _boardService.RemoveArtefactFromBoardAsync(boardId, savedArtefactId, userId);
 
@@ -82,8 +80,7 @@ public class SavedArtefactsController : ControllerBase
   [HttpDelete]
   public async Task<IActionResult> ClearBoard(string boardId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized("Invalid token");
 
     // This endpoint also deletes Session-Artefacts (unlike BoardsController.ClearBoard)
     var (success, _) = await _boardService.ClearBoardAsync(boardId, userId, deleteSessionArtefacts: true);

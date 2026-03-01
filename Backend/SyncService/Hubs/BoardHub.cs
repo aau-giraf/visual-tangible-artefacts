@@ -148,8 +148,8 @@ namespace SyncService.Hubs
             {
                 context.Sessions.Add(new Session
                 {
-                    CallerId = fromUserId,
-                    CalleeId = toUserId,
+                    CallerId = int.Parse(fromUserId),
+                    CalleeId = int.Parse(toUserId),
                     StartTime = DateTime.UtcNow,
                     CallStatus = CallStatus.Accepted
                 });
@@ -175,8 +175,8 @@ namespace SyncService.Hubs
                 {
                     context.Sessions.Add(new Session
                     {
-                        CallerId = fromUserId,
-                        CalleeId = currentUserId,
+                        CallerId = int.Parse(fromUserId),
+                        CalleeId = int.Parse(currentUserId),
                         StartTime = DateTime.UtcNow,
                         CallStatus = CallStatus.Rejected
                     });
@@ -228,9 +228,9 @@ namespace SyncService.Hubs
             }
 
             var artifact = payload.Artifact;
-            var userId = Context.User?.FindFirst("id")?.Value;
+            var userIdStr = Context.User?.FindFirst("sub")?.Value;
 
-            if (string.IsNullOrEmpty(userId))
+            if (!int.TryParse(userIdStr, out var userId))
             {
                 await Clients.Caller.SendAsync("ArtifactRejected", data, "Unauthorized: No user ID in context");
                 return;
@@ -363,9 +363,11 @@ namespace SyncService.Hubs
         {
             try
             {
+                var user1Id = int.Parse(boardSession.User1Id);
+                var user2Id = int.Parse(boardSession.User2Id);
                 var dbSession = await context.Sessions
-                    .Where(s => (s.CallerId == boardSession.User1Id && s.CalleeId == boardSession.User2Id) ||
-                                (s.CallerId == boardSession.User2Id && s.CalleeId == boardSession.User1Id))
+                    .Where(s => (s.CallerId == user1Id && s.CalleeId == user2Id) ||
+                                (s.CallerId == user2Id && s.CalleeId == user1Id))
                     .Where(s => s.CallStatus == CallStatus.Accepted)
                     .OrderByDescending(s => s.StartTime)
                     .FirstOrDefaultAsync();

@@ -23,7 +23,7 @@ public class ArtefactService : IArtefactService
     }
 
     /// <inheritdoc />
-    public async Task<List<Artefact>> GetArtefactsForUserAsync(string userId, int? skip = null, int? take = null)
+    public async Task<List<Artefact>> GetArtefactsForUserAsync(int userId, int? skip = null, int? take = null)
     {
         var query = _context.Artefacts
             .AsNoTracking()
@@ -41,7 +41,7 @@ public class ArtefactService : IArtefactService
     }
 
     /// <inheritdoc />
-    public async Task<Artefact?> GetArtefactByIdAsync(string artefactId, string userId)
+    public async Task<Artefact?> GetArtefactByIdAsync(string artefactId, int userId)
     {
         return await _context.Artefacts
             .AsNoTracking()
@@ -52,7 +52,7 @@ public class ArtefactService : IArtefactService
     /// <inheritdoc />
     public async Task<Artefact> CreateOrUpdateArtefactAsync(
         string? artefactId,
-        string userId,
+        int userId,
         string? name,
         ushort artefactIndex,
         string? categoryId,
@@ -73,6 +73,8 @@ public class ArtefactService : IArtefactService
             resolvedId = Guid.NewGuid().ToString();
         }
 
+        var userIdStr = userId.ToString();
+
         // --- UPDATE path ---
         if (existing != null)
         {
@@ -86,9 +88,9 @@ public class ArtefactService : IArtefactService
             {
                 if (!string.IsNullOrEmpty(existing.ImagePath))
                 {
-                    ImageUtilities.DeleteImage(existing.ArtefactId, "Artefacts", userId);
+                    ImageUtilities.DeleteImage(existing.ArtefactId, "Artefacts", userIdStr);
                 }
-                existing.ImagePath = await ImageUtilities.AddImage(image, resolvedId, "Artefacts", userId);
+                existing.ImagePath = await ImageUtilities.AddImage(image, resolvedId, "Artefacts", userIdStr);
             }
 
             // Replace sound if provided
@@ -96,9 +98,9 @@ public class ArtefactService : IArtefactService
             {
                 if (!string.IsNullOrEmpty(existing.SoundPath))
                 {
-                    try { SoundUtilities.DeleteSound(existing.ArtefactId, userId); } catch { }
+                    try { SoundUtilities.DeleteSound(existing.ArtefactId, userIdStr); } catch { }
                 }
-                existing.SoundPath = await SoundUtilities.AddSound(sound, resolvedId, userId);
+                existing.SoundPath = await SoundUtilities.AddSound(sound, resolvedId, userIdStr);
             }
 
             _context.Entry(existing).State = EntityState.Modified;
@@ -107,13 +109,13 @@ public class ArtefactService : IArtefactService
         }
 
         // --- CREATE path ---
-        var user = await _context.Users.FindAsync(userId);
-        string? imagePath = await ImageUtilities.AddImage(image, resolvedId, "Artefacts", userId);
+        var settings = await _context.UserSettings.FindAsync(userId);
+        string? imagePath = await ImageUtilities.AddImage(image, resolvedId, "Artefacts", userIdStr);
 
         string? soundPath = null;
         if (sound != null)
         {
-            soundPath = await SoundUtilities.AddSound(sound, resolvedId, userId);
+            soundPath = await SoundUtilities.AddSound(sound, resolvedId, userIdStr);
         }
 
         var artefact = new Artefact
@@ -123,7 +125,7 @@ public class ArtefactService : IArtefactService
             UserId = userId,
             CategoryId = categoryId,
             Name = name,
-            NameShown = nameShown ?? user?.NameVisible ?? false,
+            NameShown = nameShown ?? settings?.NameVisible ?? false,
             ImagePath = imagePath,
             SoundPath = soundPath
         };
@@ -157,7 +159,7 @@ public class ArtefactService : IArtefactService
     /// <inheritdoc />
     public async Task<Artefact?> PatchArtefactAsync(
         string artefactId,
-        string userId,
+        int userId,
         ushort? artefactIndex,
         string? name,
         bool? nameShown,
@@ -169,6 +171,8 @@ public class ArtefactService : IArtefactService
         {
             return null;
         }
+
+        var userIdStr = userId.ToString();
 
         if (artefactIndex != null && artefact.ArtefactIndex != artefactIndex.Value)
         {
@@ -187,14 +191,14 @@ public class ArtefactService : IArtefactService
         // category image (existing behaviour carried over from the controller).
         if (image != null && !string.IsNullOrEmpty(artefact.CategoryId))
         {
-            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories", userId);
-            await ImageUtilities.AddImage(image, artefact.CategoryId, "Categories", userId);
+            ImageUtilities.DeleteImage(artefact.CategoryId, "Categories", userIdStr);
+            await ImageUtilities.AddImage(image, artefact.CategoryId, "Categories", userIdStr);
         }
 
         if (sound != null)
         {
-            try { SoundUtilities.DeleteSound(artefact.ArtefactId, userId); } catch { }
-            artefact.SoundPath = await SoundUtilities.AddSound(sound, artefact.ArtefactId, userId);
+            try { SoundUtilities.DeleteSound(artefact.ArtefactId, userIdStr); } catch { }
+            artefact.SoundPath = await SoundUtilities.AddSound(sound, artefact.ArtefactId, userIdStr);
         }
 
         _context.Entry(artefact).State = EntityState.Modified;
@@ -216,7 +220,7 @@ public class ArtefactService : IArtefactService
     }
 
     /// <inheritdoc />
-    public async Task<(bool Success, string? Error)> DeleteArtefactAsync(string artefactId, string userId)
+    public async Task<(bool Success, string? Error)> DeleteArtefactAsync(string artefactId, int userId)
     {
         var artefact = await _context.Artefacts.FindAsync(artefactId);
         if (artefact == null)
@@ -230,8 +234,9 @@ public class ArtefactService : IArtefactService
         }
 
         // Clean up files
-        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", userId);
-        try { SoundUtilities.DeleteSound(artefact.ArtefactId, userId); } catch { }
+        var userIdStr = userId.ToString();
+        ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", userIdStr);
+        try { SoundUtilities.DeleteSound(artefact.ArtefactId, userIdStr); } catch { }
 
         _context.Artefacts.Remove(artefact);
         await _context.SaveChangesAsync();
@@ -240,7 +245,7 @@ public class ArtefactService : IArtefactService
     }
 
     /// <inheritdoc />
-    public async Task<int> BulkUpdateNameShownAsync(string userId, bool nameShown)
+    public async Task<int> BulkUpdateNameShownAsync(int userId, bool nameShown)
     {
         var artefacts = await _context.Artefacts
             .Where(a => a.UserId == userId)
@@ -256,7 +261,7 @@ public class ArtefactService : IArtefactService
     }
 
     /// <inheritdoc />
-    public async Task<Artefact?> GetArtefactForAudioAsync(string artefactId, string userId)
+    public async Task<Artefact?> GetArtefactForAudioAsync(string artefactId, int userId)
     {
         return await _context.Artefacts
             .Where(a => a.UserId == userId && a.ArtefactId == artefactId)

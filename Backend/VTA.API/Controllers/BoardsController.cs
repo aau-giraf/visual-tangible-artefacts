@@ -36,8 +36,8 @@ public class BoardsController : ControllerBase
   [HttpGet]
   public async Task<ActionResult<IEnumerable<BoardGetDTO>>> GetBoards([FromQuery] int? skip, [FromQuery] int? take)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized();
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
     var boards = await _boardService.GetBoardsForUserAsync(userId, skip, take);
 
@@ -63,8 +63,8 @@ public class BoardsController : ControllerBase
   [HttpGet("list")]
   public async Task<ActionResult<IEnumerable<BoardListItemDTO>>> GetBoardsList([FromQuery] int? skip, [FromQuery] int? take)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized();
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
     var boards = await _boardService.GetBoardListAsync(userId, skip, take);
 
@@ -87,8 +87,8 @@ public class BoardsController : ControllerBase
   [HttpGet("{boardId}")]
   public async Task<ActionResult<BoardGetDTO>> GetBoard(string boardId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized();
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
     var board = await _boardService.GetBoardAsync(boardId, userId);
     if (board == null) return NotFound();
@@ -123,8 +123,8 @@ public class BoardsController : ControllerBase
   [HttpPost]
   public async Task<IActionResult> PostBoard([FromBody] JsonElement body)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized();
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
     // If the JSON contains an "Artefacts" property, treat as SaveBoardRequestDTO
     if (body.ValueKind == JsonValueKind.Object && body.EnumerateObject().Any(p => string.Equals(p.Name, "Artefacts", StringComparison.OrdinalIgnoreCase)))
@@ -192,8 +192,8 @@ public class BoardsController : ControllerBase
   [HttpPatch]
   public async Task<IActionResult> PatchBoard([FromBody] BoardPatchDTO boardPatchDTO)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized();
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
     var success = await _boardService.PatchBoardAsync(
         boardPatchDTO.BoardId, userId, boardPatchDTO.Name, boardPatchDTO.SnapshotPath);
@@ -208,8 +208,8 @@ public class BoardsController : ControllerBase
   [HttpPut("{boardId}")]
   public async Task<ActionResult<BoardLayoutResponseDTO>> UpdateBoard(string boardId, [FromBody] SaveBoardRequestDTO request)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized("Invalid token");
 
     try
     {
@@ -257,8 +257,8 @@ public class BoardsController : ControllerBase
   [HttpPatch("{boardId}/artefacts")]
   public async Task<IActionResult> UpdateArtefactLayout(string boardId, [FromBody] UpdateArtefactLayoutDTO request)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized("Invalid token");
 
     var (success, error) = await _boardService.UpdateArtefactLayoutAsync(boardId, userId, request);
 
@@ -278,8 +278,8 @@ public class BoardsController : ControllerBase
   [HttpDelete("{boardId}/artefacts/{savedArtefactId}")]
   public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized("Invalid token");
 
     var (success, error) = await _boardService.RemoveArtefactFromBoardAsync(boardId, savedArtefactId, userId);
 
@@ -298,8 +298,8 @@ public class BoardsController : ControllerBase
   [HttpDelete("{boardId}/artefacts")]
   public async Task<IActionResult> ClearBoard(string boardId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized("Invalid token");
 
     var (success, error) = await _boardService.ClearBoardAsync(boardId, userId);
 
@@ -317,8 +317,8 @@ public class BoardsController : ControllerBase
   [HttpDelete("{boardId}")]
   public async Task<IActionResult> DeleteBoard(string boardId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId)) return Unauthorized();
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
     var (success, _) = await _boardService.DeleteBoardAsync(boardId, userId);
 
