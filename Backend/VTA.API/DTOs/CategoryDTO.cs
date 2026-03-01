@@ -6,7 +6,7 @@ public partial class CategoryPostDTO
     
     public byte? CategoryIndex { get; set; }
 
-    public required string UserId { get; set; }
+    public required int UserId { get; set; }
 
     public string? Name { get; set; }
     public IFormFile? Image { get; set; }

@@ -20,7 +20,7 @@ public partial class ArtefactPostDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public required string UserId { get; set; }
+    public required int UserId { get; set; }
 
     /// <summary>
     /// The category ID the artefact belongs to
@@ -66,7 +66,7 @@ public partial class ArtefactPatchDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public required string UserId { get; set; }
+    public required int UserId { get; set; }
 
     /// <summary>
     /// The category ID the artefact belongs to
@@ -115,7 +115,7 @@ public partial class ArtefactGetDTO
     /// <summary>
     /// The ID of the user who owns the artefact
     /// </summary>
-    public string UserId { get; set; } = null!;
+    public int UserId { get; set; }
 
     /// <summary>
     /// The category ID the artefact belongs to

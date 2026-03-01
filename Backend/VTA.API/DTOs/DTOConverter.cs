@@ -69,43 +69,6 @@ public static class DTOConverter
             LastUsedDate = null
         };
     }
-    public static UserGetDTO MapUserToUserGetDTO(User user)
-    {
-        return new UserGetDTO
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Username = user.Username,
-            NameVisible = user.NameVisible,
-            FieldCount = user.FieldCount,
-            Role = user.Role
-        };
-    }
-
-    public static User MapUserSignUpDTOToUser(UserSignupDTO dto, string id)
-    {
-        return new User
-        {
-            Id = id,
-            Name = dto.Name,
-            Password = dto.Password,
-            Username = dto.Username,
-            Role = dto.Role
-        };
-    }
-
-    public static User MapUserPostDTOToUser(UserPostDTO user, string id)
-    {
-        return new User
-        {
-            Id = id,
-            Name = user.Name,
-            Password = user.Password,
-            Username = user.Username,
-            Role = user.Role
-        };
-    }
-
     public static SavedArtefactGetDTO MapSavedArtefactToSavedArtefactGetDTO(SavedArtefact savedArtefact, string scheme, string host)
     {
         return new SavedArtefactGetDTO
