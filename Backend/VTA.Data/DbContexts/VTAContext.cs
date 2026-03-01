@@ -17,15 +17,13 @@ public partial class VTAContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; }
 
-    public virtual DbSet<User> Users { get; set; }
-
     public virtual DbSet<SavedBoard> SavedBoards { get; set; }
 
     public virtual DbSet<SavedArtefact> SavedArtefacts { get; set; }
 
-    public virtual DbSet<Relation> Relations { get; set; }
-
     public virtual DbSet<Session> Sessions { get; set; }
+
+    public virtual DbSet<UserSettings> UserSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder

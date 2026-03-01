@@ -18,12 +18,10 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 
         builder.Property(e => e.CallerId)
             .IsRequired()
-            .HasMaxLength(36)
             .HasColumnName("caller_id");
 
         builder.Property(e => e.CalleeId)
             .IsRequired()
-            .HasMaxLength(36)
             .HasColumnName("callee_id");
 
         builder.Property(e => e.StartTime)
@@ -43,17 +41,5 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .HasConversion<string>()
             .HasMaxLength(20)
             .HasColumnName("call_status");
-
-        builder.HasOne(s => s.Caller)
-            .WithMany()
-            .HasForeignKey(s => s.CallerId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_sessions_caller");
-
-        builder.HasOne(s => s.Callee)
-            .WithMany()
-            .HasForeignKey(s => s.CalleeId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_sessions_callee");
     }
 }

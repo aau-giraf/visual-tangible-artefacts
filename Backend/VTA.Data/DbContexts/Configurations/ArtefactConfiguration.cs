@@ -33,7 +33,6 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
             .HasColumnType("datetime")
             .HasColumnName("modifiedDate");
         builder.Property(e => e.UserId)
-            .HasMaxLength(36)
             .HasColumnName("userID");
         builder.Property(e => e.Name)
             .HasMaxLength(255)
@@ -45,11 +44,6 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
             .HasForeignKey(d => d.CategoryId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("artefact_ibfk_2");
-
-        builder.HasOne(d => d.User).WithMany(p => p.Artefacts)
-            .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.Cascade)
-            .HasConstraintName("artefact_ibfk_1");
 
         builder.HasMany(d => d.SavedArtefacts).WithOne(p => p.Artefact)
             .HasForeignKey(p => p.ArtefactId)

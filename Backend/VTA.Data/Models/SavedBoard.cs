@@ -6,16 +6,13 @@ public class SavedBoard
 
     public required string Name { get; set; }
 
-    public required string UserId { get; set; }
+    public required int UserId { get; set; }
 
     public string? SnapshotPath { get; set; }
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     public DateTime? ModifiedDate { get; set; }
-
-    // Navigation properties
-    public virtual User User { get; set; } = null!;
 
     // JSON array containing SavedArtefact IDs present on this board (e.g. ["savedId1","savedId2",...])
     // This stores the actual SavedArtefact record IDs to handle multiple instances of the same artefact

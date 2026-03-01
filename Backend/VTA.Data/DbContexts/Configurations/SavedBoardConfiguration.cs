@@ -23,7 +23,6 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasColumnName("name");
 
         builder.Property(e => e.UserId)
-            .HasMaxLength(36)
             .HasColumnName("userId");
 
         builder.Property(e => e.SnapshotPath)
@@ -47,19 +46,9 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasColumnType("datetime")
             .HasColumnName("modifiedDate");
 
-        // Relationship: SavedBoard -> User (many-to-one)
-        builder.HasOne(d => d.User)
-            .WithMany(p => p.SavedBoards)
-            .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.Cascade)
-            .HasConstraintName("savedBoard_ibfk_1");
-
-        // Relationship: SavedBoard -> SavedArtefacts collection (one-to-many)
-        // This uses the boardId FK in SavedArtefact table
         builder.HasMany(d => d.SavedArtefacts)
             .WithOne(p => p.Board)
             .HasForeignKey(p => p.BoardId)
             .OnDelete(DeleteBehavior.Cascade);
-
     }
 }
