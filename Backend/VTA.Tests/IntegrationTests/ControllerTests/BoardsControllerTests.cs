@@ -21,10 +21,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task GetBoards_ReturnsOk_WithDefaultBoard()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
@@ -36,17 +33,12 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.NotNull(boards);
     Assert.Single(boards);
     Assert.Equal("Board1", boards[0].Name);  // Verify default board exists
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
   public async Task GetBoards_ReturnsOk_WithMultipleBoards()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     // Create additional boards (default "Board1" already exists)
     var board2 = await CreateTestBoard(loginData, "Board 2");
@@ -62,8 +54,6 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.NotNull(boards);
     // Accept possible extra default/seeding: expect at least 3
     Assert.True(boards.Count >= 3);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
@@ -77,10 +67,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task GetBoardsList_ReturnsOk_WithLightweightData()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var board = await CreateTestBoard(loginData, "Test Board");
 
@@ -95,8 +82,6 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(2, boardList.Count);
     Assert.Contains(boardList, b => b.Name == "Board1");  // Verify default board
     Assert.Contains(boardList, b => b.Name == "Test Board");  // Verify created board
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
@@ -110,10 +95,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task GetBoard_ReturnsOk_WithValidBoardId()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var createdBoard = await CreateTestBoard(loginData, "Test Board");
 
@@ -128,49 +110,34 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.NotNull(board);
     Assert.Equal(createdBoard.Id, board.BoardId);
     Assert.Equal("Test Board", board.Name);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
   public async Task GetBoard_ReturnsNotFound_WithInvalidBoardId()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards/non-existent-id");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
   public async Task GetBoard_ReturnsForbidden_WhenAccessingAnotherUsersBoard()
   {
-    var username1 = _utilities.GenerateUniqueUsername();
-    var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+    var loginData1 = _utilities.CreateTestLoginData();
+    var loginData2 = _utilities.CreateTestLoginData();
 
-    var username2 = _utilities.GenerateUniqueUsername();
-    var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus2);
-
-    var board = await CreateTestBoard(loginData1!, "User 1 Board");
+    var board = await CreateTestBoard(loginData1, "User 1 Board");
 
     // Try to access user 1's board with user 2's token
     var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Boards/{board.Id}");
-    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2!.Token);
+    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2.Token);
 
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.NotFound, response.StatusCode); // Returns NotFound for security
-
-    await _utilities.DeleteUserAsync(loginData1!.userId, loginData1.Token);
-    await _utilities.DeleteUserAsync(loginData2!.userId, loginData2.Token);
   }
 
   [Fact]
@@ -184,10 +151,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task PostBoard_ReturnsCreated_WithValidData()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var boardPostDTO = new BoardPostDTO
     {
@@ -209,8 +173,6 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.NotNull(board);
     Assert.Equal("New Board", board.Name);
     Assert.NotNull(board.Id);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
@@ -233,10 +195,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task PatchBoard_ReturnsNoContent_WithValidData()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var board = await CreateTestBoard(loginData, "Original Name");
 
@@ -264,17 +223,12 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     Assert.NotNull(updatedBoard);
     Assert.Equal("Updated Name", updatedBoard.Name);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
   public async Task PatchBoard_ReturnsNotFound_WithInvalidBoardId()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var boardPatchDTO = new BoardPatchDTO
     {
@@ -290,8 +244,6 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
@@ -315,10 +267,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   [Fact]
   public async Task DeleteBoard_ReturnsNoContent_WithValidBoardId()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var board = await CreateTestBoard(loginData, "Board to Delete");
 
@@ -333,25 +282,18 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
     var getResponse = await _client.SendAsync(getRequest);
     Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
   public async Task DeleteBoard_ReturnsNotFound_WithInvalidBoardId()
   {
-    var username = _utilities.GenerateUniqueUsername();
-    var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-    Assert.Equal(HttpStatusCode.OK, signUpStatus);
-    Assert.NotNull(loginData);
+    var loginData = _utilities.CreateTestLoginData();
 
     var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Boards/non-existent-id");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
     var response = await _client.SendAsync(request);
     Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-    await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
   }
 
   [Fact]
@@ -362,7 +304,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
   }
 
-  private async Task<BoardGetDTO> CreateTestBoard(UserLoginResponseDTO loginData, string boardName)
+  private async Task<BoardGetDTO> CreateTestBoard(TestLoginData loginData, string boardName)
   {
     var boardPostDTO = new BoardPostDTO
     {

@@ -85,7 +85,7 @@ namespace SyncService.Tests.Helpers
             };
         }
 
-        public ClaimsPrincipal CreateTestUser(string userId = "test-user-id", string userName = "TestUser")
+        public ClaimsPrincipal CreateTestUser(string userId = "999", string userName = "TestUser")
         {
             var claims = new List<Claim>
             {

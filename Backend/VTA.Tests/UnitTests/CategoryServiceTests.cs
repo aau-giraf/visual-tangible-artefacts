@@ -21,24 +21,14 @@ namespace VTA.Tests.UnitTests
         [Fact]
         public async Task CreateCategory_ShouldReturnCategoryGetDTO()
         {
-            var username = _utilities.GenerateUniqueUsername();
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
-            Assert.NotNull(signUpResult?.Token);
-
-            var categoryPostDTO = new CategoryPostDTO
-            {
-                UserId = signUpResult!.userId,
-                Name = "Test Category"
-            };
+            var loginData = _utilities.CreateTestLoginData();
 
             var content = new MultipartFormDataContent();
-            content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-            content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+            content.Add(new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId));
+            content.Add(new StringContent("Test Category"), nameof(CategoryPostDTO.Name));
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             request.Content = content;
 
             var response = await _client.SendAsync(request);
@@ -46,45 +36,32 @@ namespace VTA.Tests.UnitTests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.NotNull(category);
-            Assert.Equal(categoryPostDTO.Name, category!.Name);
+            Assert.Equal("Test Category", category!.Name);
 
             var deleteCategoryRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
-            deleteCategoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            deleteCategoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             var deleteCategoryResponse = await _client.SendAsync(deleteCategoryRequest);
             Assert.Equal(HttpStatusCode.NoContent, deleteCategoryResponse.StatusCode);
-
-            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult.userId, signUpResult.Token);
-            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
         }
 
         [Fact]
         public async Task GetCategoryById_ShouldReturnCategoryGetDTO()
         {
-            var username = _utilities.GenerateUniqueUsername();
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
-            Assert.NotNull(signUpResult?.Token);
-
-            var categoryPostDTO = new CategoryPostDTO
-            {
-                UserId = signUpResult!.userId,
-                Name = "Test Category"
-            };
+            var loginData = _utilities.CreateTestLoginData();
 
             var content = new MultipartFormDataContent();
-            content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-            content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+            content.Add(new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId));
+            content.Add(new StringContent("Test Category"), nameof(CategoryPostDTO.Name));
 
             var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-            postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             postRequest.Content = content;
 
             var postResponse = await _client.SendAsync(postRequest);
             var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
             var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category!.CategoryId}");
-            getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
             var getResponse = await _client.SendAsync(getRequest);
             var fetchedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
@@ -94,48 +71,32 @@ namespace VTA.Tests.UnitTests
             Assert.Equal(category.CategoryId, fetchedCategory!.CategoryId);
 
             var deleteCategoryRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
-            deleteCategoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            deleteCategoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             var deleteCategoryResponse = await _client.SendAsync(deleteCategoryRequest);
             Assert.Equal(HttpStatusCode.NoContent, deleteCategoryResponse.StatusCode);
-
-            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult.userId, signUpResult.Token);
-            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
         }
 
         [Fact]
         public async Task DeleteCategory_ShouldReturnNoContent()
         {
-            var username = _utilities.GenerateUniqueUsername();
-            var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-
-            Assert.Equal(HttpStatusCode.OK, signUpStatus);
-            Assert.NotNull(signUpResult?.Token);
-
-            var categoryPostDTO = new CategoryPostDTO
-            {
-                UserId = signUpResult!.userId,
-                Name = "Test Category"
-            };
+            var loginData = _utilities.CreateTestLoginData();
 
             var content = new MultipartFormDataContent();
-            content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-            content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+            content.Add(new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId));
+            content.Add(new StringContent("Test Category"), nameof(CategoryPostDTO.Name));
 
             var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-            postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
             postRequest.Content = content;
 
             var postResponse = await _client.SendAsync(postRequest);
             var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
             var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category!.CategoryId}");
-            deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
+            deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
             var deleteResponse = await _client.SendAsync(deleteRequest);
             Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
-
-            var deleteStatus = await _utilities.DeleteUserAsync(signUpResult.userId, signUpResult.Token);
-            Assert.Equal(HttpStatusCode.NoContent, deleteStatus);
         }
     }
 }

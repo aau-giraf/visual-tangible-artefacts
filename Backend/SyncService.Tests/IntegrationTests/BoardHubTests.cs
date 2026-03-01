@@ -19,19 +19,19 @@ namespace SyncService.Tests.IntegrationTests
         private readonly IPresenceService _presence;
         private readonly ISessionService _sessions;
         private readonly IBoardSyncRelay _syncRelay;
-        
+
         private const string SessionId = "test-session-id";
-        
+
         private const string BoardId = "test-board-id";
-        
+
         private const string ArtifactId = "test-artifact-id";
-        
-        private const string UserId = "test-user-id";
-        
+
+        private const int UserId = 999;
+
         private const string CallerId = "test-caller-id";
         private const string CalleeId = "test-callee-id";
-        
-        
+
+
         public BoardHubTests(DatabaseFixture dbFixture, ITestOutputHelper output)
         {
             _fixture = new HubFixture();
@@ -248,15 +248,15 @@ namespace SyncService.Tests.IntegrationTests
         public async Task ArtifactAdded_WithValidSession_Completes_With_ArtifactRejected()
         {
             var payload = CreateArtifactAddedPayload();
-            
+
             var jsonString = JsonSerializer.Serialize(payload);
             var data = JsonDocument.Parse(jsonString).RootElement;
-            
+
             var hub = CreateHub();
-            
+
             var artifactRejectedReceived = false;
             string? errorMessage = null;
-            
+
             _fixture.OnMessage("ArtifactRejected", args =>
             {
                 artifactRejectedReceived = true;
@@ -266,43 +266,42 @@ namespace SyncService.Tests.IntegrationTests
                     _output.WriteLine($"[ArtifactRejected]: {message}");
                 }
             });
-            
+
             await hub.ArtifactAdded(data);
-            
+
             _fixture.MockClients.Verify(c => c.Caller, Times.Once);
-            
+
             Assert.True(artifactRejectedReceived, "ArtifactRejected message was not sent to caller");
             Assert.NotNull(errorMessage);
             Assert.Equal("Artifact not found or does not belong to you", errorMessage);
         }
-        
+
         [Fact]
         public async Task ArtifactAdded_WithValidSession_Completes_With_ArtifactAdded()
         {
-            await AddTestUserToDb();
             await AddTestArtifactToDb();
 
             var payload = CreateArtifactAddedPayload();
-            
+
             var jsonString = JsonSerializer.Serialize(payload);
             var data = JsonDocument.Parse(jsonString).RootElement;
-            
+
             var hub = CreateHub();
-            
+
             var artifactAddedReceived = false;
-            
+
             _fixture.OnMessage("ArtifactAdded", args =>
             {
                 artifactAddedReceived = true;
                 _output.WriteLine($"[ArtifactAdded] Message sent to OthersInGroup with {args.Length} arguments");
             });
-            
+
             await hub.ArtifactAdded(data);
-            
+
             _fixture.MockClients.Verify(c => c.OthersInGroup(SessionId), Times.Once);
-            
+
             Assert.True(artifactAddedReceived, "ArtifactAdded message was not sent to OthersInGroup");
-            
+
             await CleanupTestData();
         }
 
@@ -324,7 +323,7 @@ namespace SyncService.Tests.IntegrationTests
                 }
             };
         }
-        
+
         private async Task AddTestArtifactToDb()
         {
             var artifact = new Artefact
@@ -340,32 +339,12 @@ namespace SyncService.Tests.IntegrationTests
             await _dbFixture.DbContext.SaveChangesAsync();
         }
 
-        private async Task AddTestUserToDb()
-        {
-            var user = new User
-            {
-                Id = UserId,
-                Name = "Test User",
-                Password = "hashedpassword",
-                Username = "TestUser"
-            };
-            _dbFixture.DbContext.Users.Add(user);
-            await _dbFixture.DbContext.SaveChangesAsync();
-        }
-
         private async Task CleanupTestData()
         {
             var artifactToDelete = _dbFixture.DbContext.Artefacts.FirstOrDefault(a => a.ArtefactId == ArtifactId);
             if (artifactToDelete != null)
             {
                 _dbFixture.DbContext.Artefacts.Remove(artifactToDelete);
-                await _dbFixture.DbContext.SaveChangesAsync();
-            }
-
-            var userToDelete = _dbFixture.DbContext.Users.FirstOrDefault(u => u.Id == UserId);
-            if (userToDelete != null)
-            {
-                _dbFixture.DbContext.Users.Remove(userToDelete);
                 await _dbFixture.DbContext.SaveChangesAsync();
             }
         }

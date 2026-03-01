@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -23,17 +23,14 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestAddArtefact()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData); // Ensure we have valid login data
+        var loginData = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent();
 
         var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
         imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
         content.Add(imageContent, "Image", "testImage.jpg");
-        content.Add(new StringContent(loginData.userId), "UserId");
+        content.Add(new StringContent(loginData.UserId.ToString()), "UserId");
         content.Add(new StringContent("0"), "ArtefactIndex");  // Add missing required field
         content.Add(new StringContent("Test Name"), "Name");   // Optional but good to test
 
@@ -75,10 +72,10 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         Assert.NotNull(retrievedArtefact);
         Assert.Equal(artefact.ArtefactId, retrievedArtefact.ArtefactId);
-        Assert.Equal(loginData.userId, retrievedArtefact.UserId);
+        Assert.Equal(loginData.UserId, retrievedArtefact.UserId);
 
         // File is now stored in user-specific folder with "image_" prefix: Assets/Artefacts/{userId}/image_{artefactId}.jpg
-        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"image_{artefact.ArtefactId}.jpg");
+        var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.UserId.ToString(), $"image_{artefact.ArtefactId}.jpg");
 
         await Task.Delay(1000); // Increased delay for slower systems
 
@@ -88,18 +85,13 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         {
             File.Delete(assetsPath);
         }
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestArtefactImageUpload_VerifyCorrectFilePathStructure()
     {
         // Arrange: Create a test user
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Arrange: Prepare test image data
         var testImageBytes = await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage");
@@ -107,7 +99,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var imageContent = new ByteArrayContent(testImageBytes);
         imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
         content.Add(imageContent, "Image", "testImage.jpg");
-        content.Add(new StringContent(loginData.userId), "UserId");
+        content.Add(new StringContent(loginData.UserId.ToString()), "UserId");
         content.Add(new StringContent("0"), "ArtefactIndex");
         content.Add(new StringContent("File Path Test Artefact"), "Name");
 
@@ -136,20 +128,22 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         await Task.Delay(1000); // Allow time for file system operations
 
+        var userIdStr = loginData.UserId.ToString();
+
         // Assert: File exists at the correct path with correct naming convention
         // Expected: Assets/Artefacts/{userId}/image_{artefactId}.jpg
-        var correctPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"image_{artefact.ArtefactId}.jpg");
+        var correctPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userIdStr, $"image_{artefact.ArtefactId}.jpg");
         Assert.True(File.Exists(correctPath), $"File should exist at correct path: {correctPath}");
 
         // Assert: User-specific directory exists
-        var userDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId);
+        var userDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userIdStr);
         Assert.True(Directory.Exists(userDirectory), $"User-specific directory should exist: {userDirectory}");
 
         // Assert: File does NOT exist in incorrect locations
         var incorrectPathRoot = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", $"image_{artefact.ArtefactId}.jpg");
         Assert.False(File.Exists(incorrectPathRoot), $"File should NOT exist in root Artefacts folder: {incorrectPathRoot}");
 
-        var incorrectPathWithoutPrefix = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"{artefact.ArtefactId}.jpg");
+        var incorrectPathWithoutPrefix = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userIdStr, $"{artefact.ArtefactId}.jpg");
         Assert.False(File.Exists(incorrectPathWithoutPrefix), $"File should NOT exist without 'image_' prefix: {incorrectPathWithoutPrefix}");
 
         // Assert: Verify file content matches uploaded content
@@ -162,24 +156,14 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         {
             File.Delete(correctPath);
         }
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestArtefactImageUpload_VerifyUserIsolation()
     {
         // Arrange: Create two different test users
-        var username1 = _utilities.GenerateUniqueUsername();
-        var username2 = _utilities.GenerateUniqueUsername();
-
-        var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "testpassword1", "Test User 1");
-        var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "testpassword2", "Test User 2");
-
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
-        Assert.NotNull(loginData1);
-        Assert.NotNull(loginData2);
+        var loginData1 = _utilities.CreateTestLoginData();
+        var loginData2 = _utilities.CreateTestLoginData();
 
         // Arrange: Prepare test image data for both users
         var testImageBytes = await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage");
@@ -189,7 +173,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var imageContent1 = new ByteArrayContent(testImageBytes);
         imageContent1.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
         content1.Add(imageContent1, "Image", "testImage1.jpg");
-        content1.Add(new StringContent(loginData1.userId), "UserId");
+        content1.Add(new StringContent(loginData1.UserId.ToString()), "UserId");
         content1.Add(new StringContent("0"), "ArtefactIndex");
         content1.Add(new StringContent("User 1 Artefact"), "Name");
 
@@ -202,7 +186,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var imageContent2 = new ByteArrayContent(testImageBytes);
         imageContent2.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
         content2.Add(imageContent2, "Image", "testImage2.jpg");
-        content2.Add(new StringContent(loginData2.userId), "UserId");
+        content2.Add(new StringContent(loginData2.UserId.ToString()), "UserId");
         content2.Add(new StringContent("0"), "ArtefactIndex");
         content2.Add(new StringContent("User 2 Artefact"), "Name");
 
@@ -230,24 +214,27 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         await Task.Delay(1000); // Allow time for file system operations
 
+        var userId1Str = loginData1.UserId.ToString();
+        var userId2Str = loginData2.UserId.ToString();
+
         // Assert: Each user's file exists in their own directory
-        var user1FilePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData1.userId, $"image_{artefact1.ArtefactId}.jpg");
-        var user2FilePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData2.userId, $"image_{artefact2.ArtefactId}.jpg");
+        var user1FilePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId1Str, $"image_{artefact1.ArtefactId}.jpg");
+        var user2FilePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId2Str, $"image_{artefact2.ArtefactId}.jpg");
 
         Assert.True(File.Exists(user1FilePath), $"User 1's file should exist at: {user1FilePath}");
         Assert.True(File.Exists(user2FilePath), $"User 2's file should exist at: {user2FilePath}");
 
         // Assert: User directories are separate
-        var user1Directory = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData1.userId);
-        var user2Directory = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData2.userId);
+        var user1Directory = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId1Str);
+        var user2Directory = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId2Str);
 
         Assert.True(Directory.Exists(user1Directory), $"User 1's directory should exist");
         Assert.True(Directory.Exists(user2Directory), $"User 2's directory should exist");
         Assert.NotEqual(user1Directory, user2Directory);
 
         // Assert: User 1's file does NOT exist in User 2's directory and vice versa
-        var wrongPath1 = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData2.userId, $"image_{artefact1.ArtefactId}.jpg");
-        var wrongPath2 = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData1.userId, $"image_{artefact2.ArtefactId}.jpg");
+        var wrongPath1 = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId2Str, $"image_{artefact1.ArtefactId}.jpg");
+        var wrongPath2 = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", userId1Str, $"image_{artefact2.ArtefactId}.jpg");
 
         Assert.False(File.Exists(wrongPath1), $"User 1's file should NOT exist in User 2's directory");
         Assert.False(File.Exists(wrongPath2), $"User 2's file should NOT exist in User 1's directory");
@@ -255,19 +242,12 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         // Cleanup
         if (File.Exists(user1FilePath)) File.Delete(user1FilePath);
         if (File.Exists(user2FilePath)) File.Delete(user2FilePath);
-
-        // Delete both users
-        await _utilities.DeleteUserAsync(loginData1.userId, loginData1.Token);
-        await _utilities.DeleteUserAsync(loginData2.userId, loginData2.Token);
     }
 
     [Fact]
     public async Task TestGetAllArtefacts()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Add two test artefacts
         var artefacts = await CreateTestArtefacts(loginData, 2);
@@ -295,16 +275,12 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         // Cleanup
         await DeleteTestArtefacts(loginData, artefacts);
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestUpdateArtefact()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create a test artefact
         var artefacts = await CreateTestArtefacts(loginData, 1);
@@ -317,7 +293,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var content = new MultipartFormDataContent
         {
             { new StringContent(artefact.ArtefactId), "ArtefactId" },
-            { new StringContent(loginData.userId), "UserId" },
+            { new StringContent(loginData.UserId.ToString()), "UserId" },
             { new StringContent("1"), "ArtefactIndex" },  // Changed index
             { new StringContent("Updated Name"), "Name" }
         };
@@ -351,16 +327,12 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         // Cleanup
         await DeleteTestArtefacts(loginData, artefacts);
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestDeleteArtefact()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create a test artefact
         var artefacts = await CreateTestArtefacts(loginData, 1);
@@ -378,22 +350,16 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         var getResponse = await _client.SendAsync(getRequest);
 
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
-
-        // Cleanup
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestAddArtefact_WithoutImage_ShouldReturnBadRequest()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(loginData.userId), "UserId" },
+            { new StringContent(loginData.UserId.ToString()), "UserId" },
             { new StringContent("0"), "ArtefactIndex" },
             { new StringContent("Test Name"), "Name" }
         };
@@ -406,23 +372,18 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestAddArtefact_WithWrongUserId_ShouldReturnForbidden()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
         var content = new MultipartFormDataContent
         {
             { imageContent, "Image", "testImage.jpg" },
-            { new StringContent("wrong-user-id"), "UserId" },
+            { new StringContent("99999"), "UserId" },
             { new StringContent("0"), "ArtefactIndex" },
             { new StringContent("Test Name"), "Name" }
         };
@@ -436,39 +397,29 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestGetArtefact_NonExistentId_ShouldReturnNotFound()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Artefacts/non-existent-id");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestUpdateArtefact_NonExistentId_ShouldReturnBadRequest()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent
         {
             { new StringContent("non-existent-id"), "ArtefactId" },
-            { new StringContent(loginData.userId), "UserId" },
+            { new StringContent(loginData.UserId.ToString()), "UserId" },
             { new StringContent("1"), "ArtefactIndex" },
             { new StringContent("Updated Name"), "Name" }
         };
@@ -481,25 +432,18 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
     public async Task TestDeleteArtefact_NonExistentId_ShouldReturnNotFound()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var request = new HttpRequestMessage(HttpMethod.Delete, "/api/Artefacts/non-existent-id");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserWithTokenAsync();
     }
 
     [Fact]
@@ -511,17 +455,17 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     }
 
     // Helper methods
-    private async Task<List<ArtefactGetDTO>> CreateTestArtefacts(UserLoginResponseDTO loginData, int count)
+    private async Task<List<ArtefactGetDTO>> CreateTestArtefacts(TestLoginData loginData, int count)
     {
         var artefacts = new List<ArtefactGetDTO>();
-        var categoryId = await CreateTestCategory(loginData.userId, loginData.Token);
+        var categoryId = await CreateTestCategory(loginData.UserId.ToString(), loginData.Token);
         for (int i = 0; i < count; i++)
         {
             var content = new MultipartFormDataContent();
             var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
             imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
             content.Add(imageContent, "Image", "testImage.jpg");
-            content.Add(new StringContent(loginData.userId), "UserId");
+            content.Add(new StringContent(loginData.UserId.ToString()), "UserId");
             content.Add(new StringContent(i.ToString()), "ArtefactIndex");
             content.Add(new StringContent(categoryId), "CategoryId");
             content.Add(new StringContent($"Test Artefact {i}"), "Name");
@@ -551,7 +495,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
         return artefacts;
     }
 
-    private async Task DeleteTestArtefacts(UserLoginResponseDTO loginData, List<ArtefactGetDTO> artefacts)
+    private async Task DeleteTestArtefacts(TestLoginData loginData, List<ArtefactGetDTO> artefacts)
     {
         foreach (var artefact in artefacts)
         {
@@ -560,7 +504,7 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             await _client.SendAsync(request);
 
             // File is stored in user-specific folder with "image_" prefix: Assets/Artefacts/{userId}/image_{artefactId}.jpg
-            var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.userId, $"image_{artefact.ArtefactId}.jpg");
+            var assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Artefacts", loginData.UserId.ToString(), $"image_{artefact.ArtefactId}.jpg");
             if (File.Exists(assetsPath))
             {
                 File.Delete(assetsPath);
@@ -572,13 +516,13 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
     {
         var categoryPostDTO = new CategoryPostDTO
         {
-            UserId = userId,
+            UserId = int.Parse(userId),
             Name = "Test Category"
         };
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId) },
+            { new StringContent(userId), nameof(CategoryPostDTO.UserId) },
             { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
         };
 
