@@ -19,9 +19,11 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   }
 
   [Fact]
-  public async Task GetBoards_ReturnsOk_WithDefaultBoard()
+  public async Task GetBoards_ReturnsOk_WithCreatedBoard()
   {
     var loginData = _utilities.CreateTestLoginData();
+
+    await CreateTestBoard(loginData, "Board1");
 
     var request = new HttpRequestMessage(HttpMethod.Get, "/api/Boards");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
@@ -32,7 +34,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
     var boards = await response.Content.ReadFromJsonAsync<List<BoardGetDTO>>();
     Assert.NotNull(boards);
     Assert.Single(boards);
-    Assert.Equal("Board1", boards[0].Name);  // Verify default board exists
+    Assert.Equal("Board1", boards[0].Name);
   }
 
   [Fact]
@@ -40,7 +42,6 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
   {
     var loginData = _utilities.CreateTestLoginData();
 
-    // Create additional boards (default "Board1" already exists)
     var board2 = await CreateTestBoard(loginData, "Board 2");
     var board3 = await CreateTestBoard(loginData, "Board 3");
 
@@ -52,8 +53,7 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     var boards = await response.Content.ReadFromJsonAsync<List<BoardGetDTO>>();
     Assert.NotNull(boards);
-    // Accept possible extra default/seeding: expect at least 3
-    Assert.True(boards.Count >= 3);
+    Assert.True(boards.Count >= 2);
   }
 
   [Fact]
@@ -79,9 +79,8 @@ public class BoardsControllerTests : IClassFixture<CustomApplicationFactory>
 
     var boardList = await response.Content.ReadFromJsonAsync<List<BoardListItemDTO>>();
     Assert.NotNull(boardList);
-    Assert.Equal(2, boardList.Count);
-    Assert.Contains(boardList, b => b.Name == "Board1");  // Verify default board
-    Assert.Contains(boardList, b => b.Name == "Test Board");  // Verify created board
+    Assert.Equal(1, boardList.Count);
+    Assert.Contains(boardList, b => b.Name == "Test Board");
   }
 
   [Fact]
