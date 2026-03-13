@@ -1,4 +1,4 @@
-﻿namespace VTA.Data.Models;
+namespace VTA.Data.Models;
 
 public class Artefact
 {
@@ -6,7 +6,7 @@ public class Artefact
 
     public required ushort ArtefactIndex { get; set; }
 
-    public required string UserId { get; set; }
+    public required int UserId { get; set; }
 
     public string? CategoryId { get; set; }
 
@@ -16,8 +16,6 @@ public class Artefact
     public string? Name { get; set; }
     public bool? NameShown { get; set; }
     public virtual Category? Category { get; set; }
-
-    public virtual User User { get; set; } = null!;
 
     public virtual ICollection<SavedArtefact> SavedArtefacts { get; set; } = new List<SavedArtefact>();
 }

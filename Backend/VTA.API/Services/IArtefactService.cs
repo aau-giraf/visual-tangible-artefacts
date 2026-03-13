@@ -15,13 +15,13 @@ public interface IArtefactService
     /// When <paramref name="skip"/> and <paramref name="take"/> are provided,
     /// returns a paginated subset.
     /// </summary>
-    Task<List<Artefact>> GetArtefactsForUserAsync(string userId, int? skip = null, int? take = null);
+    Task<List<Artefact>> GetArtefactsForUserAsync(int userId, int? skip = null, int? take = null);
 
     /// <summary>
     /// Get a single artefact by ID, scoped to the specified user.
     /// Returns null when not found or not owned by the user.
     /// </summary>
-    Task<Artefact?> GetArtefactByIdAsync(string artefactId, string userId);
+    Task<Artefact?> GetArtefactByIdAsync(string artefactId, int userId);
 
     /// <summary>
     /// Create a new artefact or update an existing one (upsert).
@@ -39,7 +39,7 @@ public interface IArtefactService
     /// <returns>The created or updated <see cref="Artefact"/> entity.</returns>
     Task<Artefact> CreateOrUpdateArtefactAsync(
         string? artefactId,
-        string userId,
+        int userId,
         string? name,
         ushort artefactIndex,
         string? categoryId,
@@ -54,7 +54,7 @@ public interface IArtefactService
     /// <returns>The updated entity, or null if the artefact was not found.</returns>
     Task<Artefact?> PatchArtefactAsync(
         string artefactId,
-        string userId,
+        int userId,
         ushort? artefactIndex,
         string? name,
         bool? nameShown,
@@ -69,18 +69,18 @@ public interface IArtefactService
     /// <c>(false, "NotFound")</c> if the artefact does not exist,
     /// <c>(false, "Forbidden")</c> if the artefact belongs to another user.
     /// </returns>
-    Task<(bool Success, string? Error)> DeleteArtefactAsync(string artefactId, string userId);
+    Task<(bool Success, string? Error)> DeleteArtefactAsync(string artefactId, int userId);
 
     /// <summary>
     /// Set <c>NameShown</c> to the given value for every artefact owned by the user.
     /// </summary>
     /// <returns>The number of artefacts that were updated.</returns>
-    Task<int> BulkUpdateNameShownAsync(string userId, bool nameShown);
+    Task<int> BulkUpdateNameShownAsync(int userId, bool nameShown);
 
     /// <summary>
     /// Check whether the artefact exists and return its <c>SoundPath</c>.
     /// Used by the <c>play-audio</c> endpoint to resolve the file on disk.
     /// </summary>
     /// <returns>The entity (with SoundPath populated), or null.</returns>
-    Task<Artefact?> GetArtefactForAudioAsync(string artefactId, string userId);
+    Task<Artefact?> GetArtefactForAudioAsync(string artefactId, int userId);
 }

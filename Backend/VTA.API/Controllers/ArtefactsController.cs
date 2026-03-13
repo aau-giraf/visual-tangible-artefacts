@@ -23,8 +23,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         var artefacts = await artefactService.GetArtefactsForUserAsync(userId, skip, take);
 
@@ -44,8 +44,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [HttpGet("{artefactId}")]
     public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         var artefact = await artefactService.GetArtefactByIdAsync(artefactId, userId);
         if (artefact == null)
@@ -67,8 +67,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         var artefact = await artefactService.PatchArtefactAsync(
             dto.ArtefactId, userId, dto.ArtefactIndex, dto.Name, dto.NameShown, dto.Image, dto.Sound);
@@ -92,7 +92,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
-        var userId = User.FindFirst("id")?.Value;
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         if (userId != artefactPostDTO.UserId)
         {
@@ -101,7 +102,7 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
 
         var artefact = await artefactService.CreateOrUpdateArtefactAsync(
             artefactPostDTO.ArtefactId,
-            userId!,
+            userId,
             artefactPostDTO.Name,
             artefactPostDTO.ArtefactIndex,
             artefactPostDTO.CategoryId,
@@ -126,8 +127,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [HttpDelete("{artefactId}")]
     public async Task<IActionResult> DeleteArtefact(string artefactId)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         var (success, error) = await artefactService.DeleteArtefactAsync(artefactId, userId);
 
@@ -195,8 +196,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
             return BadRequest(new { error = "ArtefactId cannot be empty" });
         }
 
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId))
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId))
         {
             return Unauthorized();
         }
@@ -211,7 +212,7 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         }
 
         var soundUrl = await ttsService.GenerateAndSaveSpeechAsync(
-            request.Text, request.ArtefactId, userId,
+            request.Text, request.ArtefactId, userId.ToString(),
             voiceId: request.VoiceId,
             modelId: "eleven_turbo_v2_5",
             languageCode: "da");
@@ -244,8 +245,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
             return BadRequest(new { error = "Text cannot be empty" });
         }
 
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId))
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId))
         {
             return Unauthorized();
         }
@@ -253,7 +254,7 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         var soundId = Guid.NewGuid().ToString();
 
         var soundUrl = await ttsService.GenerateAndSaveSpeechAsync(
-            request.Text, soundId, userId,
+            request.Text, soundId, userId.ToString(),
             voiceId: request.VoiceId,
             modelId: "eleven_turbo_v2_5");
 
@@ -278,8 +279,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [HttpGet("{artefactId}/play-audio")]
     public async Task<IActionResult> PlayArtefactAudio(string artefactId)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         var artefact = await artefactService.GetArtefactForAudioAsync(artefactId, userId);
 
@@ -321,7 +322,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [HttpPost("generate-speech")]
     public async Task<ActionResult<ArtefactGetDTO>> GenerateSpeech(ArtefactTextToSpeechDTO ttsDto)
     {
-        var userId = User.FindFirst("id")?.Value;
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized();
 
         var artefact = await context.Artefacts.FindAsync(ttsDto.ArtefactId);
         if (artefact == null)
@@ -340,7 +342,7 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         }
 
         var soundPath = await ttsService.GenerateAndSaveSpeechAsync(
-            ttsDto.Text, artefact.ArtefactId, userId!,
+            ttsDto.Text, artefact.ArtefactId, userId.ToString(),
             voiceId: ttsDto.VoiceId,
             modelId: ttsDto.ModelId,
             stability: ttsDto.Stability,
@@ -372,8 +374,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
     [HttpPatch("bulk-update-name-shown")]
     public async Task<IActionResult> BulkUpdateNameShown([FromBody] BulkUpdateNameShownDTO request)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized("Invalid token");
+        var sub = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(sub, out var userId)) return Unauthorized("Invalid token");
 
         var updatedCount = await artefactService.BulkUpdateNameShownAsync(userId, request.NameShown);
 

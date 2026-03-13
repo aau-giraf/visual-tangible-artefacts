@@ -24,7 +24,7 @@ public class BoardService : IBoardService
     }
 
     /// <inheritdoc />
-    public async Task<List<SavedBoard>> GetBoardsForUserAsync(string userId, int? skip = null, int? take = null)
+    public async Task<List<SavedBoard>> GetBoardsForUserAsync(int userId, int? skip = null, int? take = null)
     {
         var query = _context.SavedBoards
             .Where(b => b.UserId == userId)
@@ -43,7 +43,7 @@ public class BoardService : IBoardService
     }
 
     /// <inheritdoc />
-    public async Task<List<SavedBoard>> GetBoardListAsync(string userId, int? skip = null, int? take = null)
+    public async Task<List<SavedBoard>> GetBoardListAsync(int userId, int? skip = null, int? take = null)
     {
         var query = _context.SavedBoards
             .Where(b => b.UserId == userId)
@@ -60,7 +60,7 @@ public class BoardService : IBoardService
     }
 
     /// <inheritdoc />
-    public async Task<SavedBoard?> GetBoardAsync(string boardId, string userId)
+    public async Task<SavedBoard?> GetBoardAsync(string boardId, int userId)
     {
         return await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
@@ -71,7 +71,7 @@ public class BoardService : IBoardService
 
     /// <inheritdoc />
     public async Task<SavedBoard> CreateBoardAsync(
-        string userId, string name, List<BoardArtefactLayoutDTO>? artefacts = null)
+        int userId, string name, List<BoardArtefactLayoutDTO>? artefacts = null)
     {
         if (artefacts != null && artefacts.Count > 0)
         {
@@ -99,7 +99,7 @@ public class BoardService : IBoardService
 
     /// <inheritdoc />
     public async Task<SavedBoard?> UpdateBoardAsync(
-        string boardId, string userId, string name, List<BoardArtefactLayoutDTO> artefacts)
+        string boardId, int userId, string name, List<BoardArtefactLayoutDTO> artefacts)
     {
         var board = await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
@@ -171,7 +171,7 @@ public class BoardService : IBoardService
     }
 
     /// <inheritdoc />
-    public async Task<bool> PatchBoardAsync(string boardId, string userId, string? name, string? snapshotPath)
+    public async Task<bool> PatchBoardAsync(string boardId, int userId, string? name, string? snapshotPath)
     {
         var board = await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
@@ -207,7 +207,7 @@ public class BoardService : IBoardService
 
     /// <inheritdoc />
     public async Task<(bool Success, string? Error)> UpdateArtefactLayoutAsync(
-        string boardId, string userId, UpdateArtefactLayoutDTO request)
+        string boardId, int userId, UpdateArtefactLayoutDTO request)
     {
         var boardExists = await _context.SavedBoards
             .AnyAsync(b => b.Id == boardId && b.UserId == userId);
@@ -298,7 +298,7 @@ public class BoardService : IBoardService
 
     /// <inheritdoc />
     public async Task<(bool Success, string? Error)> UpdateSavedArtefactLayoutAsync(
-        string boardId, string userId, UpdateArtefactLayoutDTO request)
+        string boardId, int userId, UpdateArtefactLayoutDTO request)
     {
         var boardExists = await _context.SavedBoards
             .AnyAsync(b => b.Id == boardId && b.UserId == userId);
@@ -340,7 +340,7 @@ public class BoardService : IBoardService
 
     /// <inheritdoc />
     public async Task<(bool Success, string? Error)> RemoveArtefactFromBoardAsync(
-        string boardId, string savedArtefactId, string userId)
+        string boardId, string savedArtefactId, int userId)
     {
         var board = await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
@@ -373,7 +373,7 @@ public class BoardService : IBoardService
 
     /// <inheritdoc />
     public async Task<(bool Success, string? Error)> ClearBoardAsync(
-        string boardId, string userId, bool deleteSessionArtefacts = false)
+        string boardId, int userId, bool deleteSessionArtefacts = false)
     {
         var board = await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
@@ -421,7 +421,7 @@ public class BoardService : IBoardService
     }
 
     /// <inheritdoc />
-    public async Task<(bool Success, string? Error)> DeleteBoardAsync(string boardId, string userId)
+    public async Task<(bool Success, string? Error)> DeleteBoardAsync(string boardId, int userId)
     {
         var board = await _context.SavedBoards
             .Where(b => b.Id == boardId && b.UserId == userId)
@@ -441,7 +441,7 @@ public class BoardService : IBoardService
     // ── Private helpers ────────────────────────────────────────────────
 
     private async Task<SavedBoard> CreateBoardWithArtefactsAsync(
-        string userId, string name, List<BoardArtefactLayoutDTO> artefacts)
+        int userId, string name, List<BoardArtefactLayoutDTO> artefacts)
     {
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>

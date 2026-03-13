@@ -34,48 +34,37 @@ var config = new ConfigurationBuilder()
 var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")
                    ?? config["Secret:SecretKey"];
 
-
 if (string.IsNullOrEmpty(jwtSecretKey))
 {
-    throw new ArgumentNullException("JWT_SECRET_KEY environment variable or SecretKey in appsettings.json is required.");
+    throw new ArgumentNullException("JWT_SECRET environment variable or Secret:SecretKey in appsettings.json is required.");
 }
-/*Configure Json Web Tokens*/
-var jwtIssuer = "api.vta.com";
-var jwtAudience = "user.vta.com";
 
+// Configure JWT validation for Core-issued tokens
 builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
-
     .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtIssuer,
-                    ValidAudience = jwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
-                    ClockSkew = TimeSpan.Zero,
-                    RoleClaimType = "role"
                 };
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
                         var accessToken = context.Request.Query["access_token"];
-
-                        // If the request is for our hub...
                         var path = context.HttpContext.Request.Path;
                         if (!string.IsNullOrEmpty(accessToken) &&
                             path.StartsWithSegments("/boardHub"))
                         {
-                            // Read the token out of the query string
                             context.Token = accessToken;
                         }
                         return Task.CompletedTask;

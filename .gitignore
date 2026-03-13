@@ -421,3 +421,5 @@ Backend/VTA.API/Assets/Categories
 
 # JetBrains IDEs
 .idea/
+# Claude Code
+CLAUDE.md

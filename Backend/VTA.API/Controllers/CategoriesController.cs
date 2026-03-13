@@ -27,7 +27,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [HttpGet]
     public async Task<ActionResult> GetCategories([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         var query = context.Categories
             .AsNoTracking()
@@ -57,7 +57,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [HttpGet("{categoryId}")]
     public async Task<ActionResult<CategoryGetDTO>> GetCategory(string categoryId)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         var category = await context.Categories
             .AsNoTracking()
@@ -86,7 +86,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         var category = context.Categories.Find(dto.CategoryId);
 
@@ -107,8 +107,8 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
         //if the image is not null, replace it. (I considered creating/adding an algorithm that checks if it's the same image, but i chose not to bother (it should be simple enough though))
         if (dto.Image != null)
         {
-            ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
-            await ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId);
+            ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId.ToString());
+            await ImageUtilities.AddImage(dto.Image, dto.CategoryId, "Categories", userId.ToString());
         }
 
         context.Entry(category).State = EntityState.Modified;
@@ -146,7 +146,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<CategoryGetDTO>> PostCategory([FromForm] CategoryPostDTO categoryPostDTO)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         if (userId != categoryPostDTO.UserId)
         {
@@ -180,9 +180,9 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
                 // Delete old image if it exists
                 if (!string.IsNullOrEmpty(existingCategory.ImagePath))
                 {
-                    ImageUtilities.DeleteImage(existingCategory.CategoryId, "Categories", userId);
+                    ImageUtilities.DeleteImage(existingCategory.CategoryId, "Categories", userId.ToString());
                 }
-                existingCategory.ImagePath = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId);
+                existingCategory.ImagePath = await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId.ToString());
             }
 
             context.Entry(existingCategory).State = EntityState.Modified;
@@ -194,7 +194,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
 
         // Create new category
         string? imageUrl = categoryPostDTO.Image != null 
-            ? await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId)
+            ? await ImageUtilities.AddImage(categoryPostDTO.Image, id, "Categories", userId.ToString())
             : null;
 
         // Image is optional - allow null imageUrl
@@ -247,7 +247,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [HttpDelete("{categoryId}")]
     public async Task<IActionResult> DeleteCategory(string categoryId)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         var category = await context.Categories.FindAsync(categoryId);
 
@@ -263,10 +263,10 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
         * Therefore we remove all the images from the filesystem before we loose the refs*/
         foreach (var artefact in category.Artefacts)
         {
-            ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", userId);
+            ImageUtilities.DeleteImage(artefact.ArtefactId, "Artefacts", userId.ToString());
         }
 
-        ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
+        ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId.ToString());
 
         context.Categories.Remove(category);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
         await context.SaveChangesAsync();
@@ -283,7 +283,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [HttpPost("{categoryId}/usage")]
     public async Task<IActionResult> TrackCategoryUsage(string categoryId)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         var category = await context.Categories.FindAsync(categoryId);
 
@@ -330,7 +330,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     [HttpGet("most-used")]
     public async Task<ActionResult<IEnumerable<CategoryGetDTO>>> GetMostUsedCategories(int limit = 5)
     {
-        var userId = User.FindFirst("id")?.Value;
+        if (!int.TryParse(User.FindFirst("sub")?.Value, out var userId)) return Unauthorized();
 
         List<Category>? categories = await context.Categories
             .AsNoTracking()

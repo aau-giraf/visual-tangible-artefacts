@@ -21,10 +21,10 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
     {
         _client = factory.CreateClient();
         _utilities = new Utilities(_client);
-        _jsonOptions = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true, 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
     }
 
@@ -32,13 +32,10 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
     public async Task CreateBoard_WithManyArtefactInstances()
     {
         // Arrange: Create user and multiple artefacts
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Performance Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
-        var token = loginData!.Token;
-        var userId = loginData.userId;
+        var token = loginData.Token;
+        var userId = loginData.UserId.ToString();
 
         // Create 5 artefacts
         var artefactIds = new List<string>();
@@ -51,7 +48,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         // Act: Create board with many instances (each artefact placed multiple times)
         var artefactLayouts = new List<BoardArtefactLayoutDTO>();
         var random = new Random(42); // Fixed seed for reproducible tests
-        
+
         for (int i = 0; i < 25; i++) // 25 total artefact instances
         {
             var artefactId = artefactIds[i % artefactIds.Count]; // Distribute across available artefacts
@@ -77,14 +74,14 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
 
         // Assert: Should handle large number of instances efficiently
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        
+
         var board = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
             await response.Content.ReadAsStreamAsync(), _jsonOptions);
-        
+
         Assert.NotNull(board);
         Assert.Equal(25, board!.Artefacts.Count);
         Assert.All(board.Artefacts, a => Assert.NotNull(a.SavedArtefactId));
-        
+
         // Performance assertion - should complete within reasonable time
         var duration = endTime - startTime;
         Assert.True(duration.TotalSeconds < 5, $"Board creation took {duration.TotalSeconds} seconds, expected < 5");
@@ -98,13 +95,10 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
     public async Task UpdateMultipleArtefactInstances_Concurrently()
     {
         // Arrange: Create board with multiple instances of same artefact
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Concurrency Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
-        var token = loginData!.Token;
-        var userId = loginData.userId;
+        var token = loginData.Token;
+        var userId = loginData.UserId.ToString();
         var artefactId = await CreateTestArtefactAsync(token, userId, 0, "Concurrency Test Artefact");
 
         // Create board with 5 instances
@@ -124,7 +118,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         var createResponse = await CreateBoardAsync(token, boardRequest);
         var board = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
             await createResponse.Content.ReadAsStreamAsync(), _jsonOptions);
-        
+
         var boardId = board!.BoardId;
 
         // Act: Perform concurrent updates
@@ -139,7 +133,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
                 Width = 200 + index * 5,
                 Height = 200 + index * 5
             };
-            
+
             return await UpdateArtefactPositionAsync(token, boardId, updateRequest);
         }).ToArray();
 
@@ -152,7 +146,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         var finalBoardResponse = await GetBoardAsync(token, boardId);
         var finalBoard = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
             await finalBoardResponse.Content.ReadAsStreamAsync(), _jsonOptions);
-        
+
         Assert.NotNull(finalBoard);
         Assert.Equal(5, finalBoard!.Artefacts.Count);
 
@@ -164,10 +158,10 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
             var expectedWidth = 200 + i * 5;
             var expectedHeight = 200 + i * 5;
 
-            Assert.Contains(finalBoard.Artefacts, a => 
-                a.PosX == expectedPosX && 
-                a.PosY == expectedPosY && 
-                a.Width == expectedWidth && 
+            Assert.Contains(finalBoard.Artefacts, a =>
+                a.PosX == expectedPosX &&
+                a.PosY == expectedPosY &&
+                a.Width == expectedWidth &&
                 a.Height == expectedHeight);
         }
     }
@@ -176,13 +170,10 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
     public async Task CreateBoard_WithExtremePositionValues()
     {
         // Arrange: Test with extreme float values
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Extreme Values Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
-        var token = loginData!.Token;
-        var userId = loginData.userId;
+        var token = loginData.Token;
+        var userId = loginData.UserId.ToString();
         var artefactId = await CreateTestArtefactAsync(token, userId, 0, "Extreme Position Artefact");
 
         // Act: Create board with extreme position and size values
@@ -225,14 +216,11 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
     public async Task ManageBoard_CompleteLifecycle()
     {
         // Arrange: Complete lifecycle test
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Lifecycle Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
-        var token = loginData!.Token;
-        var userId = loginData.userId;
-        
+        var token = loginData.Token;
+        var userId = loginData.UserId.ToString();
+
         var artefact1Id = await CreateTestArtefactAsync(token, userId, 0, "Lifecycle Artefact 1");
         var artefact2Id = await CreateTestArtefactAsync(token, userId, 1, "Lifecycle Artefact 2");
 
@@ -260,7 +248,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
             Width = 200,
             Height = 200
         };
-        
+
         var addResponse = await UpdateArtefactPositionAsync(token, boardId, addArtefactRequest);
         Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
 
@@ -273,14 +261,14 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
             Width = 100,
             Height = 100
         };
-        
+
         await UpdateArtefactPositionAsync(token, boardId, duplicateRequest);
 
         // Act 3: Verify current state
         var midStateResponse = await GetBoardAsync(token, boardId);
         var midStateBoard = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
             await midStateResponse.Content.ReadAsStreamAsync(), _jsonOptions);
-        
+
         // Accept duplicate handling differences; expect between 2 and 3
         Assert.InRange(midStateBoard!.Artefacts.Count, 2, 3);
 
@@ -295,7 +283,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         var remainingInstances = await GetBoardAsync(token, boardId);
         var remainingBoard = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
             await remainingInstances.Content.ReadAsStreamAsync(), _jsonOptions);
-        
+
         foreach (var artefact in remainingBoard!.Artefacts)
         {
             var updateRequest = new UpdateArtefactLayoutDTO
@@ -307,7 +295,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
                 Width = artefact.Width,
                 Height = artefact.Height
             };
-            
+
             await UpdateArtefactPositionAsync(token, boardId, updateRequest);
         }
 
@@ -315,13 +303,13 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         var finalResponse = await GetBoardAsync(token, boardId);
         var finalBoard = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
             await finalResponse.Content.ReadAsStreamAsync(), _jsonOptions);
-        
+
         // Final artefact count may be 1 or 2 depending on controller behavior
         Assert.InRange(finalBoard!.Artefacts.Count, 1, 2);
-        
+
         // Verify the deleted instance is gone
         Assert.DoesNotContain(finalBoard.Artefacts, a => a.PosX == 150 && a.PosY == 150); // Original position + 50
-        
+
         // Verify remaining instances are shifted
         // Verify remaining instances are shifted if present
         var has350 = finalBoard.Artefacts.Any(a => a.PosX == 350 && a.PosY == 350); // 300 + 50
@@ -338,13 +326,10 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
     public async Task GetAllBoards_WithMultipleBoards()
     {
         // Arrange: Create multiple boards
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Multi Board Tester");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
-        var token = loginData!.Token;
-        var userId = loginData.userId;
+        var token = loginData.Token;
+        var userId = loginData.UserId.ToString();
         var artefactId = await CreateTestArtefactAsync(token, userId, 0, "Multi Board Artefact");
 
         var boardNames = new[] { "Board One", "Board Two", "Board Three" };
@@ -372,7 +357,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
             var response = await CreateBoardAsync(token, boardRequest);
             var board = await JsonSerializer.DeserializeAsync<BoardLayoutResponseDTO>(
                 await response.Content.ReadAsStreamAsync(), _jsonOptions);
-            
+
             createdBoardIds.Add(board!.BoardId);
         }
 
@@ -410,7 +395,7 @@ public class SavedBoardArtefactsAdvancedTests : IClassFixture<CustomApplicationF
         var content = new MultipartFormDataContent();
         var imageContent = new ByteArrayContent(await File.ReadAllBytesAsync("IntegrationTests/TestData/testImage"));
         imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-        
+
         content.Add(imageContent, "Image", "testImage.jpg");
         content.Add(new StringContent(userId), "UserId");
         content.Add(new StringContent(index.ToString()), "ArtefactIndex");

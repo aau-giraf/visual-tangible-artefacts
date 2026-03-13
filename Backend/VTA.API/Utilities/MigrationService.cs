@@ -83,7 +83,7 @@ public class MigrationService
                 var newImagePath = MigrateFile(
                     artefact.ImagePath,
                     "Artefacts",
-                    artefact.UserId,
+                    artefact.UserId.ToString(),
                     artefact.ArtefactId,
                     dryRun
                 );
@@ -100,7 +100,7 @@ public class MigrationService
                 var newSoundPath = MigrateFile(
                     artefact.SoundPath,
                     "Sounds",
-                    artefact.UserId,
+                    artefact.UserId.ToString(),
                     artefact.ArtefactId,
                     dryRun
                 );
@@ -133,7 +133,7 @@ public class MigrationService
                 var newImagePath = MigrateFile(
                     category.ImagePath,
                     "Categories",
-                    category.UserId,
+                    category.UserId.ToString(),
                     category.CategoryId,
                     dryRun
                 );

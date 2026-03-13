@@ -18,13 +18,13 @@ public class SavedBoardArtefactUnitTests
         {
             Id = "test-id",
             Name = "Test Board",
-            UserId = "user-123"
+            UserId = 123
         };
 
         // Assert
         Assert.Equal("test-id", board.Id);
         Assert.Equal("Test Board", board.Name);
-        Assert.Equal("user-123", board.UserId);
+        Assert.Equal(123, board.UserId);
         Assert.Null(board.SnapshotPath);
         Assert.True(board.CreatedDate <= DateTime.UtcNow);
         Assert.True(board.CreatedDate > DateTime.UtcNow.AddMinutes(-1)); // Created within last minute
@@ -114,7 +114,7 @@ public class SavedBoardArtefactUnitTests
         {
             Id = "board-id",
             Name = "Test Board",
-            UserId = "user-123"
+            UserId = 123
         };
 
         var artefactIds = new List<string> { "art-1", "art-2", "art-3" };
@@ -145,7 +145,7 @@ public class SavedBoardArtefactUnitTests
         {
             Id = "board-id",
             Name = "Empty Board",
-            UserId = "user-123"
+            UserId = 123
         };
 
         var emptyList = new List<string>();
@@ -170,7 +170,7 @@ public class SavedBoardArtefactUnitTests
         {
             Id = "board-id",
             Name = invalidName!,  // The model accepts any string since it's marked as required
-            UserId = "user-123"
+            UserId = 123
         };
 
         // Assert - Model stores whatever is provided
@@ -271,7 +271,7 @@ public class SavedBoardArtefactUnitTests
         {
             Id = "board-id",
             Name = "Test Board",
-            UserId = "user-123"
+            UserId = 123
         };
 
         // Assert
@@ -293,7 +293,7 @@ public class SavedBoardArtefactUnitTests
         {
             Id = "board-id",
             Name = "Multi-Instance Board",
-            UserId = "user-123"
+            UserId = 123
         };
 
         var savedArtefacts = new List<SavedArtefact>

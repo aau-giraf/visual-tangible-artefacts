@@ -1,20 +1,20 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
+using VTA.API.Authorization;
+using VTA.API.Clients;
 using VTA.API.Extensions;
 using VTA.API.Services;
-using VTA.API.Utilities;
 using VTA.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-
-// test comment test, test push, test
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -28,10 +28,16 @@ builder.Services.AddResponseCompression(options =>
 // Add HttpClient services for ElevenLabs API integration
 builder.Services.AddHttpClient();
 
+// Register Core API client for validating citizens/orgs
+var coreBaseUrl = builder.Configuration.GetValue<string>("GirafCore:BaseUrl")
+    ?? "http://localhost:8000";
+builder.Services.AddHttpClient<ICoreClient, GirafCoreClient>(client =>
+{
+    client.BaseAddress = new Uri(coreBaseUrl);
+});
+
 // Register application services
 builder.Services.AddScoped<ITtsService, TtsService>();
-builder.Services.AddScoped<IRelationService, RelationService>();
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IArtefactService, ArtefactService>();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IImageService, ImageService>();
@@ -40,20 +46,7 @@ builder.Services.AddScoped<ISoundService, SoundService>();
 // Register our DB context
 builder.Services.AddVTAContext(builder.Configuration);
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-//register our singleton
-builder.Services.AddSingleton(provider =>
-    {
-        var secretsSingleton = SecretsProvider.Instance;
-        secretsSingleton.AddSecret("SecretKey", builder.Configuration.GetSection("Secret")["SecretKey"]);
-        return secretsSingleton;
-    }
-);
-
-// Get JWT secret from environment variable (for production/CI) or configuration (for development)
-// Use a helper to treat empty/whitespace strings the same as null
+// Get JWT secret from environment variable or configuration
 var envSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
 var jwtSecretKey = !string.IsNullOrWhiteSpace(envSecret)
     ? envSecret
@@ -63,34 +56,37 @@ if (string.IsNullOrWhiteSpace(jwtSecretKey))
 {
     throw new ArgumentNullException("JWT_SECRET environment variable or Secret:SecretKey in configuration is required.");
 }
-/*Configure Json Web Tokens*/
-var jwtIssuer = "api.vta.com";
-var jwtAudience = "user.vta.com";
-
+// Configure JWT validation for Core-issued tokens
 builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
-
     .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtIssuer,
-                    ValidAudience = jwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
-                    ClockSkew = TimeSpan.Zero,
-                    RoleClaimType = "role"
                 };
             });
 
-builder.Services.AddAuthorization();
+// Authorization policies based on Core org_roles JWT claim
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthorizationHandler, JwtOrgRoleHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("OrganizationMember", policy =>
+        policy.Requirements.Add(new OrgMemberRequirement()));
+    options.AddPolicy("OrganizationAdmin", policy =>
+        policy.Requirements.Add(new OrgAdminRequirement()));
+    options.AddPolicy("OrganizationOwner", policy =>
+        policy.Requirements.Add(new OrgOwnerRequirement()));
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
@@ -130,7 +126,6 @@ if (!Directory.Exists(assetsDirs))
 }
 
 builder.Services.AddEndpointsApiExplorer();
-//Swagger ui stuff
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo

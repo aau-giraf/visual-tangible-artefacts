@@ -37,8 +37,8 @@ public class SavedArtefactsController : ControllerBase
   [HttpPatch]
   public async Task<IActionResult> UpdateArtefactLayout(string boardId, [FromBody] UpdateArtefactLayoutDTO request)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId))
     {
       return Unauthorized("Invalid token");
     }
@@ -114,8 +114,8 @@ public class SavedArtefactsController : ControllerBase
   [HttpDelete("{savedArtefactId}")]
   public async Task<IActionResult> RemoveArtefactFromBoard(string boardId, string savedArtefactId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId))
     {
       return Unauthorized("Invalid token");
     }
@@ -166,8 +166,8 @@ public class SavedArtefactsController : ControllerBase
   [HttpDelete]
   public async Task<IActionResult> ClearBoard(string boardId)
   {
-    var userId = User.FindFirst("id")?.Value;
-    if (string.IsNullOrEmpty(userId))
+    var sub = User.FindFirst("sub")?.Value;
+    if (!int.TryParse(sub, out var userId))
     {
       return Unauthorized("Invalid token");
     }

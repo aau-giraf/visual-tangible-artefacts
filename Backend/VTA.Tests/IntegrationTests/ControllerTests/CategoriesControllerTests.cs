@@ -22,13 +22,10 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task TestGetCategoriesReturnsOk()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
+        var loginData = _utilities.CreateTestLoginData();
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -36,31 +33,19 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<CategoryGetDTO>>();
         Assert.NotNull(page);
         Assert.NotNull(page.Items);
-
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
     [Fact]
     public async Task TestPostCategoryReturnsOk()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
-        var userId = signUpResult?.userId;
-
-        var categoryPostDTO = new CategoryPostDTO
-        {
-            UserId = userId!,
-            Name = "Test Category"
-        };
+        var loginData = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-        content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+        content.Add(new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId));
+        content.Add(new StringContent("Test Category"), nameof(CategoryPostDTO.Name));
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         request.Content = content;
 
         var response = await _client.SendAsync(request);
@@ -69,31 +54,19 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await response.Content.ReadFromJsonAsync<CategoryGetDTO>();
         Assert.NotNull(category);
         Assert.Equal("Test Category", category.Name);
-
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
     [Fact]
     public async Task TestDeleteCategoryReturnsNoContent()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
-        var userId = signUpResult?.userId;
-
-        var categoryPostDTO = new CategoryPostDTO
-        {
-            UserId = userId!,
-            Name = "Test Category"
-        };
+        var loginData = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-        content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+        content.Add(new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId));
+        content.Add(new StringContent("Test Category"), nameof(CategoryPostDTO.Name));
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         postRequest.Content = content;
 
         var postResponse = await _client.SendAsync(postRequest);
@@ -102,62 +75,45 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
-        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var deleteResponse = await _client.SendAsync(deleteRequest);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
-        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse = await _client.SendAsync(getRequest);
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
-
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
     [Fact]
     public async Task TestGetCategoryReturnsNotFound()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
+        var loginData = _utilities.CreateTestLoginData();
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/nonexistent");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
         var errorResponse = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.NotNull(errorResponse);
-
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
     [Fact]
     public async Task TestPatchCategoryReturnsNoContent()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
-        var userId = signUpResult?.userId;
-
-        var categoryPostDTO = new CategoryPostDTO
-        {
-            UserId = userId!,
-            Name = "Test Category"
-        };
+        var loginData = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent
         {
-            { new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId) },
-            { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
+            { new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId) },
+            { new StringContent("Test Category"), nameof(CategoryPostDTO.Name) }
         };
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         postRequest.Content = content;
 
         var postResponse = await _client.SendAsync(postRequest);
@@ -178,28 +134,23 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         };
 
         var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Categories");
-        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         patchRequest.Content = patchContent;
 
         var patchResponse = await _client.SendAsync(patchRequest);
         Assert.Equal(HttpStatusCode.NoContent, patchResponse.StatusCode);
 
         var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Categories/{category.CategoryId}");
-        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getResponse = await _client.SendAsync(getRequest);
         var updatedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
         Assert.Equal("Updated Category", updatedCategory.Name);
-
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
     [Fact]
     public async Task TestPatchCategoryReturnsBadRequest()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
+        var loginData = _utilities.CreateTestLoginData();
 
         var patchDTO = new CategoryPatchDTO
         {
@@ -212,41 +163,25 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         patchContent.Add(new StringContent(patchDTO.Name), nameof(CategoryPatchDTO.Name));
 
         var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/Categories");
-        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         patchRequest.Content = patchContent;
 
         var patchResponse = await _client.SendAsync(patchRequest);
         Assert.Equal(HttpStatusCode.BadRequest, patchResponse.StatusCode);
-
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
     }
 
     [Fact]
     public async Task TestDeleteCategoryReturnsForbidden()
     {
-        var username1 = _utilities.GenerateUniqueUsername();
-        var (signUpStatus1, signUpResult1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
-        var token1 = signUpResult1?.Token;
-        var userId1 = signUpResult1?.userId;
-
-        var username2 = _utilities.GenerateUniqueUsername();
-        var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
-        var token2 = signUpResult2?.Token;
-
-        var categoryPostDTO = new CategoryPostDTO
-        {
-            UserId = userId1!,
-            Name = "Test Category"
-        };
+        var loginData1 = _utilities.CreateTestLoginData();
+        var loginData2 = _utilities.CreateTestLoginData();
 
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId));
-        content.Add(new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name));
+        content.Add(new StringContent(loginData1.UserId.ToString()), nameof(CategoryPostDTO.UserId));
+        content.Add(new StringContent("Test Category"), nameof(CategoryPostDTO.Name));
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
-        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token1);
+        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData1.Token);
         postRequest.Content = content;
 
         var postResponse = await _client.SendAsync(postRequest);
@@ -255,22 +190,16 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
-        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token2);
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2.Token);
 
         var deleteResponse = await _client.SendAsync(deleteRequest);
         Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
-
-        await _utilities.DeleteUserAsync(signUpResult1!.userId, token1);
-        await _utilities.DeleteUserAsync(signUpResult2!.userId, token2);
     }
 
     [Fact]
     public async Task TrackCategoryUsage_ReturnsNoContent_WithValidCategoryId()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create a test category
         var category = await CreateTestCategory(loginData, "Test Category");
@@ -291,17 +220,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.NotNull(updatedCategory);
         Assert.Equal(1, updatedCategory.UsageCount);
         Assert.NotNull(updatedCategory.LastUsedDate);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task TrackCategoryUsage_IncrementsUsageCount_OnMultipleCalls()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var category = await CreateTestCategory(loginData, "Test Category");
 
@@ -322,17 +246,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         Assert.NotNull(updatedCategory);
         Assert.Equal(3, updatedCategory.UsageCount);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task TrackCategoryUsage_UpdatesLastUsedDate()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var category = await CreateTestCategory(loginData, "Test Category");
 
@@ -365,49 +284,34 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.NotNull(category2);
         Assert.NotNull(category2.LastUsedDate);
         Assert.True(category2.LastUsedDate > firstLastUsedDate, "LastUsedDate should be updated to a later time");
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task TrackCategoryUsage_ReturnsNotFound_WithInvalidCategoryId()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/Categories/non-existent-id/usage");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task TrackCategoryUsage_ReturnsForbidden_WhenTrackingAnotherUsersCategory()
     {
-        var username1 = _utilities.GenerateUniqueUsername();
-        var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
+        var loginData1 = _utilities.CreateTestLoginData();
+        var loginData2 = _utilities.CreateTestLoginData();
 
-        var username2 = _utilities.GenerateUniqueUsername();
-        var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
-
-        var category = await CreateTestCategory(loginData1!, "User 1 Category");
+        var category = await CreateTestCategory(loginData1, "User 1 Category");
 
         // Try to track usage of user 1's category with user 2's token
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/Categories/{category.CategoryId}/usage");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2!.Token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData2.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-
-        await _utilities.DeleteUserAsync(loginData1!.userId, loginData1.Token);
-        await _utilities.DeleteUserAsync(loginData2!.userId, loginData2.Token);
     }
 
     [Fact]
@@ -421,10 +325,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task GetMostUsedCategories_ReturnsOk_WithDefaultLimit()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create multiple categories with different usage counts
         var category1 = await CreateTestCategory(loginData, "Category 1");
@@ -446,17 +347,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.NotNull(categories);
         Assert.True(categories.Count <= 5); // Default limit is 5
         Assert.True(categories.Count >= 3); // We created 3 categories
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task GetMostUsedCategories_ReturnsCategoriesInDescendingOrderByUsageCount()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create categories with specific usage patterns
         var categoryLow = await CreateTestCategory(loginData, "Low Usage");
@@ -485,17 +381,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(5, categories[1].UsageCount);
         Assert.Equal(categoryLow.CategoryId, categories[2].CategoryId);
         Assert.Equal(1, categories[2].UsageCount);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task GetMostUsedCategories_RespectsCustomLimit()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create 5 categories
         for (int i = 1; i <= 5; i++)
@@ -518,17 +409,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         // Verify they are the top 2
         Assert.Equal(5, categories[0].UsageCount);
         Assert.Equal(4, categories[1].UsageCount);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task GetMostUsedCategories_ReturnsEmptyList_WithNoCategories()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
@@ -539,17 +425,12 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var categories = await response.Content.ReadFromJsonAsync<List<CategoryGetDTO>>();
         Assert.NotNull(categories);
         Assert.Empty(categories);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task GetMostUsedCategories_SortsByLastUsedDate_WhenUsageCountIsEqual()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         // Create categories with same usage count but different last used dates
         var categoryOlder = await CreateTestCategory(loginData, "Older");
@@ -577,31 +458,24 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         // Newer should come first (more recently used)
         Assert.Equal(categoryNewer.CategoryId, categories[0].CategoryId);
         Assert.Equal(categoryOlder.CategoryId, categories[1].CategoryId);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
     [Fact]
     public async Task GetMostUsedCategories_OnlyReturnsCurrentUserCategories()
     {
-        var username1 = _utilities.GenerateUniqueUsername();
-        var (signUpStatus1, loginData1) = await _utilities.SignUpUserAsync(username1, "password1", "User One");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus1);
-
-        var username2 = _utilities.GenerateUniqueUsername();
-        var (signUpStatus2, loginData2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus2);
+        var loginData1 = _utilities.CreateTestLoginData();
+        var loginData2 = _utilities.CreateTestLoginData();
 
         // Create categories for both users
-        var user1Category = await CreateTestCategory(loginData1!, "User 1 Category");
-        var user2Category = await CreateTestCategory(loginData2!, "User 2 Category");
+        var user1Category = await CreateTestCategory(loginData1, "User 1 Category");
+        var user2Category = await CreateTestCategory(loginData2, "User 2 Category");
 
-        await TrackUsage(loginData1!, user1Category.CategoryId, 10);
-        await TrackUsage(loginData2!, user2Category.CategoryId, 20);
+        await TrackUsage(loginData1, user1Category.CategoryId, 10);
+        await TrackUsage(loginData2, user2Category.CategoryId, 20);
 
         // User 1 gets most used categories
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/most-used");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData1!.Token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData1.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -612,9 +486,6 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         // Should only contain user 1's category, not user 2's
         Assert.Contains(categories, c => c.CategoryId == user1Category.CategoryId);
         Assert.DoesNotContain(categories, c => c.CategoryId == user2Category.CategoryId);
-
-        await _utilities.DeleteUserAsync(loginData1!.userId, loginData1.Token);
-        await _utilities.DeleteUserAsync(loginData2!.userId, loginData2.Token);
     }
     [Fact]
     public async Task GetMostUsedCategories_WithoutAuthorization_ReturnsUnauthorized()
@@ -627,10 +498,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
     [Fact]
     public async Task GetMostUsedCategories_IncludesArtefacts()
     {
-        var username = _utilities.GenerateUniqueUsername();
-        var (signUpStatus, loginData) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
-        Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        Assert.NotNull(loginData);
+        var loginData = _utilities.CreateTestLoginData();
 
         var category = await CreateTestCategory(loginData, "Category With Artefacts");
         await TrackUsage(loginData, category.CategoryId, 1);
@@ -647,22 +515,14 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
 
         // Verify artefacts collection is included (even if empty)
         Assert.NotNull(categories[0].Artefacts);
-
-        await _utilities.DeleteUserAsync(loginData.userId, loginData.Token);
     }
 
-    private async Task<CategoryGetDTO> CreateTestCategory(UserLoginResponseDTO loginData, string categoryName)
+    private async Task<CategoryGetDTO> CreateTestCategory(TestLoginData loginData, string categoryName)
     {
-        var categoryPostDTO = new CategoryPostDTO
-        {
-            UserId = loginData.userId,
-            Name = categoryName
-        };
-
         var content = new MultipartFormDataContent
         {
-            { new StringContent(categoryPostDTO.UserId), nameof(CategoryPostDTO.UserId) },
-            { new StringContent(categoryPostDTO.Name), nameof(CategoryPostDTO.Name) }
+            { new StringContent(loginData.UserId.ToString()), nameof(CategoryPostDTO.UserId) },
+            { new StringContent(categoryName), nameof(CategoryPostDTO.Name) }
         };
 
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/Categories");
@@ -677,7 +537,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         return category;
     }
 
-    private async Task TrackUsage(UserLoginResponseDTO loginData, string categoryId, int times)
+    private async Task TrackUsage(TestLoginData loginData, string categoryId, int times)
     {
         for (int i = 0; i < times; i++)
         {

@@ -1,22 +1,29 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Net;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using VTA.API.DTOs;
-using VTA.Tests.TestHelpers;
-using Xunit;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace VTA.Tests.TestHelpers
 {
+    /// <summary>
+    /// Holds a generated test user's token and integer user ID.
+    /// Replaces the old UserLoginResponseDTO for test purposes.
+    /// </summary>
+    public class TestLoginData
+    {
+        public string Token { get; set; } = null!;
+        public int UserId { get; set; }
+    }
+
     public class Utilities
     {
+        private static readonly string TestSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
+            ?? "test-jwt-secret-for-ci-must-be-at-least-32-chars";
+
+        private static int _nextUserId = 1000;
 
         private readonly HttpClient _client;
-
-        private const string DefaultUsername = "testinguser";
-        private const string DefaultPassword = "testingpassword";
-        private const string DefaultName = "Testing User";
 
         public Utilities(HttpClient client)
         {
@@ -25,73 +32,44 @@ namespace VTA.Tests.TestHelpers
 
         public string GenerateUniqueUsername() => $"testuser_{Guid.NewGuid()}";
 
-        public async Task<(HttpStatusCode StatusCode, UserLoginResponseDTO? Data)> SignUpUserAsync(string username, string password, string name)
+        /// <summary>
+        /// Generates a test JWT token with the given user ID, signed with the test secret.
+        /// Includes "sub" (int) and "org_roles" claims.
+        /// </summary>
+        public static string GenerateTestToken(int userId, Dictionary<string, string>? orgRoles = null)
         {
-            var userDto = new UserSignupDTO
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestSecret));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
             {
-                Username = username,
-                Password = password,
-                Name = name
+                new("sub", userId.ToString())
             };
 
-            var response = await _client.PostAsJsonAsync("/api/Users/SignUp", userDto);
-            response.EnsureSuccessStatusCode(); // Ensure the response status code is successful
-
-            var data = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>() : null;
-            return (response.StatusCode, data);
-        }
-
-        public async Task<(HttpStatusCode StatusCode, UserLoginResponseDTO? Data)> LoginUserAsync(string username, string password)
-        {
-            var userDto = new UserLoginDTO
+            if (orgRoles != null)
             {
-                Username = username,
-                Password = password
-            };
-
-            var response = await _client.PostAsJsonAsync("/api/Users/Login", userDto);
-            var data = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>() : null;
-            return (response.StatusCode, data);
-        }
-
-        public async Task<HttpStatusCode> DeleteUserAsync(string userId, string token)
-        {
-            var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Users/{userId}");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var response = await _client.SendAsync(request);
-            return response.StatusCode;
-        }
-
-        // TODO: Signup endpoint should actually return 201 (for creation) instead of 200 (for read, update and delete)
-        public async Task<string?> CreateUserAndReturnTokenAsync()
-        {
-            var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
-            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
-            {
-                return signUpResult.Token;
+                var rolesJson = System.Text.Json.JsonSerializer.Serialize(orgRoles);
+                claims.Add(new Claim("org_roles", rolesJson));
             }
-            return null;
+
+            var token = new JwtSecurityToken(
+                expires: DateTime.UtcNow.AddHours(1),
+                claims: claims,
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<UserLoginResponseDTO?> CreateUserAndReturnLoginDataAsync()
+        /// <summary>
+        /// Creates a TestLoginData with a unique user ID and valid JWT token.
+        /// Replaces the old SignUpUserAsync pattern.
+        /// </summary>
+        public TestLoginData CreateTestLoginData(Dictionary<string, string>? orgRoles = null)
         {
-            var (signUpStatus, signUpResult) = await SignUpUserAsync(DefaultUsername, DefaultPassword, DefaultName);
-            if (signUpStatus == HttpStatusCode.OK && signUpResult != null)
-            {
-                return signUpResult;
-            }
-            return null;
-        }
-
-        public async Task<HttpStatusCode> DeleteUserWithTokenAsync()
-        {
-            var (loginStatus, loginResult) = await LoginUserAsync(DefaultUsername, DefaultPassword);
-            if (loginStatus == HttpStatusCode.OK && loginResult != null)
-            {
-                return await DeleteUserAsync(loginResult.userId, loginResult.Token);
-            }
-            return HttpStatusCode.NotFound;
+            var userId = Interlocked.Increment(ref _nextUserId);
+            var token = GenerateTestToken(userId, orgRoles);
+            return new TestLoginData { Token = token, UserId = userId };
         }
     }
 }

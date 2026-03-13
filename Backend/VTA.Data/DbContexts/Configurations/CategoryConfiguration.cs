@@ -28,7 +28,6 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasMaxLength(50)
             .HasColumnName("name");
         builder.Property(e => e.UserId)
-            .HasMaxLength(36)
             .HasColumnName("userId");
         builder.Property(e => e.UsageCount)
             .HasDefaultValue(0)
@@ -36,10 +35,5 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(e => e.LastUsedDate)
             .HasColumnType("datetime")
             .HasColumnName("lastUsedDate");
-
-        builder.HasOne(d => d.User).WithMany(p => p.Categories)
-            .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.Cascade)
-            .HasConstraintName("category_ibfk_1");
     }
 }
