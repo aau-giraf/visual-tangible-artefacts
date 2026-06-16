@@ -376,12 +376,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# VS Code files for those working on multiple tools
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# VS Code files (do not track editor config)
+.vscode/
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -421,3 +417,11 @@ Backend/VTA.API/Assets/Categories
 
 # JetBrains IDEs
 .idea/
+
+# Stray Node package files (admin-dashboard keeps its own under Frontend/admin-dashboard/)
+/package.json
+/package-lock.json
+Frontend/vta_app/package-lock.json
+
+# Flutter build output (only the app's source belongs in git)
+Frontend/vta_app/**/build/
