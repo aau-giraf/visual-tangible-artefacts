@@ -85,7 +85,10 @@ class ArtifactRepository extends ApiDataRepository {
       var response =
           await apiProvider.fetchAsJson('Categories', headers: headers);
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        var jsonResponse = (decoded is Map && decoded['items'] is List)
+            ? decoded['items'] as List
+            : decoded as List;
         var categories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -217,7 +220,10 @@ class ArtifactRepository extends ApiDataRepository {
           headers: headers);
 
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        var jsonResponse = (decoded is Map && decoded['items'] is List)
+            ? decoded['items'] as List
+            : decoded as List;
         var categories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -278,7 +284,10 @@ class UserRepository extends ApiDataRepository {
       };
       var response = await apiProvider.fetchAsJson('Users', headers: headers);
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        var jsonResponse = (decoded is Map && decoded['items'] is List)
+            ? decoded['items'] as List
+            : decoded as List;
         var users = jsonResponse
             .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
             .toList();
@@ -309,7 +318,10 @@ class UserRepository extends ApiDataRepository {
       _log.fine('Related contacts request: ${response?.request}');
 
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        var jsonResponse = (decoded is Map && decoded['items'] is List)
+            ? decoded['items'] as List
+            : decoded as List;
         var users = jsonResponse
             .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
             .toList();

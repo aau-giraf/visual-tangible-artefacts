@@ -173,7 +173,10 @@ class ArtifactModel {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
-        var jsonResponse = json.decode(response.body) as List;
+        final decoded = json.decode(response.body);
+        var jsonResponse = (decoded is Map && decoded['items'] is List)
+            ? decoded['items'] as List
+            : decoded as List;
 
         _log.info(
             "Online ------------------------------------------------------- $jsonResponse");
@@ -428,7 +431,10 @@ class ArtifactModel {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
-        var jsonResponse = json.decode(response.body) as List;
+        final decoded = json.decode(response.body);
+        var jsonResponse = (decoded is Map && decoded['items'] is List)
+            ? decoded['items'] as List
+            : decoded as List;
         var newMostUsedCategories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
