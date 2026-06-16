@@ -173,7 +173,16 @@ class ArtifactModel {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
-        var jsonResponse = json.decode(response.body) as List;
+        final decoded = json.decode(response.body);
+        final List<dynamic> jsonResponse;
+        if (decoded is List) {
+          jsonResponse = decoded;
+        } else if (decoded is Map && decoded['items'] is List) {
+          jsonResponse = decoded['items'] as List<dynamic>;
+        } else {
+          throw FormatException(
+              'Expected /api/Categories to return a JSON array or a paginated {items: [...]} envelope.');
+        }
 
         _log.info(
             "Online ------------------------------------------------------- $jsonResponse");
@@ -428,7 +437,16 @@ class ArtifactModel {
         'Authorization': 'Bearer $token',
       });
       if (response != null && response.ok) {
-        var jsonResponse = json.decode(response.body) as List;
+        final decoded = json.decode(response.body);
+        final List<dynamic> jsonResponse;
+        if (decoded is List) {
+          jsonResponse = decoded;
+        } else if (decoded is Map && decoded['items'] is List) {
+          jsonResponse = decoded['items'] as List<dynamic>;
+        } else {
+          throw FormatException(
+              'Expected /api/Categories/most-used to return a JSON array or a paginated {items: [...]} envelope.');
+        }
         var newMostUsedCategories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))

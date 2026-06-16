@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
@@ -85,7 +86,16 @@ class ArtifactRepository extends ApiDataRepository {
       var response =
           await apiProvider.fetchAsJson('Categories', headers: headers);
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        final List<dynamic> jsonResponse;
+        if (decoded is List) {
+          jsonResponse = decoded;
+        } else if (decoded is Map && decoded['items'] is List) {
+          jsonResponse = decoded['items'] as List<dynamic>;
+        } else {
+          throw FormatException(
+              'Expected /api/Categories to return a JSON array or a paginated {items: [...]} envelope.');
+        }
         var categories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -217,7 +227,16 @@ class ArtifactRepository extends ApiDataRepository {
           headers: headers);
 
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        final List<dynamic> jsonResponse;
+        if (decoded is List) {
+          jsonResponse = decoded;
+        } else if (decoded is Map && decoded['items'] is List) {
+          jsonResponse = decoded['items'] as List<dynamic>;
+        } else {
+          throw FormatException(
+              'Expected /api/Categories/most-used to return a JSON array or a paginated {items: [...]} envelope.');
+        }
         var categories = jsonResponse
             .map((jsonCategory) =>
                 Category.fromJson(jsonCategory as Map<String, dynamic>))
@@ -257,7 +276,16 @@ class UserRepository extends ApiDataRepository {
       Map<String, String> headers = {
         "Authorization": 'Bearer $token',
       };
-      var response = await apiProvider.fetchAsJson('Users', headers: headers);
+      // GET /api/Users returns a paginated list of all users, so the current
+      // user must be fetched by id via GET /api/Users/{id}. The id is carried
+      // in the JWT 'id' claim (matching the backend's User.FindFirst("id")).
+      final userId = JwtDecoder.decode(token)['id'] as String?;
+      if (userId == null) {
+        _log.fine("No 'id' claim found in token; cannot fetch current user");
+        return null;
+      }
+      var response =
+          await apiProvider.fetchAsJson('Users/$userId', headers: headers);
       if (responseOk(response)) {
         var jsonResponse = json.decode(response!.body);
         var user = User.fromJson(jsonResponse);
@@ -278,7 +306,16 @@ class UserRepository extends ApiDataRepository {
       };
       var response = await apiProvider.fetchAsJson('Users', headers: headers);
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        final List<dynamic> jsonResponse;
+        if (decoded is List) {
+          jsonResponse = decoded;
+        } else if (decoded is Map && decoded['items'] is List) {
+          jsonResponse = decoded['items'] as List<dynamic>;
+        } else {
+          throw FormatException(
+              'Expected /api/Users to return a JSON array or a paginated {items: [...]} envelope.');
+        }
         var users = jsonResponse
             .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
             .toList();
@@ -309,7 +346,16 @@ class UserRepository extends ApiDataRepository {
       _log.fine('Related contacts request: ${response?.request}');
 
       if (responseOk(response)) {
-        var jsonResponse = json.decode(response!.body) as List;
+        final decoded = json.decode(response!.body);
+        final List<dynamic> jsonResponse;
+        if (decoded is List) {
+          jsonResponse = decoded;
+        } else if (decoded is Map && decoded['items'] is List) {
+          jsonResponse = decoded['items'] as List<dynamic>;
+        } else {
+          throw FormatException(
+              'Expected /api/Contacts to return a JSON array or a paginated {items: [...]} envelope.');
+        }
         var users = jsonResponse
             .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
             .toList();
