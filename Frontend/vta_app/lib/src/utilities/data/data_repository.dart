@@ -297,10 +297,17 @@ class UserRepository extends ApiDataRepository {
       };
       var response = await apiProvider.fetchAsJson('Users', headers: headers);
       if (responseOk(response)) {
-        final decoded = json.decode(response!.body);
-        var jsonResponse = (decoded is Map && decoded['items'] is List)
-            ? decoded['items'] as List
-            : decoded as List;
+       if (responseOk(response)) {
+         final decoded = json.decode(response!.body);
+         final List<dynamic> jsonResponse;
+         if (decoded is List) {
+           jsonResponse = decoded;
+         } else if (decoded is Map && decoded['items'] is List) {
+           jsonResponse = decoded['items'] as List<dynamic>;
+         } else {
+           throw FormatException(
+               'Expected /api/Users to return a JSON array or a paginated {items: [...]} envelope.');
+         }
         var users = jsonResponse
             .map((jsonUser) => User.fromJson(jsonUser as Map<String, dynamic>))
             .toList();
