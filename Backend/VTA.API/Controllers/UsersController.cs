@@ -15,7 +15,7 @@ namespace VTA.API.Controllers;
 [Authorize]
 [Route("api/[controller]")]//Define where all endpoints are
 [ApiController]
-public class UsersController(VTAContext context, IUserService userService, IRelationService relationService) : ControllerBase
+public class UsersController(VTAContext context, IUserService userService) : ControllerBase
 {
     /// <summary>
     /// Login the user
