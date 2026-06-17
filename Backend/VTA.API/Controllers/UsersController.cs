@@ -90,27 +90,6 @@ public class UsersController(VTAContext context, IUserService userService, IRela
         });
     }
 
-    // GET: api/Users/related-contacts
-    /// <summary>
-    /// Get related contacts for the current user.
-    /// For caregivers: returns their connected children.
-    /// For children: returns their connected caregivers.
-    /// </summary>
-    /// <returns>A list of related users (contacts)</returns>
-    [HttpGet("related-contacts")]
-    public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetRelatedContacts()
-    {
-        var userId = User.FindFirst("id")?.Value;
-
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized("User ID not found in token");
-        }
-
-        var contacts = await relationService.GetRelatedContactsAsync(userId);
-        return Ok(contacts);
-    }
-
     // GET: api/Users/{id}
     /// <summary>
     /// Get information about a specific user
