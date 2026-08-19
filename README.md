@@ -14,8 +14,55 @@ This repository is a monorepo containing both frontend and backend code for the 
   - [REST API Design — Microsoft REST API Guidelines](#rest-api-design--microsoft-rest-api-guidelines)
   - [Flutter App Architecture — Official Flutter Architecture Guide](#flutter-app-architecture--official-flutter-architecture-guide)
  
+## Flutter app configuration
+The Flutter app reads its API and SyncService URLs from
+`Frontend/vta_app/assets/cfg/app_settings.json`, which is gitignored. Create it once:
+
+```bash
+cd Frontend/vta_app
+cp assets/cfg/app_settings.example.json assets/cfg/app_settings.json
+```
+
+**The app will not start without this file.** It throws at startup with a message naming
+the fix. There are deliberately no built-in URL defaults: `assets/cfg/` was accidentally
+dropped from `pubspec.yaml` in Feb 2026, and silent localhost fallbacks meant nobody
+noticed the config had stopped loading.
+
+Never commit `app_settings.json` - put shared secrets in the ignored file only.
+
+### TURN server (video calls)
+
+Video calls need a TURN server. TURN relays the video when two devices cannot reach
+each other directly, which is the normal case on school and home networks. Without a
+reachable TURN server, calls only connect when both devices happen to be on a friendly
+network, and fail silently otherwise.
+
+The `IceServers` section of `app_settings.json` configures it. Starting a call without
+it throws, rather than failing to connect for reasons nobody can see. The rest of the
+app runs fine without it.
+
+The values in `app_settings.example.json` match the `coturn` service in
+`docker-compose.yml` and the credentials in `turnserver.local.conf`:
+
+```bash
+docker compose up coturn
+```
+
+That works for desktop and web. **On a physical iPad or phone it does not** - `localhost`
+there means the device itself. Replace `localhost` with the machine's LAN IP in
+`app_settings.json`, and set the same address as `external-ip` and `relay-ip` in
+`turnserver.local.conf`.
+
+Check the server before debugging in the app, using
+[Trickle ICE](https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/):
+enter the TURN address and credentials, click Gather, and confirm a candidate of
+type `relay` appears. No `relay` row means TURN is not working.
+
+There is currently no deployed TURN server. `turnserver.server.conf` targets a
+Raspberry Pi at a domain (`syncr.dev`) that no longer resolves, and nothing references it.
+
 ## Questions and appsettings handover
-For any questions or request for appsettings handover, contact rkrage22@student.aau.dk
+For any questions or request for backend appsettings handover, contact rkrage22@student.aau.dk
 ## Important note:
   Updating to latest dotnet version will *likely* [break the package responsible](https://github.com/dotnet/aspnetcore/issues/54599) for creating our swagger documentation!
   

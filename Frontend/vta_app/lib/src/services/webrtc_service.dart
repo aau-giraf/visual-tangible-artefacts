@@ -1,7 +1,8 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:logging/logging.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
-import 'package:logging/logging.dart';
+import 'package:vta_app/src/utilities/platform_utils.dart';
 
 
 final _log = Logger('WebrtcService');
@@ -40,21 +41,7 @@ class WebRTCService {
     required this.remoteUserId,
   });
 
-  // ICE/TURN/STUN servers configuration with COTURN server
-  final Map<String, dynamic> _configuration = {
-    'iceServers': [
-      {
-        'urls': [
-          'stun:localhost:3478',
-          'turn:localhost:3478',
-          'turn:localhost:3478?transport=tcp',
-        ],
-        'username': 'testuser',
-        'credential': 'testpass',
-      }
-    ],
-    'sdpSemantics': 'unified-plan',
-  };
+  final Map<String, dynamic> _configuration = PlatformUtils.getIceServers();
 
   // Peer connection constraints
   final Map<String, dynamic> _pcConstraints = {
