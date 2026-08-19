@@ -15,5 +15,19 @@
 
   "OpenAi": {
     "ApiKey": ""
-  }
+  },
+
+  "IceServers": [
+    {
+      "urls": ["stun:localhost:3478"]
+    },
+    {
+      "urls": [
+        "turn:localhost:3478",
+        "turn:localhost:3478?transport=tcp"
+      ],
+      "username": "testuser",
+      "credential": "testpass"
+    }
+  ]
 }

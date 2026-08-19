@@ -87,4 +87,55 @@ class PlatformUtils {
   static const String _setupHint =
       'Copy assets/cfg/app_settings.example.json to '
       'assets/cfg/app_settings.json to create it.';
+
+  /// STUN/TURN servers for WebRTC, from `IceServers` in app_settings.json.
+  /// Throws [StateError] if none are usable. See the TURN section in the README.
+  static Map<String, dynamic> getIceServers() {
+    final servers = _readIceServers();
+
+    if (servers.isEmpty) {
+      throw StateError(
+          'No usable STUN/TURN servers configured. Add an "IceServers" list to '
+          'assets/cfg/app_settings.json - video calls cannot connect without '
+          'one. $_setupHint');
+    }
+
+    _log.info('[PlatformUtils] Using ${servers.length} ICE server entries');
+    return {
+      'iceServers': servers,
+      'sdpSemantics': 'unified-plan',
+    };
+  }
+
+  /// Skips malformed entries so one bad line does not disable every server.
+  static List<Map<String, dynamic>> _readIceServers() {
+    final configured =
+        GlobalConfiguration().appConfig['IceServers'] as List<dynamic>?;
+
+    if (configured == null) return const [];
+
+    final servers = <Map<String, dynamic>>[];
+
+    for (final entry in configured) {
+      if (entry is! Map) continue;
+
+      final urls = (entry['urls'] as List<dynamic>?)
+          ?.whereType<String>()
+          .where((url) => url.isNotEmpty)
+          .toList();
+
+      if (urls == null || urls.isEmpty) continue;
+
+      final server = <String, dynamic>{'urls': urls};
+
+      final username = _nonEmpty(entry['username']);
+      final credential = _nonEmpty(entry['credential']);
+      if (username != null) server['username'] = username;
+      if (credential != null) server['credential'] = credential;
+
+      servers.add(server);
+    }
+
+    return servers;
+  }
 }
