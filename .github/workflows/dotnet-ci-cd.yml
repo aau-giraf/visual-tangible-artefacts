@@ -56,6 +56,12 @@ jobs:
       - name: Run tests
         run: flutter test
 
+      # admin-ci builds, backend-ci builds, flutter-ci did not - so a broken web
+      # build reached dev-main unnoticed. Drop --no-tree-shake-icons once #305
+      # is fixed; without it the build currently fails on non-constant IconData.
+      - name: Build web
+        run: flutter build web --no-tree-shake-icons
+
   admin-ci:
     runs-on: ubuntu-latest
     defaults:
