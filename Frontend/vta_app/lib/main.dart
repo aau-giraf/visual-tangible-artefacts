@@ -42,12 +42,13 @@ void main() async {
   // await clearSharedPreferences();
 
   try {
-    // Load global configuration from assets/cfg/app_settings.json
     await GlobalConfiguration().loadFromAsset("app_settings");
   } catch (e) {
-    _log.severe(
-        'Could not load assets/cfg/app_settings.json - falling back to '
-        'localhost defaults. Copy app_settings.example.json to fix this. ($e)');
+    _log.severe('Could not load assets/cfg/app_settings.json ($e)');
+    throw StateError(
+        'assets/cfg/app_settings.json is missing or invalid. Copy '
+        'assets/cfg/app_settings.example.json to create it. The app cannot '
+        'start without it - it holds the API and SyncService URLs.');
   }
 
   // Initialize SQLite database (only on mobile platforms, not web)

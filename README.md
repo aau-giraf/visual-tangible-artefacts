@@ -23,8 +23,12 @@ cd Frontend/vta_app
 cp assets/cfg/app_settings.example.json assets/cfg/app_settings.json
 ```
 
-Without this file the app falls back to localhost defaults and logs a `SEVERE` warning
-at startup. Never commit `app_settings.json` - put shared secrets in the ignored file only.
+**The app will not start without this file.** It throws at startup with a message naming
+the fix. There are deliberately no built-in URL defaults: `assets/cfg/` was accidentally
+dropped from `pubspec.yaml` in Feb 2026, and silent localhost fallbacks meant nobody
+noticed the config had stopped loading.
+
+Never commit `app_settings.json` - put shared secrets in the ignored file only.
 
 ## Questions and appsettings handover
 For any questions or request for backend appsettings handover, contact rkrage22@student.aau.dk
