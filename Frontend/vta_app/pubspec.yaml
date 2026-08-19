@@ -54,6 +54,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/sound/
+    - assets/cfg/
 
 patrol:
   app_name: My App

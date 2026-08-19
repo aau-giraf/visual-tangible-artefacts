@@ -33,13 +33,13 @@ class PlatformUtils {
     // Apply fallbacks if url is still null
     if (url == null) {
       if (kIsWeb) {
-        url = 'http://localhost:5000/api/'; // Fallback for web
+        url = 'http://localhost:5192/api/'; // Fallback for web
       } else if (Platform.isAndroid) {
-        url = 'http://10.0.2.2:5000/api/'; // Android emulator default
+        url = 'http://10.0.2.2:5192/api/'; // Android emulator default
       } else if (Platform.isIOS) {
-        url = 'http://localhost:5000/api/'; // iOS simulator default
+        url = 'http://localhost:5192/api/'; // iOS simulator default
       } else {
-        url = 'http://localhost:5000/api/'; // Desktop fallback
+        url = 'http://localhost:5192/api/'; // Desktop fallback
       }
     }
 
@@ -77,13 +77,13 @@ class PlatformUtils {
     // Apply fallbacks if url is still null
     if (url == null) {
       if (kIsWeb) {
-        url = 'http://localhost:5001/'; // Fallback for web
+        url = 'http://localhost:5002/'; // Fallback for web
       } else if (Platform.isAndroid) {
-        url = 'http://10.0.2.2:5001/'; // Android emulator default
+        url = 'http://10.0.2.2:5002/'; // Android emulator default
       } else if (Platform.isIOS) {
-        url = 'http://localhost:5001/'; // iOS simulator default
+        url = 'http://localhost:5002/'; // iOS simulator default
       } else {
-        url = 'http://localhost:5001/'; // Desktop fallback
+        url = 'http://localhost:5002/'; // Desktop fallback
       }
     }
 

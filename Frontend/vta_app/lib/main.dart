@@ -45,8 +45,9 @@ void main() async {
     // Load global configuration from assets/cfg/app_settings.json
     await GlobalConfiguration().loadFromAsset("app_settings");
   } catch (e) {
-    _log.warning('Error loading configuration: $e');
-    // Continue anyway - will use fallback URL
+    _log.severe(
+        'Could not load assets/cfg/app_settings.json - falling back to '
+        'localhost defaults. Copy app_settings.example.json to fix this. ($e)');
   }
 
   // Initialize SQLite database (only on mobile platforms, not web)

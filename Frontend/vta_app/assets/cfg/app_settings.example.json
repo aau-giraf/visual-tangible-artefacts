@@ -1,0 +1,19 @@
+{
+  "ApiSettings": {
+    "BaseUrl": {
+      "Local": "http://localhost:5192/api/",
+      "LocalAndroid": "http://10.0.2.2:5192/api/",
+      "LocalIOS": "http://localhost:5192/api/",
+      "Remote": "",
+
+      "SyncService": "http://localhost:5002/",
+      "SyncServiceAndroid": "http://10.0.2.2:5002/",
+      "SyncServiceIOS": "http://localhost:5002/",
+      "SyncServiceRemote": ""
+    }
+  },
+
+  "OpenAi": {
+    "ApiKey": ""
+  }
+}

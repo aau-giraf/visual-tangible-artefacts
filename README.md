@@ -14,8 +14,20 @@ This repository is a monorepo containing both frontend and backend code for the 
   - [REST API Design — Microsoft REST API Guidelines](#rest-api-design--microsoft-rest-api-guidelines)
   - [Flutter App Architecture — Official Flutter Architecture Guide](#flutter-app-architecture--official-flutter-architecture-guide)
  
+## Flutter app configuration
+The Flutter app reads its API and SyncService URLs from
+`Frontend/vta_app/assets/cfg/app_settings.json`, which is gitignored. Create it once:
+
+```bash
+cd Frontend/vta_app
+cp assets/cfg/app_settings.example.json assets/cfg/app_settings.json
+```
+
+Without this file the app falls back to localhost defaults and logs a `SEVERE` warning
+at startup. Never commit `app_settings.json` - put shared secrets in the ignored file only.
+
 ## Questions and appsettings handover
-For any questions or request for appsettings handover, contact rkrage22@student.aau.dk
+For any questions or request for backend appsettings handover, contact rkrage22@student.aau.dk
 ## Important note:
   Updating to latest dotnet version will *likely* [break the package responsible](https://github.com/dotnet/aspnetcore/issues/54599) for creating our swagger documentation!
   

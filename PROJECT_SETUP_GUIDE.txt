@@ -88,7 +88,15 @@ TRIN 5: OPSÆT FRONTEND (Flutter App)
 3. Hent Flutter dependencies:
    flutter pub get
 
-4. Kør Flutter appen:
+4. Opret konfigurationsfilen (kun første gang):
+   Kopier assets/cfg/app_settings.example.json til assets/cfg/app_settings.json
+   Windows:  copy assets\cfg\app_settings.example.json assets\cfg\app_settings.json
+   Mac/Linux: cp assets/cfg/app_settings.example.json assets/cfg/app_settings.json
+
+   app_settings.json er med i .gitignore, så den skal aldrig committes.
+   Uden filen falder appen tilbage til localhost-standardvaerdier.
+
+5. Kør Flutter appen:
    flutter run
    (Dette vil åbne appen i din standard browser eller emulator)
 
