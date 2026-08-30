@@ -2,7 +2,7 @@ import apiClient from './axios';
 import type { UserGetDTO } from '@/interfaces/User';
 
 export const getAllUsers = (): Promise<UserGetDTO[]> => {
-  return apiClient.get('/Users').then(res => res.data);
+  return apiClient.get('/Users').then(res => res.data.items);
 };
 
 export const deleteUser = (id: string): Promise<void> => {
