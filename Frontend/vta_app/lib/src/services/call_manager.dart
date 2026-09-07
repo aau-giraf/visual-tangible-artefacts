@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:logging/logging.dart';
 
-
 final _log = Logger('CallManager');
+
 // Manages incoming/outgoing call UI and navigation
 class CallManager {
   static final CallManager _instance = CallManager._internal();
@@ -87,6 +87,8 @@ class CallManager {
       }
     }
 
+    if (!context.mounted) return;
+
     final displayName = callerName ?? fromUserId;
 
     // Track if dialog was dismissed
@@ -119,6 +121,8 @@ class CallManager {
       originalMissedCallHandler?.call(userId, userName);
     };
 
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -133,30 +137,31 @@ class CallManager {
                   dialogDismissed = true;
                   autoCloseTimer.cancel();
                   signalR.onMissedCall = originalMissedCallHandler;
-                  signalR.rejectSession(fromUserId);
                   Navigator.of(dialogCtx).pop();
-                  _log.fine('[CallManager] User rejected call');
+                  _log.fine('[CallManager] Call rejected by user');
+                  signalR.rejectSession(fromUserId);
                 }
               },
               child: const Text("Afvis"),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 if (!dialogDismissed) {
                   dialogDismissed = true;
                   autoCloseTimer.cancel();
                   signalR.onMissedCall = originalMissedCallHandler;
                   Navigator.of(dialogCtx).pop();
-
+                  _log.fine('[CallManager] Call accepted by user');
                   final sessionId =
                       DateTime.now().millisecondsSinceEpoch.toString();
-                  await signalR.acceptSession(
+                  signalR.acceptSession(
                     sessionId,
                     fromUserId,
                     signalR.currentUserId!,
                     SignalRService.defaultBoardId,
                   );
-                  _log.fine('[CallManager] User accepted call');
+                  _navigateToVideoCall(
+                      sessionId, SignalRService.defaultBoardId);
                 }
               },
               child: const Text("Accepter"),
@@ -172,19 +177,14 @@ class CallManager {
     });
   }
 
-  // Navigate to video call screen on session start
   void _navigateToVideoCall(String sessionId, String boardId) {
-    if (_isNavigatingToCall) {
-      _log.fine(
-          '[CallManager] Already navigating to call, skipping duplicate');
-      return;
-    }
-
+    if (_isNavigatingToCall) return;
     _isNavigatingToCall = true;
 
+    // Small delay to let the dialog close and UI settle
     Future.delayed(const Duration(milliseconds: 500), () {
-      final context = MyApp.navigatorKey.currentContext;
-      if (context == null) {
+      final navState = MyApp.navigatorKey.currentState;
+      if (navState == null) {
         _log.fine('[CallManager] ERROR: No context available for navigation');
         _isNavigatingToCall = false;
         return;
@@ -199,7 +199,7 @@ class CallManager {
       _log.fine(
           '[CallManager] Navigating to video call: sessionId=$sessionId, isCaller=$isCaller');
 
-      Navigator.of(context)
+      navState
           .pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => VideoCallScreen(

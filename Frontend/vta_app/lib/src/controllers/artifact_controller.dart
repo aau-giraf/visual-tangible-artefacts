@@ -69,9 +69,13 @@ class ArtefactController extends ChangeNotifier {
             token: GetIt.I.get<Token>().value!,
           );
           notifyListeners();
-          _showSuccessActionSnackBar(context, 'Category tilføjet');
+          if (context.mounted) {
+            _showSuccessActionSnackBar(context, 'Category tilføjet');
+          }
         } catch (e) {
-          _showErrorSnackBar(context, e.toString());
+          if (context.mounted) {
+            _showErrorSnackBar(context, e.toString());
+          }
         }
       },
     );
@@ -296,12 +300,17 @@ Future<void> newArtifact(BuildContext context, String categoryId, {Function(Arte
               ),
               TextButton(
                 onPressed: () async {
+                  final nav = Navigator.of(dialogContext);
                   try {
                     await onDelete();
-                    Navigator.of(dialogContext).pop(true);
+                    if (dialogContext.mounted) {
+                      nav.pop(true);
+                    }
                   } catch (_) {
                     // If delete fails, close dialog and bubble up the error
-                    Navigator.of(dialogContext).pop(false);
+                    if (dialogContext.mounted) {
+                      nav.pop(false);
+                    }
                   }
                 },
                 child: const Text('Slet'),

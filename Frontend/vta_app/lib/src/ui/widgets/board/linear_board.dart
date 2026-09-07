@@ -201,7 +201,7 @@ class LinearBoardState extends State<LinearBoard>
           borderRadius: BorderRadius.circular(10.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               spreadRadius: 2,
               blurRadius: 2,
               offset: const Offset(0, 4),
@@ -423,7 +423,7 @@ class LinearBoardState extends State<LinearBoard>
           },
           style: IconButton.styleFrom(
             backgroundColor: Colors.transparent,
-            hoverColor: const Color.fromARGB(255, 244, 0, 0).withOpacity(0.9),
+            hoverColor: const Color.fromARGB(255, 244, 0, 0).withValues(alpha: 0.9),
             shape: const CircleBorder(),
           ),
         ),

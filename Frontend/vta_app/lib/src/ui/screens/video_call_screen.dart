@@ -352,7 +352,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           child: Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.8),
+                              color: Colors.red.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -463,7 +463,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.8),
+                                color: Colors.red.withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -513,24 +513,25 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     icon: Icons.call_end,
                     onPressed: () async {
                       _log.fine('[VideoCall] Hang-up button pressed');
+                      final nav = Navigator.of(context);
                       await SignalRService().endSession();
                       await VideoCallManager().endCall();
                       if (mounted) {
                         // Caller (caregiver) goes to contacts list, callee (child) goes to their board
                         if (widget.isCaller) {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
+                          nav.pushNamedAndRemoveUntil(
                             '/remote',
                             (route) => false,
                           );
                         } else {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
+                          nav.pushNamedAndRemoveUntil(
                             '/artifact-board',
                             (route) => false,
                           );
                         }
                       }
                     },
-                    backgroundColor: Colors. red,
+                    backgroundColor: Colors.red,
                     size: 70,
                   ),
 

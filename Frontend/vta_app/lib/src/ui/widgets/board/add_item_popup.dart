@@ -162,10 +162,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
     if (widget.isCategory) {
       return hasName && hasImage;
     } else {
-      final hasSound = soundBytes != null;
-      // return hasName && hasImage && hasSound;   Doesnt' work
       return hasName && hasImage;
-
     }
   }
 

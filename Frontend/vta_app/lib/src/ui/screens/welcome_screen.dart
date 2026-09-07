@@ -240,7 +240,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               blurRadius: 10,
                               spreadRadius: 2,
                             ),
@@ -280,7 +280,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           color: Colors.white,
                           shadows: [
                             Shadow(
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black.withValues(alpha: 0.5),
                               blurRadius: 10,
                             ),
                           ],
