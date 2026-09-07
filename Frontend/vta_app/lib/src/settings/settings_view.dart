@@ -240,9 +240,10 @@ class _ProfilePictureSettingsTileState
           builder: (context) => TakePictureScreen(
             camera: CameraManager().cameras.first,
             onImageChosen: (bytes) async {
+              final nav = Navigator.of(context);
               await _saveProfilePicture(bytes);
               if (mounted) {
-                Navigator.of(context).pop();
+                nav.pop();
               }
             },
           ),

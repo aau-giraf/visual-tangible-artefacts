@@ -11,7 +11,7 @@ class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
 
   @override
-  _BoardPageState createState() => _BoardPageState();
+  State<BoardPage> createState() => _BoardPageState();
 }
 
 class _BoardPageState extends State<BoardPage> {
@@ -28,6 +28,7 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _loadSavedBoards() async {
     final boards = await _talkingMatKey.currentState?.getSavedBoards();
+    if (!mounted) return;
     setState(() {
       _savedBoards = boards;
     });
@@ -37,6 +38,7 @@ class _BoardPageState extends State<BoardPage> {
     final boardName = 'My Board ${DateTime.now().millisecondsSinceEpoch}';
     final boardId = await _talkingMatKey.currentState?.saveBoardAs(boardName);
     if (boardId != null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Board saved as "$boardName"')),
       );
@@ -46,6 +48,7 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _loadBoard(String boardId) async {
     await _talkingMatKey.currentState?.loadBoard(boardId);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Board loaded')),
     );

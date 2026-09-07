@@ -10,7 +10,7 @@ class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
 
   @override
-  _AuthPageState createState() => _AuthPageState();
+  State<AuthPage> createState() => _AuthPageState();
 }
 
 class _AuthPageState extends State<AuthPage> {
@@ -24,8 +24,10 @@ class _AuthPageState extends State<AuthPage> {
     final authState = Provider.of<AuthState>(context, listen: false);
     final artifactState = Provider.of<ArtifactState>(context, listen: false);
     final userState = Provider.of<UserState>(context, listen: false);
-    if (await authState.loadTokenFromCache() &&
-        await authState.loadUserIdFromCache()) {
+    final isAuthed = await authState.loadTokenFromCache() &&
+        await authState.loadUserIdFromCache();
+    if (!mounted) return;
+    if (isAuthed) {
       // Token is valid, navigate to user page
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

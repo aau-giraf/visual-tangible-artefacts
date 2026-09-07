@@ -40,10 +40,6 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   final _resizeOverlay = ResizeOverlay();
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
-  Size? _resizeStartSize;
-  Offset? _resizeStartPointer;
-  static const double _minResizeWidth = 100.0;
-  static const double _maxResizeWidth = 1000.0;
   final GlobalKey _optionWheelKey = GlobalKey();
   late bool _showName;
   final _soundPlayer = _ArtefactSoundPlayerImpl();

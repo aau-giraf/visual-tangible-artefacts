@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/online_session/caregiver_request_widget.dart';
-import 'package:vta_app/src/ui/screens/child_accept_session_screen.dart';
 
 
 void main() => runApp(const ComponentViewer());

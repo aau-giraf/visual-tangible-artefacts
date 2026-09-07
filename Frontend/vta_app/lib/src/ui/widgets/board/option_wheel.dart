@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -49,7 +50,7 @@ class OptionWheel extends StatefulWidget {
   });
 
   @override
-  _OptionWheelState createState() => _OptionWheelState();
+  State<OptionWheel> createState() => _OptionWheelState();
 }
 
 // states for the option wheel
@@ -146,16 +147,16 @@ class _OptionWheelState extends State<OptionWheel>
     final double degreesStep =
         buttonCount > 1 ? (endDegrees - startDegrees) / (buttonCount - 1) : 0.0;
 
-  // wheel dimensions
-  final double WheelWidth = ((radius + buttonSize / 2 + 30) * 2);
-    final double WheelHeight = WheelWidth;
+    // wheel dimensions
+    final double wheelWidth = ((radius + buttonSize / 2 + 30) * 2);
+    final double wheelHeight = wheelWidth;
 
     // animation for buttons (go from center to radius) vibe
     return Material(
       color: Colors.transparent,
       child: SizedBox(
-        width: WheelWidth,
-        height: WheelHeight,
+        width: wheelWidth,
+        height: wheelHeight,
         child: AnimatedBuilder(
           animation: _ctrl,
           builder: (context, _) {
@@ -165,12 +166,12 @@ class _OptionWheelState extends State<OptionWheel>
             final List<Map<String, dynamic>> entries = [];
             for (int i = 0; i < buttonCount; i++) {
               final double angleDeg = startDegrees + degreesStep * i;
-              final double leftPos = (WheelWidth / 2) +
+              final double leftPos = (wheelWidth / 2) +
                   animatedRadius *
                       math.cos(angleDeg * math.pi / 180 - math.pi / 2) -
                   buttonSize / 2 +
                   wheelOffsetLeft;
-              double topPos = (WheelHeight / 2) +
+              double topPos = (wheelHeight / 2) +
                   animatedRadius *
                       math.sin(angleDeg * math.pi / 180 - math.pi / 2) +
                   widget.verticalNudge +
@@ -181,7 +182,7 @@ class _OptionWheelState extends State<OptionWheel>
               const double upwardNudge = -48.0; // negative to move up
               
               final bool nearRightEdge =
-                  leftPos + buttonSize > WheelWidth;
+                  leftPos + buttonSize > wheelWidth;
               if (nearRightEdge) {
                 topPos += upwardNudge;
               }
@@ -247,8 +248,8 @@ class _OptionWheelState extends State<OptionWheel>
             // Center artefact for centering (remove when not needed)
             childrenWidgets.add(
               Positioned(
-                left: (WheelWidth / 2) - centerSize / 2 + wheelOffsetLeft,
-                top: (WheelHeight / 2) - centerSize / 2 + wheelOffsetTop,
+                left: (wheelWidth / 2) - centerSize / 2 + wheelOffsetLeft,
+                top: (wheelHeight / 2) - centerSize / 2 + wheelOffsetTop,
                 child: Container(
                   width: centerSize,
                   height: centerSize,

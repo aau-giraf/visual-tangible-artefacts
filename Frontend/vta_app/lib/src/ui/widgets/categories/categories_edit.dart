@@ -64,10 +64,13 @@ class CategoriesEdit extends StatelessWidget {
             ),
             TextButton(
               onPressed: () async {
+                final nav = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
                 var message = await deleteCategory(
                     context, categoryId); // Call the delete function
-                Navigator.of(context).pop(); // Close the dialog
-                ScaffoldMessenger.of(context).showSnackBar(
+                if (!context.mounted) return;
+                nav.pop(); // Close the dialog
+                messenger.showSnackBar(
                   SnackBar(content: Text(message)),
                 );
               },
@@ -83,7 +86,6 @@ class CategoriesEdit extends StatelessWidget {
     // Implement your delete functionality here
     String message = 'Something went wrong';
     var artifactState = Provider.of<ArtifactState>(context, listen: false);
-    var authState = Provider.of<AuthState>(context, listen: false);
     var success = await artifactState.deleteCategory(categoryId,
         token: GetIt.I.get<Token>().value!);
     if (success) {
