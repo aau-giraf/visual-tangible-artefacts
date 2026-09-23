@@ -1,11 +1,10 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, file_names
 
 import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 import 'package:logging/logging.dart';
 
 
@@ -16,7 +15,7 @@ class AIPage extends StatefulWidget {
   const AIPage({super.key, this.onImageProcessed});
 
   @override
-  _AIPageState createState() => _AIPageState();
+  State<AIPage> createState() => _AIPageState();
 }
 
 class _AIPageState extends State<AIPage> {
@@ -371,9 +370,7 @@ class AddPicturePage extends StatelessWidget {
                           onPressed: () async {
                             FilePickerResult? result =
                                 await FilePicker.platform.pickFiles();
-                            if (result != null) {
-                              File file = File(result.files.single.path!);
-                            } else {
+                            if (result == null) {
                               _log.info("Ingen fil valgt");
                             }
                           },

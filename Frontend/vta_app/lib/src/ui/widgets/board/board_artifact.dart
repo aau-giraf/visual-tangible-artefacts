@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:logging/logging.dart';
@@ -149,13 +148,12 @@ class _BoardArtefactContent extends StatefulWidget {
   final Map<String, String>? imageHeadersForSizing;
 
   const _BoardArtefactContent({
-    Key? key,
     required this.baseContent,
     required this.sizeNotifier,
     required this.showResizeNotifier,
     this.imageUrlForSizing,
     this.imageHeadersForSizing,
-  }) : super(key: key);
+  });
 
   @override
   State<_BoardArtefactContent> createState() => _BoardArtefactContentState();
@@ -275,7 +273,7 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(6),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4),
                         ],
                         border: Border.all(color: Colors.black12),
                       ),

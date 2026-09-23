@@ -5,7 +5,7 @@ import 'package:logging/logging.dart';
 
 final _log = Logger('IncommingCallScreen');
 /// Incoming call screen shown to CHILD when caregiver calls
-/// Shows "Opkald fra <Caregiver Name>" with accept/decline buttons
+/// Shows "Opkald fra `Caregiver Name`" with accept/decline buttons
 class IncomingCallScreen extends StatefulWidget {
   static const String routeName = "/incoming-call";
 
@@ -178,7 +178,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                             height: 160,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                             ),
                           ),
                         ),
@@ -194,7 +194,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                             height: 140,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                             ),
                           ),
                         ),
@@ -203,7 +203,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(

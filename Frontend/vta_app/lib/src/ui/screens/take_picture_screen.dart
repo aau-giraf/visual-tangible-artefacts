@@ -73,9 +73,10 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                   right: 20,
                   child: ElevatedButton(
                     onPressed: () async {
+                      final nav = Navigator.of(context);
                       pictureBytes = await _takePicture();
-                      Navigator.push(
-                        context,
+                      if (!mounted || pictureBytes == null) return;
+                      nav.push(
                         MaterialPageRoute(
                           builder: (context) => DisplayPictureScreen(
                             imageBytes: pictureBytes!,

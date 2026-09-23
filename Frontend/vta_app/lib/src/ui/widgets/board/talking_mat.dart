@@ -5,7 +5,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:vta_app/src/controllers/talkingmat_controller.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
@@ -33,10 +32,10 @@ class TalkingMat extends StatefulWidget {
   final OnBoardLoaded? onBoardLoaded;
   final bool readOnly;
 
-  TalkingMat({
+  const TalkingMat({
     super.key,
     this.artifacts,
-    required TalkingmatController controller,
+    required this.controller,
     this.width,
     this.height,
     this.backgroundColor,
@@ -44,7 +43,7 @@ class TalkingMat extends StatefulWidget {
     this.onArtifactRemoved,
     this.onBoardLoaded,
     this.readOnly = false,
-  }) : controller = controller;
+  });
 
   @override
   createState() => TalkingMatState();
@@ -58,10 +57,9 @@ class TalkingMatState extends State<TalkingMat>
   bool isGestureInsideMat = false;
   bool _isDraggingOverTrashCan = false;
   bool _isHoveringTrashCan = false;
-  bool _isPlayingAllSounds = false;
   BoardArtefact? _draggedArtifactBeingDeleted;
   // Track if any artifact is currently being dragged to prevent size updates
-  bool _isDragging = false;
+  final bool _isDragging = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final BoardLayoutService _boardLayoutService = BoardLayoutService();
   String? _currentBoardId; // Track the current board being edited
@@ -996,6 +994,8 @@ class TalkingMatState extends State<TalkingMat>
                               }
                             }
 
+                            if (!mounted) return;
+
                             // Handle Session-Artefact deletion
                             if (artefact.baseArtefact?.categoryId ==
                                 'Session-Artefact') {
@@ -1004,6 +1004,7 @@ class TalkingMatState extends State<TalkingMat>
                                     GetIt.instance.get<ArtefactController>();
                                 final deleted =
                                     await artefactController.deleteArtefact(
+                                        // ignore: use_build_context_synchronously
                                         context, artefact.baseArtefact!);
                                 if (deleted) {
                                   widget.controller.removeArtifact(artefact);

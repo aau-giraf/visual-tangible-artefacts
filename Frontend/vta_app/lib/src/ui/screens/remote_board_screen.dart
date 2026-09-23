@@ -40,7 +40,6 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   String boardId = '';
   bool isOwner = false;
   bool _isInitialized = false;
-  bool _hasVideo = false;
 
   @override
   void didChangeDependencies() {
@@ -51,7 +50,6 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
       if (args is Map<String, dynamic>) {
         sessionId = args['sessionId'] as String;
         boardId = args['boardId'] as String;
-        _hasVideo = args['hasVideo'] as bool? ?? false;
       } else {
         // Fallback: extract session ID if passed as string
         sessionId = args is String ? args : '';
@@ -201,18 +199,19 @@ class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
             color: Colors.red,
             onPressed: () async {
               _log.fine('[RemoteBoard] Hang-up button pressed');
+              final nav = Navigator.of(context);
               await SignalRService().endSession();
               await VideoCallManager().endCall();
               if (mounted) {
                 // Caller (non-owner) is navigated to contacts list
                 // Called (owner) is navigated to their board
                 if (!isOwner) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
+                  nav.pushNamedAndRemoveUntil(
                     '/remote',
                     (route) => false,
                   );
                 } else {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
+                  nav.pushNamedAndRemoveUntil(
                     '/artifact-board',
                     (route) => false,
                   );

@@ -45,7 +45,7 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.8),
+                  color: Colors.red.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
@@ -76,7 +76,7 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
             child: Container(
               padding: EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Icon(
@@ -96,7 +96,7 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
                 width: 30,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -159,7 +159,7 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
           child: Container(
             padding: EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Icon(
@@ -179,7 +179,7 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
               width: 30,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -222,7 +222,7 @@ class _PipVideoWidgetState extends State<PipVideoWidget> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 10,
                 offset: Offset(0, 4),
               ),

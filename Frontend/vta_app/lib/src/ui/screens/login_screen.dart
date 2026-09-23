@@ -12,7 +12,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -30,7 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
         var username = _usernameController.text;
         var password = _passwordController.text;
         var authState = Provider.of<AuthState>(context, listen: false);
-        Provider.of<ArtifactState>(context, listen: false);
         
         _log.fine('Attempting login for username: $username');
         await authState.login(username, password);
@@ -41,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SyncTimer().start(interval: const Duration(seconds: 30));
           
           _log.fine('Login successful, navigating to AuthPage');
+          if (!mounted) return;
           // Navigate to user page
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => AuthPage()));
@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     spreadRadius: 5,
                     blurRadius: 15,
                     offset: Offset(0, 5),

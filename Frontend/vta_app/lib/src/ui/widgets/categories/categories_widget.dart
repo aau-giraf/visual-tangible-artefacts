@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 import 'package:vta_app/src/controllers/artifact_controller.dart';
-import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
@@ -196,19 +195,17 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
   }
 
   Widget _buildMostUsedCategoryItem(Category item, int index) {
-    return Container(
-      child: GestureDetector(
-        onLongPress: () {
-          _showCategoryEditModal(context, item);
+    return GestureDetector(
+      onLongPress: () {
+        _showCategoryEditModal(context, item);
+      },
+      child: TextButton(
+        onPressed: () {
+          widget.artefactController
+              .trackCategoryUsage(item.categoryId!, context: context);
+          _showCategoryModal(context, item);
         },
-        child: TextButton(
-          onPressed: () {
-            widget.artefactController
-                .trackCategoryUsage(item.categoryId!, context: context);
-            _showCategoryModal(context, item);
-          },
-          child: _buildCategoryContainer(item),
-        ),
+        child: _buildCategoryContainer(item),
       ),
     );
   }
@@ -544,30 +541,6 @@ Widget _buildImageGrid(Category category) {
     );
   }
 
-  void _showAddCategoryPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.75),
-      builder: (BuildContext context) {
-        return AddItemPopup(
-          isCategory: true,
-          title: 'Tilføj kategori',
-          onSubmit: (String name, Uint8List? imageBytes, Uint8List? soundBytes) {
-            var artifactState =
-                Provider.of<ArtifactState>(context, listen: false);
-            var authState = Provider.of<AuthState>(context, listen: false);
-            var newCategory = Category(
-                name: name,
-                userId: authState.userId,
-                categoryIndex: 0,
-                image: imageBytes);
-            artifactState.addCategory(newCategory, token: authState.token!);
-          },
-        );
-      },
-    );
-  }
-
   void _showEditCategoryPopup(BuildContext context, Category category) {
     showDialog(
       context: context,
@@ -590,31 +563,6 @@ Widget _buildImageGrid(Category category) {
             artifactState.updateCategory(newCategory,
                 token: authState.token!);
           },
-        );
-      },
-    );
-  }
-
-  void _showAddArtifactPopup(BuildContext context, Category category) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.75),
-      builder: (BuildContext context) {
-        return AddItemPopup(
-          isCategory: false,
-          onSubmit: (String name, Uint8List? bytes, Uint8List? sound) async {
-            var artifactState =
-                Provider.of<ArtifactState>(context, listen: false);
-            var authState = Provider.of<AuthState>(context, listen: false);
-            var newArtifact = Artefact(
-                categoryId: category.categoryId,
-                userId: authState.userId,
-                image: bytes,
-                sound: sound);
-            await artifactState.addArtifact(newArtifact,
-                token: authState.token!);
-          },
-          title: "Tilføj Artefakt",
         );
       },
     );
