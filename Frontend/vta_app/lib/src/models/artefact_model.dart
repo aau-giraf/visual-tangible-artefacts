@@ -1,8 +1,6 @@
 // ignore_for_file: unused_element
 
 import 'dart:convert';
-
-import 'package:flutter/material.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';

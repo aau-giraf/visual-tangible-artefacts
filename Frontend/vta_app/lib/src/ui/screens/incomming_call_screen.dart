@@ -178,7 +178,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                             height: 160,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(),
                             ),
                           ),
                         ),
@@ -194,7 +194,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                             height: 140,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(),
                             ),
                           ),
                         ),
@@ -203,7 +203,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
