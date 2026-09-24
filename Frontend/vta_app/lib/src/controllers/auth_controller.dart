@@ -5,7 +5,6 @@ import 'package:vta_app/src/models/auth_model.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/shared/global_snackbar.dart';
 import 'package:vta_app/src/ui/screens/welcome_screen.dart';
-import 'package:vta_app/src/ui/screens/artifact_board_screen.dart';
 import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import 'package:vta_app/src/views/login_view.dart';
 import 'package:vta_app/src/services/sync_timer.dart';

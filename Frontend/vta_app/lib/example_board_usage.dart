@@ -36,16 +36,20 @@ class _BoardPageState extends State<BoardPage> {
   Future<void> _saveCurrentBoard() async {
     final boardName = 'My Board ${DateTime.now().millisecondsSinceEpoch}';
     final boardId = await _talkingMatKey.currentState?.saveBoardAs(boardName);
-    if (boardId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Board saved as "$boardName"')),
-      );
-      _loadSavedBoards();
-    }
+
+    if(!mounted || boardId == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Board saved as "$boardName"')),
+    );
+    _loadSavedBoards();
   }
 
   Future<void> _loadBoard(String boardId) async {
     await _talkingMatKey.currentState?.loadBoard(boardId);
+
+    if(!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Board loaded')),
     );
