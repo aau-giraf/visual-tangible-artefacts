@@ -544,7 +544,7 @@ Widget _buildImageGrid(Category category) {
     );
   }
 
-  void _showAddCategoryPopup(BuildContext context) {
+ /* void _showAddCategoryPopup(BuildContext context) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.75),
@@ -566,7 +566,7 @@ Widget _buildImageGrid(Category category) {
         );
       },
     );
-  }
+  }*/
 
   void _showEditCategoryPopup(BuildContext context, Category category) {
     showDialog(
