@@ -91,12 +91,14 @@ class AuthController extends ChangeNotifier {
         if (userId != null) {
           final user = await _model.getUser(userId);
           if (user != null && user.role == user_model.UserRole.caregiver) {
+            if (!context.mounted) return;
             Navigator.of(context)
                 .pushReplacementNamed(RemoteSessionScreen.routeName);
             return;
           }
         }
 
+        if (!context.mounted) return;
         Navigator.of(context).pushReplacementNamed(WelcomeScreen.routeName);
       }
     } catch (e) {
