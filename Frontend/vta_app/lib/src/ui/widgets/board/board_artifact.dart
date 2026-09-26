@@ -274,7 +274,7 @@ class _BoardArtefactContentState extends State<_BoardArtefactContent> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(6),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4),
+                          BoxShadow(color: Colors.black.withValues(), blurRadius: 4),
                         ],
                         border: Border.all(color: Colors.black12),
                       ),
