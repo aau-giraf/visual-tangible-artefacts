@@ -363,13 +363,11 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             },
                             icon: controller.showDirectional
                                 ? Icon(
-                                    IconData(0xf685,
-                                        fontFamily: 'MaterialIcons'),
+                                    Icons.crop_landscape_rounded,
                                     size: screenWidth > 600 ? 24.0 : 20.0,
                                   )
                                 : Icon(
-                                    IconData(0xf601,
-                                        fontFamily: 'MaterialIcons'),
+                                    Icons.calendar_view_week_rounded,
                                     size: screenWidth > 600 ? 24.0 : 20.0,
                                   ),
                           ),

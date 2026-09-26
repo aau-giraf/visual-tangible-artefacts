@@ -84,7 +84,7 @@ class SettingsView extends StatelessWidget {
         6: '6',
         8: '8',
       },
-      leading: Icon(IconData(0xf601, fontFamily: 'MaterialIcons')),
+      leading: const Icon(Icons.calendar_view_week_rounded),
       onChange: _onChangeLinearArtifactCount,
     );
   }
