@@ -198,7 +198,7 @@ class CallManager {
 
       _log.fine(
           '[CallManager] Navigating to video call: sessionId=$sessionId, isCaller=$isCaller');
-
+      if (!context.mounted) return;
       Navigator.of(context)
           .pushAndRemoveUntil(
         MaterialPageRoute(

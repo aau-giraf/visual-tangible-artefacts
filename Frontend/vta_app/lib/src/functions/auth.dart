@@ -27,6 +27,7 @@ class _AuthPageState extends State<AuthPage> {
     if (await authState.loadTokenFromCache() &&
         await authState.loadUserIdFromCache()) {
       // Token is valid, navigate to user page
+      if(!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => LoadingPage(
@@ -42,6 +43,7 @@ class _AuthPageState extends State<AuthPage> {
       );
     } else {
       // Token is invalid or not present, navigate to login page
+      if(!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => LoginScreen()),
       );

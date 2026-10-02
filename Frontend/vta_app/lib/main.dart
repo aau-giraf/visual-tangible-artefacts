@@ -18,7 +18,6 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/app_logger.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
-import 'package:vta_app/src/services/sync_timer.dart';
 import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';

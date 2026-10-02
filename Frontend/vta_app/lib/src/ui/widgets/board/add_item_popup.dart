@@ -11,7 +11,7 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
-import 'package:vta_app/src/ui/widgets/categories/addPicture.dart';
+import 'package:vta_app/src/ui/widgets/categories/add_picture.dart';
 import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/utilities/config/elevenlabs_config.dart';

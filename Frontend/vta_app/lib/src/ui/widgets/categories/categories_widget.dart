@@ -195,7 +195,7 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     );
   }
 
-  Widget _buildMostUsedCategoryItem(Category item, int index) {
+ /*Widget _buildMostUsedCategoryItem(Category item, int index) {
     return Container(
       child: GestureDetector(
         onLongPress: () {
@@ -210,6 +210,22 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
           child: _buildCategoryContainer(item),
         ),
       ),
+    );
+  }*/
+  
+  Widget _buildMostUsedCategoryItem(Category item, int index) {
+    return GestureDetector( 
+        onLongPress: () {
+          _showCategoryEditModal(context, item);
+        },
+        child: TextButton(
+          onPressed: () {
+            widget.artefactController
+                .trackCategoryUsage(item.categoryId!, context: context);
+            _showCategoryModal(context, item);
+          },
+          child: _buildCategoryContainer(item),
+        ),
     );
   }
 
@@ -544,7 +560,7 @@ Widget _buildImageGrid(Category category) {
     );
   }
 
-  void _showAddCategoryPopup(BuildContext context) {
+ /* void _showAddCategoryPopup(BuildContext context) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.75),
@@ -566,7 +582,7 @@ Widget _buildImageGrid(Category category) {
         );
       },
     );
-  }
+  }*/
 
   void _showEditCategoryPopup(BuildContext context, Category category) {
     showDialog(
