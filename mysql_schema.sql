@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS artefact;
 DROP TABLE IF EXISTS category;
 DROP TABLE IF EXISTS user;
 
+
 -- USER
 CREATE TABLE user (
   id           VARCHAR(36)  NOT NULL,
@@ -36,6 +37,7 @@ INSERT INTO user (id, name, password, guardianKey, username, nameVisible, fieldC
 SELECT 'system', 'System', '', NULL, 'system', 0, 4
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM user WHERE id = 'system');
+
 
 -- CATEGORY
 CREATE TABLE category (
@@ -89,6 +91,7 @@ CREATE TABLE artefact (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
 
+
 -- SAVED BOARD
 CREATE TABLE savedBoard (
   id               VARCHAR(36)  NOT NULL,
@@ -108,6 +111,8 @@ CREATE TABLE savedBoard (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
+
 -- SAVED ARTEFACT
 CREATE TABLE savedArtefact (
   id          VARCHAR(36)  NOT NULL,
