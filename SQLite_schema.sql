@@ -1,3 +1,4 @@
+-- User
 CREATE TABLE user (
   id TEXT PRIMARY KEY,
   name TEXT,
@@ -8,6 +9,8 @@ CREATE TABLE user (
   is_deleted INTEGER NOT NULL DEFAULT 0
 );
 
+
+-- Category
 CREATE TABLE category (
   category_id TEXT PRIMARY KEY,
   category_index INTEGER,
@@ -20,6 +23,8 @@ CREATE TABLE category (
   is_deleted INTEGER NOT NULL DEFAULT 0
 );
 
+
+-- Artefact
 CREATE TABLE artefact (
   artefact_id TEXT PRIMARY KEY,
   artefact_index INTEGER NOT NULL,
@@ -33,6 +38,8 @@ CREATE TABLE artefact (
   is_deleted INTEGER NOT NULL DEFAULT 0
 );
 
+
+-- Saved Board
 CREATE TABLE saved_board (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -45,6 +52,7 @@ CREATE TABLE saved_board (
   is_deleted INTEGER NOT NULL DEFAULT 0
 );
 
+-- Saved Artefact
 CREATE TABLE saved_artefact (
   id TEXT PRIMARY KEY,
   artefact_id TEXT NOT NULL,
@@ -59,6 +67,8 @@ CREATE TABLE saved_artefact (
   is_deleted INTEGER NOT NULL DEFAULT 0
 );
 
+
+-- Session Meta
 CREATE TABLE session_meta (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id TEXT,
