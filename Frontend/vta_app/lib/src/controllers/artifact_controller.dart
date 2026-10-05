@@ -11,7 +11,12 @@ import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
 import 'package:logging/logging.dart';
 
 
+/// Create a logger for the ArtifactController for diagnostic purposes
 final _log = Logger('ArtifactController');
+
+/// Manages artifact and category data, including CRUD operations,
+/// user interactions, and error handling. It communicates with the 
+/// underlying ArtifactModel to fetch, update, and delete artifacts and categories.
 class ArtefactController extends ChangeNotifier {
   final ArtifactModel _model;
   List<Category>? get categories => _model.categories;

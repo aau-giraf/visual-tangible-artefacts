@@ -10,7 +10,7 @@ import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the RemoteArtifactBoardController for diagnostic purposes
 final _log = Logger('RemoteArtifactBoardController');
 typedef VoidCallback = void Function();
 

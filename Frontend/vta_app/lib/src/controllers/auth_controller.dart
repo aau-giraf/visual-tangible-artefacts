@@ -14,8 +14,9 @@ import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the AuthController for diagnostic purposes
 final _log = Logger('AuthController');
+
 /// Used to control the authentication process and store authentication data
 class AuthController extends ChangeNotifier {
   final AuthModel _model;

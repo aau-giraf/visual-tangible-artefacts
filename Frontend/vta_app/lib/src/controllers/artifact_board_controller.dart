@@ -16,11 +16,13 @@ import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the ArtifactBoardController for diagnostic purposes
 final _log = Logger('ArtifactBoardController');
 typedef VoidCallback = void Function();
 typedef MessageCallback = void Function(String message);
 
+/// Manages artifact boards, board switching, settings synchronization,
+/// UI updates, and artifact audio playback.
 class ArtifactBoardController with ArtefactSoundPlayer {
   // Multi-Board Management
   List<Board> availableBoards = [];
