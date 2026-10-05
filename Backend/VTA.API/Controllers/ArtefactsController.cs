@@ -15,44 +15,50 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
 
     // GET: api/Artefacts
     /// <summary>
-    /// Gets all artefacts that a user owns
+    /// Gets all artefacts that a currently logged in user owns.
     /// </summary>
     /// <param name="skip">Number of items to skip (pagination)</param>
     /// <param name="take">Number of items to return (pagination, default 50)</param>
     /// <returns>An IEnumerable of artefacts</returns>
-    [HttpGet]
+    [HttpGet] 
     public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts([FromQuery] int? skip, [FromQuery] int? take)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var userId = User.FindFirst("id")?.Value; //Gets current user id from authentication claims.
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(); //If the API cant determine who the user is.
 
+        //Gets that specific users artefacts, skip and take allow pagenation.
         var artefacts = await artefactService.GetArtefactsForUserAsync(userId, skip, take);
 
+        //Converts each database artefact into an AtefactGetDTO suiteble for sending to the client.
+        //Request.Scheme and Request.Host so converter can construct full URLs for things asociated for the artefact.
         var artefactGetDTOs = artefacts
             .Select(artefact => DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString()))
             .ToList();
 
+        //Returns pagenated list of artefacts for authenticated user.
         return artefactGetDTOs;
     }
 
     // GET: api/Artefacts/5
     /// <summary>
-    /// Gets a specific artefact
+    /// Gets a specific artefact by its id for authenticated user.
     /// </summary>
     /// <param name="artefactId">The artefact to get</param>
     /// <returns>The specified artefact</returns>
     [HttpGet("{artefactId}")]
     public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
     {
-        var userId = User.FindFirst("id")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var userId = User.FindFirst("id")?.Value; //Gets authenticated users id.
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(); //status code 401 user unauthorized. 
 
+        //Bothe artefact id and user id are passed to insure artefact belongs to athenticated user. 
         var artefact = await artefactService.GetArtefactByIdAsync(artefactId, userId);
         if (artefact == null)
         {
             return NotFound();
         }
 
+        //Converts artefact to DTO so it is safe to send to frontend and returns the DTO.
         return DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
     }
 
