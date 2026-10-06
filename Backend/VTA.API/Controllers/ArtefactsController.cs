@@ -7,20 +7,18 @@ using VTA.Data.DbContexts;
 
 namespace VTA.API.Controllers;
 
-[Authorize]
+[Authorize] //Mark the entire controller to require a valid token
 [Route("api/Artefacts")]
 [ApiController]
+
+//Controller for managing artefacts that belong to logged in user.
 public class ArtefactsController(VTAContext context, ITtsService ttsService, IArtefactService artefactService) : ControllerBase
 {
 
-    // GET: api/Artefacts
-    /// <summary>
-    /// Gets all artefacts that a currently logged in user owns.
-    /// </summary>
-    /// <param name="skip">Number of items to skip (pagination)</param>
-    /// <param name="take">Number of items to return (pagination, default 50)</param>
-    /// <returns>An IEnumerable of artefacts</returns>
-    [HttpGet] 
+   
+    // Skip = Number of items to skip (pagination)
+    // Take = Number of items to return (pagination, default 50)
+    [HttpGet]  // Gets all artefacts that a currently logged in user owns.
     public async Task<ActionResult<IEnumerable<ArtefactGetDTO>>> GetArtefacts([FromQuery] int? skip, [FromQuery] int? take)
     {
         var userId = User.FindFirst("id")?.Value; //Gets current user id from authentication claims.
@@ -39,19 +37,15 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         return artefactGetDTOs;
     }
 
-    // GET: api/Artefacts/5
-    /// <summary>
-    /// Gets a specific artefact by its id for authenticated user.
-    /// </summary>
-    /// <param name="artefactId">The artefact to get</param>
-    /// <returns>The specified artefact</returns>
-    [HttpGet("{artefactId}")]
+   
+    // artefactId = The artefact to get
+    [HttpGet("{artefactId}")] // Gets a specific artefact by its id for authenticated user.
     public async Task<ActionResult<ArtefactGetDTO>> GetArtefact(string artefactId)
     {
         var userId = User.FindFirst("id")?.Value; //Gets authenticated users id.
         if (string.IsNullOrEmpty(userId)) return Unauthorized(); //status code 401 user unauthorized. 
 
-        //Bothe artefact id and user id are passed to insure artefact belongs to athenticated user. 
+        //Both artefact id and user id are passed to insure artefact belongs to athenticated user. 
         var artefact = await artefactService.GetArtefactByIdAsync(artefactId, userId);
         if (artefact == null)
         {
@@ -62,49 +56,40 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         return DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
     }
 
-    // PATCH: api/Artefacts/5
+
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    /// <summary>
-    /// Updates an artefacts information
-    /// </summary>
-    /// <param name="dto"></param>
-    /// <returns></returns>
-    [HttpPatch]
+    [HttpPatch] // Updates an existing artefact for logged in user, with information as optional text and image.
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
-    public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto)
+    public async Task<IActionResult> PatchArtefact([FromForm] ArtefactPatchDTO dto) //FromForm: reads submitted form and creates an DTO. 
     {
         var userId = User.FindFirst("id")?.Value;
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
+        //Passes all changes to service.
         var artefact = await artefactService.PatchArtefactAsync(
             dto.ArtefactId, userId, dto.ArtefactIndex, dto.Name, dto.NameShown, dto.Image, dto.Sound);
 
         if (artefact == null) return BadRequest();
 
-        return NoContent();
+        return NoContent(); //returns if succecful ubdate.
     }
 
-    // POST: api/Artefacts
+  
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    /// <summary>
-    /// Creates a new artefact
-    /// </summary>
-    /// <param name="artefactPostDTO">An object with all artefact info</param>
-    /// <returns>
-    /// Status code 200 (Ok) to the client on success (Ok should also have the item with it)<br />
-    /// Status code 403 (Forbidden) if a client tries to add an artefact to someone else<br />
-    /// </returns>
-    [HttpPost]
+    // artefactPostDTo = An object with all artefact info
+    [HttpPost] // Creates a new artefact for logged in user.
     [DisableRequestSizeLimit, RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue, ValueLengthLimit = Int32.MaxValue)]
     public async Task<ActionResult<ArtefactGetDTO>> PostArtefact(ArtefactPostDTO artefactPostDTO)
     {
         var userId = User.FindFirst("id")?.Value;
 
+        //Prevents logged in user from submitting another user's id and creating/ubdating an artefact as that user.
         if (userId != artefactPostDTO.UserId)
         {
             return Forbid();
         }
 
+        //Passes artefact including its information to the actual service that does the ubdate.
         var artefact = await artefactService.CreateOrUpdateArtefactAsync(
             artefactPostDTO.ArtefactId,
             userId!,
@@ -115,21 +100,13 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
             artefactPostDTO.Image,
             artefactPostDTO.Sound);
 
+        //Converts database artefact to a DTO.
         var artefactGetDTO = DTOConverter.MapArtefactToArtefactGetDTO(artefact, Request.Scheme, Request.Host.ToString());
         return Ok(artefactGetDTO);
     }
 
-    // DELETE: api/Artefacts/5
-    /// <summary>
-    /// Deletes an artefact using its ID
-    /// </summary>
-    /// <param name="artefactId">The artefacts ID</param>
-    /// <returns>
-    /// Status code 204 (No content) to the client on success<br />
-    /// Status code 403 (Forbidden) if a client tries to delete an artefact that they do not own<br />
-    /// Status code 404 (Not Found) if the artefact does not exist
-    /// </returns>
-    [HttpDelete("{artefactId}")]
+    //artefactId = The artefacts ID
+    [HttpDelete("{artefactId}")] // Deletes an artefact using its ID, for the logged in user. 
     public async Task<IActionResult> DeleteArtefact(string artefactId)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -137,25 +114,18 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
 
         var (success, error) = await artefactService.DeleteArtefactAsync(artefactId, userId);
 
+        //Switch for error handling
         return error switch
         {
-            "NotFound" => NotFound(),
-            "Forbidden" => Forbid(),
-            _ when success => NoContent(),
-            _ => StatusCode(500)
+            "NotFound" => NotFound(), //Atefact not found
+            "Forbidden" => Forbid(), // user does not have permission
+            _ when success => NoContent(), //Return succes
+            _ => StatusCode(500) //Internal server error
         };
     }
 
-    /// <summary>
-    /// Generate speech from text using ElevenLabs API (simple version for new artefacts)
-    /// </summary>
-    /// <param name="request">Simple text-to-speech request</param>
-    /// <returns>
-    /// Status code 200 (Ok) with audio data on success<br />
-    /// Status code 400 (Bad Request) if the request is invalid<br />
-    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
-    /// </returns>
-    [HttpPost("generate-speech-simple")]
+    //Request = Simple text-to-speech request
+    [HttpPost("generate-speech-simple")] // Generate speech from text using ElevenLabs API (simple version for new artefacts)
     public async Task<IActionResult> GenerateSpeechSimple([FromBody] SimpleTtsRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Text))
@@ -177,18 +147,9 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         return File(audioData, "audio/mpeg", "generated_speech");
     }
 
-    /// <summary>
-    /// Generate speech from text and save it to an artefact using ElevenLabs API
-    /// </summary>
-    /// <param name="request">Text-to-speech request with artefact ID</param>
-    /// <returns>
-    /// Status code 200 (Ok) with the sound URL on success<br />
-    /// Status code 400 (Bad Request) if the request is invalid<br />
-    /// Status code 403 (Forbidden) if the user doesn't own the artefact<br />
-    /// Status code 404 (Not Found) if the artefact doesn't exist<br />
-    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
-    /// </returns>
-    [HttpPost("generate-speech-and-save")]
+    
+    //request = Text-to-speech request with artefact ID
+    [HttpPost("generate-speech-and-save")] // Generate speech from text and save it to an artefact using ElevenLabs API
     public async Task<IActionResult> GenerateSpeechAndSave([FromBody] ArtefactTtsRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Text))
@@ -233,16 +194,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         return Ok(new { soundUrl, message = "Speech generated and saved successfully" });
     }
 
-    /// <summary>
-    /// Generate speech from text and save it with a unique ID
-    /// </summary>
-    /// <param name="request">Text-to-speech request</param>
-    /// <returns>
-    /// Status code 200 (Ok) with the sound URL on success<br />
-    /// Status code 400 (Bad Request) if the request is invalid<br />
-    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
-    /// </returns>
-    [HttpPost("generate-and-save-speech")]
+    // request = Text-to-speech request
+    [HttpPost("generate-and-save-speech")] // Generate speech from text and save it with a unique ID
     public async Task<IActionResult> GenerateAndSaveSpeech([FromBody] StandaloneTtsRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Text))
@@ -276,12 +229,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         });
     }
 
-    /// <summary>
-    /// Test endpoint to play audio for a specific artefact
-    /// </summary>
-    /// <param name="artefactId">The ID of the artefact</param>
-    /// <returns>The audio file if it exists</returns>
-    [HttpGet("{artefactId}/play-audio")]
+    // artefactId = The ID of the artefact
+    [HttpGet("{artefactId}/play-audio")] // Retrieve and return audio file atached to artefact if user is allowed to access it.
     public async Task<IActionResult> PlayArtefactAudio(string artefactId)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -309,22 +258,13 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
             return NotFound("Audio file not found on disk");
         }
 
+        //Reads audio file from server, that is send back to client as an MP3/audio response.
         var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-        return File(fileBytes, "audio/mpeg", fileName);
+        return File(fileBytes, "audio/mpeg", fileName); //Returns audio file if exists
     }
 
-    /// <summary>
-    /// Generate speech from text for an artefact using ElevenLabs API
-    /// </summary>
-    /// <param name="ttsDto">Text-to-speech request data</param>
-    /// <returns>
-    /// Status code 200 (Ok) with the updated artefact on success<br />
-    /// Status code 400 (Bad Request) if the request is invalid<br />
-    /// Status code 403 (Forbidden) if the user doesn't own the artefact<br />
-    /// Status code 404 (Not Found) if the artefact doesn't exist<br />
-    /// Status code 500 (Internal Server Error) if ElevenLabs API fails
-    /// </returns>
-    [HttpPost("generate-speech")]
+    // ttsDto = Text-to-speech request data
+    [HttpPost("generate-speech")] // Generate speech from text for an artefact using ElevenLabs API
     public async Task<ActionResult<ArtefactGetDTO>> GenerateSpeech(ArtefactTextToSpeechDTO ttsDto)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -367,15 +307,8 @@ public class ArtefactsController(VTAContext context, ITtsService ttsService, IAr
         return Ok(updatedArtefactDto);
     }
 
-    /// <summary>
-    /// Update nameShown for all artefacts owned by the current user
-    /// </summary>
-    /// <param name="request">Request containing the nameShown value to apply to all artefacts</param>
-    /// <returns>
-    /// Status code 200 (Ok) with count of updated artefacts<br />
-    /// Status code 401 (Unauthorized) if user token is invalid
-    /// </returns>
-    [HttpPatch("bulk-update-name-shown")]
+    //Request containing the nameShown value to apply to all artefacts
+    [HttpPatch("bulk-update-name-shown")] // Update nameShown for all artefacts owned by the current user
     public async Task<IActionResult> BulkUpdateNameShown([FromBody] BulkUpdateNameShownDTO request)
     {
         var userId = User.FindFirst("id")?.Value;
