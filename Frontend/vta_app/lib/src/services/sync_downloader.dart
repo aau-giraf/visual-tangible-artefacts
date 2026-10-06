@@ -13,8 +13,10 @@ import 'package:vta_app/src/services/sync_models.dart';
 import 'package:logging/logging.dart';
 import 'package:sqflite/sqflite.dart';
 
-
+/// Create a logger for the SyncDownloader for diagnostic purposes
 final _log = Logger('SyncDownloader');
+
+
 /// Result of a download pass for a single entity type.
 class DownloadResult {
   final List<String> syncedIds;

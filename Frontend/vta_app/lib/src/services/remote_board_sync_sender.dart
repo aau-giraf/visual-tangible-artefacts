@@ -4,8 +4,10 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the RemoteBoardSyncSender for diagnostic purposes
 final _log = Logger('RemoteBoardSyncSender');
+
+
 typedef VoidCallback = void Function();
 
 /// Handles all outbound sync — serialising board state and pushing deltas

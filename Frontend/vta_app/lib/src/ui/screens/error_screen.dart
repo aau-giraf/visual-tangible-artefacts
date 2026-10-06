@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+
+/// ErrorScreen is a widget that displays an error message and provides a retry option.
 class ErrorScreen extends StatelessWidget {
   final String? errorMessage;
   final Widget onRetryChild;
 
   const ErrorScreen({super.key, this.errorMessage, required this.onRetryChild});
 
+
+/// Builds the widget tree for the ErrorScreen, including the error message and retry button.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

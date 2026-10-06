@@ -5,7 +5,7 @@ import 'package:vta_app/src/services/sync_service.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SyncTimer for diagnostic purposes
 final _log = Logger('SyncTimer');
 
 /// Default interval between sync attempts.

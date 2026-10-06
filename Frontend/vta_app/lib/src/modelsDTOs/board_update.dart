@@ -1,3 +1,5 @@
+/// Represents an update to a board, including its type and payload.
+/// The type indicates the kind of update (e.g., "add", "move", "delete", "layout", "fieldCount"),
 class BoardUpdate {
   final String type;
   final Map<String, dynamic> payload;

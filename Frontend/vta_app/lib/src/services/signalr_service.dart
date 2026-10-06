@@ -8,8 +8,10 @@ import 'package:vta_app/src/services/signalr_event_router.dart';
 import 'package:vta_app/src/services/online_status_tracker.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SignalrService for diagnostic purposes
 final _log = Logger('SignalrService');
+
+
 /// Singleton façade for the SignalR hub.
 ///
 /// Delegates to:

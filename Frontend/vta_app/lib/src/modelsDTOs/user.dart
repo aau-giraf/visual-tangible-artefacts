@@ -1,8 +1,11 @@
 import 'package:vta_app/src/modelsDTOs/category.dart';
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
+/// List of available user roles in the application.
 enum UserRole { child, caregiver, admin }
 
+/// Represents a user in the application, including their ID, name, username, visibility settings,
+/// field count, role, and associated categories.
 class User implements JsonSerializable {
   String id;
   String? name;

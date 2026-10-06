@@ -1,5 +1,7 @@
 import 'package:vta_app/src/modelsDTOs/user.dart';
 
+/// Represents a pairing between a caregiver and a child,
+/// including their IDs, active status, creation date, and associated user objects.
 class PairingDTO {
   final String id;
   final String caregiverId;

@@ -8,8 +8,10 @@ import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/services/sync_models.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SyncChangeDetector for diagnostic purposes
 final _log = Logger('SyncChangeDetector');
+
+
 /// Detects what has changed since a given date — locally or on the server.
 ///
 /// All methods are pure queries (no writes). The heavy lifting of actually

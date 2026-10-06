@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the ChildAcceptSessionScreen for diagnostic purposes
 final _log = Logger('ChildAcceptSessionScreen');
+
+
 /// Component 2: CHILD - Accept/Decline Session Popup
 /// Pure popup notification card - no background, no scaffold
 class ChildAcceptSessionScreen extends StatefulWidget {
@@ -23,6 +25,7 @@ class ChildAcceptSessionScreen extends StatefulWidget {
       _ChildAcceptSessionScreenState();
 }
 
+/// State for the ChildAcceptSessionScreen, managing incoming session requests and user interactions.
 class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
   final SignalRService _signalR = SignalRService();
   String? _pendingCaregiverRequest;
@@ -34,6 +37,8 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
     _initializeSignalR();
   }
 
+
+/// Initializes SignalR and sets up callbacks for session requests and starts.
   Future<void> _initializeSignalR() async {
     _signalR.onSessionRequested = (caregiverUserId) {
       if (mounted) {
@@ -62,6 +67,8 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
     }
   }
 
+
+/// Accepts the incoming session request, sending the selected board ID to the caregiver.
   Future<void> _acceptSession() async {
     if (_pendingCaregiverRequest == null) return;
 
@@ -88,6 +95,7 @@ class _ChildAcceptSessionScreenState extends State<ChildAcceptSessionScreen> {
     }
   }
 
+  /// Rejects the incoming session request.
   Future<void> _rejectSession() async {
     if (_pendingCaregiverRequest == null) return;
 

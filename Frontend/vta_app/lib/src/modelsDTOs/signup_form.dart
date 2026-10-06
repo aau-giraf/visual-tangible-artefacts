@@ -1,7 +1,9 @@
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
+/// List of available user roles in the application.
 enum UserRole { child, caregiver, admin }
 
+/// Represents a signup form with username, password, name, and role fields.
 class SignupForm implements JsonSerializable {
   String username;
   String password;

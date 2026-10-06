@@ -2,6 +2,10 @@ import 'dart:typed_data';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
+
+/// Represents a category that can contain multiple artefacts,
+/// along with associated metadata such as user ID, category ID, index, name, image,
+/// usage count, and last used date.
 class Category implements JsonSerializable {
   String? userId;
   String? categoryId;

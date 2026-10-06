@@ -4,8 +4,9 @@ import 'package:path/path.dart';
 import 'database.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the DatabaseDebugHelper for diagnostic purposes
 final _log = Logger('DatabaseDebugHelper');
+
 /// Debug helper class for viewing and managing SQLite database during development.
 class DatabaseDebugHelper {
   /// Prints all data from all tables in the database.

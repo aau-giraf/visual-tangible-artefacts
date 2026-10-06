@@ -4,8 +4,10 @@ import 'package:signalr_netcore/signalr_client.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 
-
+/// Create a logger for the WebrtcService for diagnostic purposes
 final _log = Logger('WebrtcService');
+
+/// Service to manage WebRTC peer connection and media streams
 class WebRTCService {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;

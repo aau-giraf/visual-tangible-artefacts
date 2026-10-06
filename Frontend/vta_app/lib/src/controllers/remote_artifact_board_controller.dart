@@ -34,7 +34,6 @@ String _generateSavedArtefactId() {
 /// to [RemoteBoardSyncReceiver].  Owns only UI-level actions (add / remove /
 /// switch / move) and lifecycle (setup / dispose).
 ///
-/// Reduced from 1,209 → ~300 LOC as part of Phase 3.2.
 class RemoteArtifactBoardController {
   final ArtifactBoardController base;
   final String sessionId;
@@ -51,6 +50,7 @@ class RemoteArtifactBoardController {
   // Track field count to detect changes (owner only)
   int _lastFieldCount = 0;
 
+/// Constructor for RemoteArtifactBoardController.
   RemoteArtifactBoardController({
     required this.sessionId,
     required this.notifyView,
@@ -76,6 +76,7 @@ class RemoteArtifactBoardController {
     _log.fine(
         "RemoteSync => SignalR connected: ${SignalRService().isConnected}");
 
+    /// Initialize the remote session state in the UI
     _setupRemoteSession();
 
     if (isOwner) {

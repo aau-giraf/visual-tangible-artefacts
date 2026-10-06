@@ -19,8 +19,11 @@ import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the ArtifactBoardScreen for diagnostic purposes
 final _log = Logger('ArtifactBoardScreen');
+
+/// The ArtifactBoardScreen displays the main board view 
+/// where users can interact with artefacts and categories.
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({
     super.key,
@@ -38,6 +41,7 @@ class ArtifactBoardScreen extends StatefulWidget {
   State<ArtifactBoardScreen> createState() => _ArtifactBoardScreenState();
 }
 
+/// The state class for ArtifactBoardScreen, managing the UI and interactions.
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   List<Category>? categories;
   static const String _controllerKey = 'ArtifactBoardController';
@@ -50,6 +54,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     }
   }
 
+/// Displays a message to the user using a SnackBar.
   void _showMessage(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,6 +92,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     }
   }
 
+/// Lazily initializes and retrieves the ArtifactBoardController from GetIt.
   ArtifactBoardController get controller {
     // Use GetIt to store controller persistently across widget recreations
     try {
@@ -121,6 +127,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   user_model.User? currentUser;
   late Future<user_model.User?> userFuture;
 
+/// Initializes the state of the ArtifactBoardScreen, loading user data.
   @override
   void initState() {
     super.initState();
@@ -131,6 +138,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     userFuture = _loadCurrentUser();
   }
 
+/// Disposes of the state, cleaning up resources.
   @override
   void dispose() {
     _log.fine(
@@ -140,6 +148,8 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     super.dispose();
   }
 
+
+/// Loads the current user from the AuthController and updates the state.
   Future<user_model.User?> _loadCurrentUser() async {
     final user = await widget.authController.getCurrentUser();
     _log.fine('Loaded user: ${user?.username}, role: ${user?.role}');
@@ -151,6 +161,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return user;
   }
 
+/// Builds the widget tree for the ArtifactBoardScreen, handling loading states.
   @override
   Widget build(BuildContext context) {
     var artifactController = widget.artifactController;
@@ -180,6 +191,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return _buildPage(context);
   }
 
+/// Builds the main page layout for the ArtifactBoardScreen, including the board and categories.
   Scaffold _buildPage(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;

@@ -5,8 +5,12 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the RelationService for diagnostic purposes
 final _log = Logger('RelationService');
+
+/// RelationService handles operations related to caregiver-patient pairings,
+/// including fetching pairings for a specific caregiver. It communicates with the backend API
+/// and manages authentication via JWT tokens.
 class RelationService {
   final ApiProvider _apiProvider;
   final Token _token;

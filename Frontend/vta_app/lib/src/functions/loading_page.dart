@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/screens/error_screen.dart';
 
+
+/// LoadingPage is a widget that displays a loading indicator while 
+/// awaiting multiple asynchronous operations to complete.
 class LoadingPage extends StatelessWidget {
   final List<Future<bool> Function()> awaitCallbacks;
   final Widget child;

@@ -8,6 +8,8 @@ class BoardArtefactLayout {
   final double height;
   final bool? nameVisible;
 
+/// Sets the layout of an artefact on a board, 
+/// including its position, size, and visibility of its name.
   BoardArtefactLayout({
     this.savedArtefactId,
     required this.artefactId,
@@ -18,6 +20,8 @@ class BoardArtefactLayout {
     this.nameVisible,
   });
 
+
+/// Creates a BoardArtefactLayout instance from a JSON map.
   factory BoardArtefactLayout.fromJson(Map<String, dynamic> json) {
     return BoardArtefactLayout(
       savedArtefactId: json['savedArtefactId'] as String?,
@@ -30,6 +34,7 @@ class BoardArtefactLayout {
     );
   }
 
+/// Converts the BoardArtefactLayout instance to a JSON map.
   Map<String, dynamic> toJson() {
     return {
       if (savedArtefactId != null) 'savedArtefactId': savedArtefactId,
@@ -42,6 +47,7 @@ class BoardArtefactLayout {
     };
   }
 
+/// Creates a copy of the current BoardArtefactLayout instance with optional new values.
   BoardArtefactLayout copyWith({
     String? artefactId,
     double? posX,
@@ -61,6 +67,7 @@ class BoardArtefactLayout {
   }
 }
 
+/// Request model for saving a board layout, including its name and artefacts.
 class SaveBoardRequest {
   final String name;
   final List<BoardArtefactLayout> artefacts;
@@ -78,6 +85,8 @@ class SaveBoardRequest {
   }
 }
 
+/// Response model for retrieving a board layout, 
+/// including its ID, name, creation and modification dates, and artefacts.
 class BoardLayoutResponse {
   final String boardId;
   final String name;
@@ -93,6 +102,7 @@ class BoardLayoutResponse {
     required this.artefacts,
   });
 
+/// Creates a BoardLayoutResponse instance from a JSON map.
   factory BoardLayoutResponse.fromJson(Map<String, dynamic> json) {
     return BoardLayoutResponse(
       boardId: json['boardId'] as String,
@@ -108,6 +118,8 @@ class BoardLayoutResponse {
   }
 }
 
+/// Request model for updating the layout of an artefact on a board, 
+/// including its position, size, and visibility of its name.
 class UpdateArtefactLayoutRequest {
   final String? savedArtefactId;
   final String artefactId;

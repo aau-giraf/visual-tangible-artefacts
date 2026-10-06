@@ -1,6 +1,8 @@
 import 'dart:math';
 import '../ui/widgets/board/board_artifact.dart';
 
+/// Represents a board that can hold artefacts in different layouts,
+/// either in a free positioning mode (TalkingMat) or a grid/slot positioning mode (LinearBoard).
 class Board {
   final String id;
   String title;

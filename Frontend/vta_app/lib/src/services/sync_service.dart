@@ -13,6 +13,8 @@ export 'package:vta_app/src/services/sync_models.dart';
 export 'package:vta_app/src/services/sync_downloader.dart' show DownloadResult;
 export 'package:vta_app/src/services/sync_uploader.dart' show UploadResult;
 
+
+/// Create a logger for the SyncService for diagnostic purposes
 final _log = Logger('SyncService');
 
 /// High-level orchestrator for bidirectional data sync.

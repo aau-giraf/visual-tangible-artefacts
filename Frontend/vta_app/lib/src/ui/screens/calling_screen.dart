@@ -3,8 +3,10 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'dart:async';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the CallingScreen for diagnostic purposes
 final _log = Logger('CallingScreen');
+
+/// A screen that manages the UI for initiating and handling calls.
 class CallingScreen extends StatefulWidget {
   static const String routeName = "/calling";
 
@@ -14,6 +16,8 @@ class CallingScreen extends StatefulWidget {
   State<CallingScreen> createState() => _CallingScreenState();
 }
 
+
+/// The state class for CallingScreen, managing the call initiation, timeout, and user interactions.
 class _CallingScreenState extends State<CallingScreen>
     with SingleTickerProviderStateMixin {
   String? childId;
@@ -47,6 +51,7 @@ class _CallingScreenState extends State<CallingScreen>
     _setupSignalRListeners();
   }
 
+/// Initializes the call by retrieving arguments and starting the call process.
   void _initializeCall() {
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -70,6 +75,7 @@ class _CallingScreenState extends State<CallingScreen>
     _log.fine('[CallingScreen] ═══════════════════════════════');
   }
 
+/// Sets up SignalR listeners for session started and rejected events.
   void _setupSignalRListeners() {
     final signalR = SignalRService();
 
@@ -99,6 +105,8 @@ class _CallingScreenState extends State<CallingScreen>
     };
   }
 
+
+/// Initiates the call by requesting a session from SignalR and setting a timeout.
   Future<void> _initiateCall() async {
     if (_callInitiated && childId == null) {
       _log.fine('[CallingScreen] ERROR: childId is null!');
@@ -132,6 +140,8 @@ class _CallingScreenState extends State<CallingScreen>
     _log.fine('[CallingScreen] _initiateCall END');
   }
 
+
+/// Cancels the call and cleans up resources.
   void _cancelCall() {
     _log.fine('[CallingScreen] User cancelled call');
     setState(() {
@@ -141,6 +151,8 @@ class _CallingScreenState extends State<CallingScreen>
     Navigator.of(context).pop();
   }
 
+
+/// Displays a dialog indicating that the call was rejected.
   void _showRejectionDialog() {
     showDialog(
       context: context,
@@ -161,6 +173,8 @@ class _CallingScreenState extends State<CallingScreen>
     );
   }
 
+
+/// Displays a dialog indicating that the call timed out.
   void _showTimeoutDialog() {
     showDialog(
       context: context,
@@ -181,6 +195,8 @@ class _CallingScreenState extends State<CallingScreen>
     );
   }
 
+
+/// Displays a dialog indicating that there was an error initiating the call.
   void _showErrorDialog(String error) {
     showDialog(
       context: context,
@@ -201,6 +217,8 @@ class _CallingScreenState extends State<CallingScreen>
     );
   }
 
+
+/// Disposes of the state, cleaning up resources.
   @override
   void dispose() {
     _isDisposed = true;
@@ -215,6 +233,8 @@ class _CallingScreenState extends State<CallingScreen>
     super.dispose();
   }
 
+
+/// Builds the widget tree for the CallingScreen, including the UI for the call state.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

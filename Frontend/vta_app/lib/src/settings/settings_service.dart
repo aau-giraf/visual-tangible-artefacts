@@ -7,8 +7,10 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SettingsService for diagnostic purposes
 final _log = Logger('SettingsService');
+
+
 /// A service that stores and retrieves user settings.
 ///
 /// By default, this class does not persist user settings. If you'd like to

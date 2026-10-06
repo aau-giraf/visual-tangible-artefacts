@@ -9,8 +9,10 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the RemoteBoardSyncReceiver for diagnostic purposes
 final _log = Logger('RemoteBoardSyncReceiver');
+
+
 typedef VoidCallback = void Function();
 
 /// Fix localhost URLs to use the correct API URL for the current platform

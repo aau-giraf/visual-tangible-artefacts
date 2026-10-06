@@ -12,6 +12,8 @@ import 'package:logging/logging.dart';
 
 
 final _log = Logger('ArtefactModel');
+
+
 class ArtifactModel {
   List<Category>? categories;
   List<Category>? mostUsedCategories;
