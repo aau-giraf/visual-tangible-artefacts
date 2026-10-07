@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the Quickchat for diagnostic purposes
 final _log = Logger('Quickchat');
+
+/// A floating action button that provides quick access to common audio cues for users.
 class QuickChatButton extends StatefulWidget {
   const QuickChatButton({super.key});
 

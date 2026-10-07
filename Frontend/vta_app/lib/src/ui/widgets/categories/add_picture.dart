@@ -8,8 +8,10 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the AddPicture for diagnostic purposes
 final _log = Logger('AddPicture');
+
+/// The AIPage widget provides a user interface for generating images using OpenAI's DALL-E model based on user input and selected format.
 class AIPage extends StatefulWidget {
   final void Function(String imageBytes)? onImageProcessed;
 
@@ -19,6 +21,7 @@ class AIPage extends StatefulWidget {
   _AIPageState createState() => _AIPageState();
 }
 
+/// The state class for the AIPage, managing user input, image generation, and display.
 class _AIPageState extends State<AIPage> {
   final TextEditingController _controller = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();

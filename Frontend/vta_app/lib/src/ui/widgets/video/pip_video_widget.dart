@@ -16,6 +16,8 @@ class PipVideoWidget extends StatefulWidget {
   State<PipVideoWidget> createState() => _PipVideoWidgetState();
 }
 
+
+/// The state class for the PipVideoWidget, managing the position and rendering of the video feed.
 class _PipVideoWidgetState extends State<PipVideoWidget> {
   Offset _position = Offset(20, 20); // Default top-right position
   

@@ -19,6 +19,7 @@ class CaregiverRequestWidget extends StatefulWidget {
   State<CaregiverRequestWidget> createState() => _CaregiverRequestWidgetState();
 }
 
+/// The state class for the CaregiverRequestWidget, managing the connection to SignalR and handling session requests.
 class _CaregiverRequestWidgetState extends State<CaregiverRequestWidget> {
   final SignalRService _signalR = SignalRService();
   bool _isConnecting = true;

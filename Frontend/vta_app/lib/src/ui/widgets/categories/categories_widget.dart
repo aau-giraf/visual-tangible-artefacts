@@ -11,6 +11,9 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/add_item_popup.dart';
 import 'package:vta_app/src/ui/widgets/utilities/custom_delay_drag_listener.dart';
 
+
+/// CategoriesWidget is a stateful widget that displays a horizontal list of categories, 
+/// allowing users to view, add, edit, and delete categories and their associated artefacts.
 class CategoriesWidget extends StatefulWidget {
   final double widgetHeight;
   final ArtefactController artefactController;

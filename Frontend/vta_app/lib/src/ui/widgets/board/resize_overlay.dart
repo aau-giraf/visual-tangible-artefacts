@@ -3,8 +3,11 @@ import 'package:flutter/gestures.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:logging/logging.dart';
 
+/// Create a logger for the ResizeOverlay for diagnostic purposes
 final _log = Logger('ResizeOverlay');
 
+
+/// A utility class that manages the display of a resize overlay for a BoardArtefact.
 class ResizeOverlay {
   OverlayEntry? _resizeCaptureEntry;
   VoidCallback? _resizeListener;

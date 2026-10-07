@@ -15,10 +15,14 @@ import 'package:record/record.dart' show AudioEncoder, RecordConfig;
 import 'package:vta_app/src/utilities/audio/recorder.dart';
 import 'package:logging/logging.dart';
 
+
+/// Create a logger for the OptionWheel for diagnostic purposes
 final _log = Logger('OptionWheel');
 
 enum _SoundOption { textToSpeech, record, upload }
 
+
+/// Represents a circular option wheel that provides various actions for an artefact.
 class OptionWheel extends StatefulWidget {
   final Artefact artefact;
   final VoidCallback? onPressed;

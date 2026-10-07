@@ -15,12 +15,16 @@ import 'board_artifact.dart';
 import '_long_press_option_wheel.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the TalkingMat for diagnostic purposes
 final _log = Logger('TalkingMat');
+
+
 typedef OnArtifactPositionChanged = void Function(BoardArtefact artifact);
 typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
 typedef OnBoardLoaded = void Function();
 
+
+/// The TalkingMat widget represents a board where users can interact with artefacts.
 class TalkingMat extends StatefulWidget {
   final List<BoardArtefact>? artifacts;
   final TalkingmatController controller;

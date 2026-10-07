@@ -4,7 +4,10 @@ import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:logging/logging.dart';
 
 
+/// Create a logger for the BoardArtifact for diagnostic purposes
 final _log = Logger('BoardArtifact');
+
+/// Represents an artefact on the board, including its content, position, size, and associated data.
 class BoardArtefact {
   final Widget baseContent;
   Offset? position;

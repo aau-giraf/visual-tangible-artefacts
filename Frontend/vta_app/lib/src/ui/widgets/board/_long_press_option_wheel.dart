@@ -7,8 +7,10 @@ import 'package:vta_app/src/controllers/artifact_controller.dart';
 import 'package:vta_app/src/ui/widgets/board/resize_overlay.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the LongPressOptionWheel for diagnostic purposes
 final _log = Logger('LongPressOptionWheel');
+
+/// Wraps an artefact and displays an action wheel when it is long-pressed.
 class LongPressOptionWheel extends StatefulWidget {
   final BoardArtefact artifact;
   final Widget child;
@@ -25,7 +27,7 @@ class LongPressOptionWheel extends StatefulWidget {
   const LongPressOptionWheel({
     super.key,
     required this.artifact,
-    required this.child,  
+    required this.child,
     required this.controller,
     required this.artifactKey,
     required this.artifactController,
@@ -40,15 +42,14 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
   final _resizeOverlay = ResizeOverlay();
   Offset? _artifactCenterGlobal;
   Size? _wheelSize;
-  
-  
+
   /* removed since it is never used but kept for now
   Size? _resizeStartSize;
   Offset? _resizeStartPointer;
   static const double _minResizeWidth = 100.0;
   static const double _maxResizeWidth = 1000.0;
   */
-  
+
   final GlobalKey _optionWheelKey = GlobalKey();
   late bool _showName;
   final _soundPlayer = _ArtefactSoundPlayerImpl();
@@ -71,7 +72,7 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     _showPersistentWheel();
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -113,17 +114,22 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     final artifactContext = widget.artifactKey.currentContext;
     if (artifactContext == null) return;
 
-    final RenderBox artifactBox = artifactContext.findRenderObject() as RenderBox;
-    _artifactCenterGlobal = artifactBox.localToGlobal(artifactBox.size.center(Offset.zero));
+    final RenderBox artifactBox =
+        artifactContext.findRenderObject() as RenderBox;
+    _artifactCenterGlobal =
+        artifactBox.localToGlobal(artifactBox.size.center(Offset.zero));
 
     // create overlay
     _overlayEntry = OverlayEntry(builder: (context) {
       // Calculate baseRadius based on artifact size
-      final RenderBox artifactBox = widget.artifactKey.currentContext?.findRenderObject() as RenderBox;
+      final RenderBox artifactBox =
+          widget.artifactKey.currentContext?.findRenderObject() as RenderBox;
       double baseRadius = 165; // default fallback
       final Size artifactSize = artifactBox.size;
       // Use the larger of width/height, scale factor can be tuned
-      final double maxDim = artifactSize.width > artifactSize.height ? artifactSize.width : artifactSize.height;
+      final double maxDim = artifactSize.width > artifactSize.height
+          ? artifactSize.width
+          : artifactSize.height;
       baseRadius = (maxDim * 0.8).clamp(130, 300); // scale with screen size???
 
       // fallback sizes (if this happens... fix it)
@@ -184,30 +190,34 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
               artefact: widget.artifact.baseArtefact!,
               showName: _showName,
               onToggleName: (val) async {
-                  // Update baseArtefact.nameShown (which updates all instances)
-                  widget.artifact.baseArtefact!.nameShown = val;
-                  setState(() { _showName = val; });
+                // Update baseArtefact.nameShown (which updates all instances)
+                widget.artifact.baseArtefact!.nameShown = val;
+                setState(() {
+                  _showName = val;
+                });
 
-                  // Notify the controller to rebuild all artifacts on the board
-                  // This ensures all instances of this artefact (and others) update their name visibility
-                  widget.controller.refresh();
+                // Notify the controller to rebuild all artifacts on the board
+                // This ensures all instances of this artefact (and others) update their name visibility
+                widget.controller.refresh();
 
-                  // Persist to backend via PATCH
-                  try {
-                    await widget.artifactController.updateArtefact(
-                      context,
-                      widget.artifact.baseArtefact!,
-                    );
-                  } catch (e) {
-                    _log.fine('Error updating nameShown: $e');
-                  }
+                // Persist to backend via PATCH
+                try {
+                  await widget.artifactController.updateArtefact(
+                    context,
+                    widget.artifact.baseArtefact!,
+                  );
+                } catch (e) {
+                  _log.fine('Error updating nameShown: $e');
+                }
               },
               playSound: () async {
-                await _soundPlayer.playArtefactSound(widget.artifact.baseArtefact!);
+                await _soundPlayer
+                    .playArtefactSound(widget.artifact.baseArtefact!);
               },
               onResize: () {
                 widget.artifact.showResizeHandle.value = true;
-                _resizeOverlay.show(context, widget.artifact, widget.artifactKey);
+                _resizeOverlay.show(
+                    context, widget.artifact, widget.artifactKey);
                 _hidePersistentWheel();
               },
               onPressed: _hidePersistentWheel,
@@ -223,7 +233,8 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final optionContext = _optionWheelKey.currentContext;
       if (optionContext != null) {
-        final RenderBox optionBox = optionContext.findRenderObject() as RenderBox;
+        final RenderBox optionBox =
+            optionContext.findRenderObject() as RenderBox;
         final Size measured = optionBox.size;
         if (measured != _wheelSize) {
           _wheelSize = measured;
@@ -232,8 +243,9 @@ class LongPressOptionWheelState extends State<LongPressOptionWheel> {
       }
     });
   }
+
   // removes the overlay wheel
-    void _hidePersistentWheel() {
+  void _hidePersistentWheel() {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _wheelSize = null;
