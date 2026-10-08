@@ -4,18 +4,22 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts.Configurations;
 
+//Tells Entity Framework Core how the Artefact class should be represented in the database.
 public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
 {
     public void Configure(EntityTypeBuilder<Artefact> builder)
     {
+        //ArtefactId is primary key and database table is named Artefact.
         builder.HasKey(e => e.ArtefactId).HasName("PRIMARY");
 
         builder.ToTable("artefact");
 
+        //Database indexes
         builder.HasIndex(e => e.CategoryId, "categoryId");
 
         builder.HasIndex(e => e.UserId, "userId");
 
+        //Maps ArtefactId to column with name atefactId and can contain at most 36 charecters.
         builder.Property(e => e.ArtefactId)
             .HasMaxLength(36)
             .HasColumnName("artefactId");
@@ -41,14 +45,15 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
         builder.Property(e => e.NameShown)
             .HasColumnName("nameShown");
 
-        builder.HasOne(d => d.Category).WithMany(p => p.Artefacts)
+        //Bottom section defines how artefact relates to other entities
+        builder.HasOne(d => d.Category).WithMany(p => p.Artefacts) //One category can have many artefacts.
             .HasForeignKey(d => d.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("artefact_ibfk_2");
+            .OnDelete(DeleteBehavior.Restrict) //Restrict means you cant delete a category while an artefact stil reference it.
+            .HasConstraintName("artefact_ibfk_2"); 
 
         builder.HasOne(d => d.User).WithMany(p => p.Artefacts)
             .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.Cascade)
+            .OnDelete(DeleteBehavior.Cascade) //If user is deleted, their artefacts are automatically seleted too.
             .HasConstraintName("artefact_ibfk_1");
 
         builder.HasMany(d => d.SavedArtefacts).WithOne(p => p.Artefact)

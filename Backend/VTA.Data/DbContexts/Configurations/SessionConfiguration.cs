@@ -4,6 +4,8 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts.Configurations;
 
+//Tells Entity Framework Core how call sessions are saved in the database.
+//That includes who made the call, who received it, when it happend, how long it lasted and its status.
 public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
     public void Configure(EntityTypeBuilder<Session> builder)
