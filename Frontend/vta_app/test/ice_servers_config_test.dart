@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 
+/// This test suite verifies the behavior of the PlatformUtils.getIceServers method,
+/// ensuring it correctly reads and validates ICE server configurations from the app settings.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -42,6 +44,8 @@ void main() {
       expect(servers[1]['credential'], 'secret');
     });
 
+/// This test verifies that the getIceServers method correctly omits credentials for STUN-only entries,
+/// ensuring that the configuration adheres to expected security practices.
     test('omits credentials for STUN-only entries', () {
       GlobalConfiguration().loadFromMap({
         'IceServers': [

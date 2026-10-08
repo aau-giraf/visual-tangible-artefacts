@@ -1,6 +1,8 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
 
+
+/// NetworkAudio class for handling audio playback from network sources.
 class NetworkAudio {
   final String url;
   final Map<String, String>? headers;

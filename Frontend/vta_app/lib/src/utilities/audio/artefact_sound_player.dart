@@ -7,8 +7,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the ArtefactSoundPlayer for diagnostic purposes.
 final _log = Logger('ArtefactSoundPlayer');
+
+/// ArtefactSoundPlayer is a mixin that provides functionality to play sounds associated with artefacts.
 mixin ArtefactSoundPlayer {
   final Map<String, NetworkAudio> _audioCache = {};
   late final ApiProvider _apiProvider = GetIt.instance.get<ApiProvider>();
@@ -84,6 +86,8 @@ mixin ArtefactSoundPlayer {
     }
   }
 
+
+/// Clean up all NetworkAudio instances and clear the cache.
   Future<void> cleanupArtefactSounds() async {
     _log.fine('Cleaning up artefact sounds...');
     for (final audio in _audioCache.values) {

@@ -26,13 +26,18 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/database/database_helper.dart';
 import 'package:vta_app/src/database/database_debug_helper.dart';
 
+
+
+/// Create a logger for the Main function for diagnostic purposes.
 final _log = Logger('Main');
 
+/// Clears the SharedPreferences, for testing purposes.
 Future<void> clearSharedPreferences() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.clear();
 }
 
+/// The main entry point of the application, initializing necessary services and running the app.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppLogger.init();

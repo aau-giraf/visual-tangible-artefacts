@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 
+/// CameraManager class to manage camera initialization and access.
 class CameraManager {
   static final CameraManager _instance = CameraManager._internal();
   List<CameraDescription> _cameras = [];

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
+/// Create a logger for the RetryHelper for diagnostic purposes.
 final _log = Logger('RetryHelper');
 
 /// HTTP status codes that should never be retried because the request itself
