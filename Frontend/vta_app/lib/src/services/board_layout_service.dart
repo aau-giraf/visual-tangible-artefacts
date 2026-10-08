@@ -6,8 +6,12 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the BoardLayoutService for diagnostic purposes
 final _log = Logger('BoardLayoutService');
+
+/// BoardLayoutService handles all operations related to board layouts, 
+/// including fetching, saving, updating, and deleting boards and their artefacts.
+/// It communicates with the backend API and manages authentication via JWT tokens.
 class BoardLayoutService {
   final ApiProvider _apiProvider;
   final Token _token;

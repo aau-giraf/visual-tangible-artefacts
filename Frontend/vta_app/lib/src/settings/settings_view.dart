@@ -10,8 +10,10 @@ import 'package:vta_app/src/utilities/services/camera_service.dart';
 import 'package:vta_app/src/ui/screens/take_picture_screen.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SettingsView for diagnostic purposes
 final _log = Logger('SettingsView');
+
+
 /// Displays the various settings that can be customized by the user.
 ///
 /// When a user changes a setting, the SettingsController is updated and

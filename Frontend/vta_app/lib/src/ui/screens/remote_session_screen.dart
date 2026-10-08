@@ -7,8 +7,12 @@ import 'package:vta_app/src/modelsDTOs/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the RemoteSessionScreen for diagnostic purposes
 final _log = Logger('RemoteSessionScreen');
+
+
+/// RemoteSessionScreen is a stateful widget that displays a list of contacts 
+/// for initiating remote sessions.
 class RemoteSessionScreen extends StatefulWidget {
   static const String routeName = "/remote";
 
@@ -18,6 +22,8 @@ class RemoteSessionScreen extends StatefulWidget {
   State<RemoteSessionScreen> createState() => _RemoteSessionScreenState();
 }
 
+
+/// State for the RemoteSessionScreen, managing the list of contacts and their online status.
 class _RemoteSessionScreenState extends State<RemoteSessionScreen> {
   Map<String, String> contacts = {}; // name -> userId
   List<User> users = [];

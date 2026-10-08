@@ -1,5 +1,6 @@
 import 'package:vta_app/src/modelsDTOs/user.dart';
 
+/// Represents a response to a signup request, containing a user object and an optional token.
 class SignupResponse {
   User? user;
   String? token;

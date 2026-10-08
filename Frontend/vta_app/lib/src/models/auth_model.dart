@@ -8,8 +8,9 @@ import 'package:vta_app/src/utilities/api/api_provider.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the AuthModel for diagnostic purposes
 final _log = Logger('AuthModel');
+
 /// Model for handling authentication and storing authentication data
 class AuthModel {
   Token token;

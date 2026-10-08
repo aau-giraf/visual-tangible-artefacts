@@ -4,8 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the ApiProvider for diagnostic purposes.
 final _log = Logger('ApiProvider');
+
+
+/// API provider class for making HTTP requests to a specified base URL.
 class ApiProvider {
   final String baseUrl;
 

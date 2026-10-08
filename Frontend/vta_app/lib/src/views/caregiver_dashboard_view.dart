@@ -6,6 +6,9 @@ import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/ui/screens/remote_board_screen.dart';
 
+
+/// CaregiverDashboardView is the main dashboard for caregivers, 
+/// allowing them to view connected children and initiate remote sessions.
 class CaregiverDashboardView extends StatefulWidget {
   const CaregiverDashboardView({super.key});
 
@@ -15,6 +18,8 @@ class CaregiverDashboardView extends StatefulWidget {
   State<CaregiverDashboardView> createState() => _CaregiverDashboardViewState();
 }
 
+
+/// The state class for the CaregiverDashboardView, managing the list of pairings and SignalR connections.
 class _CaregiverDashboardViewState extends State<CaregiverDashboardView> {
   final RelationService _relationService = GetIt.I.get<RelationService>();
   final UserInfo _userInfo = GetIt.I.get<UserInfo>();

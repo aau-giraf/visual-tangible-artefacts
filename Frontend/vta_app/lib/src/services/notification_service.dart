@@ -4,8 +4,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the NotificationService for diagnostic purposes
 final _log = Logger('NotificationService');
+
+/// NotificationService manages local notifications for the application,
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 

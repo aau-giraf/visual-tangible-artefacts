@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vta_app/src/services/sync_service.dart';
 
+
+/// This test suite verifies the behavior of the SyncService and its related data structures,
+/// ensuring that file change records and sync check responses are created and serialized correctly.
 void main() {
   group('FileChangeRecord', () {
     test('creates from artefact JSON correctly', () {

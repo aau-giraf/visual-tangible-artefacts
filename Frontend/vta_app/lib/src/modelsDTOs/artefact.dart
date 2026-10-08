@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:vta_app/src/utilities/json/json_serializable.dart';
 
+/// Represents an artefact with its associated data, 
+/// including ID, index, user ID, category ID, image and sound URLs, 
+/// raw image and sound bytes, name, and visibility of the name.
 class Artefact implements JsonSerializable {
   String? artefactId;
   int? artefactIndex;

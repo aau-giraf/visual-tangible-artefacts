@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Runs the RelationalBoardButton widget, which is a floating action button with customizable properties.
 void main() {
   runApp(const RelationalBoardButton());
 }

@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the PlatformUtils for diagnostic purposes.
 final _log = Logger('PlatformUtils');
+
+
 class PlatformUtils {
   /// Base URL of VTA.API. Throws [StateError] if it is not configured.
   static String getApiUrl() => _resolveUrl(

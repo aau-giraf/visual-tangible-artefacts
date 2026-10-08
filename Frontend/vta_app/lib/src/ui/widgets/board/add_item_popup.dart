@@ -22,7 +22,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:logging/logging.dart';
 
 
+/// Create a logger for the AddItemPopup for diagnostic purposes
 final _log = Logger('AddItemPopup');
+
+/// A popup dialog for adding a new artefact or category, with options for image and sound.
 class AddItemPopup extends StatefulWidget {
   final Category? category;
   final bool isCategory;
@@ -42,10 +45,12 @@ class AddItemPopup extends StatefulWidget {
   State<AddItemPopup> createState() => _AddItemPopupState();
 }
 
+/// A simple widget to display a horizontal level bar indicating the current audio level.
 class _LevelBar extends StatelessWidget {
   final double level; // 0.0 - 1.0
   const _LevelBar({required this.level});
 
+/// Builds the responsive dialog containing the add-item form.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -71,6 +76,9 @@ class _LevelBar extends StatelessWidget {
   }
 }
 
+
+/// State class for the AddItemPopup widget, managing image and sound selection, 
+/// recording, and text-to-speech generation.
 class _AddItemPopupState extends State<AddItemPopup> {
   Uint8List? imageBytes;
   Uint8List? soundBytes;
@@ -94,6 +102,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
   bool _isGeneratingSpeech = false;
   String _selectedVoiceId = ElevenLabsConfig.defaultVoiceId;
 
+
+/// Set the generated image from AI processing, decoding from base64 and updating state.
   void setGeneratedImage(String bytes) {
     final decodedBytes = base64Decode(bytes);
     setState(() {
@@ -101,6 +111,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
     });
   }
 
+
+/// Initialize state, load existing category data if present, and set up audio recorder.
   @override
   void initState() {
     super.initState();
@@ -125,6 +137,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
     nameController.addListener(_onFormChanged);
   }
 
+
+/// Dispose of controllers, audio player, and timers to prevent memory leaks.
   @override
   void dispose() {
     nameController.dispose();
@@ -151,11 +165,15 @@ class _AddItemPopupState extends State<AddItemPopup> {
     super.dispose();
   }
 
+
+/// Trigger a rebuild when the form changes, 
+/// so that the submit button can update its enabled state.
   void _onFormChanged() {
     // Trigger a rebuild when the name changes so submit button updates
     setState(() {});
   }
 
+  /// Check if the form is valid and can be submitted.
   bool _canSubmit() {
     final hasName = nameController.text.trim().isNotEmpty;
     final hasImage = imageBytes != null;
@@ -169,6 +187,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
     }
   }
 
+
+/// Load image bytes from the category's image URL, if available.
   Future<void> _loadImageBytes() async {
     if (widget.category?.imageUrl != null) {
       final bytes = await getImageFromUrl(widget.category!.imageUrl);
@@ -178,6 +198,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
     }
   }
 
+
+/// Fetch an image from a URL, including authorization headers, and return the bytes.
   Future<Uint8List?> getImageFromUrl(String? imageUrl) async {
     if (imageUrl == null) {
       return null;
@@ -192,6 +214,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
       return null;
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

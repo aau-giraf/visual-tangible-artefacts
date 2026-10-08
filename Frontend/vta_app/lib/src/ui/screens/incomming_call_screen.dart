@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:vta_app/src/services/signalr_service.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the IncommingCallScreen for diagnostic purposes
 final _log = Logger('IncommingCallScreen');
+
+
 /// Incoming call screen shown to CHILD when caregiver calls
 /// Shows "Opkald fra <Caregiver Name>" with accept/decline buttons
 class IncomingCallScreen extends StatefulWidget {
@@ -15,6 +17,8 @@ class IncomingCallScreen extends StatefulWidget {
   State<IncomingCallScreen> createState() => _IncomingCallScreenState();
 }
 
+
+/// State for the IncomingCallScreen, managing the UI and interactions for incoming calls.
 class _IncomingCallScreenState extends State<IncomingCallScreen>
     with SingleTickerProviderStateMixin {
   late String caregiverId;
@@ -62,6 +66,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     }
   }
 
+
+/// Accepts the incoming call, sending the default board ID to the caregiver.
   Future<void> _acceptCall() async {
     if (_isResponding) return;
     
@@ -105,6 +111,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     }
   }
 
+
+/// Declines the incoming call, notifying the caregiver.
   Future<void> _declineCall() async {
     if (_isResponding) return;
     
@@ -140,6 +148,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     super.dispose();
   }
 
+/// Builds the UI for the incoming call screen, including the caregiver info and action buttons.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

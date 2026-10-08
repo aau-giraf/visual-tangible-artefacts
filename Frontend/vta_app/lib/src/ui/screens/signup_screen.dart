@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 
+
+/// SignupPage is a stateful widget that provides a user interface for signing up new users.
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
@@ -8,12 +10,15 @@ class SignupPage extends StatefulWidget {
   SignupPageState createState() => SignupPageState();
 }
 
+/// State for the SignupPage, managing user input, validation, and signup logic.
 class SignupPageState extends State<SignupPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+
+/// Attempts to sign up the user with the provided username, password, and name.
   Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
       try {

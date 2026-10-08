@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:vta_app/src/ui/widgets/online_session/caregiver_request_widget.dart';
 
+/// Main entry point for the Component Viewer application, 
+/// which allows developers to view and test individual components in isolation.
 void main() => runApp(const ComponentViewer());
 
+
+/// ComponentViewer is the main application widget that sets up the MaterialApp and routes to the home screen.
 class ComponentViewer extends StatelessWidget {
   const ComponentViewer({super.key});
 
@@ -16,6 +20,8 @@ class ComponentViewer extends StatelessWidget {
   }
 }
 
+
+/// ComponentViewerHome is the home screen of the Component Viewer application,
 class ComponentViewerHome extends StatelessWidget {
   const ComponentViewerHome({super.key});
 

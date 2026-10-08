@@ -6,8 +6,11 @@ import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the CategoriesEdit for diagnostic purposes
 final _log = Logger('CategoriesEdit');
+
+
+/// The CategoriesEdit widget represents a category item that can be edited or deleted.
 class CategoriesEdit extends StatelessWidget {
   final String categoryName;
   final String? imageUrl;
@@ -22,6 +25,8 @@ class CategoriesEdit extends StatelessWidget {
     required this.categoryId,
   });
 
+
+/// The build method constructs the UI for the CategoriesEdit widget.
   @override
   Widget build(BuildContext context) {
     return GestureDetector(

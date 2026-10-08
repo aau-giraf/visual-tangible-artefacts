@@ -23,6 +23,8 @@ class TextToSpeechWidget extends StatefulWidget {
   State<TextToSpeechWidget> createState() => _TextToSpeechWidgetState();
 }
 
+
+/// The state class for the TextToSpeechWidget, managing user input, voice selection, and speech generation.
 class _TextToSpeechWidgetState extends State<TextToSpeechWidget> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();

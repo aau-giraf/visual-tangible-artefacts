@@ -15,7 +15,12 @@ import 'video_call_screen.dart';
 import 'package:logging/logging.dart';
 
 
+/// Create a logger for the RemoteBoardScreen for diagnostic purposes
 final _log = Logger('RemoteBoardScreen');
+
+
+/// RemoteBoardScreen is a stateful widget that displays a remote artifact board, 
+/// allowing users to view and interact with shared boards during a session.
 class RemoteBoardScreen extends StatefulWidget {
   static const String routeName = "/remote-board";
 
@@ -34,6 +39,8 @@ class RemoteBoardScreen extends StatefulWidget {
   State<RemoteBoardScreen> createState() => _RemoteBoardScreenState();
 }
 
+
+/// State for the RemoteBoardScreen, managing the remote board controller and session state.
 class _RemoteBoardScreenState extends State<RemoteBoardScreen> {
   late RemoteArtifactBoardController controller;
   String sessionId = '';

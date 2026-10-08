@@ -4,7 +4,9 @@ import 'dart:collection';
 import 'package:logging/logging.dart';
 
 
+/// Create a logger for the TalkingmatController for diagnostic purposes
 final _log = Logger('TalkingmatController');
+
 // Internal class to watch for direct list mutations
 class _WatchedList extends ListBase<BoardArtefact>
     implements List<BoardArtefact> {
@@ -109,6 +111,7 @@ class _WatchedList extends ListBase<BoardArtefact>
       _list.sort(compare);
 }
 
+/// TalkingmatController manages the state of artifacts on a talking mat board.
 class TalkingmatController extends ValueNotifier<List<BoardArtefact>> {
   final Function(BoardArtefact)? onArtefactAdded;
   final String _instanceId;

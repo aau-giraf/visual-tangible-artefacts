@@ -6,8 +6,10 @@ import 'package:vta_app/src/services/sync_timer.dart';
 import 'signup_screen.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the LoginScreen for diagnostic purposes
 final _log = Logger('LoginScreen');
+
+/// LoginScreen is a stateful widget that provides a user interface for logging in.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -15,12 +17,16 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
+
+/// State for the LoginScreen, managing user input, validation, and login logic.
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String _errorMessage = '';
 
+
+/// Attempts to log in the user with the provided username and password.
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -65,6 +71,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+
+/// Disposes of the controllers when the widget is removed from the widget tree.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

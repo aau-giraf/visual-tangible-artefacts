@@ -6,8 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the CallManager for diagnostic purposes
 final _log = Logger('CallManager');
+
 // Manages incoming/outgoing call UI and navigation
 class CallManager {
   static final CallManager _instance = CallManager._internal();
@@ -17,6 +18,7 @@ class CallManager {
   bool _isNavigatingToCall = false;
   bool _callbacksSetup = false;
 
+/// Sets up SignalR callbacks for handling incoming calls, session starts, and user status changes.
   void setupCallbacks({bool force = false}) {
     if (_callbacksSetup && !force) {
       _log.fine('[CallManager] Callbacks already setup, skipping');
@@ -46,6 +48,8 @@ class CallManager {
     _log.fine('[CallManager] Callbacks registered');
   }
 
+
+/// Clears the SignalR callbacks to prevent memory leaks or duplicate handling.
   void clearCallbacks() {
     final signalR = SignalRService();
     signalR.onSessionRequested = null;
@@ -56,6 +60,7 @@ class CallManager {
     _log.fine('[CallManager] Callbacks cleared');
   }
 
+/// Displays a dialog for an incoming call, allowing the user to accept or reject the call.
   void _showIncomingCallDialog(String fromUserId) async {
     _log.fine('_showIncomingCallDialog()');
     _log.fine('From User: $fromUserId');
@@ -172,7 +177,7 @@ class CallManager {
     });
   }
 
-  // Navigate to video call screen on session start
+  /// Navigates to the video call screen when a session starts.
   void _navigateToVideoCall(String sessionId, String boardId) {
     if (_isNavigatingToCall) {
       _log.fine(

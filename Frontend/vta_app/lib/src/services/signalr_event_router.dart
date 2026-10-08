@@ -3,8 +3,10 @@ import 'package:vta_app/src/services/notification_service.dart';
 import 'package:vta_app/src/services/online_status_tracker.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SignalrEventRouter for diagnostic purposes
 final _log = Logger('SignalrEventRouter');
+
+
 /// Registers all SignalR `.on()` event handlers on the [HubConnection].
 ///
 /// Callbacks are stored here so that [SignalRService] simply sets them

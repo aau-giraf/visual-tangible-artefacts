@@ -7,8 +7,10 @@ import '../../services/signalr_service.dart';
 import 'remote_board_screen.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the VideoCallScreen for diagnostic purposes
 final _log = Logger('VideoCallScreen');
+
+/// ConnectionStatus enum to represent the various states of the video call connection.
 enum ConnectionStatus {
   initializing,
   calling,
@@ -17,6 +19,8 @@ enum ConnectionStatus {
   error,
 }
 
+/// VideoCallScreen is a stateful widget that manages the video call interface, 
+/// including local and remote video streams, call controls, and navigation to the board screen.
 class VideoCallScreen extends StatefulWidget {
   static const String routeName = "/video-call";
   

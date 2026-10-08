@@ -1,3 +1,4 @@
+/// Represents a response to a login request, containing a token and user ID.
 class LoginResponse {
   String? token;
   String? userId;

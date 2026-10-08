@@ -10,10 +10,15 @@ import '../../../utilities/audio/artefact_sound_player.dart';
 import 'package:logging/logging.dart';
 
 
+/// Create a logger for the LinearBoard for diagnostic purposes
 final _log = Logger('LinearBoard');
+
+
 typedef OnArtifactRemoved = void Function(BoardArtefact artifact);
 typedef OnArtifactMoved = void Function(BoardArtefact artifact, int fromIndex, int toIndex);
 
+
+/// A linear board widget that displays a row of boxes, each capable of holding an artifact.
 class LinearBoard extends StatefulWidget {
   final Color? backgroundColor;
   final LinearBoardController linearBoardController;
@@ -32,6 +37,8 @@ class LinearBoard extends StatefulWidget {
   createState() => LinearBoardState();
 }
 
+
+/// The state class for the LinearBoard widget, managing artifact interactions and sound playback.
 class LinearBoardState extends State<LinearBoard>
     with ArtefactSoundPlayer {
   late LinearBoardController _linearBoardController;

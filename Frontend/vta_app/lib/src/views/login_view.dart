@@ -6,6 +6,9 @@ import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/modelsDTOs/signup_form.dart';
 import 'package:vta_app/src/utilities/api/api_provider.dart';
 
+
+/// LoginView is the main login and signup screen for the application, 
+/// allowing users to log in or create a new account.
 class LoginView extends StatefulWidget {
   static const String routeName = '/login';
 
@@ -17,6 +20,7 @@ class LoginView extends StatefulWidget {
   State<StatefulWidget> createState() => _LoginViewState();
 }
 
+/// The state class for the LoginView, managing user input, form validation, and authentication logic.
 class _LoginViewState extends State<LoginView> {
   final sharedUsernameController = TextEditingController();
   final sharedPasswordController = TextEditingController();

@@ -12,8 +12,11 @@ import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'dart:convert';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the DataRepository for diagnostic purposes.
 final _log = Logger('DataRepository');
+
+
+/// Abstract base class for data repositories that interact with the API.
 abstract class ApiDataRepository {
   var apiSettings = GlobalConfiguration().appConfig['ApiSettings'];
   late ApiProvider apiProvider;
@@ -39,6 +42,8 @@ abstract class ApiDataRepository {
   }
 }
 
+
+/// Repository for handling authentication-related API calls, such as login and token retrieval.
 class AuthRepository extends ApiDataRepository {
   Future<LoginResponse?> login(String username, String password) async {
     var loginForm = LoginForm(username: username, password: password);

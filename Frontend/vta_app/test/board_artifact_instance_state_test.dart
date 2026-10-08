@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vta_app/src/modelsDTOs/artefact.dart';
 import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 
+/// This test suite verifies the behavior of the BoardArtefact class, 
+/// particularly its interaction with the base Artefact object.
 void main() {
   group('BoardArtefact name visibility from baseArtefact', () {
     test('nameVisible reads from baseArtefact.nameShown', () {

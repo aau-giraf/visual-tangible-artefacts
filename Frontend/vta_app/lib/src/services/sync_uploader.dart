@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:get_it/get_it.dart';
@@ -12,7 +11,7 @@ import 'package:vta_app/src/singletons/user_info.dart';
 import 'package:vta_app/src/services/sync_models.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SyncUploader for diagnostic purposes
 final _log = Logger('SyncUploader');
 
 /// Result of an upload pass for a single entity type.

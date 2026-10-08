@@ -1,8 +1,10 @@
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the OnlineStatusTracker for diagnostic purposes
 final _log = Logger('OnlineStatusTracker');
+
+
 /// Tracks which users are currently online via the SignalR hub.
 ///
 /// This class is an implementation detail of [SignalRService] and should

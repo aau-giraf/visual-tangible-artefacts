@@ -3,8 +3,11 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the TakePictureScreen for diagnostic purposes
 final _log = Logger('TakePictureScreen');
+
+/// TakePictureScreen is a stateful widget that allows users to take a 
+/// picture using the device's camera.
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
     super.key,
@@ -18,6 +21,8 @@ class TakePictureScreen extends StatefulWidget {
   TakePictureScreenState createState() => TakePictureScreenState();
 }
 
+
+/// State for the TakePictureScreen, managing camera initialization, picture capture, and navigation.
 class TakePictureScreenState extends State<TakePictureScreen> {
   Uint8List? pictureBytes;
   late CameraController _controller;

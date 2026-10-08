@@ -6,6 +6,7 @@ import 'package:vta_app/src/singletons/token.dart';
 
 // For now just refer to already used menues, but maybe add its own functionality later
 
+/// A floating action button that allows users to quickly add a new artefact to the board.
 class QuickAddArtefactButton extends StatefulWidget {
 
   final ArtefactController artefactController;
@@ -21,6 +22,8 @@ class QuickAddArtefactButton extends StatefulWidget {
   State<QuickAddArtefactButton> createState() => _FloatingActionButtonExampleState();
 }
 
+
+/// The state class for the QuickAddArtefactButton, managing the button's behavior and interactions.
 class _FloatingActionButtonExampleState extends State<QuickAddArtefactButton> {
   @override
   Widget build(BuildContext context) {

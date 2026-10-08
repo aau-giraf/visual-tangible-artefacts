@@ -14,8 +14,10 @@ import 'package:get_it/get_it.dart';
 import 'package:vta_app/src/singletons/token.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the WelcomeScreen for diagnostic purposes
 final _log = Logger('WelcomeScreen');
+
+/// WelcomeScreen is a stateful widget that displays a welcome message,
 class WelcomeScreen extends StatefulWidget {
   static const String routeName = "/welcome";
   
@@ -34,6 +36,9 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
+
+/// State for the WelcomeScreen, managing user data loading, 
+/// profile picture display, and navigation to the main application.
 class _WelcomeScreenState extends State<WelcomeScreen>
     with TickerProviderStateMixin {
   User? _user;
@@ -99,6 +104,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     });
   }
 
+
+/// Loads user data from the repository and updates the state accordingly.
   Future<void> _loadUserData() async {
     try {
       final token = GetIt.instance.get<Token>();
@@ -136,6 +143,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     }
   }
 
+
+/// Loads the user's profile picture from shared preferences, 
+/// either as a base64 string or a file path.
   Future<void> _loadProfilePicture() async {
     try {
       final prefs = await SharedPreferences.getInstance();

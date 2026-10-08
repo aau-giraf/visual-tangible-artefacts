@@ -4,6 +4,8 @@ import 'package:vta_app/src/notifiers/vta_notifiers.dart';
 import '../ui/screens/login_screen.dart';
 import 'package:provider/provider.dart';
 
+
+/// AuthPage is the initial page that checks for authentication status and navigates accordingly.
 class AuthPage extends StatefulWidget {
   static const routeName = '/auth';
 

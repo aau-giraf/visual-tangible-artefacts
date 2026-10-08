@@ -4,8 +4,9 @@ import 'package:vta_app/src/singletons/token.dart';
 import 'package:vta_app/src/utilities/platform_utils.dart';
 import 'package:logging/logging.dart';
 
-
+/// Create a logger for the SignalrConnectionManager for diagnostic purposes
 final _log = Logger('SignalrConnectionManager');
+
 /// Owns the [HubConnection] lifecycle: build, connect, disconnect.
 ///
 /// This class is an implementation detail of [SignalRService] and should
