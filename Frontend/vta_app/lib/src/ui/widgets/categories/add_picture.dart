@@ -5,7 +5,7 @@ import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+//import 'dart:io';
 import 'package:logging/logging.dart';
 
 
@@ -372,7 +372,7 @@ class AddPicturePage extends StatelessWidget {
                             FilePickerResult? result =
                                 await FilePicker.platform.pickFiles();
                             if (result != null) {
-                              File file = File(result.files.single.path!);
+                              //File file = File(result.files.single.path!);
                             } else {
                               _log.info("Ingen fil valgt");
                             }
