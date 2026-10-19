@@ -1,5 +1,6 @@
 namespace VTA.Data.Models;
 
+//Entity Framework Core entity model that represents saved boards stored in the application's database.
 public class SavedBoard
 {
     public required string Id { get; set; }
