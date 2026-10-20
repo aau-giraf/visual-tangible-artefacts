@@ -39,12 +39,12 @@ public class PresenceService : IPresenceService // PresenceService implements th
 
     public bool TryGetConnection(string userId, out string connectionId)
     {
-        return _userConnections.TryGetValue(userId, out connectionId!); 
+        return _userConnections.TryGetValue(userId, out connectionId!); //Returns the value (connectionId) from the associated key (userId), if userConnections contains the element with the key. 
     }
 
     public bool IsConnectionActive(string connectionId)
     {
-        return _userConnections.ContainsValue(connectionId);
+        return _userConnections.ContainsValue(connectionId); //Checks if userConnections contains the connectionId and returns true if it does. 
     }
 
     public List<string> GetOnlineUsers()
