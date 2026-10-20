@@ -10,7 +10,7 @@ public class PresenceService : IPresenceService // PresenceService implements th
 {   
     // private: can only be accessed and changed in the class. readonly: cannot be modified after creation. 
     private readonly Dictionary<string, string> _userConnections = new(); // Makes a new instrance of userConnections. userConnections is a set of KeyValuePairs. 
-    private readonly HashSet<string> _onlineUsers = new(); // Makes a new instrance of onlineUsers. onlineUsers is a set od values. 
+    private readonly HashSet<string> _onlineUsers = new(); // Makes a new instrance of onlineUsers. onlineUsers is a set of values. 
     private readonly Dictionary<string, List<string>> _userContactsMap = new(); // Makes a new instrance of userContactsMap.  
     private readonly Dictionary<string, UserInfo> _userInfoMap = new(); // Makes a new instrance of UserInfoMap.  
 

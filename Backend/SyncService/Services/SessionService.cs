@@ -8,14 +8,15 @@ using SyncService.Models;
 /// </summary>
 public class SessionService : ISessionService
 {
-    private readonly Dictionary<string, BoardSession> _sessions = new();
-    private readonly Dictionary<string, PendingSessionRequest> _pendingRequests = new();
+    private readonly Dictionary<string, BoardSession> _sessions = new(); //Makes a new instrance of sessions. 
+    private readonly Dictionary<string, PendingSessionRequest> _pendingRequests = new(); //Makes a new instrance of pendingRequests. 
 
-    public string CreatePendingRequest(string fromUserId, string toUserId)
+    public string CreatePendingRequest(string fromUserId, string toUserId) //New session request pending. 
     {
-        var requestKey = $"{fromUserId}_{toUserId}_{DateTime.UtcNow.Ticks}";
-        var cts = new CancellationTokenSource();
+        var requestKey = $"{fromUserId}_{toUserId}_{DateTime.UtcNow.Ticks}"; //Variable requestKey is a string consisting of fromUserId, toUserID and the time. 
+        var cts = new CancellationTokenSource(); // Variable cts is a new instrance of the CancellationTokenSource. 
 
+    //pendingRequests takes the variable requestKey and makes a new instance of PendingSessionRequest. 
         _pendingRequests[requestKey] = new PendingSessionRequest
         {
             FromUserId = fromUserId,
@@ -27,14 +28,18 @@ public class SessionService : ISessionService
         return requestKey;
     }
 
-    public void CancelPendingRequests(string fromUserId, string? toUserId = null)
+    public void CancelPendingRequests(string fromUserId, string? toUserId = null) 
     {
+        //The variable keysToRemove is a list of keys. 
+        //The keys are input sequences that has been filtered. 
         var keysToRemove = _pendingRequests
             .Where(x => x.Value.FromUserId == fromUserId &&
                         (toUserId == null || x.Value.ToUserId == toUserId))
             .Select(x => x.Key)
             .ToList();
 
+        //Checks all keys in keysToRemove. 
+        //If the pending request has the specified key, the request will be cancelled and removed. 
         foreach (var key in keysToRemove)
         {
             if (_pendingRequests.TryGetValue(key, out var request))
