@@ -100,7 +100,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
             category.CategoryIndex = dto.CategoryIndex;
         }
         //If the name is not null, or empty, and not the same as the existing name, updat eit
-        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name)
+        if (!string.IsNullOrEmpty(dto.Name) && category.Name != dto.Name)
         {
             category.Name = dto.Name;
         }
