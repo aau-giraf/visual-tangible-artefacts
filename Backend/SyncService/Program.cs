@@ -5,6 +5,7 @@ using SyncService.Hubs;
 using SyncService.Services;
 using VTA.Data.Extensions;
 
+//The whole set up for the creating and hosting of a session. 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddVTAContext(builder.Configuration);
