@@ -4,6 +4,7 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts.Configurations;
 
+//Tells Entity Framework Core how the Relation class should be represented in the database.
 public class RelationConfiguration : IEntityTypeConfiguration<Relation>
 {
     public void Configure(EntityTypeBuilder<Relation> builder)

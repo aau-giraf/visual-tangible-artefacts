@@ -4,6 +4,8 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts.Configurations;
 
+//Tells Entity Framework Core how artefacts are saved in the database.
+//That includes positon on board, size and relationship to saved board.
 public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact>
 {
     public void Configure(EntityTypeBuilder<SavedArtefact> builder)
@@ -17,6 +19,7 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
         builder.HasIndex(e => e.BoardId, "boardId");
 
         // Note: No unique constraint to allow multiple instances of the same artefact on a board
+        // Each placement of the same artefact has own id.
 
         builder.Property(e => e.Id)
             .HasMaxLength(36)

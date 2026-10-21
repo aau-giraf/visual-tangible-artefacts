@@ -9,6 +9,8 @@ namespace VTA.Data.Extensions;
 
 #pragma warning disable CS1591
 
+//This code is resposible for configuring the application's database connection 
+// and registering VTAContext with ASP.NET Core's dependency injection system.
 public static class DbContextExtensions
 {
     public static IServiceCollection AddVTAContext(this IServiceCollection services, IConfiguration configuration)

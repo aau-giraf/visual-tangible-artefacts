@@ -4,6 +4,8 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts.Configurations;
 
+//Tells Entity Framework Core how users are saved in the database.
+//That includes information, roles, default settings and relationship with cargivers and children.
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)

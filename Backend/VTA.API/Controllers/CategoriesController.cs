@@ -12,7 +12,7 @@ namespace VTA.API.Controllers;
 /// <summary>
 /// Controller for managing categories owned by a user.
 /// </summary>
-[Authorize]
+[Authorize] //Mark the entire controller to require a valid token
 [Route("api/Categories")]
 [ApiController]
 public class CategoriesController(VTAContext context, ILogger<CategoriesController> logger) : ControllerBase

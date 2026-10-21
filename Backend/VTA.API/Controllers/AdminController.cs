@@ -7,10 +7,11 @@ using VTA.API.Services;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
 
+//A controller handling admin functionality.
 namespace VTA.API.Controllers;
 
-[Authorize(Roles = "Admin")]
-[Route("api/[controller]")]
+[Authorize(Roles = "Admin")] //Prevents normal users from accessing admin endpoints.
+[Route("api/[controller]")] //Base URL for adminController, stored in an ASP.NET CORE API.
 [ApiController]
 public class AdminController : ControllerBase
 {
@@ -18,6 +19,7 @@ public class AdminController : ControllerBase
     private readonly IUserService _userService;
     private readonly IRelationService _relationService;
 
+//AdminController object
     public AdminController(VTAContext context, IUserService userService, IRelationService relationService)
     {
         _context = context;
@@ -25,18 +27,29 @@ public class AdminController : ControllerBase
         _relationService = relationService;
     }
 
-    [HttpGet("caregivers")]
+//API enpoint that gets a pagenated list of all users who are caregivers.
+    [HttpGet("caregivers")] 
+    //Method responds to an Http get request ending in caregivers, full route would be GET /api/Admin/caregivers
+    // int? means integer is nullable, to use skip and take for pagenated response.
     public async Task<ActionResult> GetCaregivers([FromQuery] int? skip, [FromQuery] int? take)
     {
         var query = _context.Users
-            .Where(u => u.Role == UserRole.Caregiver)
-            .AsNoTracking()
-            .OrderBy(u => u.Username);
+            .Where(u => u.Role == UserRole.Caregiver) //Filters the users to be only cargivers.
+            .AsNoTracking() //Tells Entiy framwork I am only reading the users, no need to track changes.
+            .OrderBy(u => u.Username); //Sorts caregivers by username, in alfabetical order.
 
+//Uses skip and take to retreive one page, if example route is /api/Admin/caregivers?skip=20&take=10
+//IF we have 100 users, it would skip first 20 and take next 10 and return a pagenated response.
+//Takes IQueryable<User> returns PaginatedResponse<User>
         var page = await query.ToPaginatedAsync(skip, take);
+        //Takes paginated database result, converts users to DTOs and sends the resukt back to the API caller.
         return Ok(new PaginatedResponse<UserGetDTO>
         {
+            //page.items contains database user objects.
+            /*Select(DTOConverter.MapUserToUserGetDTO) because you dont want to send entire user object 
+            to the frontend, like password hashes.*/
             Items = page.Items.Select(DTOConverter.MapUserToUserGetDTO).ToList(),
+            // copy pagenation information to new response.
             TotalCount = page.TotalCount,
             Skip = page.Skip,
             Take = page.Take
@@ -79,27 +92,34 @@ public class AdminController : ControllerBase
         });
     }
 
+//Receive admin sign up information, ask user service to create admin.
     [HttpPost("admins")]
     public async Task<ActionResult<UserGetDTO>> CreateAdmin(UserSignupDTO adminDto)
     {
+        //Creates admin user from adminDto that contains the relevant info.
         var (user, error) = await _userService.CreateAdminAsync(adminDto);
 
+    //Return 409 conflict if creation fails.
         if (error != null)
             return Conflict(error);
 
-        return CreatedAtAction(nameof(GetAdmins), user);
+    //Return 201 created with created user.
+        return CreatedAtAction(nameof(GetAdmins), user); //nameof(GetAdmins) gets name of GetAdmins method as a string.
     }
 
+//Delete a user by id
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
-        var deleted = await _userService.DeleteUserAsync(id);
+        var deleted = await _userService.DeleteUserAsync(id); //Delete user and all asociated assets.
         if (!deleted)
-            return NotFound();
+            return NotFound(); //status 404 not found response.
 
-        return NoContent();
+        return NoContent(); //User effectivly deleted.
     }
 
+
+//Finds user by id and change their role to admin.
     [HttpPost("users/{id}/make-admin")]
     public async Task<IActionResult> MakeUserAdmin(string id)
     {

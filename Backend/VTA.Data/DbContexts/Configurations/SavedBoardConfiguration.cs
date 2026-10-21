@@ -4,6 +4,8 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts.Configurations;
 
+//Tells Entity Framework Core how boards are saved in the database.
+//That includes their properties, relationship to users and saved artefacts.
 public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
 {
     public void Configure(EntityTypeBuilder<SavedBoard> builder)

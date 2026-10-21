@@ -1,5 +1,6 @@
 namespace VTA.Data.Models;
 
+//Entity Framework Core entity model that represents a user stored in the application's database.
 public class User
 {
     public required string Id { get; set; }
