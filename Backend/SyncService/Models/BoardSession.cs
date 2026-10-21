@@ -1,5 +1,6 @@
 namespace SyncService.Models;
 
+//Used for creating a session for a board. 
 public class BoardSession
 {
     public required string SessionId { get; init; }
