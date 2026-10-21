@@ -53,7 +53,7 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
 
         builder.HasOne(d => d.User).WithMany(p => p.Artefacts)
             .HasForeignKey(d => d.UserId)
-            .OnDelete(DeleteBehavior.Cascade) //If user is deleted, their artefacts are automatically seleted too.
+            .OnDelete(DeleteBehavior.Cascade) //If user is deleted, their artefacts are automatically deleted too.
             .HasConstraintName("artefact_ibfk_1");
 
         builder.HasMany(d => d.SavedArtefacts).WithOne(p => p.Artefact)
