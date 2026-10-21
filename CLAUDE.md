@@ -40,7 +40,7 @@ The `visual-tangible-artefacts` (VTA) repository is a monorepo containing three 
 The system follows a multi-tiered client-server architecture with real-time capabilities:
 
 - **Flutter App:** Communicates with `VTA.API` via REST for data and with `SyncService` via SignalR for real-time board synchronization and WebRTC signaling.
-- **VTA.API:** Provides data endpoints, authentication, and business logic. Interacts with a MySQL database.
+- **VTA.API:** Provides data endpoints, authentication, and business logic. Interacts with a PostgreSQL database.
 - **SyncService:** Manages real-time connections and orchestrates board state synchronization among connected clients.
 - **Admin Dashboard:** Interacts with `VTA.API` via REST for administrative tasks.
 - **TURN Server:** (External) Used for WebRTC NAT traversal in video calls.
@@ -51,9 +51,9 @@ The system follows a multi-tiered client-server architecture with real-time capa
 
 ## Environment Setup
 
-- **Docker Compose:** The `docker-compose.yml` in the project root can spin up a MySQL database and a TURN server (if configured).
+- **Docker Compose:** The `docker-compose.yml` in the project root can spin up a PostgreSQL database and a TURN server (if configured).
 - **.env:** Create a `.env` file in `visual-tangible-artefacts/` (see `.env.example`) for environment variables, including database connection strings and external service API keys.
-- **MySQL:** The backend services connect to a MySQL database. Schema can be initialized from `mysql_schema.sql`.
+- **MySQL:** The backend services connect to a PostgreSQL database. Schema can be initialized from `postgreSQL_schema.sql`.
 - **TURN server:** Configuration files `turnserver.local.conf` and `turnserver.server.conf` are provided for the coturn TURN server.
 
 ## Key Conventions

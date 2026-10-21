@@ -7,7 +7,7 @@ For general workflow and guidelines, see the [organization CONTRIBUTING.md](http
 ### Prerequisites
 
 - .NET 8 SDK
-- Docker (for MySQL + full-stack compose)
+- Docker (for PostgreSQL + full-stack compose)
 - Flutter SDK (for the mobile app)
 - Node.js 18+ (for the admin dashboard)
 
@@ -15,7 +15,7 @@ For general workflow and guidelines, see the [organization CONTRIBUTING.md](http
 
 ```bash
 docker compose up
-# API on :5192, SyncService on :5133, MySQL on :3306
+# API on :5192, SyncService on :5133, PostgreSQL on :5432
 ```
 
 ### Backend Only
