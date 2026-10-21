@@ -59,25 +59,25 @@ ON CONFLICT ("categoryId") DO NOTHING;
 CREATE TABLE artefact (
   "artefactId"      VARCHAR(36)   NOT NULL,
   "artefactIndex"   INTEGER       CHECK ("artefactIndex" BETWEEN 0 AND 65535),
-  "userId"          VARCHAR(36)   NOT NULL,
+  "userID"          VARCHAR(36)   NOT NULL,
   "categoryId"      VARCHAR(36)   NULL,
   "imagePath"       VARCHAR(255)  NULL,
   "soundPath"       VARCHAR(255)  NULL,
   "modifiedDate"    TIMESTAMP     NULL,
    name             VARCHAR(255)  NULL,
-  "nameShown"       SMALLINT      NOT NULL DEFAULT 0,
+  "nameShown"      	SMALLINT      NOT NULL DEFAULT 0,
   PRIMARY KEY ("artefactId"),
   CONSTRAINT artefact_ibfk_2
     FOREIGN KEY ("categoryId") REFERENCES category("categoryId")
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT artefact_ibfk_1
-    FOREIGN KEY ("userId") REFERENCES "user"(id)
+    FOREIGN KEY ("userID") REFERENCES "user"(id)
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ); 
   CREATE INDEX IF NOT EXISTS idx_artefact_categoryid ON artefact("categoryId");
-  CREATE INDEX IF NOT EXISTS idx_artefact_userid ON artefact("userId");
+  CREATE INDEX IF NOT EXISTS idx_artefact_userid ON artefact("userID");
 
 -- SAVED BOARD
 CREATE TABLE "savedBoard" (
@@ -128,7 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_user_username ON "user"(username);
 CREATE INDEX IF NOT EXISTS idx_category_userid_index ON category("userId", "categoryIndex");
 
 -- Artefact queries often filter by userId and categoryId together
-CREATE INDEX IF NOT EXISTS idx_artefact_userid_categoryid ON artefact("userId", "categoryId");
+CREATE INDEX IF NOT EXISTS idx_artefact_userid_categoryid ON artefact("userID", "categoryId");
 
 -- Artefact index is used for ordering
 CREATE INDEX IF NOT EXISTS idx_artefact_index ON artefact("artefactIndex");
