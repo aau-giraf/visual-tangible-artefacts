@@ -25,10 +25,10 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var username = _utilities.GenerateUniqueUsername();
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
-        var token = signUpResult?.Token;
+        Assert.NotNull(signUpResult);
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", signUpResult.Token);
 
         var response = await _client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -37,7 +37,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.NotNull(page);
         Assert.NotNull(page.Items);
 
-        await _utilities.DeleteUserAsync(signUpResult!.userId, token);
+        await _utilities.DeleteUserAsync(signUpResult!.userId, signUpResult.Token);
     }
 
     [Fact]
@@ -48,6 +48,8 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
         var userId = signUpResult?.userId;
+
+        Assert.NotNull(token);
 
         var categoryPostDTO = new CategoryPostDTO
         {
@@ -80,6 +82,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
+        Assert.NotNull(token);
         var userId = signUpResult?.userId;
 
         var categoryPostDTO = new CategoryPostDTO
@@ -100,6 +103,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
+        Assert.NotNull(category);
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
         deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -122,6 +126,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
+        Assert.NotNull(token);
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/Categories/nonexistent");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -144,6 +149,8 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var token = signUpResult?.Token;
         var userId = signUpResult?.userId;
 
+        Assert.NotNull(token);
+
         var categoryPostDTO = new CategoryPostDTO
         {
             UserId = userId!,
@@ -164,6 +171,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
+        Assert.NotNull(category);
 
         var patchDTO = new CategoryPatchDTO
         {
@@ -188,6 +196,8 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var getResponse = await _client.SendAsync(getRequest);
         var updatedCategory = await getResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
+        Assert.NotNull(updatedCategory);
+
         Assert.Equal("Updated Category", updatedCategory.Name);
 
         await _utilities.DeleteUserAsync(signUpResult!.userId, token);
@@ -200,6 +210,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var (signUpStatus, signUpResult) = await _utilities.SignUpUserAsync(username, "testpassword", "Test User");
         Assert.Equal(HttpStatusCode.OK, signUpStatus);
         var token = signUpResult?.Token;
+        Assert.NotNull(token);
 
         var patchDTO = new CategoryPatchDTO
         {
@@ -230,10 +241,14 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         var token1 = signUpResult1?.Token;
         var userId1 = signUpResult1?.userId;
 
+        Assert.NotNull(token1);
+
         var username2 = _utilities.GenerateUniqueUsername();
         var (signUpStatus2, signUpResult2) = await _utilities.SignUpUserAsync(username2, "password2", "User Two");
         Assert.Equal(HttpStatusCode.OK, signUpStatus2);
         var token2 = signUpResult2?.Token;
+
+        Assert.NotNull(token2);
 
         var categoryPostDTO = new CategoryPostDTO
         {
@@ -253,6 +268,7 @@ public class CategoriesControllerTests : IClassFixture<CustomApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
 
         var category = await postResponse.Content.ReadFromJsonAsync<CategoryGetDTO>();
+        Assert.NotNull(category);
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/Categories/{category.CategoryId}");
         deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token2);

@@ -44,7 +44,7 @@ public class UsersController(VTAContext context, IUserService userService) : Con
     /// Creates a new user
     /// </summary>
     /// <remarks>
-    /// For more info on the Hashing algorithm see: <see cref="https://en.wikipedia.org/wiki/Bcrypt"/>
+    /// For more info on the Hashing algorithm see: <see href="https://en.wikipedia.org/wiki/Bcrypt"/>
     /// </remarks>
     /// <param name="userSignUp">An object with all user info</param>
     /// <returns>A Login Object</returns>
@@ -122,7 +122,7 @@ public class UsersController(VTAContext context, IUserService userService) : Con
     /// Updates a users information (PUT HAS to have all fields in the User object filled out. A PATCH can have null values (which then aren't updated))
     /// </summary>
     /// <remarks>
-    /// We should ALWAYS use DTO's as parameter & return in order to avoid circular dependecies and exposing data we shouldn't we however aren't using this method, so it has not been changed
+    /// We should ALWAYS use DTO's as parameter and return in order to avoid circular dependecies and exposing data we shouldn't we however aren't using this method, so it has not been changed
     /// </remarks>
     /// <param name="id"></param>
     /// <param name="user"></param>

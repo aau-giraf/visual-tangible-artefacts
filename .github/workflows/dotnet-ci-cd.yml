@@ -30,7 +30,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Run tests
-        run: dotnet test --configuration Release --framework net8.0 --verbosity normal
+        run: dotnet test --configuration Release --framework net10.0 --verbosity normal
 
   flutter-ci:
     runs-on: ubuntu-latest
