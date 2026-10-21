@@ -110,6 +110,6 @@ dotnet test Backend/SyncService.Tests/
 ## Configuration
 
 Settings come from `appsettings.json` or environment variables:
-- `ConnectionStrings:DefaultConnection` — MySQL connection string
+- `ConnectionStrings:DefaultConnection` — PostgreSQL connection string
 - `Secret:SecretKey` — JWT signing key (or `JWT_SECRET` env var)
 - `AUTO_CREATE_DATABASE=true` — Triggers EF migration on startup (dev only)

@@ -18,7 +18,7 @@ This guide explains how to run the Visual Tangible Artefacts application using D
    - Frontend: http://localhost:8080
    - Backend API: http://localhost:5192
    - Backend Swagger: http://localhost:5192/swagger
-   - MySQL: localhost:3306
+   - PostgreSQL: localhost:5432
 
 3. **Stop all services:**
    ```bash
@@ -37,19 +37,18 @@ This guide explains how to run the Visual Tangible Artefacts application using D
 
 ## Services
 
-### MySQL Database
-- **Container:** `vta-mysql`
-- **Port:** 3306
+### PostgreSQL Database
+- **Container:** `vta-postgres`
+- **Port:** 5432
 - **Database:** `vta_dev`
 - **User:** `vta_user`
 - **Password:** `vta_password`
-- **Root Password:** `root_password`
 
 ### Backend API
 - **Container:** `vta-backend`
 - **Port:** 5192 (maps to container port 8080)
 - **Environment:** Development
-- **Connection String:** Configured automatically to connect to MySQL
+- **Connection String:** Configured automatically to connect to PostgreSQL
 
 ### Frontend
 - **Container:** `vta-frontend`
@@ -72,7 +71,7 @@ docker-compose logs -f
 # Specific service
 docker-compose logs -f backend
 docker-compose logs -f frontend
-docker-compose logs -f mysql
+docker-compose logs -f postgres
 ```
 
 ### Rebuild containers after code changes
@@ -85,9 +84,9 @@ docker-compose up -d --build backend
 docker-compose up -d --build frontend
 ```
 
-### Access MySQL database
+### Access PostgreSQL database
 ```bash
-docker exec -it vta-mysql mysql -u vta_user -pvta_password vta_dev
+docker exec -it vta-postgres psql -U vta_user -d vta_dev
 ```
 
 ### Execute commands in containers
@@ -106,7 +105,7 @@ docker-compose ps
 
 ## Database Initialization
 
-The database schema will be created automatically when the backend first connects to MySQL. The backend uses Entity Framework Core's `EnsureCreated()` or migrations to set up the database.
+The database schema will be created automatically when the backend first connects to PostgreSQL. The backend uses Entity Framework Core's `EnsureCreated()` or migrations to set up the database.
 
 If you need to reset the database:
 ```bash
@@ -116,10 +115,10 @@ docker-compose up -d
 
 ## Troubleshooting
 
-### Backend can't connect to MySQL
-- Ensure the MySQL container is healthy: `docker-compose ps`
-- Check MySQL logs: `docker-compose logs mysql`
-- The backend waits for MySQL health check before starting
+### Backend can't connect to PostgreSQL
+- Ensure the PostgreSQL container is healthy: `docker-compose ps`
+- Check PostgreSQL logs: `docker-compose logs postgres`
+- The backend waits for the PostgreSQL health check before starting
 
 ### Frontend can't reach backend
 - Update `Frontend/vta_app/assets/cfg/app_settings.json` to point to `http://localhost:5192/api/`
@@ -137,4 +136,4 @@ docker exec -it vta-backend chmod -R 777 /app/Assets
 3. **Use Docker secrets** for sensitive data
 4. **Enable HTTPS** with reverse proxy (nginx/traefik)
 5. **Set up persistent volumes** with proper backup strategy
-6. **Review security settings** for MySQL and API
+6. **Review security settings** for PostgreSQL and API
