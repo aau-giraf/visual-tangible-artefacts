@@ -87,6 +87,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
+        if (userId == null) return Unauthorized();
 
         var category = context.Categories.Find(dto.CategoryId);
 

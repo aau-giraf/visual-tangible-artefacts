@@ -56,7 +56,7 @@ public static class DTOConverter
         };
     }
 
-    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string imageUrl)
+    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string? imageUrl)
     {
         return new Category
         {

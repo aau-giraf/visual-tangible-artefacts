@@ -44,8 +44,7 @@ namespace VTA.Tests.TestHelpers
             var username = string.IsNullOrEmpty(builder.UserID) ? "root" : builder.UserID;
             var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
-            _mySqlContainer = new MySqlBuilder()
-                .WithImage("mysql:8.0")
+            _mySqlContainer = new MySqlBuilder("mysql:8.0")
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
