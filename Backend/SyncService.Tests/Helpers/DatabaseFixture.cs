@@ -1,22 +1,22 @@
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.MySql;
+using Testcontainers.PostgreSql;
 using VTA.Data.DbContexts;
 
 namespace SyncService.Tests.Helpers
 {
     /// <summary>
-    /// Database fixture that manages a MySQL Testcontainer for integration tests
+    /// Database fixture that manages a PostgreSQL Testcontainer for integration tests
     /// Shared across all tests in the collection to avoid starting/stopping container per test
     /// </summary>
     public class DatabaseFixture : IAsyncLifetime
     {
-        private MySqlContainer? _container;
+        private PostgreSqlContainer? _container;
         public VTAContext DbContext { get; private set; } = null!;
 
         public async Task InitializeAsync()
         {
-            _container = new MySqlBuilder()
-                .WithImage("mysql:8.0")
+            _container = new PostgreSqlBuilder()
+                .WithImage("postgresql:8.0")
                 .WithDatabase("vta_test")
                 .WithUsername("root")
                 .WithPassword("test_password")
@@ -26,7 +26,7 @@ namespace SyncService.Tests.Helpers
 
             var connectionString = _container.GetConnectionString();
             var options = new DbContextOptionsBuilder<VTAContext>()
-                .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+                .UsePostgreSql(connectionString, ServerVersion.AutoDetect(connectionString))
                 .Options;
             
             DbContext = new VTAContext(options);
