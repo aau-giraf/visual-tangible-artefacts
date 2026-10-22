@@ -1,4 +1,4 @@
--- MySQL 8.0+ schema for VTA (utf8mb4_0900_ai_ci)
+-- Postgresql schema for VTA (utf8mb4_0900_ai_ci)
 -- Creates database and tables: user, category, artefact, savedBoard, savedArtefact
 -- Safe to run multiple times if the DB doesn't already exist (will error if it does)
 -- Adjust the database name if needed.
@@ -7,6 +7,7 @@
 
 -- Make sure the session uses the desired charset/collation
 -- SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE dev_vta
 SET client_encoding = 'UTF8';
 
 -- Drop in dependency order (savedArtefact -> savedBoard -> artefact -> category/user)
@@ -49,7 +50,7 @@ CREATE TABLE category (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ); 
-  CREATE INDEX IF NOT EXISTS idx_artefact_userId ON category("userId"); 
+  CREATE INDEX IF NOT EXISTS idx_artefact_userid ON category("userId"); 
 
 INSERT INTO category ("categoryId", "categoryIndex", "userId", name, "imagePath", "modifiedDate", "usageCount", "lastUsedDate")
 VALUES ('Session-Artefact', 0, 'system', 'Session Artefacts', NULL, NOW(), 0, NULL)
@@ -77,7 +78,7 @@ CREATE TABLE artefact (
     ON UPDATE CASCADE
 ); 
   CREATE INDEX IF NOT EXISTS idx_artefact_categoryid ON artefact("categoryId");
-  CREATE INDEX IF NOT EXISTS idx_artefact_userid ON artefact("userID");
+  CREATE INDEX IF NOT EXISTS "idx_artefact_userID" ON artefact("userID");
 
 -- SAVED BOARD
 CREATE TABLE "savedBoard" (
