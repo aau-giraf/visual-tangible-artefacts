@@ -19,7 +19,7 @@ public static class DbContextExtensions
         {
             try
             {
-                opt.UseMySql(
+                opt.UsePostgreSql(
                     configuration.GetConnectionString(connectionType),
                     ServerVersion.AutoDetect(configuration.GetConnectionString(connectionType)),
                     options =>
@@ -32,7 +32,7 @@ public static class DbContextExtensions
             catch (Exception e)
             {
                 // ILogger is not available during DI configuration; use stderr as a last resort.
-                Console.Error.WriteLine($"[ERROR] An error occurred while configuring MySQL: {e.Message} — falling back to a volatile DB");
+                Console.Error.WriteLine($"[ERROR] An error occurred while configuring PostgreSQL: {e.Message} — falling back to a volatile DB");
             }
         });
         return services;

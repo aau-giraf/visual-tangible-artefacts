@@ -21,9 +21,9 @@
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="Moq" Version="4.20.70" />
-    <PackageReference Include="TestContainers.Container.Database.MySql" Version="1.5.4" />
-    <PackageReference Include="Testcontainers.MySql" Version="3.9.0" />
-    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="TestContainers.Container.Database.PostgreSql" Version="1.5.4" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
+    <PackageReference Include="xunit.v3" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
 
