@@ -19,6 +19,26 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-offline:
+    image: postgres:16
+    container_name: dummy_core_postgres_offline
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dummy_core_offline
+      POSTGRES_USER: dummy_core_user
+      POSTGRES_PASSWORD: dummy_core_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_offline_data:/var/lib/postgresql/data
+    networks:
+      - vta-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dummy_core_user -d dummy_core_offline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./Backend
@@ -31,6 +51,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=vta_dev;Username=vta_user;Password=vta_password
+      - ConnectionStrings__OfflineConnection=Host=postgres-offline;Port=5432;Database=dummy_core_offline;Username=dummy_core_user;Password=dummy_core_password
       - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
       - AUTO_CREATE_DATABASE=true
     depends_on:
@@ -53,6 +74,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=vta_dev;Username=vta_user;Password=vta_password
+      - ConnectionStrings__OfflineConnection=Host=postgres-offline;Port=5432;Database=dummy_core_offline;Username=dummy_core_user;Password=dummy_core_password
       - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
     depends_on:
       postgres:
@@ -95,6 +117,8 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  postgres_offline_data:
     driver: local
   backend_assets:
     driver: local
