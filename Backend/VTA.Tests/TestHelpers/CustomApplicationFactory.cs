@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MySql.Data.MySqlClient;
-using Testcontainers.MySql;
+using Testcontainers.PostgreSql;
 using Microsoft.Extensions.Logging;
 using VTA.Data.DbContexts;
 
@@ -12,7 +11,7 @@ namespace VTA.Tests.TestHelpers
 {
     public class CustomApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
-        private readonly MySqlContainer _mySqlContainer;
+        private readonly PostgreSqlContainer _postgreSqlContainer;
 
         // Static constructor runs once per AppDomain, before any instance is created.
         // This ensures JWT_SECRET is set before WebApplicationFactory starts any host.
@@ -39,26 +38,26 @@ namespace VTA.Tests.TestHelpers
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
                                    ?? "server=localhost;port=3306;user=vta_user;password=vta_password;database=vta_test";
 
-            var builder = new MySqlConnectionStringBuilder(connectionString);
+            var builder = new PostgreSqlConnectionStringBuilder(connectionString);
             var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
             var username = string.IsNullOrEmpty(builder.UserID) ? "root" : builder.UserID;
             var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
-            _mySqlContainer = new MySqlBuilder()
-                .WithImage("mysql:8.0")
+            _postgreSqlContainer = new PostgreSqlContainer()
+                .WithImage("postgresql:8.0")
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
-                .WithExposedPort(3308)
+                .WithExposedPort(5432)
                 .Build();
         }
 
         public async Task InitializeAsync()
         {
-            await _mySqlContainer.StartAsync();
+            await _postgreSqlContainer.StartAsync();
 
             var contextOptions = new DbContextOptionsBuilder<VTAContext>()
-                .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
+                .UsePostgreSql(_postgreSqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_postgreSqlContainer.GetConnectionString()))
                 .Options;
 
             await using var vtaContext = new VTAContext(contextOptions);
@@ -67,7 +66,7 @@ namespace VTA.Tests.TestHelpers
 
         public override async ValueTask DisposeAsync()
         {
-            await _mySqlContainer.DisposeAsync();
+            await _postgreSqlContainer.DisposeAsync();
             await base.DisposeAsync();
         }
 
@@ -88,7 +87,7 @@ namespace VTA.Tests.TestHelpers
                 }
 
                 services.AddDbContext<VTAContext>(options =>
-                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
+                    options.UsePostgreSql(_postgreSqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_postgreSqlContainer.GetConnectionString())));
             });
 
             builder.ConfigureAppConfiguration((context, config) =>

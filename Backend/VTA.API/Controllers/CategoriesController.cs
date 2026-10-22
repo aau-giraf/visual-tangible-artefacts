@@ -268,7 +268,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
 
         ImageUtilities.DeleteImage(category.CategoryId, "Categories", userId);
 
-        context.Categories.Remove(category);//MySQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
+        context.Categories.Remove(category);//PostgreSQL is set to cascade delete, so upon calling SaveChangesAsync, the database automagically deletes all artefacts in this cat
         await context.SaveChangesAsync();
 
         return NoContent();
