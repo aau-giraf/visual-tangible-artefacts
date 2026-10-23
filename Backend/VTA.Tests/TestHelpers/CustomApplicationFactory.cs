@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Microsoft.Extensions.Logging;
 using VTA.Data.DbContexts;
+using Npgsql;
 
 namespace VTA.Tests.TestHelpers
 {
@@ -36,15 +37,16 @@ namespace VTA.Tests.TestHelpers
 
             var connectionString = config.GetValue<string>("ConnectionStrings:TEST_CONNECTION_STRING")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
-                                   ?? "server=localhost;port=3306;user=vta_user;password=vta_password;database=vta_test";
+                                   ?? "server=localhost;port=5432;user=vta_user;password=vta_password;database=vta_test";
 
-            var builder = new PostgreSqlConnectionStringBuilder(connectionString);
+            var builder = new NpgsqlConnectionStringBuilder(connectionString);
             var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
-            var username = string.IsNullOrEmpty(builder.UserID) ? "root" : builder.UserID;
+            var username = string.IsNullOrEmpty(builder.Username) ? "root" : builder.Username;
             var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
-            _postgreSqlContainer = new PostgreSqlContainer()
-                .WithImage("postgresql:8.0")
+
+            _postgreSqlContainer = new PostgreSqlBuilder()
+                .WithImage("postgre:16")
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
@@ -52,12 +54,12 @@ namespace VTA.Tests.TestHelpers
                 .Build();
         }
 
-        public async Task InitializeAsync()
+        public async ValueTask InitializeAsync()
         {
             await _postgreSqlContainer.StartAsync();
 
             var contextOptions = new DbContextOptionsBuilder<VTAContext>()
-                .UsePostgreSql(_postgreSqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_postgreSqlContainer.GetConnectionString()))
+                .UseNpgsql(_postgreSqlContainer.GetConnectionString())
                 .Options;
 
             await using var vtaContext = new VTAContext(contextOptions);
@@ -70,7 +72,7 @@ namespace VTA.Tests.TestHelpers
             await base.DisposeAsync();
         }
 
-        async Task IAsyncLifetime.DisposeAsync()
+        async ValueTask IAsyncDisposable.DisposeAsync()
         {
             await DisposeAsync();
         }
@@ -87,7 +89,7 @@ namespace VTA.Tests.TestHelpers
                 }
 
                 services.AddDbContext<VTAContext>(options =>
-                    options.UsePostgreSql(_postgreSqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_postgreSqlContainer.GetConnectionString())));
+                    options.UseNpgsql(_postgreSqlContainer.GetConnectionString()));
             });
 
             builder.ConfigureAppConfiguration((context, config) =>
