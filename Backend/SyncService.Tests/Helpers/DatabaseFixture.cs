@@ -13,7 +13,7 @@ namespace SyncService.Tests.Helpers
         private PostgreSqlContainer? _container;
         public VTAContext DbContext { get; private set; } = null!;
 
-        public async Task InitializeAsync()
+        public async ValueTask InitializeAsync()
         {
             _container = new PostgreSqlBuilder()
                 .WithImage("postgresql:8.0")
@@ -26,14 +26,14 @@ namespace SyncService.Tests.Helpers
 
             var connectionString = _container.GetConnectionString();
             var options = new DbContextOptionsBuilder<VTAContext>()
-                .UsePostgreSql(connectionString, ServerVersion.AutoDetect(connectionString))
+                .UseNpgsql(connectionString)
                 .Options;
             
             DbContext = new VTAContext(options);
             await DbContext.Database.EnsureCreatedAsync();
         }
 
-        public async Task DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
             await DbContext.Database.EnsureDeletedAsync();
             await DbContext.DisposeAsync();
