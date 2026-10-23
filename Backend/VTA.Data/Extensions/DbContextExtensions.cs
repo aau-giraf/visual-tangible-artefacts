@@ -23,7 +23,6 @@ public static class DbContextExtensions
                     configuration.GetConnectionString(connectionType),
                     options =>
                     {
-                        options.EnableStringComparisonTranslations();
                         options.EnableRetryOnFailure();
                     }
                 );
