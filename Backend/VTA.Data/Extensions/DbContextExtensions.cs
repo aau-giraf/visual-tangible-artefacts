@@ -19,9 +19,8 @@ public static class DbContextExtensions
         {
             try
             {
-                opt.UsePostgreSql(
+                opt.UseNpgsql(
                     configuration.GetConnectionString(connectionType),
-                    ServerVersion.AutoDetect(configuration.GetConnectionString(connectionType)),
                     options =>
                     {
                         options.EnableStringComparisonTranslations();
