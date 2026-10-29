@@ -73,4 +73,6 @@ The system follows a multi-tiered client-server architecture with real-time capa
 - `visual-tangible-artefacts/Frontend/vta_app/lib/main.dart`: Flutter application entry point.
 - `visual-tangible-artefacts/Frontend/admin-dashboard/src/main.ts`: Admin dashboard entry point.
 - `visual-tangible-artefacts/VTA.sln`: Visual Studio solution file for the backend.
-- `visual-tangible-artefacts/docker-compose.yml`: Docker setup for development environment.
+- `visual-tangible-artefacts/docker-compose.yml`: Docker setup for development environment
+
+
