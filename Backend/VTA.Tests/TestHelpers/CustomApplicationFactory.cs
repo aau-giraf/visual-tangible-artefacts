@@ -3,16 +3,16 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MySql.Data.MySqlClient;
-using Testcontainers.MySql;
+using Testcontainers.PostgreSql;
 using Microsoft.Extensions.Logging;
 using VTA.Data.DbContexts;
+using Npgsql;
 
 namespace VTA.Tests.TestHelpers
 {
     public class CustomApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
-        private readonly MySqlContainer _mySqlContainer;
+        private readonly PostgreSqlContainer _postgreSqlContainer;
 
         // Static constructor runs once per AppDomain, before any instance is created.
         // This ensures JWT_SECRET is set before WebApplicationFactory starts any host.
@@ -37,28 +37,29 @@ namespace VTA.Tests.TestHelpers
 
             var connectionString = config.GetValue<string>("ConnectionStrings:TEST_CONNECTION_STRING")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
-                                   ?? "server=localhost;port=3306;user=vta_user;password=vta_password;database=vta_test";
+                                   ?? "server=localhost;port=5432;user=vta_user;password=vta_password;database=vta_test";
 
-            var builder = new MySqlConnectionStringBuilder(connectionString);
+            var builder = new NpgsqlConnectionStringBuilder(connectionString);
             var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
-            var username = string.IsNullOrEmpty(builder.UserID) ? "root" : builder.UserID;
+            var username = string.IsNullOrEmpty(builder.Username) ? "root" : builder.Username;
             var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
-            _mySqlContainer = new MySqlBuilder()
-                .WithImage("mysql:8.0")
+
+            _postgreSqlContainer = new PostgreSqlBuilder()
+                .WithImage("postgre:16")
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
-                .WithExposedPort(3308)
+                .WithExposedPort(5432)
                 .Build();
         }
 
-        public async Task InitializeAsync()
+        public async ValueTask InitializeAsync()
         {
-            await _mySqlContainer.StartAsync();
+            await _postgreSqlContainer.StartAsync();
 
             var contextOptions = new DbContextOptionsBuilder<VTAContext>()
-                .UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString()))
+                .UseNpgsql(_postgreSqlContainer.GetConnectionString())
                 .Options;
 
             await using var vtaContext = new VTAContext(contextOptions);
@@ -67,11 +68,11 @@ namespace VTA.Tests.TestHelpers
 
         public override async ValueTask DisposeAsync()
         {
-            await _mySqlContainer.DisposeAsync();
+            await _postgreSqlContainer.DisposeAsync();
             await base.DisposeAsync();
         }
 
-        async Task IAsyncLifetime.DisposeAsync()
+        async ValueTask IAsyncDisposable.DisposeAsync()
         {
             await DisposeAsync();
         }
@@ -88,7 +89,7 @@ namespace VTA.Tests.TestHelpers
                 }
 
                 services.AddDbContext<VTAContext>(options =>
-                    options.UseMySql(_mySqlContainer.GetConnectionString(), ServerVersion.AutoDetect(_mySqlContainer.GetConnectionString())));
+                    options.UseNpgsql(_postgreSqlContainer.GetConnectionString()));
             });
 
             builder.ConfigureAppConfiguration((context, config) =>

@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Org.BouncyCastle.Crypto.Generators;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
 
@@ -19,12 +18,10 @@ public static class DbContextExtensions
         {
             try
             {
-                opt.UseMySql(
+                opt.UseNpgsql(
                     configuration.GetConnectionString(connectionType),
-                    ServerVersion.AutoDetect(configuration.GetConnectionString(connectionType)),
                     options =>
                     {
-                        options.EnableStringComparisonTranslations();
                         options.EnableRetryOnFailure();
                     }
                 );
@@ -32,7 +29,7 @@ public static class DbContextExtensions
             catch (Exception e)
             {
                 // ILogger is not available during DI configuration; use stderr as a last resort.
-                Console.Error.WriteLine($"[ERROR] An error occurred while configuring MySQL: {e.Message} — falling back to a volatile DB");
+                Console.Error.WriteLine($"[ERROR] An error occurred while configuring PostgreSQL: {e.Message} — falling back to a volatile DB");
             }
         });
         return services;
