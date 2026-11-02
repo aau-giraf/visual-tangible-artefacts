@@ -7,18 +7,37 @@
 - All request and response bodies use JSON unless otherwise noted.
 - `204 No Content` responses have no response body.
 - IDs are integers.
+- Endpoints are desinged with RESTful API´s in mind
 
 # Users
 
 ## Get the current user
 
-`GET /users/me`
+`GET /users/{id}`
 
 ### Request body
 
 None.
 
 ### Response — `200 OK`
+
+```json
+{
+  "id": 0,
+  "username": "string",
+  "email": "user@example.com",
+  "first_name": "string",
+  "last_name": "string",
+  "role": "teacher"
+}
+```
+---
+
+## Get all users
+
+`GET /users`
+
+### Response - `200 OK`
 
 ```json
 {
@@ -54,7 +73,7 @@ None.
 
 ## Update the current user
 
-`PATCH /users/me`
+`PATCH /users/{id}`
 
 ### Request body
 
@@ -86,7 +105,7 @@ All fields are optional.
 
 ## Change password
 
-`PUT /users/me/password`
+`PUT /users/{id}/password`
 
 ### Request body
 
@@ -105,7 +124,7 @@ No response body.
 
 ## Delete the current user
 
-`DELETE /users/me`
+`DELETE /users/{id}`
 
 ### Response — `204 No Content`
 
@@ -115,7 +134,7 @@ No response body.
 
 ## Get user settings
 
-`get /users/settings`
+`GET /users/{id}/settings`
 
 ### Response - `200 OK`
 
@@ -134,9 +153,11 @@ No response body.
 
 ## Update user settings
 
-`post /users/settings`
+`PATCH /users/{id}/settings`
 
 ### Request body
+
+All fields are optional.
 
 ```json
 {
@@ -159,7 +180,7 @@ No response body.
 
 ## Get a board for a user
 
-`get /users/board`
+`GET /users/{id}/boards/{id}`
 
 ### Response - `200 OK`
 
@@ -172,11 +193,11 @@ No response body.
     "gridY": "int"
 }
 ```
-
+---
 
 ## Get all boards for the user
 
-`get /users/boards`
+`GET /users/{id}/boards`
 
 ### Response - `200 OK`
 
@@ -187,9 +208,11 @@ No response body.
 }
 ```
 
+---
+
 ## New board made
 
-`post /users/board`
+`POST /users/{id}/board`
 
 ### Request body
 
@@ -201,7 +224,39 @@ No response body.
 
 ### Response - `204 No Content`
 
+---
 
 # Artefacts
 
-## blar blar blar
+## Get an artefact for a board
+
+`GET /users/{id}/boards/{id}/images/{id}`
+
+### Response - `200 OK`
+
+
+```json
+{
+  "name": "string",
+  "path": "string",
+  "useCount": "int"
+}
+```
+
+---
+
+## Get all artefacts for a board
+
+`GET /users/{id}/boards/{id}/images`
+
+## Response - `200 OK`
+
+```json
+{
+  "name": "string",
+  "path": "string",
+  "useCount": "int"
+}
+```
+
+---
