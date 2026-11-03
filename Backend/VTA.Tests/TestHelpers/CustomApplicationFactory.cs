@@ -45,8 +45,7 @@ namespace VTA.Tests.TestHelpers
             var password = string.IsNullOrEmpty(builder.Password) ? "password" : builder.Password;
 
 
-            _postgreSqlContainer = new PostgreSqlBuilder()
-                .WithImage("postgre:16")
+            _postgreSqlContainer = new PostgreSqlBuilder("postgres:16")
                 .WithDatabase(database)
                 .WithUsername(username)
                 .WithPassword(password)
