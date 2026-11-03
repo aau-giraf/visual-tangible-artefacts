@@ -28,7 +28,7 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
             .HasMaxLength(255)
             .HasColumnName("soundPath");
         builder.Property(e => e.ModifiedDate)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("modifiedDate");
         builder.Property(e => e.UserId)
             .HasMaxLength(36)

@@ -27,7 +27,7 @@ public class RelationConfiguration : IEntityTypeConfiguration<Relation>
             .HasDefaultValueSql("true");
 
         builder.Property(e => e.CreatedAt)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
