@@ -1,4 +1,6 @@
-﻿namespace VTA.Data.Models;
+﻿using NuGet.Packaging.Signing;
+
+namespace VTA.Data.Models;
 
 //Entity Framework Core entity model that represents an artefact stored in the application's database.
 public class Artefact
@@ -13,7 +15,7 @@ public class Artefact
 
     public string? ImagePath { get; set; } = null!;
     public string? SoundPath { get; set; } = null!;
-    public DateTime? ModifiedDate { get; set; }
+    public Timestamp? ModifiedDate { get; set; }
     public string? Name { get; set; }
     public bool? NameShown { get; set; }
     public virtual Category? Category { get; set; }

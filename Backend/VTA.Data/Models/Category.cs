@@ -1,4 +1,6 @@
-﻿namespace VTA.Data.Models;
+﻿using NuGet.Packaging.Signing;
+
+namespace VTA.Data.Models;
 
 //Entity Framework Core entity model that represents a category stored in the application's database.
 public class Category
@@ -8,9 +10,9 @@ public class Category
     public required string UserId { get; set; } = null!;
     public string? Name { get; set; }
     public string? ImagePath { get; set; }
-    public DateTime? ModifiedDate { get; set; }
+    public Timestamp? ModifiedDate { get; set; }
     public int UsageCount { get; set; } = 0;
-    public DateTime? LastUsedDate { get; set; }
+    public Timestamp? LastUsedDate { get; set; }
     public virtual ICollection<Artefact> Artefacts { get; set; } = new List<Artefact>();
     public virtual User User { get; set; } = null!;
 }
