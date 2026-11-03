@@ -16,8 +16,8 @@ public static class usersRoutes
         group.MapGet("/{userId}", (int userId) => "controller.GetByid(userId)");
 
         // POST: /auth/register
-        // Create user acount
-        // TODO : implemenmt logic so user can create acount
+        // Register a user 
+        // TODO : implemenmt logic so register a user
         group.MapPost("/auth/register", () => "controller.Create()");
 
         // PATCH: /users/{id}
