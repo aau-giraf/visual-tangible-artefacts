@@ -92,9 +92,9 @@ CREATE TABLE "savedBoard" (
   "modifiedDate"          TIMESTAMP     NULL,
   PRIMARY KEY (id),
   CONSTRAINT savedBoard_ibfk_1
-  FOREIGN KEY ("userId") REFERENCES "user"(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE
+    FOREIGN KEY ("userId") REFERENCES "user"(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 ); 
   CREATE INDEX IF NOT EXISTS idx_savedBoard_userid ON "savedBoard" ("userId");
 
