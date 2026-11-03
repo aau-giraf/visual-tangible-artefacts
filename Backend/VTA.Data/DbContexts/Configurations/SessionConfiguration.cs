@@ -8,8 +8,6 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
     public void Configure(EntityTypeBuilder<Session> builder)
     {
-        builder.HasKey(e => e.Id).HasName("PRIMARY");
-
         builder.ToTable("sessions");
 
         builder.Property(e => e.Id)
@@ -28,11 +26,11 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 
         builder.Property(e => e.StartTime)
             .HasColumnName("start_time")
-            .HasColumnType("datetime");
+            .HasColumnType("timestamp");
 
         builder.Property(e => e.EndTime)
             .HasColumnName("end_time")
-            .HasColumnType("datetime");
+            .HasColumnType("timestamp");
 
         builder.Property(e => e.Duration)
             .HasColumnName("duration")

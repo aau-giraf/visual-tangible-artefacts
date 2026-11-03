@@ -8,8 +8,6 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
 {
     public void Configure(EntityTypeBuilder<Artefact> builder)
     {
-        builder.HasKey(e => e.ArtefactId).HasName("PRIMARY");
-
         builder.ToTable("artefact");
 
         builder.HasIndex(e => e.CategoryId, "categoryId");
@@ -30,7 +28,7 @@ public class ArtefactConfiguration : IEntityTypeConfiguration<Artefact>
             .HasMaxLength(255)
             .HasColumnName("soundPath");
         builder.Property(e => e.ModifiedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamp")
             .HasColumnName("modifiedDate");
         builder.Property(e => e.UserId)
             .HasMaxLength(36)

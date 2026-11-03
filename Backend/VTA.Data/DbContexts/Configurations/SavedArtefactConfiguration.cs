@@ -8,8 +8,6 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
 {
     public void Configure(EntityTypeBuilder<SavedArtefact> builder)
     {
-        builder.HasKey(e => e.Id).HasName("PRIMARY");
-
         builder.ToTable("savedArtefact");
 
         builder.HasIndex(e => e.ArtefactId, "artefactId");
@@ -47,7 +45,7 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
             .HasDefaultValue(200f);
 
         builder.Property(e => e.CreatedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamp")
             .HasColumnName("createdDate")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 

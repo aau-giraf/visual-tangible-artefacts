@@ -8,8 +8,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 {
     public void Configure(EntityTypeBuilder<Category> builder)
     {
-        builder.HasKey(e => e.CategoryId).HasName("PRIMARY");
-
+    
         builder.ToTable("category");
 
         builder.HasIndex(e => e.UserId, "userId");
@@ -22,7 +21,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasMaxLength(255)
             .HasColumnName("imagePath");
         builder.Property(e => e.ModifiedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamp")
             .HasColumnName("modifiedDate");
         builder.Property(e => e.Name)
             .HasMaxLength(50)
@@ -34,7 +33,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasDefaultValue(0)
             .HasColumnName("usageCount");
         builder.Property(e => e.LastUsedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamp")
             .HasColumnName("lastUsedDate");
 
         builder.HasOne(d => d.User).WithMany(p => p.Categories)
