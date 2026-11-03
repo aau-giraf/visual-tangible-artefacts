@@ -1,6 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 using Microsoft.AspNetCore.Http;
 
+=======
+using Microsoft.AspNetCore.Http;
+
+<<<<<<< HEAD
+>>>>>>> c25a6e3f2ed7c571a8099d2988e4ee7366936cd0
 namespace Backendv2.src.API.Routes.Users;
 
 
@@ -40,6 +46,7 @@ public static class usersRoutes()
 }
 
 
+<<<<<<< HEAD
 
 
 
@@ -55,6 +62,20 @@ namespace Backendv2.src.API.Routes;
 
 public class VTARoutes()
 {
+=======
+=======
+namespace Backendv2.src.API.Routes;
+
+
+public static class VTARoutes()
+{
+    public static EndpointRouteBuilder MapVTARoutes(this EnpointRouteBuilder vta)
+    {
+        var users = vta.MapUsers("api/Users");
+
+        
+    }
+>>>>>>> c25a6e3f2ed7c571a8099d2988e4ee7366936cd0
 
 
 
@@ -85,6 +106,10 @@ public class VTARoutes()
             Take = page.Take
         });
     }*/
+<<<<<<< HEAD
+=======
+>>>>>>> 638f090fa3f8127ad088a9772287463cea1f6f04
+>>>>>>> c25a6e3f2ed7c571a8099d2988e4ee7366936cd0
 
 
 
@@ -92,6 +117,12 @@ public class VTARoutes()
 
 
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    
+=======
+>>>>>>> c25a6e3f2ed7c571a8099d2988e4ee7366936cd0
 
 // GET: api/Users/{id}
     /// Get information about a specific user
@@ -213,9 +244,14 @@ public class VTARoutes()
 
         return NoContent();
 <<<<<<< HEAD
+<<<<<<< HEAD
     }
 >>>>>>> 76118e6 (created file users.cs in routes)
 =======
     }*/
 >>>>>>> 733d2ac (blabla)
+=======
+    }*/
+>>>>>>> 638f090fa3f8127ad088a9772287463cea1f6f04
+>>>>>>> c25a6e3f2ed7c571a8099d2988e4ee7366936cd0
     
