@@ -1,10 +1,24 @@
 
 namespace Backendv2.src.API.Routes;
 
+
+public class VTARoutes()
+{
+
+
+
+
+
+
+
+
+}
+
+
 // GET: api/Users
     /// Get all users in the DB
     /// Returns a paginated list of users
-    [HttpGet]
+    /*[HttpGet]
     public async Task<ActionResult> GetUsers([FromQuery] int? skip, [FromQuery] int? take)
     {
         var query = context.Users
@@ -19,12 +33,19 @@ namespace Backendv2.src.API.Routes;
             Skip = page.Skip,
             Take = page.Take
         });
-    }
+    }*/
+
+
+
+
+
+
+
 
 // GET: api/Users/{id}
     /// Get information about a specific user
     /// Returns a user
-    [HttpGet("{id}")]
+    /*[HttpGet("{id}")]
     public async Task<ActionResult<UserGetDTO>> GetUser(string id)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -41,7 +62,7 @@ namespace Backendv2.src.API.Routes;
         UserGetDTO userGetDTO = DTOConverter.MapUserToUserGetDTO(user);
 
         return userGetDTO;
-    }
+    }*/
 
 // rewrite......
 //POST: /auth/register
@@ -49,17 +70,17 @@ namespace Backendv2.src.API.Routes;
     /// For more info on the Hashing algorithm see: <see href="https://en.wikipedia.org/wiki/Bcrypt"/>
     /// <param name="userSignUp">An object with all user info</param>
     /// Returns a Login Object
-    [AllowAnonymous]//Allows a user to not have a JWT
+    /*[AllowAnonymous]//Allows a user to not have a JWT
     [Route("register")] // = api/Users/register
     [HttpPost]
-    public async Task<ActionResult<UserLoginResponseDTO>> SingUp(UserSignupDTO userSignUp)
+    public async Task<ActionResult<UserLoginResponseDTO>> Register(UserRegisterDTO userRegister)
     {
-        if (userSignUp == null)
+        if (userRegister == null)
         {
             return BadRequest();
         }
 
-        var (response, error) = await userService.RegisterAsync(userSignUp);
+        var (response, error) = await userService.RegisterAsync(userRegister);
 
         if (error != null)
         {
@@ -67,7 +88,7 @@ namespace Backendv2.src.API.Routes;
         }
 
         return response!;
-    }
+    }*/
 
 
 //PATCH: /users/{id}
@@ -85,7 +106,7 @@ namespace Backendv2.src.API.Routes;
     
     /// We could remove the Id != id test (probably also the null check, since it *should* be impossible to get a null)
     
-    [HttpDelete("{id}")]//{} allows us to extract that part of the url as a variable
+    /*[HttpDelete("{id}")]//{} allows us to extract that part of the url as a variable
     public async Task<IActionResult> DeleteUser(string id)
     {
         var Id = User.FindFirst("id")?.Value;//Extract the id from the JWT (Dotnet infers that we are talking about the JWT)
@@ -102,7 +123,7 @@ namespace Backendv2.src.API.Routes;
         }
 
         return NoContent();
-    }
+    }*/
 
 //GET: /users/{id}/settings
 
@@ -110,7 +131,7 @@ namespace Backendv2.src.API.Routes;
     /// Update user settings (NameVisible, FieldCount)
     /// <param name="dto">User settings to update</param>
     /// Returns status code 204 (No Content) on success
-    [HttpPatch]
+    /*[HttpPatch]
     public async Task<IActionResult> PatchUser([FromBody] UserPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
@@ -140,5 +161,5 @@ namespace Backendv2.src.API.Routes;
         await context.SaveChangesAsync();
 
         return NoContent();
-    }
+    }*/
     
