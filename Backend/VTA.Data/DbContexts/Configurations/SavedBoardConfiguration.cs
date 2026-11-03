@@ -39,12 +39,12 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasColumnName("artefactIds");
 
         builder.Property(e => e.CreatedDate)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("createdDate")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(e => e.ModifiedDate)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("modifiedDate");
 
         // Relationship: SavedBoard -> User (many-to-one)

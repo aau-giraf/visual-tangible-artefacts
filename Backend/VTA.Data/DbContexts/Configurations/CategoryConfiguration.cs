@@ -22,7 +22,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasMaxLength(255)
             .HasColumnName("imagePath");
         builder.Property(e => e.ModifiedDate)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("modifiedDate");
         builder.Property(e => e.Name)
             .HasMaxLength(50)
@@ -34,7 +34,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasDefaultValue(0)
             .HasColumnName("usageCount");
         builder.Property(e => e.LastUsedDate)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("lastUsedDate");
 
         builder.HasOne(d => d.User).WithMany(p => p.Categories)

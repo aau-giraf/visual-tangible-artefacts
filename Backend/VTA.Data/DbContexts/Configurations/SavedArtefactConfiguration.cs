@@ -48,7 +48,7 @@ public class SavedArtefactConfiguration : IEntityTypeConfiguration<SavedArtefact
             .HasDefaultValue(200f);
 
         builder.Property(e => e.CreatedDate)
-            .HasColumnType("timestamp")
+            .HasColumnType("timestamptz")
             .HasColumnName("createdDate")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 

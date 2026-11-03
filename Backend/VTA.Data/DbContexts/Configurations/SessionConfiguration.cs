@@ -28,11 +28,11 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 
         builder.Property(e => e.StartTime)
             .HasColumnName("start_time")
-            .HasColumnType("timestamp");
+            .HasColumnType("timestamptz");
 
         builder.Property(e => e.EndTime)
             .HasColumnName("end_time")
-            .HasColumnType("timestamp");
+            .HasColumnType("timestamptz");
 
         builder.Property(e => e.Duration)
             .HasColumnName("duration")
