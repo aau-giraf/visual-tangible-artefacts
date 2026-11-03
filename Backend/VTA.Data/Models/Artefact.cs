@@ -14,7 +14,7 @@ public class Artefact
 
     public string? ImagePath { get; set; } = null!;
     public string? SoundPath { get; set; } = null!;
-    public Timestamp? ModifiedDate { get; set; }
+    public DateTime? ModifiedDate { get; set; }
     public string? Name { get; set; }
     public bool? NameShown { get; set; }
     public virtual Category? Category { get; set; }
