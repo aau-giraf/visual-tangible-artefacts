@@ -4,7 +4,9 @@
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
+
 app.MapGroup("/users/{id}/boards")
     .MapBoardsRoutes();
+
 
 app.Run();
