@@ -15,7 +15,7 @@ namespace SyncService.Tests.Helpers
 
         public async ValueTask InitializeAsync()
         {
-            _container = new PostgreSqlBuilder("postgresql:8.0")
+            _container = new PostgreSqlBuilder("postgres:16")
                 .WithDatabase("vta_test")
                 .WithUsername("root")
                 .WithPassword("test_password")
