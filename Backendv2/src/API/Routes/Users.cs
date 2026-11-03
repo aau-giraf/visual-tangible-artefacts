@@ -5,17 +5,17 @@ public static class usersRoutes
 {
     public static RouteGroupBuilder MapUsersRoutes(this RouteGroupBuilder group)
     {
-        // GET: api/Users
+        // GET: /users
         // Get all users
         // TODO : Implement logic to get all users
         group.MapGet("/", () => "controller.GetAll()");
 
-        // GET: api/Users/{id}
+        // GET: /users/{id}
         // Get specific user by id
         // TODO : implemnet logic to get a specific user by id
         group.MapGet("/{userId}", (int userId) => "controller.GetByid(userId)");
 
-        // POST: /auth/register
+        // POST: users/auth/register
         // Register a user 
         // TODO : implemenmt logic so register a user
         group.MapPost("/auth/register", () => "controller.Create()");
@@ -44,7 +44,6 @@ public static class usersRoutes
         // Ubdate user settings
         // TODO : implement logic to ubdate user settings
         group.MapPatch("/{userId}/settings", (int userId) => "controller");
-
 
         //Return group so it can be used in the program.cs file
         return group;
