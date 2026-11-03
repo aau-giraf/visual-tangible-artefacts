@@ -9,8 +9,6 @@ public class RelationConfiguration : IEntityTypeConfiguration<Relation>
 {
     public void Configure(EntityTypeBuilder<Relation> builder)
     {
-        builder.HasKey(e => e.Id).HasName("PRIMARY");
-
         builder.ToTable("relation");
 
         builder.Property(e => e.Id)
@@ -27,10 +25,10 @@ public class RelationConfiguration : IEntityTypeConfiguration<Relation>
 
         builder.Property(e => e.IsActive)
             .HasColumnName("is_active")
-            .HasDefaultValueSql("1");
+            .HasDefaultValueSql("true");
 
         builder.Property(e => e.CreatedAt)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamp")
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
