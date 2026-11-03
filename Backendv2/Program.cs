@@ -8,5 +8,7 @@ var app = builder.Build();
 app.MapGroup("/users/{id}/boards")
     .MapBoardsRoutes();
 
+app.MapGroup("/hello")
+    .MapHelloRoutes();
 
 app.Run();

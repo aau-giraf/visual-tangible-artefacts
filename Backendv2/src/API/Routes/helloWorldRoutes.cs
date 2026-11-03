@@ -10,5 +10,11 @@ namespace Backendv2.src.API.Routes
             app.MapGet("/hello", helloWorldHandler.SayHello);
 
         }
+
+        public static RouteGroupBuilder MapHelloRoutes(this RouteGroupBuilder group)
+        {
+            group.MapGet("/hello", helloWorldHandler.SayHello);
+            return group;
+        }
     }
 }
