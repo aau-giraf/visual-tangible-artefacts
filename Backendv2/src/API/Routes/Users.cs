@@ -1,9 +1,16 @@
+using Microsoft.AspNetCore.Http;
 
 namespace Backendv2.src.API.Routes;
 
 
-public class VTARoutes()
+public static class VTARoutes()
 {
+    public static EndpointRouteBuilder MapVTARoutes(this EnpointRouteBuilder vta)
+    {
+        var users = vta.MapUsers("api/Users");
+
+        
+    }
 
 
 
