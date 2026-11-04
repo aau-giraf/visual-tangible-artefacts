@@ -1,6 +1,4 @@
-﻿using NuGet.Packaging.Signing;
-
-namespace VTA.Data.Models;
+﻿namespace VTA.Data.Models;
 
 //Entity Framework Core entity model that represents a category stored in the application's database.
 public class Category
