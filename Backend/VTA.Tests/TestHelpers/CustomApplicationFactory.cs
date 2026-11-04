@@ -37,7 +37,7 @@ namespace VTA.Tests.TestHelpers
 
             var connectionString = config.GetValue<string>("ConnectionStrings:TEST_CONNECTION_STRING")
                                    ?? Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
-                                   ?? "server=localhost;port=5432;user=vta_user;password=vta_password;database=vta_test";
+                                   ?? "server=localhost;port=5432;user Id=vta_user;password=vta_password;database=vta_test";
 
             var builder = new NpgsqlConnectionStringBuilder(connectionString);
             var database = string.IsNullOrEmpty(builder.Database) ? "vta_test" : builder.Database;
