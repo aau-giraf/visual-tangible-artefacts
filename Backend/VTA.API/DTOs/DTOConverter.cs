@@ -3,14 +3,16 @@ using VTA.Data.Models;
 namespace VTA.API.DTOs;
 
 /// <summary>
-/// This class contains all the functions we use to convert a PostDTO to a model, and model to GetDTO it's pretty self explanatory what they do
+/// This class contains all the functions we use to convert a PostDTO to a model, and model to GetDTO so it can be safly returned by the API.
 /// </summary>
 public static class DTOConverter
 {
     public static ArtefactGetDTO MapArtefactToArtefactGetDTO(Artefact artefact, string scheme, string host)
     {
+        //Creates new DTO artefact from the database artefact
         return new ArtefactGetDTO
         {
+            //Copies relevant properties to the DTO.
             ArtefactId = artefact.ArtefactId,
             ArtefactIndex = artefact.ArtefactIndex,
             UserId = artefact.UserId,
@@ -56,7 +58,7 @@ public static class DTOConverter
         };
     }
 
-    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string imageUrl)
+    public static Category MapCategoryPostDTOToCategory(CategoryPostDTO category, string id, string? imageUrl)
     {
         return new Category
         {

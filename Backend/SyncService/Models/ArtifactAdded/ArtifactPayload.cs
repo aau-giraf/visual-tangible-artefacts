@@ -1,5 +1,6 @@
 namespace SyncService.Models.ArtifactAdded;
 
+//Used for creating an artifact. 
 public class ArtifactPayload
 {
     public required string Id { get; set; }

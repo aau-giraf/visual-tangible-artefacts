@@ -1,13 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <OutputType>Exe</OutputType>
-    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
-    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
+    <OutputType>Exe</OutputType>
     <PreserveCompilationContext>true</PreserveCompilationContext>
 
     <IsPackable>false</IsPackable>
@@ -15,19 +12,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="Moq" Version="4.20.70" />
-    <PackageReference Include="TestContainers.Container.Database.PostgreSql" Version="1.5.4" />
+
+    <PackageReference Include="Moq" Version="4.21.0" />
+
+    <PackageReference Include="NuGet.Packaging" Version="6.12.5" />
+
+    <PackageReference Include="NuGet.Protocol" Version="6.12.5" />
+
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
+
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageReference Include="xunit.v3" Version="4.0.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+
   </ItemGroup>
 
   <ItemGroup>

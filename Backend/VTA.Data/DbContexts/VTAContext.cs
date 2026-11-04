@@ -3,6 +3,9 @@ using VTA.Data.Models;
 
 namespace VTA.Data.DbContexts;
 
+//The aplications entity framwork Core database context.
+//Provides acess to tables: Artefacts, Categories, Users, SaveBoards, SavedArtefacts, Relations and Sessions.
+
 public partial class VTAContext : DbContext
 {
     public VTAContext()
@@ -27,8 +30,7 @@ public partial class VTAContext : DbContext
 
     public virtual DbSet<Session> Sessions { get; set; }
 
+    //Tells entity framwork how to configure the database model, when aplication starts.
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder
-            .UseCollation("utf8mb4_0900_ai_ci")
-            .ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
 }

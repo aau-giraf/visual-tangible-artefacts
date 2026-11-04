@@ -2,6 +2,7 @@
 
 namespace VTA.Data.Models;
 
+//Entity Framework Core entity model that represents an artefact stored in the application's database.
 public class Artefact
 {
     public required string ArtefactId { get; set; }

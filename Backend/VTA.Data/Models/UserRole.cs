@@ -1,5 +1,6 @@
 namespace VTA.Data.Models;
 
+//An enum used to give role to users by number.
 public enum UserRole
 {
     Child = 0,

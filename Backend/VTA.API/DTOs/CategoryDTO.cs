@@ -14,7 +14,7 @@ public partial class CategoryPostDTO
 
 public partial class CategoryPatchDTO
 {
-    public string CategoryId { get; set; }
+    required public string CategoryId { get; set; }
 
     public byte? CategoryIndex { get; set; }
     public string? Name { get; set; }

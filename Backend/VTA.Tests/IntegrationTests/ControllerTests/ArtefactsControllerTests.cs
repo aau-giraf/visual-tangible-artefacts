@@ -62,6 +62,8 @@ public class ArtefactsControllerTests : IClassFixture<CustomApplicationFactory>
             options
         );
 
+        Assert.NotNull(artefact);
+
         var getArtefactRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/Artefacts/{artefact.ArtefactId}");
         getArtefactRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Token);
         var getArtefactResponse = await _client.SendAsync(getArtefactRequest);

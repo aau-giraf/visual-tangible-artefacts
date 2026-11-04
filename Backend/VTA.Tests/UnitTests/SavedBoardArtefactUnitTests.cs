@@ -163,7 +163,7 @@ public class SavedBoardArtefactUnitTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void SavedBoard_InvalidName_ShouldStillAllowCreation(string invalidName)
+    public void SavedBoard_InvalidName_ShouldStillAllowCreation(string? invalidName)
     {
         // Arrange & Act - Model itself doesn't validate, validation should be in DTOs/Controllers
         var board = new SavedBoard

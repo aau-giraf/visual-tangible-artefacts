@@ -12,7 +12,7 @@ namespace VTA.API.Controllers;
 /// <summary>
 /// Controller for managing categories owned by a user.
 /// </summary>
-[Authorize]
+[Authorize] //Mark the entire controller to require a valid token
 [Route("api/Categories")]
 [ApiController]
 public class CategoriesController(VTAContext context, ILogger<CategoriesController> logger) : ControllerBase
@@ -87,6 +87,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
     public async Task<IActionResult> PatchCategory([FromForm] CategoryPatchDTO dto)
     {
         var userId = User.FindFirst("id")?.Value;
+        if (userId == null) return Unauthorized();
 
         var category = context.Categories.Find(dto.CategoryId);
 
@@ -100,7 +101,7 @@ public class CategoriesController(VTAContext context, ILogger<CategoriesControll
             category.CategoryIndex = dto.CategoryIndex;
         }
         //If the name is not null, or empty, and not the same as the existing name, updat eit
-        if (!dto.Name.IsNullOrEmpty() && category.Name != dto.Name)
+        if (!string.IsNullOrEmpty(dto.Name) && category.Name != dto.Name)
         {
             category.Name = dto.Name;
         }

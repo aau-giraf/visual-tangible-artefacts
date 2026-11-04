@@ -1,6 +1,6 @@
 // SyncService/Hubs/BoardHub.cs
 //
-// Thin dispatcher — delegates state management to:
+//   Thin dispatcher — delegates state management to:
 //   IPresenceService  (connection tracking, online status)
 //   ISessionService   (pending requests, active sessions)
 //   IBoardSyncRelay   (sessionId extraction for relay events)
@@ -17,18 +17,18 @@ using SyncService.Services;
 using VTA.Data.DbContexts;
 using VTA.Data.Models;
 
-namespace SyncService.Hubs
+namespace SyncService.Hubs 
 {
-    [Authorize]
-    public class BoardHub(
-        VTAContext context,
-        IPresenceService presence,
-        ISessionService sessions,
-        IBoardSyncRelay syncRelay,
-        ILogger<BoardHub> logger) : Hub
+    [Authorize] //The class after Authorize requires the specified authorization (defined in AuthorizeAttribute.cs) 
+    public class BoardHub( 
+        VTAContext context, // Class 
+        IPresenceService presence, // Interface 
+        ISessionService sessions, // Interface
+        IBoardSyncRelay syncRelay, // Interface
+        ILogger<BoardHub> logger) : Hub // Interface 
     {
         // ── Presence ────────────────────────────────────────────────
-
+        //Registers users for a session. 
         public async Task RegisterUser(string userId, List<string> contactIds)
         {
             if (string.IsNullOrWhiteSpace(userId))
@@ -47,6 +47,7 @@ namespace SyncService.Hubs
             await NotifyContactsOfStatusChange(userId, true);
         }
 
+        //Returns a list of users online. 
         public List<string> GetOnlineUsers()
         {
             var onlineList = presence.GetOnlineUsers();
@@ -54,6 +55,7 @@ namespace SyncService.Hubs
             return onlineList;
         }
 
+        //Checks if users are online. 
         public bool IsUserOnline(string userId)
         {
             var isOnline = presence.IsUserOnline(userId);
@@ -63,6 +65,7 @@ namespace SyncService.Hubs
 
         // ── Session lifecycle ───────────────────────────────────────
 
+        //Requests a session from one user to another. 
         public async Task RequestSession(string fromUserId, string toUserId)
         {
             logger.LogInformation("RequestSession => {FromUserId} → {ToUserId}", fromUserId, toUserId);
@@ -116,6 +119,7 @@ namespace SyncService.Hubs
             }
         }
 
+        //Accepts a session from one user to another. 
         public async Task AcceptSession(string sessionId, string fromUserId, string toUserId, string boardId)
         {
             logger.LogInformation("AcceptSession => {SessionId} from {FromUserId} + {ToUserId} with boardId={BoardId}", sessionId, fromUserId, toUserId, boardId);
@@ -163,6 +167,7 @@ namespace SyncService.Hubs
             await Clients.Group(sessionId).SendAsync("SessionStarted", sessionId, boardId);
         }
 
+        //Rejects a session from one user to another. 
         public async Task RejectSession(string fromUserId)
         {
             logger.LogInformation("RejectSession => {FromUserId}", fromUserId);
@@ -194,6 +199,7 @@ namespace SyncService.Hubs
                 await Clients.Client(conn).SendAsync("SessionRejected");
         }
 
+        //Ends the session for all users involved. 
         public async Task EndSession(string sessionId)
         {
             logger.LogInformation("EndSession => {SessionId}", sessionId);
@@ -209,11 +215,15 @@ namespace SyncService.Hubs
 
         // ── Board sync relay ────────────────────────────────────────
 
+        //Updating of board in session. 
         public async Task UpdateBoard(string sessionId, object boardData)
         {
             await Clients.OthersInGroup(sessionId).SendAsync("BoardUpdated", boardData);
         }
 
+        //Adding of artifact. 
+        //Rejects if it has no sessionId, no userId, artifact not found, not belonging to the user, image or sound mismatch. 
+        //If all is well, the artifact is accepted. 
         public async Task ArtifactAdded(JsonElement data)
         {
             var payload = data.Deserialize<ArtifactAddedPayload>(new JsonSerializerOptions
@@ -261,6 +271,7 @@ namespace SyncService.Hubs
             await Clients.OthersInGroup(payload.SessionId).SendAsync("ArtifactAdded", data);
         }
 
+        //Removal of artifact from session. 
         public async Task ArtifactRemoved(JsonElement data)
         {
             var sessionId = syncRelay.ExtractSessionId(data);
@@ -268,6 +279,7 @@ namespace SyncService.Hubs
             await Clients.OthersInGroup(sessionId).SendAsync("ArtifactRemoved", data);
         }
 
+        //Artifact moved. 
         public async Task ArtifactMoved(JsonElement data)
         {
             var sessionId = syncRelay.ExtractSessionId(data);
@@ -275,6 +287,7 @@ namespace SyncService.Hubs
             await Clients.OthersInGroup(sessionId).SendAsync("ArtifactMoved", data);
         }
 
+        //Changed size of the artifact. 
         public async Task ArtifactResized(JsonElement data)
         {
             var sessionId = syncRelay.ExtractSessionId(data);
@@ -282,6 +295,7 @@ namespace SyncService.Hubs
             await Clients.OthersInGroup(sessionId).SendAsync("ArtifactResized", data);
         }
 
+        //Layout change for the session. 
         public async Task LayoutChanged(JsonElement data)
         {
             var sessionId = syncRelay.ExtractSessionId(data);
@@ -298,12 +312,14 @@ namespace SyncService.Hubs
 
         // ── WebRTC signaling ────────────────────────────────────────
 
+        //Send session offer. 
         public async Task SendOffer(string sessionId, string targetUserId, object sdpOffer)
         {
             if (presence.TryGetConnection(targetUserId, out var targetConn))
                 await Clients.Client(targetConn).SendAsync("ReceiveOffer", sessionId, sdpOffer);
         }
 
+        //Send answer to session offer. 
         public async Task SendAnswer(string sessionId, string targetUserId, object sdpAnswer)
         {
             if (presence.TryGetConnection(targetUserId, out var targetConn))
@@ -318,6 +334,7 @@ namespace SyncService.Hubs
 
         // ── Disconnect ──────────────────────────────────────────────
 
+        //Disconnect from session. 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var userId = presence.RemoveConnection(Context.ConnectionId);
@@ -340,6 +357,7 @@ namespace SyncService.Hubs
 
         // ── Private helpers ─────────────────────────────────────────
 
+        //Used to notify a users contacts when there are changes. 
         private async Task NotifyContactsOfStatusChange(string userId, bool isOnline)
         {
             try
@@ -359,6 +377,7 @@ namespace SyncService.Hubs
             }
         }
 
+        //Updates the database after an end session. 
         private async Task UpdateSessionEndInDb(Models.BoardSession boardSession, CallStatus status)
         {
             try
