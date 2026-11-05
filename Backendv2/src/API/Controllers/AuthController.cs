@@ -14,12 +14,25 @@ public class AuthController
     //UserName userId
     //Password
 
-    // TODO: DTO needs to be created.
-    public static async Task<IResult> Login(UserDto userDto, UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager) 
+    private class UserInfo
     {
+       public string Username { get; set; }
+       public string Password { get; set; }
 
+
+        private UserInfo(string username, string password)
+        {
+            Username = username;
+            Password = password;
+        }
+    }
+
+    // TODO: needs user information from FK
+    public async Task<IResult> Login(UserInfo userInfo, UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager) 
+    {
+        
         var user = await userManager.FindByIdAsync(
-            userDto.Username
+            userInfo.Username
             );
         
         if(user == null)
@@ -29,17 +42,18 @@ public class AuthController
 
         var password = await signInManager.CheckPasswordSignInAsync(
             user,
-            userDto.Password,
+            userInfo.Password,
             lockoutOnFailure: true
         );
 
-        if(!password)
+        if(!password.Succeeded)
         {
             return Results.Unauthorized();
         }
 
 
         // TODO: generate JWT
+        // var token = jwt.GenerateToken(user);
 
         return Results.Ok("Verified!!!");
         
