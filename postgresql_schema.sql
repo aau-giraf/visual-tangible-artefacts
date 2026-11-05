@@ -7,76 +7,78 @@
 
 -- Make sure the session uses the desired charset/collation
 -- SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-CREATE DATABASE dev_vta
 SET client_encoding = 'UTF8';
 
-CREATE EXTENSION IF NOT EXISTS "postgres_fdw";
+CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
--- Create a foreign server to connect to the remote database
+-- Connection to the dummy_core container
 CREATE SERVER IF NOT EXISTS foreign_server
   FOREIGN DATA WRAPPER postgres_fdw
-  OPTIONS (host 'localhost', dbname 'dev_vta', port '5432');
+  OPTIONS (host 'dbDummyCore', dbname 'dummy_core', port '5432');
 
+CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
+  SERVER foreign_server
+  OPTIONS (user 'user1', password 'password1');
+
+-- Foreign tables (data lives in dummy_core)
 CREATE FOREIGN TABLE IF NOT EXISTS "user" (
-  "id" INT NOT NULL,
-  "firstName" VARCHAR(255) NOT NULL,
-  "lastName" VARCHAR(255) NOT NULL,
-  "username" VARCHAR(255) NOT NULL UNIQUE,
-  "password" VARCHAR(255) NOT NULL,
-  PRIMARY KEY ("id")
+  "id"        INT          OPTIONS (column_name 'Id')        NOT NULL,
+  "firstName" VARCHAR(255) OPTIONS (column_name 'FirstName'),
+  "lastName"  VARCHAR(255) OPTIONS (column_name 'LastName'),
+  "username"  VARCHAR(255) OPTIONS (column_name 'UserName')  NOT NULL,
+  "password"  VARCHAR(255) OPTIONS (column_name 'password')  NOT NULL
 )
 SERVER foreign_server
+OPTIONS (schema_name 'public', table_name 'user');
 
 CREATE FOREIGN TABLE IF NOT EXISTS "image" (
-  "id" INT NOT NULL,
-  "name" VARCHAR(255) NOT NULL,
-  "citizenId" INT NOT NULL,
-  "path" VARCHAR(255) NOT NULL,
-  "organizationId" INT NOT NULL,
-  "storageKey" VARCHAR(512) NOT NULL,
-  "fileName" VARCHAR(255) NOT NULL,
-  "fileType" VARCHAR(100) NOT NULL,
-  "sizeBytes" BIGINT NOT NULL,
-  "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL,
-  PRIMARY KEY ("id")
-)        
+  "id"             INT          OPTIONS (column_name 'Id')             NOT NULL,
+  "name"           VARCHAR(255) OPTIONS (column_name 'Name'),
+  "citizenId"      INT          OPTIONS (column_name 'CitizenId')      NOT NULL,
+  "path"           VARCHAR(255) OPTIONS (column_name 'Path'),
+  "organizationId" INT          OPTIONS (column_name 'OrganizationId') NOT NULL,
+  "storageKey"     VARCHAR(512) OPTIONS (column_name 'StorageKey')     NOT NULL,
+  "fileName"       VARCHAR(255) OPTIONS (column_name 'FileName')       NOT NULL,
+  "fileType"       VARCHAR(100) OPTIONS (column_name 'FileType')       NOT NULL,
+  "sizeBytes"      BIGINT       OPTIONS (column_name 'SizeBytes')      NOT NULL,
+  "createdAt"      TIMESTAMP WITH TIME ZONE OPTIONS (column_name 'CreatedAt')
+)
+SERVER foreign_server
+OPTIONS (schema_name 'public', table_name 'image');
 
-
--- User settings
+-- User settings (no FK: "user" is a foreign table)
 CREATE TABLE "UserSettings" (
-  "userid" int NOT NULL,
-  "contrast" boolean NOT NULL DEFAULT false,
-  "lightmode" boolean NOT NULL DEFAULT true,
-  "darkmode" boolean NOT NULL DEFAULT false,
-  "langauge" varchar(10) NOT NULL DEFAULT 'dk',
-  "sentenceBar" boolean NOT NULL DEFAULT false,
-  FOREIGN KEY ("userid") REFERENCES "user"("id") ON DELETE CASCADE
+  "userid"      INT         NOT NULL,
+  "contrast"    BOOLEAN     NOT NULL DEFAULT false,
+  "lightmode"   BOOLEAN     NOT NULL DEFAULT true,
+  "darkmode"    BOOLEAN     NOT NULL DEFAULT false,
+  "language"    VARCHAR(10) NOT NULL DEFAULT 'dk',
+  "sentenceBar" BOOLEAN     NOT NULL DEFAULT false,
+  PRIMARY KEY ("userid")
 );
 
--- board table
+-- Board
 CREATE TABLE "board" (
-  "id" INT NOT NULL,
-  "usernid" INT NOT NULL,
-  "name" VARCHAR(255) NOT NULL,
-  PRIMARY KEY ("id"),
-  FOREIGN KEY ("usernid") REFERENCES "user"("id") ON DELETE CASCADE
-)
+  "id"     INT          NOT NULL,
+  "userid" INT          NOT NULL,
+  "name"   VARCHAR(255) NOT NULL,
+  PRIMARY KEY ("id")
+);
 
--- artefact-board table
-CREATE TABLE "artefact-board"(
-  "boardid" INT NOT NULL,
-  "imageid" INT NOT NULL,
-  "posX" FLOAT NOT NULL,
-  "posY" FLOAT NOT NULL,
-  "gridX" INT NOT NULL,
-  "gridY" INT NOT NULL,
+-- Artefact-board
+CREATE TABLE "artefact-board" (
+  "boardid" INT   NOT NULL,
+  "imageid" INT   NOT NULL,
+  "posX"    FLOAT NOT NULL,
+  "posY"    FLOAT NOT NULL,
+  "gridX"   INT   NOT NULL,
+  "gridY"   INT   NOT NULL,
   FOREIGN KEY ("boardid") REFERENCES "board"("id") ON DELETE CASCADE
-  FOREIGN KEY ("imageid") REFERENCES "image"("id") ON DELETE CASCADE
-)
+);
 
--- artefact table
+-- Artefact
 CREATE TABLE "artefact" (
-  "imageid" INT NOT NULL,
+  "imageid"  INT NOT NULL,
   "useCount" INT NOT NULL DEFAULT 0,
-  FOREIGN KEY ("imageid") REFERENCES "image"("id") ON DELETE CASCADE
-)
+  PRIMARY KEY ("imageid")
+);
