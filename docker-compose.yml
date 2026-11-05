@@ -1,21 +1,20 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: vta-mysql
+  postgres:
+    image: postgres:16
+    container_name: vta-postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: vta_dev
-      MYSQL_USER: vta_user
-      MYSQL_PASSWORD: vta_password
+      POSTGRES_DB: vta_dev
+      POSTGRES_USER: vta_user
+      POSTGRES_PASSWORD: vta_password
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - vta-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      test: ["CMD-SHELL", "pg_isready -U vta_user -d vta_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,11 +30,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=server=mysql;port=3306;database=vta_dev;user=vta_user;password=vta_password
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=vta_dev;Username=vta_user;Password=vta_password
       - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
       - AUTO_CREATE_DATABASE=true
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     volumes:
       - backend_assets:/app/Assets
@@ -53,10 +52,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=server=mysql;port=3306;database=vta_dev;user=vta_user;password=vta_password
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=vta_dev;Username=vta_user;Password=vta_password
       - Secret__SecretKey=your-secret-key-change-this-in-production-minimum-32-characters-long
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     volumes:
       - backend_assets:/app/Assets
@@ -95,7 +94,7 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  postgres_data:
     driver: local
   backend_assets:
     driver: local

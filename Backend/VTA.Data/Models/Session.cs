@@ -1,3 +1,5 @@
+using NuGet.Packaging.Signing;
+
 namespace VTA.Data.Models;
 
 //Entity Framework Core entity model that represents a call session stored in the application's database.

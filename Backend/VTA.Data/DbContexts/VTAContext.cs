@@ -32,8 +32,5 @@ public partial class VTAContext : DbContext
 
     //Tells entity framwork how to configure the database model, when aplication starts.
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder
-            .UseCollation("utf8mb4_0900_ai_ci") //Tells database how strings should be compared and stored.
-            .HasCharSet("utf8mb4") //Character encoding to use.
-            .ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly); //Finds entity configuration classes and apply them.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VTAContext).Assembly);
 }
