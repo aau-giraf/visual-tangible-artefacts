@@ -10,7 +10,6 @@
 CREATE DATABASE dev_vta
 SET client_encoding = 'UTF8';
 
-
 CREATE EXTENSION IF NOT EXISTS "postgres_fdw";
 
 -- Create a foreign server to connect to the remote database
@@ -29,9 +28,19 @@ CREATE FOREIGN TABLE IF NOT EXISTS "user" (
 SERVER foreign_server
 
 CREATE FOREIGN TABLE IF NOT EXISTS "image" (
-  
-)
-
+  "id" INT NOT NULL,
+  "name" VARCHAR(255) NOT NULL,
+  "citizenId" INT NOT NULL,
+  "path" VARCHAR(255) NOT NULL,
+  "organizationId" INT NOT NULL,
+  "storageKey" VARCHAR(512) NOT NULL,
+  "fileName" VARCHAR(255) NOT NULL,
+  "fileType" VARCHAR(100) NOT NULL,
+  "sizeBytes" BIGINT NOT NULL,
+  "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL,
+  PRIMARY KEY ("id"),
+  FOREIGN KEY ("citizenId", "organizationId") REFERENCES "user"("id") ON DELETE CASCADE
+)        
 
 
 -- User settings
@@ -42,6 +51,7 @@ CREATE TABLE "UserSettings" (
   "darkmode" boolean NOT NULL DEFAULT false,
   "langauge" varchar(10) NOT NULL DEFAULT 'dk',
   "sentenceBar" boolean NOT NULL DEFAULT false,
+  FOREIGN KEY ("userid") REFERENCES "user"("id") ON DELETE CASCADE
 );
 
 -- board table
@@ -49,7 +59,8 @@ CREATE TABLE "board" (
   "id" INT NOT NULL,
   "usernid" INT NOT NULL,
   "name" VARCHAR(255) NOT NULL,
-  PRIMARY KEY ("id")
+  PRIMARY KEY ("id"),
+  FOREIGN KEY ("usernid") REFERENCES "user"("id") ON DELETE CASCADE
 )
 
 -- artefact-board table
@@ -60,12 +71,13 @@ CREATE TABLE "artefact-board"(
   "posY" FLOAT NOT NULL,
   "gridX" INT NOT NULL,
   "gridY" INT NOT NULL,
-  PRIMARY KEY ("boardid") references "board"("id") ON DELETE CASCADE,
-
+  FOREIGN KEY ("boardid") REFERENCES "board"("id") ON DELETE CASCADE
+  FOREIGN KEY ("imageid") REFERENCES "image"("id") ON DELETE CASCADE
 )
 
 -- artefact table
 CREATE TABLE "artefact" (
   "imageid" INT NOT NULL,
   "useCount" INT NOT NULL DEFAULT 0,
+  FOREIGN KEY ("imageid") REFERENCES "image"("id") ON DELETE CASCADE
 )
