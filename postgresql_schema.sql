@@ -38,8 +38,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS "image" (
   "fileType" VARCHAR(100) NOT NULL,
   "sizeBytes" BIGINT NOT NULL,
   "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL,
-  PRIMARY KEY ("id"),
-  FOREIGN KEY ("citizenId", "organizationId") REFERENCES "user"("id") ON DELETE CASCADE
+  PRIMARY KEY ("id")
 )        
 
 
