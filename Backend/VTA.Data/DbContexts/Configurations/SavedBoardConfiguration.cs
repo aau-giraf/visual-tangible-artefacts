@@ -10,8 +10,6 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
 {
     public void Configure(EntityTypeBuilder<SavedBoard> builder)
     {
-        builder.HasKey(e => e.Id).HasName("PRIMARY");
-
         builder.ToTable("savedBoard");
 
         builder.HasIndex(e => e.UserId, "userId");
@@ -41,12 +39,12 @@ public class SavedBoardConfiguration : IEntityTypeConfiguration<SavedBoard>
             .HasColumnName("artefactIds");
 
         builder.Property(e => e.CreatedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamptz")
             .HasColumnName("createdDate")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(e => e.ModifiedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamptz")
             .HasColumnName("modifiedDate");
 
         // Relationship: SavedBoard -> User (many-to-one)

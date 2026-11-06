@@ -55,5 +55,5 @@ public class MigrationController : ControllerBase
         }
     }
 
-    // Note: Board layout migration endpoints removed - use mysql_schema.sql for fresh deployments
+    // Note: Board layout migration endpoints removed - use postgresql_schema.sql for fresh deployments
 }

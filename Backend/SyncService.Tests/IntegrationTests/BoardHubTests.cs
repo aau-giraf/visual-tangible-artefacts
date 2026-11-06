@@ -6,7 +6,7 @@ using SyncService.Models.ArtifactAdded;
 using SyncService.Services;
 using SyncService.Tests.Helpers;
 using VTA.Data.Models;
-using Xunit.Abstractions;
+
 
 namespace SyncService.Tests.IntegrationTests
 {
