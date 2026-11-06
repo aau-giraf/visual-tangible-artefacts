@@ -1,5 +1,6 @@
 SET client_encoding = 'UTF8';
 
+
 -- Organization
 CREATE TABLE "organization" (
   "Id"    INTEGER     NOT NULL,
@@ -25,6 +26,11 @@ CREATE TABLE "user" (
   "password"   VARCHAR(65)  NOT NULL,
   PRIMARY KEY ("Id")
 );
+
+CREATE SEQUENCE "user_id_seq" 
+as INTEGER
+START WITH 0
+OWNED BY "user"."Id";
 
 -- Citizen
 CREATE TABLE "citizen" (
