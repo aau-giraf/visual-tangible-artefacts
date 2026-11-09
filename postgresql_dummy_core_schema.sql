@@ -1,5 +1,8 @@
 SET client_encoding = 'UTF8';
 
+-- Sequences for id´s
+CREATE SEQUENCE "user_id_seq" AS INTEGER START WITH 1;
+
 
 -- Organization
 CREATE TABLE "organization" (
@@ -19,18 +22,13 @@ CREATE TABLE "class" (
 
 -- User
 CREATE TABLE "user" (
-  "Id"         INTEGER      NOT NULL,
+  "Id"         INTEGER      NOT NULL DEFAULT nextval('user_id_seq'),
   "FirstName"  VARCHAR(65),
   "LastName"   VARCHAR(65),
   "UserName"   VARCHAR(65)  NOT NULL UNIQUE,
   "password"   VARCHAR(65)  NOT NULL,
   PRIMARY KEY ("Id")
 );
-
-CREATE SEQUENCE "user_id_seq" 
-as INTEGER
-START WITH 0
-OWNED BY "user"."Id";
 
 -- Citizen
 CREATE TABLE "citizen" (
