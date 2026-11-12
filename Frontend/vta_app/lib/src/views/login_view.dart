@@ -71,13 +71,7 @@ class _LoginViewState extends State<LoginView> {
     return Scaffold(
       body: Container(
         padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.red.shade100, Colors.white, Colors.green.shade100],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        decoration: BoxDecoration(),
         child: Center(
           child: SingleChildScrollView(
             child: ConstrainedBox(
@@ -85,26 +79,51 @@ class _LoginViewState extends State<LoginView> {
                 maxWidth: MediaQuery.of(context).size.width * 0.9,
                 minWidth: 300,
               ),
-              child: Container(
-                width: MediaQuery.of(context).size.width > 600
-                    ? 400
-                    : MediaQuery.of(context).size.width * 0.85,
-                padding: EdgeInsets.all(
-                    MediaQuery.of(context).size.width > 600 ? 32 : 24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      spreadRadius: 5,
-                      blurRadius: 15,
-                      offset: Offset(0, 5),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: const AssetImage('assets/icons/giraf_logo.png'),
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                  ],
-                ),
-                child:
-                    _isLogin ? loginForm(controller) : _signupForm(controller),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Egebakken\nGIRAF',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    width: MediaQuery.of(context).size.width > 600
+                        ? 400
+                        : MediaQuery.of(context).size.width * 0.85,
+                    padding: EdgeInsets.all(
+                        MediaQuery.of(context).size.width > 600 ? 32 : 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          spreadRadius: 5,
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: _isLogin
+                        ? loginForm(controller)
+                        : _signupForm(controller),
+                  ),
+                ],
               ),
             ),
           ),
