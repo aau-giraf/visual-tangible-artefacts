@@ -71,7 +71,8 @@ class _LoginViewState extends State<LoginView> {
     return Scaffold(
       body: Container(
         padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(),
+        decoration: BoxDecoration(
+        ),
         child: Center(
           child: SingleChildScrollView(
             child: ConstrainedBox(
@@ -87,9 +88,9 @@ class _LoginViewState extends State<LoginView> {
                     height: 72,
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: const AssetImage('assets/icons/giraf_logo.png'),
+                        image: AssetImage('assets/icons/giraf_logo.png'),
                         fit: BoxFit.cover,
-                      ),
+                        ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -101,34 +102,33 @@ class _LoginViewState extends State<LoginView> {
                         ),
                   ),
                   const SizedBox(height: 24),
-                  Container(
-                    width: MediaQuery.of(context).size.width > 600
-                        ? 400
-                        : MediaQuery.of(context).size.width * 0.85,
-                    padding: EdgeInsets.all(
-                        MediaQuery.of(context).size.width > 600 ? 32 : 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          spreadRadius: 5,
-                          blurRadius: 15,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
+              Container(
+                width: MediaQuery.of(context).size.width > 600
+                    ? 400
+                    : MediaQuery.of(context).size.width * 0.85,
+                padding: EdgeInsets.all(
+                    MediaQuery.of(context).size.width > 600 ? 32 : 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 5,
+                      blurRadius: 15,
+                      offset: Offset(0, 5),
                     ),
-                    child: _isLogin
-                        ? loginForm(controller)
-                        : _signupForm(controller),
-                  ),
+                  ],
+                ),
+                child:
+                    _isLogin ? loginForm(controller) : _signupForm(controller),
+              ),
                 ],
               ),
-            ),
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -273,9 +273,12 @@ class _LoginViewState extends State<LoginView> {
                     }
                   },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: Color.fromARGB(255, 254, 153, 35),
               foregroundColor: Colors.white,
               disabledBackgroundColor: Colors.grey.shade300,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+            ),
             ),
             child: _isLoading
                 ? SizedBox(
