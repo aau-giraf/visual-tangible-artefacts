@@ -3,8 +3,6 @@
 -- Safe to run multiple times if the DB doesn't already exist (will error if it does)
 -- Adjust the database name if needed.
 
---Connect using \c dev_vta in psql;
-
 -- Make sure the session uses the desired charset/collation
 -- SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 SET client_encoding = 'UTF8';
@@ -14,37 +12,27 @@ CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 -- Connection to the dummy_core container
 CREATE SERVER IF NOT EXISTS foreign_server
   FOREIGN DATA WRAPPER postgres_fdw
-  OPTIONS (host 'dbDummyCore', dbname 'dummy_core', port '5432');
+  OPTIONS (host 'dbDummyCore', port '5432', dbname 'dummy_core_offline');
 
 CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
   SERVER foreign_server
-  OPTIONS (user 'user1', password 'password1');
+  OPTIONS (user 'dummy_core_user', password 'dummy_core_password');
 
 -- Foreign tables (data lives in dummy_core)
-CREATE FOREIGN TABLE IF NOT EXISTS "user" (
-  "id"        INT          OPTIONS (column_name 'Id')        NOT NULL,
-  "firstName" VARCHAR(255) OPTIONS (column_name 'FirstName'),
-  "lastName"  VARCHAR(255) OPTIONS (column_name 'LastName'),
-  "username"  VARCHAR(255) OPTIONS (column_name 'UserName')  NOT NULL,
-  "password"  VARCHAR(255) OPTIONS (column_name 'password')  NOT NULL
+CREATE FOREIGN TABLE "user" (
+  "Id" INTEGER NOT NULL
 )
 SERVER foreign_server
 OPTIONS (schema_name 'public', table_name 'user');
 
-CREATE FOREIGN TABLE IF NOT EXISTS "image" (
-  "id"             INT          OPTIONS (column_name 'Id')             NOT NULL,
-  "name"           VARCHAR(255) OPTIONS (column_name 'Name'),
-  "citizenId"      INT          OPTIONS (column_name 'CitizenId')      NOT NULL,
-  "path"           VARCHAR(255) OPTIONS (column_name 'Path'),
-  "organizationId" INT          OPTIONS (column_name 'OrganizationId') NOT NULL,
-  "storageKey"     VARCHAR(512) OPTIONS (column_name 'StorageKey')     NOT NULL,
-  "fileName"       VARCHAR(255) OPTIONS (column_name 'FileName')       NOT NULL,
-  "fileType"       VARCHAR(100) OPTIONS (column_name 'FileType')       NOT NULL,
-  "sizeBytes"      BIGINT       OPTIONS (column_name 'SizeBytes')      NOT NULL,
-  "createdAt"      TIMESTAMP WITH TIME ZONE OPTIONS (column_name 'CreatedAt')
+CREATE FOREIGN TABLE "image" (
+  "Id" INTEGER NOT NULL
 )
 SERVER foreign_server
 OPTIONS (schema_name 'public', table_name 'image');
+
+CREATE TABLE "local_user" (id INTEGER PRIMARY KEY);
+CREATE TABLE "local_image" (id INTEGER PRIMARY KEY);
 
 -- User settings (no FK: "user" is a foreign table)
 CREATE TABLE "UserSettings" (
@@ -54,7 +42,7 @@ CREATE TABLE "UserSettings" (
   "darkmode"    BOOLEAN     NOT NULL DEFAULT false,
   "language"    VARCHAR(10) NOT NULL DEFAULT 'dk',
   "sentenceBar" BOOLEAN     NOT NULL DEFAULT false,
-  PRIMARY KEY ("userid")
+  fOREIGN KEY ("userid") REFERENCES "local_user" ("id") ON DELETE CASCADE
 );
 
 -- Board
@@ -62,7 +50,15 @@ CREATE TABLE "board" (
   "id"     INT          NOT NULL,
   "userid" INT          NOT NULL,
   "name"   VARCHAR(255) NOT NULL,
-  PRIMARY KEY ("id")
+  PRIMARY KEY ("id"),
+  FOREIGN KEY ("userid") REFERENCES "local_user" ("id") ON DELETE CASCADE
+);
+
+-- Artefact
+CREATE TABLE "artefact" (
+  "imageid"  INT NOT NULL,
+  "useCount" INT NOT NULL DEFAULT 0,
+  FOREIGN KEY ("imageid") REFERENCES "local_image" ("id") ON DELETE CASCADE
 );
 
 -- Artefact-board
@@ -73,12 +69,19 @@ CREATE TABLE "artefact-board" (
   "posY"    FLOAT NOT NULL,
   "gridX"   INT   NOT NULL,
   "gridY"   INT   NOT NULL,
-  FOREIGN KEY ("boardid") REFERENCES "board"("id") ON DELETE CASCADE
+  FOREIGN KEY ("boardid") REFERENCES "board"("id") ON DELETE CASCADE,
+  FOREIGN KEY ("imageid") REFERENCES "local_image"("id") ON DELETE CASCADE
 );
 
--- Artefact
-CREATE TABLE "artefact" (
-  "imageid"  INT NOT NULL,
-  "useCount" INT NOT NULL DEFAULT 0,
-  PRIMARY KEY ("imageid")
-);
+
+
+INSERT INTO "local_user" SELECT "Id" FROM "user" ON CONFLICT DO NOTHING;
+INSERT INTO "local_image" SELECT "Id" FROM "image" ON CONFLICT DO NOTHING;
+INSERT INTO "UserSettings" ("userid") VALUES
+  (SELECT "Id" FROM "user" ON CONFLICT DO NOTHING);
+INSERT INTO "board" ("id", "userid", "name") VALUES
+  (1, (SELECT "Id" FROM "user"), 'Goat') ON CONFLICT DO NOTHING;
+INSERT into "artefact" ("imageid") VALUES
+  (SELECT "Id" FROM "image" ON CONFLICT DO NOTHING);
+INSERT into "artefact-board" ("boardid", "imageid", "posX", "posY", "gridX", "gridY") VALUES
+  ((SELECT "Id" FROM "board"), (SELECT "Id" FROM "image"), 0.0, 0.0, 0, 0) ON CONFLICT DO NOTHING;

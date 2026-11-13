@@ -1,19 +1,23 @@
 SET client_encoding = 'UTF8';
 
 -- Sequences for id´s
+CREATE SEQUENCE "organization_id_seq" AS INTEGER START WITH 1;
+CREATE SEQUENCE "class_id_seq" AS INTEGER START WITH 1;
 CREATE SEQUENCE "user_id_seq" AS INTEGER START WITH 1;
+CREATE SEQUENCE "image_id_seq" AS INTEGER START WITH 1;
+
 
 
 -- Organization
 CREATE TABLE "organization" (
-  "Id"    INTEGER     NOT NULL,
+  "Id"    INTEGER     NOT NULL DEFAULT nextval('organization_id_seq'),
   "Name"  VARCHAR(65),
   PRIMARY KEY ("Id")
 );
 
 -- Class
 CREATE TABLE "class" (
-  "Id"              INTEGER     NOT NULL,
+  "Id"              INTEGER     NOT NULL DEFAULT nextval('class_id_seq'),
   "Name"            VARCHAR(65),
   "OrganizationId"  INTEGER     NOT NULL,
   PRIMARY KEY ("Id"),
@@ -68,7 +72,7 @@ CREATE TABLE "userRole" (
 
 -- Image
 CREATE TABLE "image" (
-  "Id"              INTEGER       NOT NULL,
+  "Id"              INTEGER       NOT NULL DEFAULT nextval('image_id_seq'),
   "Name"            VARCHAR(65),
   "CitizenId"       INTEGER       NOT NULL,
   "Path"            VARCHAR(65),
@@ -82,3 +86,22 @@ CREATE TABLE "image" (
   FOREIGN KEY ("CitizenId") REFERENCES "citizen" ("Id") ON DELETE CASCADE,
   FOREIGN KEY ("OrganizationId") REFERENCES "organization" ("Id") ON DELETE CASCADE
 );
+
+-- Populate the database with some initial data
+INSERT INTO "organization" ("Name") VALUES
+  ('Organization A');
+INSERT INTO "class" ("Name", "OrganizationId") VALUES
+  ('Class 1', (SELECT "Id" FROM "organization" WHERE "Name" = 'Organization A'));
+INSERT INTO "user" ("FirstName", "LastName", "UserName", "password") VALUES
+  ('John', 'Doe', 'johndoe', 'password1');
+INSERT INTO "citizen" ("Id", "ClassId") VALUES
+  (1, 1);
+INSERT INTO "nonCitizen" ("Id", "Email") VALUES
+  (1, 'bob.johnson@example.com');
+INSERT INTO "guardianship" ("CitizenId", "GuardianId") VALUES
+  (1, 1);
+INSERT INTO "userRole" ("NonCitizenId", "OrganizationId", "Role") VALUES
+  (1, 1, 'Admin');
+INSERT INTO "image" ("Name", "CitizenId", "Path", "OrganizationId", "StorageKey", "FileName", "FileType", "SizeBytes", "CreatedAt") VALUES
+  ('Image 1', 1, '/images/image1.jpg', 1, 'storage_key_1', 'image1.jpg', 'image/jpeg', 1024, NOW());
+
