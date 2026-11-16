@@ -24,8 +24,8 @@ CREATE TABLE "organization" (
 -- Class
 CREATE TABLE "class" (
   "id"              INTEGER     NOT NULL DEFAULT nextval('class_id_seq'),
-  "Name"            VARCHAR(65),
-  "OrganizationId"  INTEGER     NOT NULL,
+  "name"            VARCHAR(65),
+  "organizationId"  INTEGER     NOT NULL,
   PRIMARY KEY ("id"),
   FOREIGN KEY ("organizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
 );
