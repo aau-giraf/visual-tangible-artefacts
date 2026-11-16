@@ -42,7 +42,7 @@ CREATE TABLE "local_user" ("id" INTEGER PRIMARY KEY);
 CREATE TABLE "local_image" ("id" INTEGER PRIMARY KEY);
 
 -- User settings
-CREATE TABLE "UserSettings" (
+CREATE TABLE "userSettings" (
   "userId"      INT         NOT NULL,
   "contrast"    BOOLEAN     NOT NULL DEFAULT false,
   "lightmode"   BOOLEAN     NOT NULL DEFAULT true,
@@ -83,7 +83,7 @@ CREATE TABLE "artefact-board" (
 -- Populate the database with some initial data
 INSERT INTO "local_user" SELECT "id" FROM "user" ON CONFLICT DO NOTHING;
 INSERT INTO "local_image" SELECT "id" FROM "image" ON CONFLICT DO NOTHING;
-INSERT INTO "UserSettings" ("userId") VALUES
+INSERT INTO "userSettings" ("userId") VALUES
   ((SELECT "id" FROM "local_user")) ON CONFLICT DO NOTHING;
 INSERT INTO "board" ("id", "userId", "name") VALUES
   (1, (SELECT "id" FROM "local_user"), 'Goat') ON CONFLICT DO NOTHING;

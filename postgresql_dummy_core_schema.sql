@@ -17,7 +17,7 @@ CREATE SEQUENCE "image_id_seq" AS INTEGER START WITH 1;
 -- Organization
 CREATE TABLE "organization" (
   "id"    INTEGER     NOT NULL DEFAULT nextval('organization_id_seq'),
-  "Name"  VARCHAR(65),
+  "name"  VARCHAR(65),
   PRIMARY KEY ("id")
 );
 
@@ -27,15 +27,15 @@ CREATE TABLE "class" (
   "Name"            VARCHAR(65),
   "OrganizationId"  INTEGER     NOT NULL,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("OrganizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
+  FOREIGN KEY ("organizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
 );
 
 -- User
 CREATE TABLE "user" (
   "id"         INTEGER      NOT NULL DEFAULT nextval('user_id_seq'),
-  "FirstName"  VARCHAR(65),
-  "LastName"   VARCHAR(65),
-  "UserName"   VARCHAR(65)  NOT NULL UNIQUE,
+  "firstName"  VARCHAR(65),
+  "lastName"   VARCHAR(65),
+  "userName"   VARCHAR(65)  NOT NULL UNIQUE,
   "password"   VARCHAR(65)  NOT NULL,
   PRIMARY KEY ("id")
 );
@@ -43,71 +43,71 @@ CREATE TABLE "user" (
 -- Citizen
 CREATE TABLE "citizen" (
   "id"       INTEGER  NOT NULL,
-  "ClassId"  INTEGER  NOT NULL,
+  "classId"  INTEGER  NOT NULL,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("ClassId") REFERENCES "class" ("id") ON DELETE CASCADE,
+  FOREIGN KEY ("classId") REFERENCES "class" ("id") ON DELETE CASCADE,
   FOREIGN KEY ("id") REFERENCES "user" ("id") ON DELETE CASCADE
 );
 
 -- NonCitizen
 CREATE TABLE "nonCitizen" (
   "id"     INTEGER      NOT NULL,
-  "Email"  VARCHAR(65)  UNIQUE,
+  "email"  VARCHAR(65)  UNIQUE,
   PRIMARY KEY ("id"),
   FOREIGN KEY ("id") REFERENCES "user" ("id") ON DELETE CASCADE
 );
 
 -- Guardianship
 CREATE TABLE "guardianship" (
-  "CitizenId"   INTEGER  NOT NULL,
-  "GuardianId"  INTEGER  NOT NULL,
-  PRIMARY KEY ("CitizenId", "GuardianId"),
-  FOREIGN KEY ("CitizenId") REFERENCES "citizen" ("id") ON DELETE CASCADE,
-  FOREIGN KEY ("GuardianId") REFERENCES "nonCitizen" ("id") ON DELETE CASCADE
+  "citizenId"   INTEGER  NOT NULL,
+  "guardianId"  INTEGER  NOT NULL,
+  PRIMARY KEY ("citizenId", "guardianId"),
+  FOREIGN KEY ("citizenId") REFERENCES "citizen" ("id") ON DELETE CASCADE,
+  FOREIGN KEY ("guardianId") REFERENCES "nonCitizen" ("id") ON DELETE CASCADE
 );
 
 -- UserRole
 CREATE TABLE "userRole" (
-  "NonCitizenId"    INTEGER      NOT NULL,
-  "OrganizationId"  INTEGER      NOT NULL,
-  "Role"            VARCHAR(65)  NOT NULL,
-  PRIMARY KEY ("NonCitizenId", "OrganizationId", "Role"),
-  FOREIGN KEY ("NonCitizenId") REFERENCES "nonCitizen" ("id") ON DELETE CASCADE,
-  FOREIGN KEY ("OrganizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
+  "nonCitizenId"    INTEGER      NOT NULL,
+  "organizationId"  INTEGER      NOT NULL,
+  "role"            VARCHAR(65)  NOT NULL,
+  PRIMARY KEY ("nonCitizenId", "organizationId", "role"),
+  FOREIGN KEY ("nonCitizenId") REFERENCES "nonCitizen" ("id") ON DELETE CASCADE,
+  FOREIGN KEY ("organizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
 );
 
 -- Image
 CREATE TABLE "image" (
   "id"              INTEGER       NOT NULL DEFAULT nextval('image_id_seq'),
-  "Name"            VARCHAR(65),
-  "CitizenId"       INTEGER       NOT NULL,
-  "Path"            VARCHAR(65),
-  "OrganizationId"  INTEGER       NOT NULL,
-  "StorageKey"      VARCHAR(512)  NOT NULL,
-  "FileName"        VARCHAR(255)  NOT NULL,
-  "FileType"        VARCHAR(100)  NOT NULL,
-  "SizeBytes"       BIGINT        NOT NULL,
-  "CreatedAt"       TIMESTAMP WITH TIME ZONE,
+  "name"            VARCHAR(65),
+  "citizenId"       INTEGER       NOT NULL,
+  "path"            VARCHAR(65),
+  "organizationId"  INTEGER       NOT NULL,
+  "storageKey"      VARCHAR(512)  NOT NULL,
+  "fileName"        VARCHAR(255)  NOT NULL,
+  "fileType"        VARCHAR(100)  NOT NULL,
+  "sizeBytes"       BIGINT        NOT NULL,
+  "createdAt"       TIMESTAMP WITH TIME ZONE,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("CitizenId") REFERENCES "citizen" ("id") ON DELETE CASCADE,
-  FOREIGN KEY ("OrganizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
+  FOREIGN KEY ("citizenId") REFERENCES "citizen" ("id") ON DELETE CASCADE,
+  FOREIGN KEY ("organizationId") REFERENCES "organization" ("id") ON DELETE CASCADE
 );
 
 -- Populate the database with some initial data
-INSERT INTO "organization" ("Name") VALUES
+INSERT INTO "organization" ("name") VALUES
   ('Organization A');
-INSERT INTO "class" ("Name", "OrganizationId") VALUES
-  ('Class 1', (SELECT "id" FROM "organization" WHERE "Name" = 'Organization A'));
-INSERT INTO "user" ("FirstName", "LastName", "UserName", "password") VALUES
+INSERT INTO "class" ("name", "organizationId") VALUES
+  ('Class 1', (SELECT "id" FROM "organization" WHERE "name" = 'Organization A'));
+INSERT INTO "user" ("firstName", "lastName", "userName", "password") VALUES
   ('John', 'Doe', 'johndoe', 'password1');
-INSERT INTO "citizen" ("id", "ClassId") VALUES
+INSERT INTO "citizen" ("id", "classId") VALUES
   (1, 1);
-INSERT INTO "nonCitizen" ("id", "Email") VALUES
+INSERT INTO "nonCitizen" ("id", "email") VALUES
   (1, 'bob.johnson@example.com');
-INSERT INTO "guardianship" ("CitizenId", "GuardianId") VALUES
+INSERT INTO "guardianship" ("citizenId", "guardianId") VALUES
   (1, 1);
-INSERT INTO "userRole" ("NonCitizenId", "OrganizationId", "Role") VALUES
+INSERT INTO "userRole" ("nonCitizenId", "organizationId", "role") VALUES
   (1, 1, 'Admin');
-INSERT INTO "image" ("Name", "CitizenId", "Path", "OrganizationId", "StorageKey", "FileName", "FileType", "SizeBytes", "CreatedAt") VALUES
+INSERT INTO "image" ("name", "citizenId", "path", "organizationId", "storageKey", "fileName", "fileType", "sizeBytes", "createdAt") VALUES
   ('Image 1', 1, '/images/image1.jpg', 1, 'storage_key_1', 'image1.jpg', 'image/jpeg', 1024, NOW());
 
