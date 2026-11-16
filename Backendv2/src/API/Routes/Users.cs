@@ -21,8 +21,8 @@ public static class usersRoutes
         group.MapGet("/{userId}", (int userId) => "controller.GetByid(userId)");
 
         // PATCH: /users/{id}
-        // Ubdate a specic user
-        // TODO : implement logic to ubdate a specific user
+        // Update a specic user
+        // TODO : implement logic to update a specific user
         group.MapPatch("/{userId}", (int userId) => "controller");
 
          // DELETE: /users/{id}
@@ -42,7 +42,7 @@ public static class usersRoutes
         group.MapGet("/{userId}/settings", (int userId) => "controller");
         
         // PATCH: /users/{id}/settings
-        // Ubdate user settings
+        // Update user settings
         // TODO : implement logic to ubdate user settings
         group.MapPatch("/{userId}/settings", (int userId) => "controller");
 
