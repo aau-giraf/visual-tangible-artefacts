@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Backendv2.Models;
+namespace Backendv2.DB.Data;
 
 public partial class ArtefactBoard
 {
-    public int Boardid { get; set; }
+    public int BoardId { get; set; }
 
-    public int Imageid { get; set; }
+    public int ImageId { get; set; }
 
     public double PosX { get; set; }
 
@@ -18,4 +18,6 @@ public partial class ArtefactBoard
     public int GridY { get; set; }
 
     public virtual Board Board { get; set; } = null!;
+
+    public virtual LocalImage Image { get; set; } = null!;
 }

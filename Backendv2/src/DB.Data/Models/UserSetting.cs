@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Backendv2.Models;
+namespace Backendv2.DB.Data;
 
 public partial class UserSetting
 {
-    public int Userid { get; set; }
+    public int UserId { get; set; }
 
     public bool Contrast { get; set; }
 
@@ -16,4 +16,6 @@ public partial class UserSetting
     public string Language { get; set; } = null!;
 
     public bool SentenceBar { get; set; }
+
+    public virtual LocalUser User { get; set; } = null!;
 }

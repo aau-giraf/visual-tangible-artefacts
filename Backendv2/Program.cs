@@ -1,4 +1,4 @@
-﻿using Backendv2.Models;
+﻿using Backendv2.DB.Data;
 using Backendv2.src.API.Routes;
 using Backendv2.src.API.Routes.Users;
 using Backendv2.src.API.Routes.artefacts;
@@ -28,7 +28,7 @@ app.MapGet("/dbtest", async (VtaDevContext db) =>
 
         // Create (Id is ValueGeneratedNever, so we set it ourselves)
         Step("Inserting a new board");
-        var board = new Board { Id = 9999, Name = "test board", Userid = 1 };
+        var board = new Board { Id = 9999, Name = "test board", UserId = 1 };
         db.Add(board);
         await db.SaveChangesAsync();
 
