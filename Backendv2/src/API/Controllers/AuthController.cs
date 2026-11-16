@@ -28,6 +28,7 @@ public class AuthController
     }
 
     // TODO: needs user information from FK
+    /*
     public async Task<IResult> Login(UserInfo userInfo, UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager) 
     {
         
@@ -59,7 +60,8 @@ public class AuthController
         
         
     }
-    
+    */
 }
+
 
 

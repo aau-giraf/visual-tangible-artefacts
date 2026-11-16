@@ -1,5 +1,7 @@
+using Backendv2.src.API.Controllers;
 
 namespace Backendv2.src.API.Routes.Users;
+
 
 public static class usersRoutes
 {
@@ -8,7 +10,9 @@ public static class usersRoutes
         // GET: /users
         // Get all users
         // TODO : Implement logic to get all users
-        group.MapGet("/", () => "controller.GetAll()");
+        User person1 = new(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
+        User person2 = new(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
+        group.MapGet("/", () => UserController.GetAll(person1, person2));
 
         // POST: users/auth/register
         // Register a user 

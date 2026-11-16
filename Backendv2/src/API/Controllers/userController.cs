@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace Backendv2.src.API.Controllers
 {
 
-    public class User
+    public class User (int Id, string UserName, string Email, string FirstName, string LastName, string Role)
     {
         public int Id {get; set;}
         public string UserName {get; set;}
@@ -20,14 +20,9 @@ namespace Backendv2.src.API.Controllers
 
     public class UserController
     {
-
-        var person1 = new User(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
-        var person2 = new User(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
-        public static GetAll()
+        public static IResult GetAll(User person1, User person2)
         {
-            
+            return TypedResults.Ok(new List<User> {person1, person2});
         }
-    
-        
     }
 }
