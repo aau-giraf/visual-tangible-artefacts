@@ -1,5 +1,5 @@
 -- Postgresql schema for VTA (utf8mb4_0900_ai_ci)
--- Creates database and tables: user, category, artefact, savedBoard, savedArtefact
+-- Creates database and tables: local_user, local_image, UserSettings, board, artefact, artefact-board, 
 -- Safe to run multiple times if the DB doesn't already exist (will error if it does)
 -- Adjust the database name if needed.
 
@@ -9,79 +9,85 @@ SET client_encoding = 'UTF8';
 
 CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
--- Connection to the dummy_core container
+-- Create a foreign server to connect to the dummy_core database
 CREATE SERVER IF NOT EXISTS foreign_server
   FOREIGN DATA WRAPPER postgres_fdw
   OPTIONS (host 'dbDummyCore', port '5432', dbname 'dummy_core_offline');
 
+-- Create a user mapping for the current user to connect to the foreign server
 CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
   SERVER foreign_server
   OPTIONS (user 'dummy_core_user', password 'dummy_core_password');
 
--- Foreign tables (data lives in dummy_core)
+-- Foreign table for users (data lives in dummy_core)
 CREATE FOREIGN TABLE "user" (
-  "Id" INTEGER NOT NULL
+  "id" INTEGER NOT NULL
 )
 SERVER foreign_server
 OPTIONS (schema_name 'public', table_name 'user');
 
+-- Foreign table for images (data lives in dummy_core)
 CREATE FOREIGN TABLE "image" (
-  "Id" INTEGER NOT NULL
+  "id" INTEGER NOT NULL
 )
 SERVER foreign_server
 OPTIONS (schema_name 'public', table_name 'image');
 
-CREATE TABLE "local_user" (id INTEGER PRIMARY KEY);
-CREATE TABLE "local_image" (id INTEGER PRIMARY KEY);
+CREATE SEQUENCE "board_id_seq" AS INTEGER START WITH 1;
 
--- User settings (no FK: "user" is a foreign table)
+-- Local user table to store user IDs from the foreign "user" table
+CREATE TABLE "local_user" ("id" INTEGER PRIMARY KEY);
+
+-- Local image table to store image IDs from the foreign "image" table
+CREATE TABLE "local_image" ("id" INTEGER PRIMARY KEY);
+
+-- User settings
 CREATE TABLE "UserSettings" (
-  "userid"      INT         NOT NULL,
+  "userId"      INT         NOT NULL,
   "contrast"    BOOLEAN     NOT NULL DEFAULT false,
   "lightmode"   BOOLEAN     NOT NULL DEFAULT true,
   "darkmode"    BOOLEAN     NOT NULL DEFAULT false,
   "language"    VARCHAR(10) NOT NULL DEFAULT 'dk',
   "sentenceBar" BOOLEAN     NOT NULL DEFAULT false,
-  fOREIGN KEY ("userid") REFERENCES "local_user" ("id") ON DELETE CASCADE
+  FOREIGN KEY ("userId") REFERENCES "local_user" ("id") ON DELETE CASCADE
 );
 
 -- Board
 CREATE TABLE "board" (
-  "id"     INT          NOT NULL,
-  "userid" INT          NOT NULL,
+  "id"     INT          NOT NULL DEFAULT nextval('board_id_seq'),
+  "userId" INT          NOT NULL,
   "name"   VARCHAR(255) NOT NULL,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("userid") REFERENCES "local_user" ("id") ON DELETE CASCADE
+  FOREIGN KEY ("userId") REFERENCES "local_user" ("id") ON DELETE CASCADE
 );
 
 -- Artefact
 CREATE TABLE "artefact" (
-  "imageid"  INT NOT NULL,
+  "imageId"  INT NOT NULL,
   "useCount" INT NOT NULL DEFAULT 0,
-  FOREIGN KEY ("imageid") REFERENCES "local_image" ("id") ON DELETE CASCADE
+  FOREIGN KEY ("imageId") REFERENCES "local_image" ("id") ON DELETE CASCADE
 );
 
 -- Artefact-board
 CREATE TABLE "artefact-board" (
-  "boardid" INT   NOT NULL,
-  "imageid" INT   NOT NULL,
+  "boardId" INT   NOT NULL,
+  "imageId" INT   NOT NULL,
   "posX"    FLOAT NOT NULL,
   "posY"    FLOAT NOT NULL,
   "gridX"   INT   NOT NULL,
   "gridY"   INT   NOT NULL,
-  FOREIGN KEY ("boardid") REFERENCES "board"("id") ON DELETE CASCADE,
-  FOREIGN KEY ("imageid") REFERENCES "local_image"("id") ON DELETE CASCADE
+  FOREIGN KEY ("boardId") REFERENCES "board"("id") ON DELETE CASCADE,
+  FOREIGN KEY ("imageId") REFERENCES "local_image"("id") ON DELETE CASCADE
 );
 
-
-
-INSERT INTO "local_user" SELECT "Id" FROM "user" ON CONFLICT DO NOTHING;
-INSERT INTO "local_image" SELECT "Id" FROM "image" ON CONFLICT DO NOTHING;
-INSERT INTO "UserSettings" ("userid") VALUES
-  (SELECT "Id" FROM "user" ON CONFLICT DO NOTHING);
-INSERT INTO "board" ("id", "userid", "name") VALUES
-  (1, (SELECT "Id" FROM "user"), 'Goat') ON CONFLICT DO NOTHING;
-INSERT into "artefact" ("imageid") VALUES
-  (SELECT "Id" FROM "image" ON CONFLICT DO NOTHING);
-INSERT into "artefact-board" ("boardid", "imageid", "posX", "posY", "gridX", "gridY") VALUES
-  ((SELECT "Id" FROM "board"), (SELECT "Id" FROM "image"), 0.0, 0.0, 0, 0) ON CONFLICT DO NOTHING;
+-- Populate the database with some initial data
+INSERT INTO "local_user" SELECT "id" FROM "user" ON CONFLICT DO NOTHING;
+INSERT INTO "local_image" SELECT "id" FROM "image" ON CONFLICT DO NOTHING;
+INSERT INTO "UserSettings" ("userId") VALUES
+  ((SELECT "id" FROM "local_user")) ON CONFLICT DO NOTHING;
+INSERT INTO "board" ("id", "userId", "name") VALUES
+  (1, (SELECT "id" FROM "local_user"), 'Goat') ON CONFLICT DO NOTHING;
+INSERT into "artefact" ("imageId") VALUES
+  ((SELECT "id" FROM "local_image")) ON CONFLICT DO NOTHING;
+INSERT into "artefact-board" ("boardId", "imageId", "posX", "posY", "gridX", "gridY") VALUES
+  ((SELECT "id" FROM "board"), (SELECT "id" FROM "local_image"), 34.1, 19.23, 2, 1) ON CONFLICT DO NOTHING;
