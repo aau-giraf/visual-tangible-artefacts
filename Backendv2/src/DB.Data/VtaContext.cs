@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backendv2.DB.Data;
 
-public partial class VtaDevContext : DbContext
+public partial class VtaContext : DbContext
 {
-    public VtaDevContext()
+    public VtaContext()
     {
     }
 
-    public VtaDevContext(DbContextOptions<VtaDevContext> options) : base(options)
+    public VtaContext(DbContextOptions<VtaContext> options) : base(options)
     {
     }
 
@@ -35,7 +35,7 @@ public partial class VtaDevContext : DbContext
         modelBuilder.HasPostgresExtension("postgres_fdw");
         modelBuilder.HasSequence<int>("board_id_seq");
 
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VtaDevContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VtaContext).Assembly);
 
         OnModelCreatingPartial(modelBuilder);
     }

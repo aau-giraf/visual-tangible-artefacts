@@ -1,9 +1,10 @@
 ﻿using Backendv2.DB.Data;
+using Backendv2.ModelsDC;
 using Backendv2.src.API.Routes;
-using Backendv2.src.API.Routes.Users;
 using Backendv2.src.API.Routes.artefacts;
-using Microsoft.EntityFrameworkCore;
+using Backendv2.src.API.Routes.Users;
 using DotNetEnv;
+using Microsoft.EntityFrameworkCore;
 
 //Used to get the information from the .env file 
 Env.TraversePath().Load();
@@ -14,18 +15,20 @@ var builder = WebApplication.CreateBuilder(args);
 Console.WriteLine($"Conn string: {builder.Configuration.GetConnectionString("VTAConnectionString") ?? "NOT FOUND"}");
 
 //Adds the VTA databse context to the application 
-builder.Services.AddDbContext<VtaDevContext>(options =>
+builder.Services.AddDbContext<VtaContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("VTAConnectionString"))
            .LogTo(Console.WriteLine, LogLevel.Information)); // prints SQL to console
 
-           
+builder.Services.AddDbContext<DummyCoreContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DummyCoreConnectionString")));
+
 
 var app = builder.Build();
 
 
 
 // Temporary CRUD smoke test
-app.MapGet("/dbtest", async (VtaDevContext db) =>
+app.MapGet("/dbtest", async (VtaContext db) =>
 {
     var log = new List<string>();
     void Step(string msg) { Console.WriteLine(msg); log.Add(msg); }

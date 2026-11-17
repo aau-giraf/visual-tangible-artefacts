@@ -4,33 +4,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backendv2.ModelsDC;
 
-public partial class DummyCoreOfflineContext : DbContext
+public partial class DummyCoreContext : DbContext
 {
-    public DummyCoreOfflineContext()
+    public DummyCoreContext()
     {
     }
 
-    public DummyCoreOfflineContext(DbContextOptions<DummyCoreOfflineContext> options)
+    public DummyCoreContext(DbContextOptions<DummyCoreContext> options)
         : base(options)
     {
     }
 
     public virtual DbSet<Citizen> Citizens { get; set; }
-
     public virtual DbSet<Class> Classes { get; set; }
-
     public virtual DbSet<Image> Images { get; set; }
-
     public virtual DbSet<NonCitizen> NonCitizens { get; set; }
-
     public virtual DbSet<Organization> Organizations { get; set; }
-
     public virtual DbSet<User> Users { get; set; }
-
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseNpgsql("Name=DummyCoreConnectionString");
+    {
+        if(!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseNpgsql("Name=DummyCoreConnectionString");
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
