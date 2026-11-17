@@ -3,7 +3,7 @@
 
 namespace Backendv2.DB.Data;
 
-public partial class Image
+public partial class ImageVta
 {
     public int Id { get; set; }
 }
