@@ -5,13 +5,15 @@ using Backendv2.src.API.Routes.artefacts;
 using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
 
+//Used to get the information from the .env file 
 Env.TraversePath().Load();
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 Console.WriteLine($"Conn string: {builder.Configuration.GetConnectionString("VTAConnectionString") ?? "NOT FOUND"}");
 
+//Adds the VTA databse context to the application 
 builder.Services.AddDbContext<VtaDevContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("VTAConnectionString"))
            .LogTo(Console.WriteLine, LogLevel.Information)); // prints SQL to console
