@@ -25,24 +25,24 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 
 // Temporary CRUD smoke test
-app.MapGet("/dbtest", async (VtaDevContext db) =>
+app.MapGet("/dbtest", async (VtaDevContext dbvta) =>
 {
     var log = new List<string>();
     void Step(string msg) { Console.WriteLine(msg); log.Add(msg); }
 
     try
     {
-        Step($"Can connect: {await db.Database.CanConnectAsync()}");
+        Step($"Can connect: {await dbvta.Database.CanConnectAsync()}");
 
         // Create (Id is ValueGeneratedNever, so we set it ourselves)
         Step("Inserting a new board");
         var board = new Board { Id = 9999, Name = "test board", UserId = 1 };
-        db.Add(board);
-        await db.SaveChangesAsync();
+        dbvta.Add(board);
+        await dbvta.SaveChangesAsync();
 
         // Read
         Step("Querying for the board");
-        var found = await db.Boards
+        var found = await dbvta.Boards
             .OrderBy(b => b.Id)
             .FirstAsync(b => b.Id == 9999);
         Step($"Found board: {found.Id} / {found.Name}");
@@ -50,12 +50,12 @@ app.MapGet("/dbtest", async (VtaDevContext db) =>
         // Update
         Step("Updating the board name");
         found.Name = "renamed test board";
-        await db.SaveChangesAsync();
+        await dbvta.SaveChangesAsync();
 
         // Delete
         Step("Deleting the board");
-        db.Remove(found);
-        await db.SaveChangesAsync();
+        dbvta.Remove(found);
+        await dbvta.SaveChangesAsync();
 
         Step("All steps passed");
         return Results.Ok(log);

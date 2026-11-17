@@ -1,7 +1,0 @@
-namespace VTA.API.Controllers
-{
-
-
-
-
-}
