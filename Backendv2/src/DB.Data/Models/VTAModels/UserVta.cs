@@ -3,7 +3,7 @@
 
 namespace Backendv2.DB.Data;
 
-public partial class User
+public partial class UserVta
 {
     public int Id { get; set; }
 }

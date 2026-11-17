@@ -18,10 +18,10 @@ public partial class DummyCoreContext : DbContext
 
     public virtual DbSet<Citizen> Citizens { get; set; }
     public virtual DbSet<Class> Classes { get; set; }
-    public virtual DbSet<Image> Images { get; set; }
+    public virtual DbSet<ImageVta> Images { get; set; }
     public virtual DbSet<NonCitizen> NonCitizens { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
-    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<UserVta> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

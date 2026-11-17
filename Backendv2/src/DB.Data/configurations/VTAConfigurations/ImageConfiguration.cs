@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Backendv2.DB.Data.Configurations.VTAConfigurations;
 
-public class ImageConfiguration : IEntityTypeConfiguration<Image>
+public class ImageConfiguration : IEntityTypeConfiguration<ImageVta>
 {
-    public void Configure(EntityTypeBuilder<Image> entity)
+    public void Configure(EntityTypeBuilder<ImageVta> entity)
     {
         entity.HasKey(e => e.Id); // needed as FK principal
         entity.ToTable("image");
