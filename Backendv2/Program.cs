@@ -3,10 +3,9 @@ using Backendv2.src.API.Routes;
 using Backendv2.src.API.Routes.Users;
 using Backendv2.src.API.Routes.artefacts;
 using Microsoft.EntityFrameworkCore;
-using dotenv.net;
+using DotNetEnv;
 
-DotEnv.Load(options: new 
-DotEnvOptions(probeForEnv: true));
+Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
