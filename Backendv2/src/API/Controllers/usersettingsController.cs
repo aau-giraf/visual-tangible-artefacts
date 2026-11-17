@@ -1,5 +1,5 @@
 using Backendv2.DB.Data;
-using Backendv2.src.API.Routes.DTOs.userSettingsDto;
+using Backendv2.src.API.DTOs.userSettingsDto;
 
 namespace  Backendv2.src.API.Controllers.usersettingsController;
 

@@ -1,7 +1,7 @@
 using System.Data.Common;
 using Backendv2.DB.Data;
 
-namespace Backendv2.src.API.Routes.DTOs.userSettingsDto;
+namespace Backendv2.src.API.DTOs.userSettingsDto;
 
 public class UserSettingsDto
 {
