@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Backendv2.DB.Data.VTAConfigurations;
+namespace Backendv2.DB.Data.Configurations.VTAConfigurations;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
