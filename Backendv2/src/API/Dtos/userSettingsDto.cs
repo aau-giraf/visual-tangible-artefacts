@@ -1,36 +1,18 @@
+using System.Data.Common;
+using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.DTOs.userSettingsDto;
 
-public partial class UserSettingsGetDTO
+public class UserSettingsDto
 {
-    public string id { get; set; } = null!;
+    public bool Contrast {get; set;}
+    public bool Lightmode {get; set;}
+    public bool Darkmode {get; set;}
+    public string Language {get; set;} = null!;
+    public bool SentenceBar {get; set;}
 
-    public bool contrast { get; set; }
 
-    public bool light { get; set; }
-
-    public bool dark { get; set; }
-
-    public string language { get; set; } = null!;
-
-    public bool sound { get; set; }
-
-   public bool sentenceBar { get; set; }
+    public UserSettingsDto() { }
+    public UserSettingsDto(UserSetting UserSetting) => 
+    (Contrast, Lightmode, Darkmode, Language, SentenceBar) = (UserSetting.Contrast, UserSetting.Lightmode, UserSetting. Darkmode, UserSetting. Language, UserSetting.SentenceBar);
 }
-
-
-public partial class UserSettingsPatchDTO
-{
-    public bool contrast { get; set; }
-
-    public bool light { get; set; }
-
-    public bool dark { get; set; }
-
-    public string language { get; set; } = null!;
-
-    public bool sound { get; set; }
-
-   public bool sentenceBar { get; set; }
-}
-

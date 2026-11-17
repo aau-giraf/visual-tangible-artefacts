@@ -5,11 +5,11 @@ services:
     container_name: dummy_core_postgres_offline
     restart: unless-stopped
     environment:
-      POSTGRES_DB: dummy_core_offline
-      POSTGRES_USER: dummy_core_user
-      POSTGRES_PASSWORD: dummy_core_password
+      POSTGRES_DB: ${POSTGRES_DUMMY_DB}
+      POSTGRES_USER: ${POSTGRES_DUMMY_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_DUMMY_PASSWORD}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_DUMMY_PORT}:5432"
     volumes:
       - dbDummyCore_data:/var/lib/postgresql/data
       - ./postgresql_dummy_core_schema.sql:/docker-entrypoint-initdb.d/postgresql_dummy_core_schema.sql:ro
@@ -26,11 +26,11 @@ services:
     container_name: vta-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: vta_dev
-      POSTGRES_USER: vta_user
-      POSTGRES_PASSWORD: vta_password
+      POSTGRES_DB: ${POSTGRES_VTA_DB}
+      POSTGRES_USER: ${POSTGRES_VTA_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_VTA_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_VTA_PORT}:5432"
     volumes:
       - dbVTA_data:/var/lib/postgresql/data
       - ./postgresql_schema.sql:/docker-entrypoint-initdb.d/postgresql_schema.sql:ro
