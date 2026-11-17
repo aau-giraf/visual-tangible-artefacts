@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Backendv2.DB.Data.Configurations.DummyCoreConfigurations;
 
-    public class userConfiguration : IEntityTypeConfiguration<User>
+    public class UserConfiguration : IEntityTypeConfiguration<User>
 {
         public void Configure(EntityTypeBuilder<User> entity)
         {
