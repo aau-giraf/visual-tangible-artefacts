@@ -1,4 +1,4 @@
-using Backendv2.DB.Data;
+/*using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.DTOs.BoardsDto;
 
@@ -9,4 +9,4 @@ public class BoardsDto()
     public BoardsDto() { }
     public BoardsDto(Board Board) =>
     (Name) = (Board.Name);
-}
+}*/

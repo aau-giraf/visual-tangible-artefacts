@@ -1,4 +1,4 @@
-using System.Data.Common;
+/*using System.Data.Common;
 using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.DTOs.userSettingsDto;
@@ -16,3 +16,4 @@ public class UserSettingsDto
     public UserSettingsDto(UserSetting UserSetting) => 
     (Contrast, Lightmode, Darkmode, Language, SentenceBar) = (UserSetting.Contrast, UserSetting.Lightmode, UserSetting. Darkmode, UserSetting. Language, UserSetting.SentenceBar);
 }
+*/
