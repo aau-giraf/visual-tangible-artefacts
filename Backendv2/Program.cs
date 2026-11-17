@@ -3,14 +3,21 @@ using Backendv2.src.API.Routes;
 using Backendv2.src.API.Routes.Users;
 using Backendv2.src.API.Routes.artefacts;
 using Microsoft.EntityFrameworkCore;
+using dotenv.net;
+
+DotEnv.Load(options: new 
+DotEnvOptions(probeForEnv: true));
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 Console.WriteLine($"Conn string: {builder.Configuration.GetConnectionString("VTAConnectionString") ?? "NOT FOUND"}");
 
 builder.Services.AddDbContext<VtaDevContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("VTAConnectionString"))
            .LogTo(Console.WriteLine, LogLevel.Information)); // prints SQL to console
+
+           
 
 var app = builder.Build();
 
