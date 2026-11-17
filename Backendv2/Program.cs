@@ -24,6 +24,8 @@ var app = builder.Build();
 
 
 
+app.UseHttpsRedirection();
+
 // Temporary CRUD smoke test
 app.MapGet("/dbtest", async (VtaDevContext db) =>
 {

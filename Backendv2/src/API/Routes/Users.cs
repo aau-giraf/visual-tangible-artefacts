@@ -1,5 +1,7 @@
+using Backendv2.src.API.Controllers;
 
 namespace Backendv2.src.API.Routes.Users;
+
 
 public static class usersRoutes
 {
@@ -8,7 +10,9 @@ public static class usersRoutes
         // GET: /users
         // Get all users
         // TODO : Implement logic to get all users
-        group.MapGet("/", () => "controller.GetAll()");
+        User person1 = new(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
+        User person2 = new(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
+        group.MapGet("/", () => UserController.GetAll(person1, person2));
 
         // POST: users/auth/register
         // Register a user 
@@ -21,8 +25,8 @@ public static class usersRoutes
         group.MapGet("/{userId}", (int userId) => "controller.GetByid(userId)");
 
         // PATCH: /users/{id}
-        // Ubdate a specic user
-        // TODO : implement logic to ubdate a specific user
+        // Update a specic user
+        // TODO : implement logic to update a specific user
         group.MapPatch("/{userId}", (int userId) => "controller");
 
          // DELETE: /users/{id}
@@ -42,7 +46,7 @@ public static class usersRoutes
         group.MapGet("/{userId}/settings", (int userId) => "controller");
         
         // PATCH: /users/{id}/settings
-        // Ubdate user settings
+        // Update user settings
         // TODO : implement logic to ubdate user settings
         group.MapPatch("/{userId}/settings", (int userId) => "controller");
 
