@@ -1,3 +1,6 @@
+//Made by using scaffolding. The files in configurations started in here  
+//Command: dotnet ef dbcontext scaffold "Name=VTAConnectionString” Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
+
 using Microsoft.EntityFrameworkCore;
 
 namespace Backendv2.DB.Data;
