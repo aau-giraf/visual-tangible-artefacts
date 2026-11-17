@@ -1,43 +1,29 @@
+using Backendv2.DB.Data;
+using Backendv2.src.API.Routes.DTOs.userSettingsDto;
+
 namespace  Backendv2.src.API.Controllers.usersettingsController;
 
-public class userSettings(
-    int userID,
-    bool contrast,
-    bool light,
-    bool dark,
-    string language,
-    bool sound,
-    bool sentenceBar)
-{
-    public int userID { get; set; } = userID;
-    public bool contrast { get; set; } = contrast;
-    public bool light { get; set; } = light;
-    public bool dark { get; set; } = dark;
-    public string language { get; set; } = language;
-    public bool sound { get; set; } = sound;
-    public bool sentenceBar { get; set; } = sentenceBar;
-}
 
-public class userSettingsController
+public class UserSettingsController
 {
-    private userSettings? settings;
-
-    public userSettings getUserSettings(int userId)
+    public static async Task<IResult> GetUserSettings(int Id, VtaDevContext Db)
     {
-        // husk: Find the user and retrieve their settings
-
-        return settings;
-
+        return await Db.UserSettings.FindAsync(Id)
+            is UserSetting UserSetting
+                ? TypedResults.Ok(new UserSettingsDto(UserSetting))
+                : TypedResults.NotFound();
     }
 
-    public string updateUserSettings(int userId, userSettings updatedSettings)
+    public static async Task<IResult> updateUserSettings(int Id, UserSettingsDto InputUsersetting, VtaDevContext Db)
     {
-       
-        // husk: Find the user and update their settings
-        // husk: Save changes to the database
+       var db = await Db.UserSettings.FindAsync(Id); 
 
-        settings = updatedSettings;
+        if (db is null) {return TypedResults.NotFound();}
 
-        return "(204 no content)";
+        // if (InputUsersetting.Contrast is not true || false) {db = InputUsersetting.Contrast}
+
+        await Db.SaveChangesAsync();
+
+        return TypedResults.NoContent();
     }
 }

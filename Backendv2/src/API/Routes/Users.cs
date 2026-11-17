@@ -1,4 +1,7 @@
+using Backendv2.DB.Data;
 using Backendv2.src.API.Controllers;
+using Backendv2.src.API.Controllers.usersettingsController;
+
 
 namespace Backendv2.src.API.Routes.Users;
 
@@ -10,9 +13,9 @@ public static class usersRoutes
         // GET: /users
         // Get all users
         // TODO : Implement logic to get all users
-        User person1 = new(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
-        User person2 = new(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
-        group.MapGet("/", () => UserController.GetAll(person1, person2));
+        //User person1 = new(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
+        //User person2 = new(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
+        //group.MapGet("/", () => UserController.GetAll(person1, person2));
 
         // POST: users/auth/register
         // Register a user 
@@ -42,12 +45,12 @@ public static class usersRoutes
         
         // GET: /users/{id}/settings
         // Get user settings
-        // TODO : implement logic to get user settings
-        group.MapGet("/{userId}/settings", (int userId) => "controller");
+        group.MapGet("/{UserId}/settings", (int UserId, VtaDevContext Db) => (
+            UserSettingsController.GetUserSettings(UserId, Db)
+        ));
         
         // PATCH: /users/{id}/settings
         // Update user settings
-        // TODO : implement logic to ubdate user settings
         group.MapPatch("/{userId}/settings", (int userId) => "controller");
 
         //Return group so it can be used in the program.cs file
