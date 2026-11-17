@@ -1,4 +1,11 @@
+<<<<<<< Updated upstream
 ﻿namespace Backendv2.DB.Data;
+=======
+﻿using System;
+using System.Collections.Generic;
+
+namespace Backendv2.ModelsDC;
+>>>>>>> Stashed changes
 
 public partial class User
 {

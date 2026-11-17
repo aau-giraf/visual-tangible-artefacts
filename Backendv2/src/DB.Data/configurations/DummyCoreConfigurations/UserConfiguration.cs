@@ -1,5 +1,9 @@
+<<<<<<< Updated upstream
 //Made by using scaffolding. Started in DummyCoreContext. Have been mordified so it can be in separate files 
 //Command: dotnet ef dbcontext scaffold "Name=DummyCoreConnectionString” Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
+=======
+using Backendv2.ModelsDC;
+>>>>>>> Stashed changes
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
