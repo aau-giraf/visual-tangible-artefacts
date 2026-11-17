@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Backendv2.ModelsDC;
 
-namespace Backendv2.ModelsDC;
+namespace Backendv2.DB.Data;
 
 public partial class User
 {
