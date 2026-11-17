@@ -1,7 +1,7 @@
-using Backendv2.ModelsDC;
+//Made by using scaffolding. Started in DummyCoreContext. Have been mordified so it can be in separate files 
+//Command: dotnet ef dbcontext scaffold "Name=DummyCoreConnectionString” Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace Backendv2.DB.Data.Configurations.DummyCoreConfigurations;
 
 public class NonCitizenConfiguration : IEntityTypeConfiguration<NonCitizen>
