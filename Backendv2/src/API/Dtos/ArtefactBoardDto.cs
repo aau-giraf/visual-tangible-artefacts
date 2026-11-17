@@ -2,7 +2,7 @@ using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.DTOs.ArtefactBoardDto;
 
-public class ArtefactBoardDto()
+public class ArtefactBoardDto
 {
     public int BoardId {get; set;}
     public int ImageId {get; set;}

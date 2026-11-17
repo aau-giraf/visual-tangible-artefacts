@@ -22,8 +22,6 @@ builder.Services.AddDbContext<VtaDevContext>(options =>
 
 var app = builder.Build();
 
-
-
 app.UseHttpsRedirection();
 
 // Temporary CRUD smoke test

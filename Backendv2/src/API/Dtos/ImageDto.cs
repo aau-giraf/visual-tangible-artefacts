@@ -2,7 +2,7 @@ using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.DTOs.ImageDto;
 
-public class ImageDto()
+public class ImageDto
 {
     public int Id {get; set;}
 

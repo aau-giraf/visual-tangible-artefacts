@@ -2,7 +2,7 @@ using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.DTOs.ArtefactsDto;
 
-public class ArtefactsDto()
+public class ArtefactsDto
 {
     public int ImageId {get; set;}
     public int UseCount {get; set;}
