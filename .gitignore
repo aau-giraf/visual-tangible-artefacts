@@ -409,7 +409,7 @@ Backend/VTA.API/Assets/Artefacts
 Backend/VTA.API/Assets/Sounds
 Backend/VTA.API/Assets/Categories
 
-# Docker environment variables
+# Docker and database connection strings environment variables
 .env
 
 # macOS system files
