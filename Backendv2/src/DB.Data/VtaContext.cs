@@ -3,7 +3,7 @@
 using Backendv2.DB.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Backendv2.DB.Data;
+namespace Backendv2.DB.Data.Models.VTAModels;
 
 public partial class VtaContext : DbContext
 {
@@ -35,7 +35,7 @@ public partial class VtaContext : DbContext
         modelBuilder.HasPostgresExtension("postgres_fdw");
         modelBuilder.HasSequence<int>("board_id_seq");
 
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VtaContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VtaContext).Assembly, t => t.Namespace == "Backendv2.DB.Data.Configurations.VTAConfigurations");
 
         OnModelCreatingPartial(modelBuilder);
     }

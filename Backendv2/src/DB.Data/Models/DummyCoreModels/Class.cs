@@ -1,4 +1,4 @@
-﻿namespace Backendv2.DB.Data;
+﻿namespace Backendv2.DB.Data.Models.DummyCoreModels;
 
 public partial class Class
 {

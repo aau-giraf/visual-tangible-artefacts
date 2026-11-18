@@ -1,6 +1,6 @@
 //Made by using scaffolding. Started in VTADevContext. Have been mordified so it can be in separate files 
 //Command: dotnet ef dbcontext scaffold "Name=VTAConnectionString” Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
-
+using Backendv2.DB.Data.Models.VTAModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

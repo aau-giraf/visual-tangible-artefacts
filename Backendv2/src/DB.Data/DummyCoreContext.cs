@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Backendv2.DB.Data;
+namespace Backendv2.DB.Data.Models.DummyCoreModels;
 
 public partial class DummyCoreContext : DbContext
 {
@@ -36,8 +36,8 @@ public partial class DummyCoreContext : DbContext
         modelBuilder.HasSequence<int>("organization_id_seq");
         modelBuilder.HasSequence<int>("user_id_seq");
 
-         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DummyCoreContext).Assembly);
-        
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(DummyCoreContext).Assembly, t => t.Namespace == "Backendv2.DB.Data.Configurations.DummyCoreConfigurations");
+
         OnModelCreatingPartial(modelBuilder);
     }
 
