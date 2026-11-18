@@ -22,8 +22,9 @@ namespace VTA.API.Controllers
         }
 
 
-        //Get specific artefact for a board.
-        //ab represents artefact boards and a represents artefacts.
+        // Get specific artefact for a board.
+        // ab = ArtefactBoards
+        // a = Artefacts
         public async Task<ArtefactsDto?> Handle(int imageId, int boardId, int userId)
         {
             return await (
@@ -43,8 +44,9 @@ namespace VTA.API.Controllers
             ).FirstOrDefaultAsync();
         }
 
-        //Gets all artefacts belonging to a board.
-        //ab represents artefact boards and a represents artefacts.
+        // Gets all artefacts belonging to a board.
+        // ab = ArtefactBoards
+        // a = Artefacts
         public async Task<List<ArtefactsDto>> Handle(int boadId, int userId)
         {
             return await (
