@@ -1,14 +1,14 @@
 //Made by using scaffolding. Started in VTADevContext. Have been mordified so it can be in separate files 
 //Command: dotnet ef dbcontext scaffold "Name=VTAConnectionString” Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
-
+using Backendv2.DB.Data.Models.VTAModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Backendv2.DB.Data.Configurations;
+namespace Backendv2.DB.Data.Configurations.VTAConfigurations;
 
-public class UserConfiguration : IEntityTypeConfiguration<User>
+public class UserConfiguration : IEntityTypeConfiguration<UserVta>
 {
-    public void Configure(EntityTypeBuilder<User> entity)
+    public void Configure(EntityTypeBuilder<UserVta> entity)
     {
         entity.HasKey(e => e.Id); // needed as FK principal
         entity.ToTable("user");

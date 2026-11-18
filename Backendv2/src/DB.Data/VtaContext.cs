@@ -1,25 +1,25 @@
 //Made by using scaffolding. The files in configurations started in here  
 //Command: dotnet ef dbcontext scaffold "Name=VTAConnectionString” Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
-
+using Backendv2.DB.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Backendv2.DB.Data;
+namespace Backendv2.DB.Data.Models.VTAModels;
 
-public partial class VtaDevContext : DbContext
+public partial class VtaContext : DbContext
 {
-    public VtaDevContext()
+    public VtaContext()
     {
     }
 
-    public VtaDevContext(DbContextOptions<VtaDevContext> options) : base(options)
+    public VtaContext(DbContextOptions<VtaContext> options) : base(options)
     {
     }
 
     public virtual DbSet<Artefact> Artefacts { get; set; }
     public virtual DbSet<ArtefactBoard> ArtefactBoards { get; set; }
     public virtual DbSet<Board> Boards { get; set; }
-    public virtual DbSet<Image> Images { get; set; }
-    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<ImageVta> Images { get; set; }
+    public virtual DbSet<UserVta> Users { get; set; }
     public virtual DbSet<UserSetting> UserSettings { get; set; }
     public virtual DbSet<LocalImage> LocalImages { get; set; }
     public virtual DbSet<LocalUser> LocalUsers { get; set; }
@@ -35,7 +35,7 @@ public partial class VtaDevContext : DbContext
         modelBuilder.HasPostgresExtension("postgres_fdw");
         modelBuilder.HasSequence<int>("board_id_seq");
 
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VtaDevContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(VtaContext).Assembly, t => t.Namespace == "Backendv2.DB.Data.Configurations.VTAConfigurations");
 
         OnModelCreatingPartial(modelBuilder);
     }

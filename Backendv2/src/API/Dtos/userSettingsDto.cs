@@ -1,5 +1,4 @@
-using System.Data.Common;
-using Backendv2.DB.Data;
+using Backendv2.DB.Data.Models.VTAModels;
 
 namespace Backendv2.src.API.Routes.DTOs.userSettingsDto;
 
