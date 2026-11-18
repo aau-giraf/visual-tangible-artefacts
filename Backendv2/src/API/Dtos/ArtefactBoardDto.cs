@@ -1,8 +1,8 @@
-/*using Backendv2.DB.Data;
+using Backendv2.DB.Data.Models.VTAModels;
 
 namespace Backendv2.src.API.Routes.DTOs.ArtefactBoardDto;
 
-public class ArtefactBoardDto()
+public class ArtefactBoardDto
 {
     public int BoardId {get; set;}
     public int ImageId {get; set;}
@@ -14,4 +14,4 @@ public class ArtefactBoardDto()
     public ArtefactBoardDto() { }
     public ArtefactBoardDto(ArtefactBoard ArtefactBoard) => 
     (BoardId, ImageId, PosX, PosY, GridX, GridY) = (ArtefactBoard.BoardId, ArtefactBoard.ImageId, ArtefactBoard.PosX, ArtefactBoard.PosY, ArtefactBoard.GridX, ArtefactBoard.GridY);
-}*/
+}

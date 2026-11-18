@@ -1,4 +1,4 @@
-/*namespace VTA.API.Controllers
+namespace VTA.API.Controllers
 {
 
 
@@ -14,4 +14,4 @@
 
     }
 
-}*/
+}
