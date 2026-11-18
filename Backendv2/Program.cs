@@ -26,7 +26,7 @@ builder.Services.AddDbContext<DummyCoreContext>(options =>
 
 var app = builder.Build();
 
-
+app.UseHttpsRedirection();
 
 // Temporary DB smoke tests (only in Development)
 if (app.Environment.IsDevelopment())
