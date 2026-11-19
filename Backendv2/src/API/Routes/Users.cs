@@ -1,6 +1,6 @@
 using Backendv2.DB.Data;
-using Backendv2.src.API.Controllers;
-using Backendv2.src.API.Controllers.usersettingsController;
+using Backendv2.src.API.Controllers.UserSettingsHandler;
+using Backendv2.src.API.DTOs.userSettingsDto;
 
 
 namespace Backendv2.src.API.Routes.Users;
@@ -46,16 +46,17 @@ public static class usersRoutes
         // GET: /users/{id}/settings
         // Get user settings
         group.MapGet("/{UserId}/settings", (int UserId, VtaDevContext Db) => (
-            UserSettingsController.GetUserSettings(UserId, Db)
+            UserSettingsHandler.GetUserSettings(UserId, Db)
         ));
         
         // PATCH: /users/{id}/settings
         // Update user settings
-        group.MapPatch("/{userId}/settings", (int userId) => "controller");
+        group.MapPatch("/{userId}/settings", (int UserId, UserSettingsDto InputUsersetting, VtaDevContext Db) => (
+            UserSettingsHandler.UpdateUserSettings(UserId, InputUsersetting, Db)
+        ));
 
         //Return group so it can be used in the program.cs file
         return group;
-
     }
 } 
     

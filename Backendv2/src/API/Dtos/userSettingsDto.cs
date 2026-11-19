@@ -5,11 +5,11 @@ namespace Backendv2.src.API.DTOs.userSettingsDto;
 
 public class UserSettingsDto
 {
-    public bool Contrast {get; set;}
-    public bool Lightmode {get; set;}
-    public bool Darkmode {get; set;}
-    public string Language {get; set;} = null!;
-    public bool SentenceBar {get; set;}
+    public bool? Contrast {get; set;}
+    public bool? Lightmode {get; set;}
+    public bool? Darkmode {get; set;}
+    public string? Language {get; set;} = null!;
+    public bool? SentenceBar {get; set;}
 
 
     public UserSettingsDto() { }
