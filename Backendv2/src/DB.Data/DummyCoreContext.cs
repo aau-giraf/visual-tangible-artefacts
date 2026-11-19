@@ -20,6 +20,7 @@ public partial class DummyCoreContext : DbContext
     public virtual DbSet<Organization> Organizations { get; set; }
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
+    public virtual DbSet<Guardianship> Guardianships { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
