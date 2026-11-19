@@ -5,10 +5,10 @@ namespace Backendv2.src.API.DTOs.DummyCore;
 
 public class GuardianshipDto
 {
-    public int CitezenId { get; set; }
+    public int CitizenId { get; set; }
     public int GuardianId { get; set; }
 
-    GuardianshipDto() { }
+    public GuardianshipDto() { }
     public GuardianshipDto(Guardianship guardianship) =>
         (CitizenId, GuardianId) = (guardianship.CitizenId, guardianship.GuardianId);
 }

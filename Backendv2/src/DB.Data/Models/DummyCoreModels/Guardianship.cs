@@ -8,3 +8,13 @@ public partial class Guardianship
     public virtual Citizen Citizen { get; set; } = null!;
     public virtual NonCitizen Guardian { get; set; } = null!;
 }
+
+public partial class Citizen
+{
+    public virtual ICollection<Guardianship> Guardianships { get; set; } = new List<Guardianship>();
+}
+
+public partial class NonCitizen
+{
+    public virtual ICollection<Guardianship> Guardianships { get; set; } = new List<Guardianship>();
+}
