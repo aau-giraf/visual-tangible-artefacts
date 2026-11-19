@@ -12,11 +12,11 @@ using Backendv2.DB.Data;
 
 namespace VTA.API.Controllers
 {
-    public class ArtefactController 
+    public class ArtefactHandler
     {
         private readonly VtaDevContext _VtaDevContext;
             
-        public ArtefactController(VtaDevContext vtaDevContext)
+        public ArtefactHandler(VtaDevContext vtaDevContext)
         {
             _VtaDevContext = vtaDevContext; 
         }
@@ -25,7 +25,7 @@ namespace VTA.API.Controllers
         // Get specific artefact for a board.
         // ab = ArtefactBoards
         // a = Artefacts
-        public async Task<ArtefactsDto?> Handle(int imageId, int boardId, int userId)
+        public async Task<ArtefactsDto?> GetArtefact(int imageId, int boardId, int userId)
         {
             return await (
                 from ab in _VtaDevContext.ArtefactBoards
@@ -47,14 +47,14 @@ namespace VTA.API.Controllers
         // Gets all artefacts belonging to a board.
         // ab = ArtefactBoards
         // a = Artefacts
-        public async Task<List<ArtefactsDto>> Handle(int boadId, int userId)
+        public async Task<List<ArtefactsDto>> GetAllArtefacts(int boardId, int userId)
         {
             return await (
                 from ab in _VtaDevContext.ArtefactBoards
                 join a in _VtaDevContext.Artefacts
                     on ab.ImageId equals a.ImageId
                 
-                where ab.BoardId == boadId
+                where ab.BoardId == boardId
                 && ab.Board.UserId == userId
 
                 select new ArtefactsDto 
