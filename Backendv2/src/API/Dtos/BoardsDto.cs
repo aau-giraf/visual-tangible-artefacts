@@ -1,6 +1,6 @@
 using Backendv2.DB.Data;
 
-namespace Backendv2.src.API.Routes.DTOs.BoardsDto;
+namespace Backendv2.src.API.DTOs;
 
 public class BoardsDto
 {
