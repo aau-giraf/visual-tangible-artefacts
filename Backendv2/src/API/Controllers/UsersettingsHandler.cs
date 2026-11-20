@@ -36,9 +36,11 @@ public class UserSettingsHandler
         if (InputUsersetting.Language is not null) { db.Language = InputUsersetting.Language; }
         if (InputUsersetting.SentenceBar is not null) { db.SentenceBar = InputUsersetting.SentenceBar.Value; }
 
-         // Turning one mode on turns the other off
+        // Turning one mode on turns the other off, and turning one off turns the other on
         if (InputUsersetting.Lightmode is true) { db.Darkmode = false; }
         else if (InputUsersetting.Darkmode is true) { db.Lightmode = false; }
+        else if (InputUsersetting.Lightmode is false) { db.Darkmode = true; }
+        else if (InputUsersetting.Darkmode is false) { db.Lightmode = true; }
 
         // Save the input into the database
         await Db.SaveChangesAsync();
