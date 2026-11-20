@@ -6,21 +6,13 @@ public static class artefactRoutes
     public static RouteGroupBuilder MapArtefactRoutes(this RouteGroupBuilder group)
     {
 
-    //gets an artefact for a board 
+      //gets an artefact for a board 
+      // "/users/{id}/boards/{boardid}/images/{ImageId}"
+      group.MapGet("/{imageId}", () => "Get artefact" );
 
-     group.MapGet("/{imageId}", () => "Get artefact" );
-      
-      //GetArtefact, add this after the method is made
-
-     //gets all artefact for a board
-
-     group.MapGet("/", () => "Get all artefacts");
-
-     //GetAllArtefacts, add this after the method is made
-
-    // Implement GetArtefact here
-
-    // Implement GetAllArtefacts here
+      //gets all artefact for a board
+      // "/users/{id}/boards/{boardid}/images"
+      group.MapGet("/", (int UserId, int BoardId) => "Get all artefacts");
    
       return group;
     }
