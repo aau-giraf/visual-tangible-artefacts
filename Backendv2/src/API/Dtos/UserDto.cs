@@ -1,6 +1,6 @@
 using Backendv2.DB.Data;
 
-namespace Backendv2.src.API.Routes.DTOs.UserDto;
+namespace Backendv2.src.API.DTOs.UserDto;
 
 public class UserDto
 {
