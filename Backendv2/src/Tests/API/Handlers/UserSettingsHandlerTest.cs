@@ -19,10 +19,10 @@ public class UserSettingsHandlerTests
     }
 
     // Add the usersettings contex to then db
-    private static async Task SeedAsync(string TestDb, UserSetting setting)
+    private static async Task SeedAsync(string TestDb, UserSetting Setting)
     {
         using var db = CreateContext(TestDb);
-        db.UserSettings.Add(setting);
+        db.UserSettings.Add(Setting);
         await db.SaveChangesAsync();
     }
 

@@ -18,10 +18,10 @@ public class UserSettingsHandler
     public static async Task<IResult> UpdateUserSettings(int Id, UserSettingsDto InputUsersetting, VtaDevContext Db)
     {
         // Find the user in the database and make it a variable
-        var db = await Db.UserSettings.FindAsync(Id); 
+        var User = await Db.UserSettings.FindAsync(Id); 
 
         // If the user is not in the database then return 404
-        if (db is null) {return TypedResults.NotFound();}
+        if (User is null) {return TypedResults.NotFound();}
 
         // Both true/false in the same request is contradictory, so reject it
         if (InputUsersetting.Lightmode is true && InputUsersetting.Darkmode is true || InputUsersetting.Lightmode is false && InputUsersetting.Darkmode is false)
@@ -30,17 +30,17 @@ public class UserSettingsHandler
         }
 
         // Take the input and update only the fields that was given 
-        if (InputUsersetting.Contrast is not null) { db.Contrast = InputUsersetting.Contrast.Value; }
-        if (InputUsersetting.Lightmode is not null) { db.Lightmode = InputUsersetting.Lightmode.Value; }
-        if (InputUsersetting.Darkmode is not null) { db.Darkmode = InputUsersetting.Darkmode.Value; }
-        if (InputUsersetting.Language is not null) { db.Language = InputUsersetting.Language; }
-        if (InputUsersetting.SentenceBar is not null) { db.SentenceBar = InputUsersetting.SentenceBar.Value; }
+        if (InputUsersetting.Contrast is not null) { User.Contrast = InputUsersetting.Contrast.Value; }
+        if (InputUsersetting.Lightmode is not null) { User.Lightmode = InputUsersetting.Lightmode.Value; }
+        if (InputUsersetting.Darkmode is not null) { User.Darkmode = InputUsersetting.Darkmode.Value; }
+        if (InputUsersetting.Language is not null) { User.Language = InputUsersetting.Language; }
+        if (InputUsersetting.SentenceBar is not null) { User.SentenceBar = InputUsersetting.SentenceBar.Value; }
 
         // Turning one mode on turns the other off, and turning one off turns the other on
-        if (InputUsersetting.Lightmode is true) { db.Darkmode = false; }
-        else if (InputUsersetting.Darkmode is true) { db.Lightmode = false; }
-        else if (InputUsersetting.Lightmode is false) { db.Darkmode = true; }
-        else if (InputUsersetting.Darkmode is false) { db.Lightmode = true; }
+        if (InputUsersetting.Lightmode is true) { User.Darkmode = false; }
+        else if (InputUsersetting.Darkmode is true) { User.Lightmode = false; }
+        else if (InputUsersetting.Lightmode is false) { User.Darkmode = true; }
+        else if (InputUsersetting.Darkmode is false) { User.Lightmode = true; }
 
         // Save the input into the database
         await Db.SaveChangesAsync();
