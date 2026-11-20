@@ -1,4 +1,5 @@
 using Backendv2.src.API.Controllers;
+using Backendv2.DB.Data;
 
 namespace Backendv2.src.API.Routes.Users;
 
@@ -10,9 +11,10 @@ public static class usersRoutes
         // GET: /users
         // Get all users
         // TODO : Implement logic to get all users
-        User person1 = new(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
-        User person2 = new(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
-        group.MapGet("/", () => UserController.GetAll(person1, person2));
+        //User person1 = new(1,"Jonas","jonas@myass.ai","jonas","Pederson","sidekick");
+        //User person2 = new(2,"Lasse","lasse@myass.ai","Lasse","Kreiner","Not sidekick");
+        VtaDevContext Db = null;
+        group.MapGet("/", () => UserController.GetAllUsers(Db));
 
         // POST: users/auth/register
         // Register a user 
