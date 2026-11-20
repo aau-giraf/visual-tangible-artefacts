@@ -2,6 +2,7 @@
 using Backendv2.DB.Data.Models.VTAModels;
 using Backendv2.src.API.Routes;
 using Backendv2.src.API.Routes.artefacts;
+using Backendv2.src.API.Routes.DummyCore;
 using Backendv2.src.API.Routes.Users;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 
 
+// Map routes for the API endpoints
 app.MapGroup("/users/{id}/boards")
     .MapBoardsRoutes();
 
@@ -46,6 +48,10 @@ app.MapGroup("/users")
 
 app.MapGroup("/users/{id}/boards/{boardid}/images")
     .MapArtefactRoutes();
+
+// Map routes for the DummyCore API endpoints
+app.MapGroup("/dummycore")
+    .MapDummyCoreUsersRoutes();
 
 app.Run();
 

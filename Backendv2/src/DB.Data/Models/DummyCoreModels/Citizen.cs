@@ -11,6 +11,4 @@ public partial class Citizen
     public virtual User IdNavigation { get; set; } = null!;
 
     public virtual ICollection<Image> Images { get; set; } = new List<Image>();
-
-    public virtual ICollection<NonCitizen> Guardians { get; set; } = new List<NonCitizen>();
 }

@@ -9,6 +9,4 @@ public partial class NonCitizen
     public virtual User IdNavigation { get; set; } = null!;
 
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-
-    public virtual ICollection<Citizen> Citizens { get; set; } = new List<Citizen>();
 }

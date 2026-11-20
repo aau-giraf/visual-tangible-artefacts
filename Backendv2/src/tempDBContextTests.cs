@@ -5,6 +5,9 @@ using Backendv2.DB.Data.Models.VTAModels;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using Microsoft.AspNetCore.Routing;
+using Backendv2.src.API.DTOs.DummyCore;
+using Backendv2.src.API.Handlers.DummyCoreHandler;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Backendv2.src.API.Routes;
 
@@ -15,24 +18,35 @@ public static class TempDbTestRoutes
     {
         group.MapGet("/vta", VtaTest);
         group.MapGet("/dummycore", DummyCoreTest);
+        group.MapGet("/dummycoreusers", DummyCoreUsersTest);
 
         group.MapGet("/all", async (VtaContext vta, DummyCoreContext dummy) =>
         {
             var vtaOk = Passed(await VtaTest(vta));
             var dummyOk = Passed(await DummyCoreTest(dummy));
-            var allOk = vtaOk && dummyOk;
+            var usersOk = Passed(await DummyCoreUsersTest(dummy));
+            var allOk = vtaOk && dummyOk && usersOk;
 
             return Results.Json(new
             {
                 result = allOk ? "ALL PASSED" : "FAILED",
                 vta = vtaOk ? "passed" : "failed",
-                dummycore = dummyOk ? "passed" : "failed"
+                dummycore = dummyOk ? "passed" : "failed",
+                dummycoreusers = usersOk ? "passed" : "failed"
             }, statusCode: allOk ? 200 : 500);
         });
 
         return group;
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// DummyCore smoke test: create, read, update, delete a few entities in a transaction ///
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// <summary>
+    /// Performs a smoke test on the DummyCore context by creating, reading, updating, and deleting a few entities in a transaction.
+    /// </summary>
+    /// <param name="db"> The DummyCore context. </param>
+    /// <returns> A task representing the asynchronous operation.</returns>
     private static async Task<IResult> DummyCoreTest(DummyCoreContext db)
     {
         var log = new List<string>();
@@ -135,6 +149,95 @@ public static class TempDbTestRoutes
         }
     }
 
+
+    private static async Task<IResult> DummyCoreUsersTest(
+    DummyCoreContext db,
+    CancellationToken ct = default)
+    {
+        var log = new List<string>();
+        void Step(string msg) { Console.WriteLine(msg); log.Add(msg); }
+        void Check(bool ok, string msg)
+        {
+            if (!ok) throw new InvalidOperationException(msg);
+            Step($"OK: {msg}");
+        }
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        try
+        {
+            // Two organizations: org1 gets the lower id, so it must win the role pick
+            var org1 = new Organization { Name = "smoke org 1" };
+            var org2 = new Organization { Name = "smoke org 2" };
+            db.AddRange(org1, org2);
+            await db.SaveChangesAsync(ct);
+
+            var cls = new Class { Name = "smoke class", OrganizationId = org1.Id };
+            db.Add(cls);
+            await db.SaveChangesAsync(ct);
+
+            var citizenUser = new User { FirstName = "Test", LastName = "Citizen", UserName = "smoke_user_citizen", Password = "x" };
+            var teacherUser = new User { FirstName = "Test", LastName = "Teacher", UserName = "smoke_user_teacher", Password = "x" };
+            db.AddRange(citizenUser, teacherUser);
+            await db.SaveChangesAsync(ct);
+
+            db.Add(new Citizen { Id = citizenUser.Id, ClassId = cls.Id });
+            db.Add(new NonCitizen { Id = teacherUser.Id, Email = "teacher@smoke.local" });
+            await db.SaveChangesAsync(ct);
+
+            // org2 role is added first on purpose: the result must not depend on insert order
+            db.Add(new UserRole { NonCitizenId = teacherUser.Id, OrganizationId = org2.Id, Role = "parent" });
+            db.Add(new UserRole { NonCitizenId = teacherUser.Id, OrganizationId = org1.Id, Role = "teacher" });
+            await db.SaveChangesAsync(ct);
+            Step("Seed data created");
+
+            // GetById: citizen
+            var citizenResult = await DummyCoreUserHandler.GetById(citizenUser.Id, db, ct);
+            Check(citizenResult.Result is Ok<UserDetailsDto>, "GetById citizen returns 200");
+            var citizenDto = ((Ok<UserDetailsDto>)citizenResult.Result).Value!;
+            Check(citizenDto.Role == "citizen", "citizen role is 'citizen'");
+            Check(citizenDto.Email is null, "citizen email is null");
+
+            // GetById: non-citizen with two roles
+            var teacherResult = await DummyCoreUserHandler.GetById(teacherUser.Id, db, ct);
+            Check(teacherResult.Result is Ok<UserDetailsDto>, "GetById teacher returns 200");
+            var teacherDto = ((Ok<UserDetailsDto>)teacherResult.Result).Value!;
+            Check(teacherDto.Email == "teacher@smoke.local", "teacher email comes from NonCitizen");
+            Check(teacherDto.Role == "teacher", "teacher role is the one from the lowest organization id");
+
+            // GetById: missing user
+            var missingResult = await DummyCoreUserHandler.GetById(-1, db, ct);
+            Check(missingResult.Result is NotFound, "GetById unknown id returns 404");
+
+            // GetAll
+            var all = (await DummyCoreUserHandler.GetAll(db, ct)).Value!;
+            var ids = all.Select(u => u.Id).ToList();
+            Check(ids.Contains(citizenUser.Id) && ids.Contains(teacherUser.Id), "GetAll contains both seeded users");
+            Check(ids.SequenceEqual(ids.OrderBy(i => i)), "GetAll is ordered by id");
+
+            await tx.RollbackAsync(ct);
+            Step("All steps passed (transaction rolled back)");
+            return Results.Ok(log);
+        }
+        catch (Exception ex)
+        {
+            Step($"FAILED: {ex.GetBaseException().Message}");
+            await tx.RollbackAsync(ct);
+            Step("Transaction rolled back");
+            return Results.Problem(string.Join("\n", log));
+        }
+    }
+
+
+
+    ////////////////////////////////////////////////////////////
+    /// VTA smoke test: create, read, update, delete a Board ///
+    ////////////////////////////////////////////////////////////
+    /// <summary>
+    /// Performs a smoke test on the VTA context by creating, reading, updating, and deleting a board.
+    /// </summary>
+    /// <param name="db">The VTA context.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private static async Task<IResult> VtaTest(VtaContext db)
     {
         var log = new List<string>();

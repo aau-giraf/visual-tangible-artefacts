@@ -14,6 +14,30 @@ public class UserDto
     public UserDto() { }
     public UserDto(User user) =>
         (Id, FirstName, LastName, UserName, Password) = (user.Id, user.FirstName, user.LastName, user.UserName, user.Password);
-
-
 }
+
+// Composite DTO: This is the user that is sent to VTA.
+// Tables:
+//  User:       Id, UserName, FirstName, LastName
+//  NonCitizen: Email (User.NonCitizen)
+//  UserRole:   Role (NonCitizen.UserRoles)
+//  Citizen:    no columns used, only checked for existence: Role = "citizen" if present
+public record UserDetailsDto(
+    int Id,
+    string UserName,
+    string? Email,
+    string? FirstName,
+    string? LastName,
+    string? Role);
+
+
+// Request body for creating a user. Input only, never returned from an endpoint.
+public record CreateUserDto(
+    string UserName,
+    string Password,
+    string? Email,
+    string? FirstName,
+    string? LastName,
+    string Role,
+    int? OrganizationId,
+    int? ClassId);
