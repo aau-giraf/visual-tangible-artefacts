@@ -5,17 +5,12 @@ using Backendv2.src.API.Controllers.boardsController;
 using Backendv2.src.API.DTOs.BoardsDto;
 using Microsoft.AspNetCore.Http.HttpResults;
 
-
 //Backendv2/src/Tests/TestProject.csproj
 namespace Tests;
-
-
 public class BoardscontrollerTests
-
 {
 
 [Fact]
-
 public async Task getBoard_returnABoard()
 
 {    
@@ -23,7 +18,6 @@ public async Task getBoard_returnABoard()
 var options = new DbContextOptionsBuilder<VtaDevContext>()
     .UseInMemoryDatabase("TestDatabase0")
     .Options;
-
 
     using var db = new VtaDevContext(options);
 
@@ -34,7 +28,6 @@ var options = new DbContextOptionsBuilder<VtaDevContext>()
         Name = "my board"
     });
     
-
     await db.SaveChangesAsync();
 
     var result = await boardsController.getBoard(10, 1, db);
@@ -43,29 +36,19 @@ var options = new DbContextOptionsBuilder<VtaDevContext>()
 
     }
 
-
-
  [Fact]
-
 public async Task getBoard_returnNotFound()
     {
         var options = new DbContextOptionsBuilder<VtaDevContext>()
           .UseInMemoryDatabase("testdatabase1")
           .Options;
 
-
            using var db = new VtaDevContext(options);
-
            var result = await boardsController.getBoard(10,1,db );
-
            Assert.IsType<NotFound>(result);
 
     
     }
-
-
-
-
 
 [Fact]
 public async Task getBoard_BelongsToAnotherUser_returnNotfound()
@@ -77,27 +60,21 @@ public async Task getBoard_BelongsToAnotherUser_returnNotfound()
 
 
              using var db = new VtaDevContext(options);
-        
-            db.Boards.Add(new Board
-
+             
+             db.Boards.Add(new Board
             {
                 Id=1,
                 UserId =12,
                 Name = " køkkenet "
 
             });
-              
-
-              await db.SaveChangesAsync();
-
             
+            await db.SaveChangesAsync();
             var result = await boardsController.getBoard(10,1,db);
             Assert.IsType<NotFound>(result);
-
     }
 
 [Fact]
-
 public async Task getAllboards_returnOk()
 
     {
@@ -118,21 +95,14 @@ public async Task getAllboards_returnOk()
                );
 
           await db.SaveChangesAsync();
-
           var results = await boardsController.getAllBoards(12,db);
-
           var boards = Assert.IsType<Ok<List<BoardsDto>>>(results);
-
           Assert.Equal(2, boards.Value!.Count);
               
 
     }
 
-
-
 [Fact]
-
-
 public async Task getAllBoards_returnemptylist()
     {
 
@@ -144,9 +114,7 @@ public async Task getAllBoards_returnemptylist()
         using var db = new VtaDevContext(options);
 
         var results =  await boardsController.getAllBoards(12,db);
-
         var boards = Assert.IsType<Ok<List<BoardsDto>>>(results);
-
         Assert.Empty(boards.Value!);
 
 
@@ -170,19 +138,14 @@ public async Task newBoard_returnNoContet()
            };
 
            var result = await boardsController.newBoard(12,boardDto, db);
-           
            Assert.IsType<NoContent>(result);
 
            var board = await db.Boards.FirstOrDefaultAsync(board => board.UserId == 12);
 
            Assert.NotNull(board);
-           Assert.Equal("my new board", board.Name);
-        
+           Assert.Equal("my new board", board.Name);  
 
     }
-
-
-
 
 }
 
