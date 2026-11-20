@@ -10,17 +10,20 @@ namespace Tests;
 public class BoardscontrollerTests
 {
 
+    private static VtaDevContext CreateContext(string TestDatabase)
+    {
+        var options = new DbContextOptionsBuilder<VtaDevContext>()
+           .UseInMemoryDatabase(TestDatabase)
+           .Options;
+
+        return new VtaDevContext(options);
+    }
+
 [Fact]
 public async Task getBoard_returnABoard()
 
 {    
-
-var options = new DbContextOptionsBuilder<VtaDevContext>()
-    .UseInMemoryDatabase("TestDatabase0")
-    .Options;
-
-    using var db = new VtaDevContext(options);
-
+    using var db = CreateContext("TestDatabase0");
     db.Boards.Add(new Board
     {
         Id = 1,
@@ -39,14 +42,9 @@ var options = new DbContextOptionsBuilder<VtaDevContext>()
  [Fact]
 public async Task getBoard_returnNotFound()
     {
-        var options = new DbContextOptionsBuilder<VtaDevContext>()
-          .UseInMemoryDatabase("testdatabase1")
-          .Options;
-
-           using var db = new VtaDevContext(options);
+           using var db = CreateContext("TestDatabase1");
            var result = await boardsController.getBoard(10,1,db );
            Assert.IsType<NotFound>(result);
-
     
     }
 
@@ -54,13 +52,7 @@ public async Task getBoard_returnNotFound()
 public async Task getBoard_BelongsToAnotherUser_returnNotfound()
 
     {
-        var options = new DbContextOptionsBuilder<VtaDevContext>()
-             .UseInMemoryDatabase("testdatabase2")
-             .Options;
-
-
-             using var db = new VtaDevContext(options);
-             
+             using var db = CreateContext("TestDatabase2");
              db.Boards.Add(new Board
             {
                 Id=1,
@@ -78,12 +70,7 @@ public async Task getBoard_BelongsToAnotherUser_returnNotfound()
 public async Task getAllboards_returnOk()
 
     {
-        var options = new DbContextOptionsBuilder<VtaDevContext>()
-           .UseInMemoryDatabase("testdatabase3")
-           .Options;
-
-           using var db = new VtaDevContext(options);
-
+           using var db =  CreateContext("TestDatabase3");
                db.Boards.AddRange(
 
                 new Board {Id = 1, UserId=12, Name="board1"},
@@ -99,20 +86,12 @@ public async Task getAllboards_returnOk()
           var boards = Assert.IsType<Ok<List<BoardsDto>>>(results);
           Assert.Equal(2, boards.Value!.Count);
               
-
     }
 
 [Fact]
 public async Task getAllBoards_returnemptylist()
     {
-
-        var options = new DbContextOptionsBuilder<VtaDevContext>()
-            .UseInMemoryDatabase("testdatabase4")
-            .Options;
-
-
-        using var db = new VtaDevContext(options);
-
+        using var db = CreateContext("TestDatabase4");
         var results =  await boardsController.getAllBoards(12,db);
         var boards = Assert.IsType<Ok<List<BoardsDto>>>(results);
         Assert.Empty(boards.Value!);
@@ -125,13 +104,7 @@ public async Task getAllBoards_returnemptylist()
 public async Task newBoard_returnNoContet()
 
     {
-
-        var options = new DbContextOptionsBuilder<VtaDevContext>()
-           .UseInMemoryDatabase("testdatabase5")
-           .Options;
-
-
-           using var db = new VtaDevContext(options);
+           using var db =  CreateContext("TestDatabase5");
            var boardDto = new BoardsDto
            {
                Name = "my new board"
@@ -148,5 +121,3 @@ public async Task newBoard_returnNoContet()
     }
 
 }
-
-
