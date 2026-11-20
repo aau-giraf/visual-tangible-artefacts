@@ -1,0 +1,58 @@
+﻿using Backendv2.src.API.Controllers;
+
+namespace Backendv2.src.API.Routes.DummyCore
+{
+    public static class DummyUsersRoutes
+    {
+        public static RouteGroupBuilder MapDummyCoreUsersRoutes(this RouteGroupBuilder group)
+        {
+            /*
+            // GET: /users
+            // Get all users
+            // TODO : Implement logic to get all users
+            User person1 = new(1, "Jonas", "jonas@myass.ai", "jonas", "Pederson", "sidekick");
+            User person2 = new(2, "Lasse", "lasse@myass.ai", "Lasse", "Kreiner", "Not sidekick");
+            group.MapGet("/", () => DummyUserController.GetAll(person1, person2));
+
+            // POST: users/auth/register
+            // Register a user 
+            // TODO : implemenmt logic so register a user
+            group.MapPost("/auth/register", () => "controller.Create()");
+
+            // GET: /users/{id}
+            // Get specific user by id
+            // TODO : implemnet logic to get a specific user by id
+            group.MapGet("/{userId}", (int userId) => "controller.GetByid(userId)");
+
+            // PATCH: /users/{id}
+            // Update a specic user
+            // TODO : implement logic to update a specific user
+            group.MapPatch("/{userId}", (int userId) => "controller");
+
+            // DELETE: /users/{id}
+            // Delete a specific user
+            // TODO : implement logic to delete specific user
+            group.MapDelete("/{userId}", (int userId) => "controller.Delete(userId)");
+
+
+            // PUT: /users/{id}/password
+            // Specific user can change password
+            // TODO : implement lofic so specific user can change password
+            group.MapPut("/{userId}/password", (int userId) => "controller");
+
+            // GET: /users/{id}/settings
+            // Get user settings
+            // TODO : implement logic to get user settings
+            group.MapGet("/{userId}/settings", (int userId) => "controller");
+
+            // PATCH: /users/{id}/settings
+            // Update user settings
+            // TODO : implement logic to ubdate user settings
+            group.MapPatch("/{userId}/settings", (int userId) => "controller");
+
+            //Return group so it can be used in the program.cs file
+            return group;
+            */
+        }
+    }
+}
