@@ -18,8 +18,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <Compile Remove="src/Tests/**/*.cs"/>
   </ItemGroup>
+
+  <PropertyGroup>
+  <DefaultItemExcludes>$(DefaultItemExcludes);src/Tests/**</DefaultItemExcludes>
+  </PropertyGroup>
 
 
 
