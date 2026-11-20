@@ -1,5 +1,4 @@
 
-using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Backendv2.DB.Data;
 using Backendv2.src.API.DTOs.BoardsDto;
@@ -14,13 +13,15 @@ public class boardsController
     {
 
         var board = await db.Boards.FindAsync(boardId);
-         if (board == null || board.UserId !=id)
+
+         if (board != null && board.UserId ==id )
         {
-          return TypedResults.NotFound();    
+            return TypedResults.Ok(new BoardsDto(board)); 
+            
         }
          else
         {
-          return TypedResults.Ok(new BoardsDto(board)); 
+           return TypedResults.NotFound(); 
         }
         
        
