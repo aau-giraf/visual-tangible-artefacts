@@ -31,7 +31,12 @@ public record UserDetailsDto(
     string? Role);
 
 
-// Request body for creating a user. Input only, never returned from an endpoint.
+// Request DTO: This is the user that is sent from VTA to create a user. Input only, never returned from an endpoint.
+// Tables:
+//  User:       UserName, Password, FirstName, LastName
+//  NonCitizen: Email (only for non-citizens; ignored for citizens)
+//  UserRole:   Role + OrganizationId (non-citizens only)
+//  Citizen:    ClassId (only when Role = "citizen")
 public record CreateUserDto(
     string UserName,
     string Password,

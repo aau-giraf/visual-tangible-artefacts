@@ -15,6 +15,10 @@ namespace Backendv2.src.API.Routes.DummyCore
             // Get all users (User + NonCitizen + UserRole)
             group.MapGet("/get/users", DummyCoreUserHandler.GetAll);
 
+            // POST: /dummycore/create/user
+            // Create a new user (User + NonCitizen + UserRole)
+            group.MapPost("/create/user", DummyCoreUserHandler.CreateUser);
+
             // Return group so it can be used in the Program.cs file
             return group;
         }

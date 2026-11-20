@@ -148,11 +148,7 @@ public static class TempDbTestRoutes
             return Results.Problem(string.Join("\n", log));
         }
     }
-
-
-    private static async Task<IResult> DummyCoreUsersTest(
-    DummyCoreContext db,
-    CancellationToken ct = default)
+    private static async Task<IResult> DummyCoreUsersTest(DummyCoreContext db, CancellationToken ct = default)
     {
         var log = new List<string>();
         void Step(string msg) { Console.WriteLine(msg); log.Add(msg); }
@@ -215,6 +211,33 @@ public static class TempDbTestRoutes
             Check(ids.Contains(citizenUser.Id) && ids.Contains(teacherUser.Id), "GetAll contains both seeded users");
             Check(ids.SequenceEqual(ids.OrderBy(i => i)), "GetAll is ordered by id");
 
+            // CreateUser
+            var createDto = new CreateUserDto(
+                "smoke_created_user",
+                "test_password",
+                null,
+                "Created",
+                "User",
+                "citizen",
+                null,
+                cls.Id
+            );
+
+            var createResult = await DummyCoreUserHandler.CreateUser(createDto, db, ct);
+
+            Check(createResult.Result is Created<UserDetailsDto>, "CreateUser returns 201");
+
+            var createdUser = ((Created<UserDetailsDto>)createResult.Result).Value!;
+
+            Check(createdUser.Id > 0, "CreateUser assigns an id");
+            Check(createdUser.UserName == createDto.UserName, "CreateUser returns correct username");
+            Check(createdUser.Role == "citizen", "CreateUser returns correct role");
+
+            // Verify created user can be retrieved
+            var createdUserResult = await DummyCoreUserHandler.GetById(createdUser.Id, db, ct);
+
+            Check(createdUserResult.Result is Ok<UserDetailsDto>, "Created user can be retrieved");
+
             await tx.RollbackAsync(ct);
             Step("All steps passed (transaction rolled back)");
             return Results.Ok(log);
@@ -227,6 +250,7 @@ public static class TempDbTestRoutes
             return Results.Problem(string.Join("\n", log));
         }
     }
+
 
 
 
