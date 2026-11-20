@@ -1,42 +1,58 @@
 
-namespace  Backendv2.src.API.Controllers.boardsController;
+using Microsoft.EntityFrameworkCore;
+using Backendv2.DB.Data;
+using Backendv2.src.API.DTOs.BoardsDto;
 
-public class Board (int id, float posX, float posy, int gridX, int gridY)
-{
-    public int id { get; set; } = id;
-    public float posX { get; set; } = posX;
-    public float posy { get; set; } = posy;
-    public int gridX { get; set; } = gridX;
-    public int gridY { get; set; } = gridY;
-    
-}
+namespace  Backendv2.src.API.Controllers.boardsController;
 
 
 public class boardsController
 {
-    Board board1 = new Board(1, 3.2f, 6.4f, 5, 5);
-    
-    public static Board getboard(Board board1)
+  //Finds a board then sees if the board exists and belongs to the selected user.
+    public static async Task<IResult> getBoard( int id, int boardId, VtaDevContext db)
     {
-        // Find the user with the board
 
-        // If the user is found, return the board
-        return board1;
+        var board = await db.Boards.FindAsync(boardId);
+
+         if (board != null && board.UserId == id )
+        {
+            return TypedResults.Ok(new BoardsDto(board)); 
+            
+        }
+         else
+        {
+           return TypedResults.NotFound(); 
+        }
     }
 
-    public static string getAllBoards()
+ // Finds all the boards belonging to a selected user, then returns ok if the user has no board then returns an empty list.
+   public static async Task<IResult> getAllBoards(int id, VtaDevContext db)
+       
     {
-        // Find the user then return all the boards that the user has
-
-
-        return "placeholder";
+        var boards = await db.Boards
+              .Where (board => board.UserId == id)
+              .Select (board => new BoardsDto (board))
+              .ToListAsync();
+              
+        return TypedResults.Ok(boards);
     }
 
-    public static string newBoard()
+
+// Create a new board with a name and add it the user.
+
+    public static async Task<IResult> newBoard(int id, BoardsDto boardDto, VtaDevContext db)
     {
-        // Create a new board with a name and add it the user
+    // creates a new board 
+    var board = new Board
+    {
+        UserId = id,
+        Name = boardDto.Name
+    };
 
+    db.Boards.Add(board);
+    await db.SaveChangesAsync();
 
-        return "204 No Content";
+    return TypedResults.NoContent();
+
     }
 }
