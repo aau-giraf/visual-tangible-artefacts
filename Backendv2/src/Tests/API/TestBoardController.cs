@@ -20,6 +20,7 @@ public class BoardscontrollerTests
     }
 
 [Fact]
+// Tests if a board exist and belongs to a selected user, if that true then return ok.
 public async Task getBoard_returnABoard()
 
 {    
@@ -40,6 +41,7 @@ public async Task getBoard_returnABoard()
     }
 
  [Fact]
+//Test if a board does not exist the return Not Found.
 public async Task getBoard_returnNotFound()
     {
            using var db = CreateContext("TestDatabase1");
@@ -49,6 +51,7 @@ public async Task getBoard_returnNotFound()
     }
 
 [Fact]
+//Tests if a board exist, but belongs to a different user then it returns Not Found.
 public async Task getBoard_BelongsToAnotherUser_returnNotfound()
 
     {
@@ -67,6 +70,7 @@ public async Task getBoard_BelongsToAnotherUser_returnNotfound()
     }
 
 [Fact]
+//Tests if it gets all boards belonging to a selected user.
 public async Task getAllboards_returnOk()
 
     {
@@ -89,6 +93,7 @@ public async Task getAllboards_returnOk()
     }
 
 [Fact]
+//Tests if a selected user does not have any boards, and then returns empty list.
 public async Task getAllBoards_returnemptylist()
     {
         using var db = CreateContext("TestDatabase4");
@@ -96,11 +101,10 @@ public async Task getAllBoards_returnemptylist()
         var boards = Assert.IsType<Ok<List<BoardsDto>>>(results);
         Assert.Empty(boards.Value!);
 
-
     }
 
 [Fact]
-// this test if the board is created and saved in the DB. 
+// Tests if the board is created and saved in the DB. 
 public async Task newBoard_returnNoContet()
 
     {
