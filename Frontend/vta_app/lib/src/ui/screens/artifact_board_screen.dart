@@ -14,8 +14,9 @@ import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 
-import 'package:vta_app/src/settings/boards_view.dart';
-import 'package:vta_app/src/settings/Teachers_Hub_Panel.dart';
+import 'package:vta_app/src/ui/screens/boards_view.dart';
+import 'package:vta_app/src/ui/screens/teachers_hub_panel.dart';
+import 'package:vta_app/src/ui/widgets/board/board_bar.dart';
 import 'package:logging/logging.dart';
 
 final _log = Logger('ArtifactBoardScreen');
@@ -296,12 +297,10 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                             EdgeInsets.only(left: padding, right: padding),
                         child: SizedBox(
                             height: categoriesWidgetHeight,
-                            child: categories_widget.CategoriesWidget(
+                            child: BoardBar(
                               widgetHeight: categoriesWidgetHeight,
-                              onArtifactAdded:
-                                  controller.addArtifactToCurrentBoard,
-                              artefactController: artifactController,
-                            )))
+                              controller: controller,
+                            ),))
                   ],
                 ),
               ),

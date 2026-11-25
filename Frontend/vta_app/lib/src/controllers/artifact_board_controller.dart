@@ -15,6 +15,7 @@ import 'package:vta_app/src/ui/widgets/board/board_artifact.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:logging/logging.dart';
+import 'dart:typed_data';
 
 
 final _log = Logger('ArtifactBoardController');
@@ -153,11 +154,12 @@ class ArtifactBoardController with ArtefactSoundPlayer {
 
   // --- Multi-Board Methods ---
 
-  void createBoard(String title) {
+  void createBoard(String title, {Uint8List? image}) {
     _saveActiveBoardState();
 
     final newBoard = Board(
       title: title,
+      image: image,
       showDirectional: showDirectional,
       linearBoardFieldCount: linearBoardFieldCount ?? 4,
     );

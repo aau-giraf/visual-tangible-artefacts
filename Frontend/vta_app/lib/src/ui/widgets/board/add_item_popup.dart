@@ -29,6 +29,7 @@ class AddItemPopup extends StatefulWidget {
   final void Function(String name, Uint8List? imageBytes, Uint8List? soundBytes)
       onSubmit;
   final String title;
+  final String? itemNoun;
 
   const AddItemPopup({
     super.key,
@@ -36,6 +37,7 @@ class AddItemPopup extends StatefulWidget {
     required this.onSubmit,
     this.category,
     this.title = 'Tilføj ',
+    this.itemNoun,
   });
 
   @override
@@ -93,6 +95,8 @@ class _AddItemPopupState extends State<AddItemPopup> {
   bool _showTextToSpeechField = false;
   bool _isGeneratingSpeech = false;
   String _selectedVoiceId = ElevenLabsConfig.defaultVoiceId;
+  String get _noun =>
+      widget.itemNoun ?? (widget.isCategory ? 'kategori' : 'artefakt');
 
   void setGeneratedImage(String bytes) {
     final decodedBytes = base64Decode(bytes);
@@ -289,8 +293,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide.none,
                     ),
-                    hintText:
-                        widget.isCategory ? 'Kategori navn' : 'Artefakt navn',
+                    hintText: '${_noun[0].toUpperCase()}${_noun.substring(1)} navn',
                     hintStyle: TextStyle(color: Color(0xFF7C7C7C)),
                   ),
                 ),
@@ -429,7 +432,7 @@ class _AddItemPopupState extends State<AddItemPopup> {
                       }
                     : null,
                 child: Text(
-                  widget.isCategory ? 'Tilføj kategori' : 'Tilføj artefakt',
+                  'Tilføj $_noun',
                   style: TextStyle(color: Colors.white),
                 ),
               ),
