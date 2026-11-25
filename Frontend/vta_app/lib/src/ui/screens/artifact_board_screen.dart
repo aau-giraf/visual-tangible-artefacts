@@ -14,7 +14,7 @@ import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 
-import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
+import 'package:vta_app/src/settings/boards_view.dart';
 import 'package:vta_app/src/settings/Teachers_Hub_Panel.dart';
 import 'package:logging/logging.dart';
 
@@ -42,6 +42,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   static const String _controllerKey = 'ArtifactBoardController';
 
   bool _hubOpen = false;
+  bool _boardsOpen = false;
+
+  void _closeHub() {
+    setState(() {
+      _hubOpen = false;
+      _boardsOpen = false;
+    });
+  }
 
   void _notifyView() {
     if (mounted) {
@@ -152,25 +160,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return user;
   }
 
-  void _showBoardSelection() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => BoardSelectionSheet(
-          controller: controller,
-          scrollController: scrollController,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +190,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return _buildPage(context);
   }
 
-      Scaffold _buildPage(BuildContext context) {
+        Scaffold _buildPage(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
     double safeTop = MediaQuery.of(context).padding.top;
@@ -222,6 +211,10 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     double boxRadius = 20; // corner radius of the box
     double panelTop = safeTop + boxMarginY;
     double panelHeight = boardAreaHeight - boxMarginY * 2;
+
+    // Boards view fills the rest of the box to the right of the panel
+    double boardsLeft = boxLeft + panelWidth;
+    double boardsWidth = screenWidth - boxLeft * 2 - panelWidth;
 
     return Scaffold(
       body: Stack(
@@ -324,14 +317,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                 opacity: _hubOpen ? 1 : 0,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _hubOpen = false),
+                  onTap: _closeHub,
                   child: Container(color: Colors.black45),
                 ),
               ),
             ),
           ),
 
-          // Side panel, lined up with the board box
+          // Side panel
           AnimatedPositioned(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOutCubic,
@@ -344,26 +337,24 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
               ignoring: !_hubOpen,
               child: TeachersHubPanel(
                 isOpen: _hubOpen,
+                selectedTab: _boardsOpen ? HubTab.boards : null,
                 borderRadius: BorderRadius.horizontal(
                   left: Radius.circular(boxRadius),
                 ),
-                onBoards: () {
-                  setState(() => _hubOpen = false);
-                  _showBoardSelection();
-                },
+                onBoards: () => setState(() => _boardsOpen = true),
                 onSettings: () {
-                  setState(() => _hubOpen = false);
+                  _closeHub();
                   Navigator.of(context).pushNamed('/settings');
                 },
                 onLogout: () {
-                  setState(() => _hubOpen = false);
+                  _closeHub();
                   widget.authController.logout(context);
                 },
               ),
             ),
           ),
 
-          // Burger tab: sits on the box's top-left corner, rides the panel edge
+          // Burger tab
           AnimatedPositioned(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOutCubic,
@@ -380,7 +371,31 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                 tooltip: 'Lærer Hub',
                 iconSize: screenWidth > 600 ? 35 : 28,
                 icon: const Icon(Icons.menu_rounded),
-                onPressed: () => setState(() => _hubOpen = !_hubOpen),
+                onPressed: () =>
+                    _hubOpen ? _closeHub() : setState(() => _hubOpen = true),
+              ),
+            ),
+          ),
+
+          // Boards
+          Positioned(
+            top: panelTop,
+            height: panelHeight,
+            left: boardsLeft,
+            width: boardsWidth,
+            child: IgnorePointer(
+              ignoring: !_boardsOpen,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _boardsOpen ? 1 : 0,
+                child: BoardsView(
+                  isOpen: _boardsOpen,
+                  controller: controller,
+                  onClose: _closeHub,
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(boxRadius),
+                  ),
+                ),
               ),
             ),
           ),

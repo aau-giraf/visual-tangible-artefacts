@@ -7,6 +7,8 @@ const Color _hubTextColor = Color(0xFF757575);
 const Color _hubAccentColor = Color(0xFFFEC377);
 const Color _hubErrorColor = Color(0xFFC2185B);
 const Color _hubKeyColor = Color(0xFFE9E4DF);
+const Color _hubSelectedColor = Color(0xFFF59E3D);
+enum HubTab { boards, images, settings, personalization }
 
 class TeachersHubPanel extends StatefulWidget {
   const TeachersHubPanel({
@@ -18,6 +20,7 @@ class TeachersHubPanel extends StatefulWidget {
     this.onImages,
     this.onPersonalization,
     this.borderRadius = BorderRadius.zero,
+    this.selectedTab,
   });
 
   final bool isOpen;
@@ -27,6 +30,7 @@ class TeachersHubPanel extends StatefulWidget {
   final VoidCallback? onImages; // TODO: wire up when the screen exists
   final VoidCallback? onPersonalization; // TODO: wire up when the screen exists
   final BorderRadius borderRadius;
+  final HubTab? selectedTab;
 
   @override
   State<TeachersHubPanel> createState() => _TeachersHubPanelState();
@@ -166,11 +170,30 @@ class _TeachersHubPanelState extends State<TeachersHubPanel> {
 
     return Column(
       children: [
-        _MenuItem('Boards', widget.onBoards, itemFontSize),
-        _MenuItem('Billeder', widget.onImages, itemFontSize),
-        _MenuItem('Indstillinger', widget.onSettings, itemFontSize),
         _MenuItem(
-            'Personlig Tilpasning', widget.onPersonalization, itemFontSize),
+            'Boards',
+            widget.onBoards,
+            itemFontSize,
+            selected: widget.selectedTab == HubTab.boards,
+          ),
+        _MenuItem(
+          'Billeder', 
+          widget.onImages, 
+          itemFontSize,
+          selected: widget.selectedTab == HubTab.images,
+        ),
+        _MenuItem(
+          'Indstillinger', 
+          widget.onSettings, 
+          itemFontSize,
+          selected: widget.selectedTab == HubTab.settings,
+        ),
+        _MenuItem(
+            'Personlig Tilpasning', 
+            widget.onPersonalization, 
+            itemFontSize,
+            selected: widget.selectedTab == HubTab.personalization,
+        ),
         const Spacer(),
         TextButton(
           onPressed: widget.onLogout,
@@ -354,11 +377,17 @@ class _NumKey extends StatelessWidget {
 }
 
 class _MenuItem extends StatelessWidget {
-  const _MenuItem(this.label, this.onTap, this.fontSize);
+  const _MenuItem(
+    this.label,
+    this.onTap,
+    this.fontSize, {
+    this.selected = false,
+  });
 
   final String label;
   final VoidCallback? onTap;
   final double fontSize;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +406,7 @@ class _MenuItem extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: fontSize,
-            color: _hubTextColor,
+            color: selected ? _hubSelectedColor : _hubTextColor,
           ),
         ),
       ),
