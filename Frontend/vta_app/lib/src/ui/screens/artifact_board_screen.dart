@@ -5,11 +5,9 @@ import 'package:vta_app/src/controllers/auth_controller.dart';
 import 'package:vta_app/src/settings/settings_controller.dart';
 import 'package:vta_app/src/controllers/artifact_board_controller.dart';
 import 'package:vta_app/src/modelsDTOs/category.dart';
-import 'package:vta_app/src/services/signalr_service.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
-import 'package:vta_app/src/ui/screens/remote_session_screen.dart';
 import '../widgets/categories/categories_widget.dart'
     as categories_widget; // Aliased import
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
@@ -17,10 +15,11 @@ import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 
 import 'package:vta_app/src/ui/widgets/board/board_switcher.dart';
+import 'package:vta_app/src/settings/Teachers_Hub_Panel.dart';
 import 'package:logging/logging.dart';
 
-
 final _log = Logger('ArtifactBoardScreen');
+
 class ArtifactBoardScreen extends StatefulWidget {
   const ArtifactBoardScreen({
     super.key,
@@ -41,6 +40,8 @@ class ArtifactBoardScreen extends StatefulWidget {
 class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
   List<Category>? categories;
   static const String _controllerKey = 'ArtifactBoardController';
+
+  bool _hubOpen = false;
 
   void _notifyView() {
     if (mounted) {
@@ -151,6 +152,26 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return user;
   }
 
+  void _showBoardSelection() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => BoardSelectionSheet(
+          controller: controller,
+          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var artifactController = widget.artifactController;
@@ -180,228 +201,190 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return _buildPage(context);
   }
 
-  Scaffold _buildPage(BuildContext context) {
+      Scaffold _buildPage(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
+    double safeTop = MediaQuery.of(context).padding.top;
     double padding = screenWidth > 600 ? 5 : 2;
     double categoriesWidgetHeight = screenWidth > 600 ? 90 : 80;
     double dividerHeight = screenWidth > 600 ? 10 : 5;
     var artifactController = widget.artifactController;
     categories = artifactController.categories;
 
+    // Height of the board area (same math as the container below)
+    double boardAreaHeight =
+        screenHeight - categoriesWidgetHeight - safeTop - dividerHeight;
+
+    // Panel geometry: tweak these to line up with the board box
+    double panelWidth = (screenWidth * 0.32).clamp(200.0, 320.0);
+    double boxLeft = padding * 2; // container padding + board padding
+    double boxMarginY = 5; // gap between board area edge and the box
+    double boxRadius = 20; // corner radius of the box
+    double panelTop = safeTop + boxMarginY;
+    double panelHeight = boardAreaHeight - boxMarginY * 2;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: ExactAssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // Take minimum space needed
-            mainAxisAlignment:
-                MainAxisAlignment.start, // Align items to the start
-            children: [
-              SafeArea(
-                bottom: false, // Don't add safe area padding at bottom
-                child: Container(
-                  height: screenHeight -
-                      categoriesWidgetHeight -
-                      MediaQuery.of(context).padding.top -
-                      dividerHeight,
-                  padding: EdgeInsets.symmetric(horizontal: padding),
-                  child: Stack(
-                    children: [
-                      Padding(
+      body: Stack(
+        children: [
+          // Main content (unchanged, minus the panel and burger)
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F5F5),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SafeArea(
+                      bottom: false,
+                      child: Container(
+                        height: boardAreaHeight,
                         padding: EdgeInsets.symmetric(horizontal: padding),
-                        child: Center(
-                          child: controller.showDirectional
-                              ? LinearBoard(
-                                  key: controller.linearBoardKey,
-                                  linearBoardController:
-                                      controller.linearBoardController,
-                                )
-                              : TalkingMat(
-                                  key: controller.talkingMatKey,
-                                  artifacts: [],
-                                  controller: controller.talkingmatController,
+                        child: Stack(
+                          children: [
+                            Padding(
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: padding),
+                              child: Center(
+                                child: controller.showDirectional
+                                    ? LinearBoard(
+                                        key: controller.linearBoardKey,
+                                        linearBoardController:
+                                            controller.linearBoardController,
+                                      )
+                                    : TalkingMat(
+                                        key: controller.talkingMatKey,
+                                        artifacts: [],
+                                        controller:
+                                            controller.talkingmatController,
+                                      ),
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                    left: screenWidth > 600 ? 20 : 10),
+                                child: RelationalBoardButton(
+                                  onPressed: () {
+                                    controller.switchCurrentBoard();
+                                  },
+                                  icon: controller.showDirectional
+                                      ? Icon(
+                                          IconData(0xf685,
+                                              fontFamily: 'MaterialIcons'),
+                                          size: screenWidth > 600 ? 24.0 : 20.0,
+                                        )
+                                      : Icon(
+                                          IconData(0xf601,
+                                              fontFamily: 'MaterialIcons'),
+                                          size: screenWidth > 600 ? 24.0 : 20.0,
+                                        ),
                                 ),
+                              ),
+                            ),
+                            QuickAddArtefactButton(
+                                artefactController: artifactController,
+                                onArtifactAdded:
+                                    controller.addArtifactToCurrentBoard),
+                            const QuickChatButton(),
+                          ],
                         ),
                       ),
-                      Positioned(
-                        top: screenWidth > 600 ? 10 : 10,
-                        left: screenWidth > 600 ? 15 : 10,
-                        child: PopupMenuButton(
-                            tooltip: "Brugerindstillinger",
-                            offset: Offset(0, screenWidth > 600 ? 60 : 40),
-                            icon: Icon(Icons.supervised_user_circle_outlined,
-                                size: screenWidth > 600 ? 50 : 35),
-                            iconSize: screenWidth > 600
-                                ? 50
-                                : 35, // ensures shadow matches icon
-                            padding: EdgeInsets
-                                .zero, // removes extra padding around the icon
-                            itemBuilder: (context) {
-                              List<PopupMenuItem> items = [];
-
-                              _log.fine(
-                                  'Building menu - currentUser: ${currentUser?.username}, role: ${currentUser?.role}');
-                              _log.fine(
-                                  'Is caregiver? ${currentUser?.role == user_model.UserRole.caregiver}');
-
-                              items.add(
-                                PopupMenuItem(
-                                  padding: EdgeInsets.zero,
-                                  child: ListTile(
-                                    leading: Icon(Icons.dashboard,
-                                        size: screenWidth > 600 ? 20 : 16),
-                                    title: Text(
-                                        'Tavler (${controller.activeBoard.title})',
-                                        style: TextStyle(
-                                            fontSize:
-                                                screenWidth > 600 ? 16 : 14)),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        shape: const RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(20)),
-                                        ),
-                                        builder: (context) =>
-                                            DraggableScrollableSheet(
-                                          initialChildSize: 0.6,
-                                          minChildSize: 0.4,
-                                          maxChildSize: 0.9,
-                                          expand: false,
-                                          builder:
-                                              (context, scrollController) =>
-                                                  BoardSelectionSheet(
-                                            controller: controller,
-                                            scrollController: scrollController,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
-
-                              // Only for caregivers
-                              if (currentUser?.role ==
-                                  user_model.UserRole.caregiver) {
-                                items.add(
-                                  PopupMenuItem(
-                                    padding: EdgeInsets.zero,
-                                    child: ListTile(
-                                      leading: Icon(Icons.call,
-                                          size: screenWidth > 600 ? 20 : 16),
-                                      title: Text('Start Opkald',
-                                          style: TextStyle(
-                                              fontSize:
-                                                  screenWidth > 600 ? 16 : 14)),
-                                      onTap: () {
-                                        Navigator.of(context).pop();
-                                        SignalRService()
-                                            .setOwnerBoardController(
-                                                controller);
-                                        Navigator.of(context).pushNamed(
-                                            RemoteSessionScreen.routeName);
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              items.addAll([
-                                PopupMenuItem(
-                                  padding: EdgeInsets.zero,
-                                  child: ListTile(
-                                    leading: Icon(Icons.settings,
-                                        size: screenWidth > 600 ? 20 : 16),
-                                    title: Text('Indstillinger',
-                                        style: TextStyle(
-                                            fontSize:
-                                                screenWidth > 600 ? 16 : 14)),
-                                    onTap: () {
-                                      Navigator.of(context).pop();
-                                      Navigator.of(context)
-                                          .pushNamed('/settings');
-                                    },
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  padding: EdgeInsets.zero,
-                                  child: ListTile(
-                                    leading: Icon(Icons.logout,
-                                        size: screenWidth > 600 ? 20 : 16),
-                                    title: Text('Log ud',
-                                        style: TextStyle(
-                                            fontSize:
-                                                screenWidth > 600 ? 16 : 14)),
-                                    onTap: () {
-                                      Navigator.of(context).pop();
-                                      widget.authController.logout(context);
-                                    },
-                                  ),
-                                ),
-                              ]);
-
-                              return items;
-                            }),
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                              left: screenWidth > 600 ? 20 : 10),
-                          child: RelationalBoardButton(
-                            onPressed: () {
-                              controller.switchCurrentBoard();
-                            },
-                            icon: controller.showDirectional
-                                ? Icon(
-                                    IconData(0xf685,
-                                        fontFamily: 'MaterialIcons'),
-                                    size: screenWidth > 600 ? 24.0 : 20.0,
-                                  )
-                                : Icon(
-                                    IconData(0xf601,
-                                        fontFamily: 'MaterialIcons'),
-                                    size: screenWidth > 600 ? 24.0 : 20.0,
-                                  ),
-                          ),
-                        ),
-                      ),
-                      QuickAddArtefactButton(
-                          artefactController: artifactController,
-                          onArtifactAdded:
-                              controller.addArtifactToCurrentBoard),
-                      const QuickChatButton(),
-                    ],
-                  ),
+                    ),
+                    Divider(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      height: dividerHeight,
+                    ),
+                    Padding(
+                        padding:
+                            EdgeInsets.only(left: padding, right: padding),
+                        child: SizedBox(
+                            height: categoriesWidgetHeight,
+                            child: categories_widget.CategoriesWidget(
+                              widgetHeight: categoriesWidgetHeight,
+                              onArtifactAdded:
+                                  controller.addArtifactToCurrentBoard,
+                              artefactController: artifactController,
+                            )))
+                  ],
                 ),
               ),
-              Divider(
-                color: const Color.fromARGB(0, 0, 0, 0),
-                height: dividerHeight,
-              ),
-              Padding(
-                  padding: EdgeInsets.only(left: padding, right: padding),
-                  child: SizedBox(
-                      height: categoriesWidgetHeight,
-                      child: categories_widget.CategoriesWidget(
-                        // Use the aliased widget here
-                        widgetHeight: categoriesWidgetHeight,
-                        onArtifactAdded: controller.addArtifactToCurrentBoard,
-                        artefactController: artifactController,
-                      )))
-            ],
+            ),
           ),
-        ),
+
+          // Gray scrim over the whole app; tap to close
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !_hubOpen,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 250),
+                opacity: _hubOpen ? 1 : 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _hubOpen = false),
+                  child: Container(color: Colors.black45),
+                ),
+              ),
+            ),
+          ),
+
+          // Side panel, lined up with the board box
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            top: panelTop,
+            height: panelHeight,
+            width: panelWidth,
+            // extra 40 keeps the shadow off-screen while closed
+            left: _hubOpen ? boxLeft : -panelWidth - 40,
+            child: IgnorePointer(
+              ignoring: !_hubOpen,
+              child: TeachersHubPanel(
+                borderRadius: BorderRadius.horizontal(
+                  left: Radius.circular(boxRadius),
+                ),
+                onBoards: () {
+                  setState(() => _hubOpen = false);
+                  _showBoardSelection();
+                },
+                onSettings: () {
+                  setState(() => _hubOpen = false);
+                  Navigator.of(context).pushNamed('/settings');
+                },
+                onLogout: () {
+                  setState(() => _hubOpen = false);
+                  widget.authController.logout(context);
+                },
+              ),
+            ),
+          ),
+
+          // Burger tab: sits on the box's top-left corner, rides the panel edge
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            top: panelTop,
+            left: _hubOpen ? boxLeft + panelWidth : boxLeft,
+            child: Material(
+              color: Colors.white,
+              clipBehavior: Clip.antiAlias,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(_hubOpen ? 0 : boxRadius),
+                bottomRight: const Radius.circular(12),
+              ),
+              child: IconButton(
+                tooltip: 'Lærer Hub',
+                iconSize: screenWidth > 600 ? 35 : 28,
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => setState(() => _hubOpen = !_hubOpen),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
+  }
