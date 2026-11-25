@@ -343,6 +343,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
             child: IgnorePointer(
               ignoring: !_hubOpen,
               child: TeachersHubPanel(
+                isOpen: _hubOpen,
                 borderRadius: BorderRadius.horizontal(
                   left: Radius.circular(boxRadius),
                 ),
