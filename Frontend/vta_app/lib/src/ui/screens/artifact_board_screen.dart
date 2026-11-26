@@ -8,8 +8,6 @@ import 'package:vta_app/src/modelsDTOs/category.dart';
 import '../widgets/board/relational_board_button.dart';
 import '../widgets/board/quickchat.dart';
 import '../widgets/board/quick_add_artefact.dart';
-import '../widgets/categories/categories_widget.dart'
-    as categories_widget; // Aliased import
 import 'package:vta_app/src/modelsDTOs/user.dart' as user_model;
 import 'package:vta_app/src/ui/widgets/board/talking_mat.dart';
 import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
@@ -17,6 +15,7 @@ import 'package:vta_app/src/ui/widgets/board/linear_board.dart';
 import 'package:vta_app/src/ui/screens/boards_view.dart';
 import 'package:vta_app/src/ui/screens/teachers_hub_panel.dart';
 import 'package:vta_app/src/ui/widgets/board/board_bar.dart';
+import 'package:vta_app/src/ui/widgets/board/billeder_view.dart';
 import 'package:logging/logging.dart';
 
 final _log = Logger('ArtifactBoardScreen');
@@ -44,11 +43,13 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
 
   bool _hubOpen = false;
   bool _boardsOpen = false;
+  bool _billederOpen = false;
 
   void _closeHub() {
     setState(() {
       _hubOpen = false;
       _boardsOpen = false;
+      _billederOpen = false;
     });
   }
 
@@ -161,7 +162,6 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return user;
   }
 
-
   @override
   Widget build(BuildContext context) {
     var artifactController = widget.artifactController;
@@ -191,7 +191,7 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     return _buildPage(context);
   }
 
-        Scaffold _buildPage(BuildContext context) {
+  Scaffold _buildPage(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
     double safeTop = MediaQuery.of(context).padding.top;
@@ -213,14 +213,14 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
     double panelTop = safeTop + boxMarginY;
     double panelHeight = boardAreaHeight - boxMarginY * 2;
 
-    // Boards view fills the rest of the box to the right of the panel
+    // Boards/Billeder views fill the rest of the box to the right of the panel
     double boardsLeft = boxLeft + panelWidth;
     double boardsWidth = screenWidth - boxLeft * 2 - panelWidth;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Main content (unchanged, minus the panel and burger)
+          // Main content
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -293,21 +293,22 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
                       height: dividerHeight,
                     ),
                     Padding(
-                        padding:
-                            EdgeInsets.only(left: padding, right: padding),
-                        child: SizedBox(
-                            height: categoriesWidgetHeight,
-                            child: BoardBar(
-                              widgetHeight: categoriesWidgetHeight,
-                              controller: controller,
-                            ),))
+                      padding: EdgeInsets.only(left: padding, right: padding),
+                      child: SizedBox(
+                        height: categoriesWidgetHeight,
+                        child: BoardBar(
+                          widgetHeight: categoriesWidgetHeight,
+                          controller: controller,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Gray scrim over the whole app; tap to close
+          // Gray scrim over the whole app
           Positioned.fill(
             child: IgnorePointer(
               ignoring: !_hubOpen,
@@ -336,11 +337,20 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
               ignoring: !_hubOpen,
               child: TeachersHubPanel(
                 isOpen: _hubOpen,
-                selectedTab: _boardsOpen ? HubTab.boards : null,
+                selectedTab: _boardsOpen
+                    ? HubTab.boards
+                    : (_billederOpen ? HubTab.images : null),
                 borderRadius: BorderRadius.horizontal(
                   left: Radius.circular(boxRadius),
                 ),
-                onBoards: () => setState(() => _boardsOpen = true),
+                onBoards: () => setState(() {
+                  _boardsOpen = true;
+                  _billederOpen = false;
+                }),
+                onImages: () => setState(() {
+                  _billederOpen = true;
+                  _boardsOpen = false;
+                }),
                 onSettings: () {
                   _closeHub();
                   Navigator.of(context).pushNamed('/settings');
@@ -398,8 +408,32 @@ class _ArtifactBoardScreenState extends State<ArtifactBoardScreen> {
               ),
             ),
           ),
+
+          // Billeder
+          Positioned(
+            top: panelTop,
+            height: panelHeight,
+            left: boardsLeft,
+            width: boardsWidth,
+            child: IgnorePointer(
+              ignoring: !_billederOpen,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _billederOpen ? 1 : 0,
+                child: BillederView(
+                  isOpen: _billederOpen,
+                  artefactController: artifactController,
+                  onArtifactAdded: controller.addArtifactToCurrentBoard,
+                  onClose: _closeHub,
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(boxRadius),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-  }
+}
