@@ -9,9 +9,9 @@ public partial class ArtefactBoard
 
     public int ImageId { get; set; }
 
-    public double PosX { get; set; }
+    public float PosX { get; set; }
 
-    public double PosY { get; set; }
+    public float PosY { get; set; }
 
     public int GridX { get; set; }
 
