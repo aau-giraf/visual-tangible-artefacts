@@ -306,8 +306,10 @@ public static class TempDbTestRoutes
 
     public static WebApplication UseTempDebug(this WebApplication app)
     {
-        Console.WriteLine($"Conn string: {app.Configuration.GetConnectionString("VTAConnectionString") ?? "NOT FOUND"}");
-        Console.WriteLine($"Dummy conn string: {app.Configuration.GetConnectionString("DummyCoreConnectionString") ?? "NOT FOUND"}");
+        Console.WriteLine("[DEBUG] VTAConnectionString:");
+        Console.WriteLine($"[DEBUG] {app.Configuration.GetConnectionString("VTAConnectionString") ?? "NOT FOUND"}");
+        Console.WriteLine("[DEBUG] DummyCoreConnectionString:");
+        Console.WriteLine($"[DEBUG] {app.Configuration.GetConnectionString("DummyCoreConnectionString") ?? "NOT FOUND"}");
 
 
         var assemblyPath = Assembly.GetExecutingAssembly().Location;
