@@ -14,55 +14,37 @@ namespace VTA.API.Controllers
 {
     public class ArtefactHandler
     {
-        private readonly VtaDevContext _VtaDevContext;
-            
-        public ArtefactHandler(VtaDevContext vtaDevContext)
-        {
-            _VtaDevContext = vtaDevContext; 
-        }
-
-
+        
         // Get specific artefact for a board.
-        // ab = ArtefactBoards
-        // a = Artefacts
-        public async Task<ArtefactsDto?> GetArtefact(int imageId, int boardId, int userId)
+        public async Task<IResult> GetArtefact(int imageId, int boardId, VtaDevContext db)
         {
-            return await (
-                from ab in _VtaDevContext.ArtefactBoards
-                join a in _VtaDevContext.Artefacts
-                    on ab.ImageId equals a.ImageId 
+            
+            var artefact = await db.Artefacts.FindAsync(imageId);
+            var artefactBoard = await db.ArtefactBoards.FindAsync(boardId);
 
-                 where ab.BoardId == boardId 
-                 && ab.Board.UserId == userId
-                 && a.ImageId == imageId
+            if (artefact != null && artefactBoard != null && (artefact.ImageId == artefactBoard.ImageId)){
 
-                select new ArtefactsDto 
-                {
-                    ImageId = a.ImageId,
-                    UseCount = a.UseCount,
-                }
-            ).FirstOrDefaultAsync();
+                return TypedResults.Ok(new ArtefactsDto(artefact));
+            } else {
+                return TypedResults.NotFound();
+            }
         }
 
         // Gets all artefacts belonging to a board.
-        // ab = ArtefactBoards
-        // a = Artefacts
-        public async Task<List<ArtefactsDto>> GetAllArtefacts(int boardId, int userId)
+        public async Task<IResult> GetAllArtefacts(int boardId, int imageId, VtaDevContext db)
         {
-            return await (
-                from ab in _VtaDevContext.ArtefactBoards
-                join a in _VtaDevContext.Artefacts
-                    on ab.ImageId equals a.ImageId
-                
-                where ab.BoardId == boardId
-                && ab.Board.UserId == userId
+            var artefactBoard = await db.ArtefactBoards.FindAsync(boardId);
+            if (artefactBoard != null)
+            {
+               var artefacts = await db.Artefacts
+                .Where (artefact => artefactBoard.ImageId == imageId)
+                .Select (artefact => new ArtefactsDto(artefact))
+                .ToListAsync(); 
 
-                select new ArtefactsDto 
-                {
-                    ImageId = a.ImageId,
-                    UseCount = a.UseCount,
-                }
-            ).ToListAsync();
+                return TypedResults.Ok(artefacts);
+            } else {
+                return TypedResults.NotFound();
+            }
         }
     }
 }
